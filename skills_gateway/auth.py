@@ -27,6 +27,7 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.responses import JSONResponse
 
 from skills_gateway.config import GatewayConfig
+from skills_gateway.logging import log_event
 
 
 logger = logging.getLogger("skills-gateway")
@@ -97,6 +98,7 @@ class DevNoneOAuthProvider(OAuthProvider):
     def get_middleware(self):
         class DevNoneBackend(BearerAuthBackend):
             async def authenticate(self, conn):
+                log_event("auth_success", "dev-none auto-auth", auth_mode="dev-none")
                 return AuthCredentials(["mcp"]), AuthenticatedUser(
                     AccessToken(
                         token="dev-none",
@@ -229,15 +231,19 @@ class CloudflareAccessOAuthProvider(OAuthProvider):
     async def load_access_token(self, token: str) -> AccessToken | None:
         local_token = self._access_tokens.get(token)
         if local_token and (local_token.expires_at is None or local_token.expires_at > time.time()):
+            log_event("auth_success", "local token validated", auth_mode=self._cfg.auth.mode)
             return local_token
         if self._jwks_client is None:
+            log_event("auth_failure", "no JWKS client configured, token rejected", auth_mode=self._cfg.auth.mode)
             return None
         try:
             signing_key = self._jwks_client.get_signing_key_from_jwt(token)
             claims = jwt.decode(token, signing_key.key, algorithms=["RS256"],
                                 audience=self._cfg.auth.cloudflare_aud,
                                 issuer=f"https://{self._cfg.auth.cloudflare_team_domain}")
-        except jwt.PyJWTError:
+            log_event("auth_success", "Cloudflare Access JWT validated", auth_mode=self._cfg.auth.mode)
+        except jwt.PyJWTError as e:
+            log_event("auth_failure", f"JWT validation failed: {type(e).__name__}", auth_mode=self._cfg.auth.mode)
             return None
         return AccessToken(
             token=token,
@@ -291,6 +297,7 @@ class CloudflareAccessOAuthProvider(OAuthProvider):
                     )
                 )
                 if is_docker_internal:
+                    log_event("auth_success", "internal Docker IP bypass", auth_mode="internal-only", client_host=client_host)
                     return AuthCredentials(["mcp"]), AuthenticatedUser(
                         AccessToken(
                             token="internal",
