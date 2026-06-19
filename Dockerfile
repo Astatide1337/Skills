@@ -11,10 +11,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 
 COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen --no-dev
-
 COPY server.py ./
 COPY skills_gateway/ ./skills_gateway/
+RUN uv sync --frozen --no-dev
 
 ENV SKILLS_DIR=/skills
 ENV PATH="/app/.venv/bin:$PATH"

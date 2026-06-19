@@ -38,4 +38,22 @@ All 10 HTTP endpoints return 200 with expected JSON bodies. No errors in gateway
 
 ## Docker Compose
 
-Not yet verified (requires Docker daemon). See DEPLOYMENT.md for instructions.
+Verified 2026-06-19:
+
+```
+PORT=18091 docker compose up -d --build
+```
+
+Container status: **healthy** (Docker healthcheck passing)
+
+| Endpoint | Docker Status |
+|----------|--------------|
+| `/health` | 200 |
+| `/ready` | 200 |
+| `/version` | 200 |
+| `/inventory` | 200 |
+| `/metrics` | 200 |
+| `/docs` | 200 |
+
+All endpoints serve correct JSON. Port 8091 may conflict with Docker MCP
+Gateway; use `PORT=18091` or another free port.
