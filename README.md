@@ -1,78 +1,78 @@
-# Skills MCP Gateway
+# Skills Gateway
 
-An MCP server implementing the [Agent Skills](https://github.com/anthropics/agent-skills) open standard. Exposes skill knowledge as MCP resources and discovery tools, with Cloudflare Access OAuth for authentication.
-
-## Architecture
-
-```
-┌──────────────┐     ┌─────────────┐     ┌───────────────┐     ┌──────────┐
-│ MCP Client   │────▶│ Cloudflare  │────▶│ Skills MCP    │────▶│ ~/skills/│
-│ (ChatGPT,    │     │ Access +    │     │ Gateway       │     │ (skills  │
-│  Claude)     │◀────│ Tunnel      │◀────│ :8091/mcp     │◀────│  dir)    │
-└──────────────┘     └─────────────┘     └───────────────┘     └──────────┘
-                                              │
-                                         ┌────▼────┐
-                                         │ Docker  │
-                                         │ Gateway │
-                                         │ (internal│
-                                         │  mcp)   │
-                                         └─────────┘
-```
-
-- **External clients** authenticate via Cloudflare Access at the edge, then complete the MCP OAuth flow for a Bearer token
-- **Internal Docker gateway** connects directly via Docker DNS — auth is bypassed for Docker-internal IPs
-
-## Features
-
-- **Skill discovery**: `skills_list`, `skills_search`, `skills_inspect` tools
-- **Skill reading**: `skill_read` — fetch individual skill files on demand
-- **MCP resources**: `skill://{path}` — every skill file registered as a resource
-- **OAuth**: Full authorization code flow with PKCE, Cloudflare JWT verification, dynamic client registration
-- **Containerized**: Docker image with `uv` for fast, reproducible builds
+A production-grade MCP gateway that exposes skills as tools and resources via the Model Context Protocol.
 
 ## Quick Start
 
 ```bash
-cp .env.example .env
-# Edit .env with your Cloudflare Access credentials
-docker build -t skills-mcp .
-docker run -d \
-  -p 127.0.0.1:8091:8091 \
-  -v /path/to/skills:/skills \
-  --env-file .env \
-  skills-mcp
+# Install dependencies
+uv sync
+
+# Run with dev auth (no authentication)
+AUTH_MODE=dev-none SKILLS_DIR=~/skills uv run skills-gateway run
+
+# Or use the CLI
+skills-gateway run --auth-mode dev-none --skills-dir ~/skills
 ```
 
-## Environment Variables
+## CLI Commands
 
-| Variable | Description |
-|---|---|
-| `PUBLIC_BASE_URL` | Public-facing URL (e.g. `https://skills.example.com`) |
-| `MCP_PATH` | MCP endpoint path (default `/mcp`) |
-| `CLOUDFLARE_TEAM_DOMAIN` | Cloudflare Access team domain |
-| `CLOUDFLARE_AUD` | Cloudflare Access audience tag |
-| `SKILLS_DIR` | Path to skills directory (default `/skills`) |
-
-## Tools
-
-| Tool | Description |
-|---|---|
-| `skills_list` | List all available skills with full metadata |
-| `skills_search` | Search skills by name and description |
-| `skills_inspect` | Get full metadata and file tree for a skill |
-| `skill_read` | Read an individual skill file by path |
-
-## Skills Directory Structure
-
-```
-~/skills/
-├── my-skill/
-│   ├── SKILL.md          # Required: YAML frontmatter + markdown
-│   ├── instructions.md
-│   └── examples/
-│       └── example.js
-└── another-skill/
-    └── SKILL.md
+```bash
+skills-gateway run                          # Start the gateway server
+skills-gateway validate --skills-dir ./skill  # Validate skill manifests
+skills-gateway list --skills-dir ./skills     # List available skills
+skills-gateway inspect <skill-name>         # Inspect a single skill
+skills-gateway doctor                       # Check configuration health
+skills-gateway version                      # Show version info
 ```
 
-Each skill is a subdirectory with a `SKILL.md` containing YAML frontmatter (name, description, version, etc.). All files within are accessible via `skill_read` or the `skill://` resource URI.
+## Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /mcp` | Streamable HTTP MCP endpoint |
+| `GET /health` | Process liveness |
+| `GET /ready` | Readiness checks |
+| `GET /version` | Version and build info |
+| `GET /inventory` | Skills inventory |
+| `GET /metrics` | Prometheus metrics |
+| `GET /docs` | Documentation index |
+
+## MCP Tools
+
+- `skills_list` — List all available skills
+- `skills_search` — Search skills by name/description
+- `skills_inspect` — Get full metadata and file tree
+- `skill_read` — Read a skill file by path
+
+## Configuration
+
+See [docs/CONFIG.md](docs/CONFIG.md) for full configuration reference.
+
+## Docker Deployment
+
+```bash
+docker compose up -d --build
+docker compose ps
+curl http://localhost:8091/health
+```
+
+## Architecture
+
+```
+skills_gateway/
+  config.py     — GatewayConfig, YAML loading, layered resolution
+  auth.py       — Auth providers (Cloudflare Access, dev-none, internal-only)
+  skills.py     — Skill parsing, catalog, validation
+  resources.py  — MCP resource registration
+  tools.py      — MCP tool registration
+  routes.py     — HTTP endpoints (health, ready, version, inventory, metrics, docs)
+  server.py     — App creation and run entry point
+  cli.py        — CLI via typer
+  logging.py    — Structured JSON/text logging
+  metrics.py    — Prometheus metrics collection
+```
+
+## License
+
+See individual skill directories for license information.
