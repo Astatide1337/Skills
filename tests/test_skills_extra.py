@@ -19,6 +19,13 @@ name: my-skill
 description: A test skill
 metadata:
   version: "1.0.0"
+allowed-tools:
+  - skills_list
+tags:
+  - test
+author: agent
+license: MIT
+compatibility: ">=0.1.0"
 ---
 
 Content here
@@ -38,10 +45,25 @@ metadata:
 Content
 """)
         errors = validate_skills(tmp_path)
-        assert len(errors) == 1
-        assert "name" in errors[0]
+        required_errors = [e for e in errors if "required" in e]
+        assert any("name" in e for e in required_errors)
 
-    def test_missing_version_recommended(self, tmp_path):
+    def test_missing_description_field(self, tmp_path):
+        skill_dir = tmp_path / "no-desc-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("""---
+name: no-desc-skill
+metadata:
+  version: "1.0.0"
+---
+
+Content
+""")
+        errors = validate_skills(tmp_path)
+        required_errors = [e for e in errors if "required" in e]
+        assert any("description" in e for e in required_errors)
+
+    def test_missing_version_required(self, tmp_path):
         skill_dir = tmp_path / "no-version-skill"
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text("""---
@@ -52,8 +74,8 @@ description: No version
 Content
 """)
         errors = validate_skills(tmp_path)
-        assert len(errors) == 1
-        assert "version" in errors[0]
+        required_errors = [e for e in errors if "required" in e]
+        assert any("version" in e for e in required_errors)
 
     def test_invalid_yaml_frontmatter(self, tmp_path):
         skill_dir = tmp_path / "bad-yaml"
@@ -78,10 +100,71 @@ Content
         errors = validate_skills(tmp_path / "nonexistent")
         assert errors == []
 
+    def test_risk_level_valid(self, tmp_path):
+        skill_dir = tmp_path / "risk-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("""---
+name: risk-skill
+description: test
+metadata:
+  version: "1.0.0"
+risk_level: medium
+---
+
+Content
+""")
+        errors = validate_skills(tmp_path)
+        required_errors = [e for e in errors if "risk_level" in e.lower()]
+        assert required_errors == []
+
+    def test_risk_level_invalid(self, tmp_path):
+        skill_dir = tmp_path / "bad-risk"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("""---
+name: bad-risk
+description: test
+metadata:
+  version: "1.0.0"
+risk_level: critical
+---
+
+Content
+""")
+        errors = validate_skills(tmp_path)
+        assert any("risk_level" in e for e in errors)
+
+    def test_recommended_field_warnings(self, tmp_path):
+        skill_dir = tmp_path / "minimal-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("""---
+name: minimal-skill
+description: bare minimum
+metadata:
+  version: "1.0.0"
+---
+
+Content
+""")
+        errors = validate_skills(tmp_path)
+        warnings = [e for e in errors if "recommended" in e]
+        assert len(warnings) > 0
+
+    def test_fixtures_valid_skill(self):
+        from skills_gateway.skills import validate_skills
+        errors = validate_skills(Path("tests/fixtures/skills"))
+        valid_errors = [e for e in errors if e.startswith("valid-skill:") and "required" in e]
+        assert valid_errors == []
+
+    def test_fixtures_invalid_skill(self):
+        from skills_gateway.skills import validate_skills
+        errors = validate_skills(Path("tests/fixtures/skills"))
+        invalid_errors = [e for e in errors if "invalid-skill" in e]
+        assert len(invalid_errors) > 0
+
     def test_multiple_skills_mixed(self, tmp_path):
         good = tmp_path / "good-skill"
         good.mkdir()
-        (good / "SKILL.md").write_text("---\nname: good-skill\nmetadata:\n  version: \"1.0\"\n---\n")
+        (good / "SKILL.md").write_text("---\nname: good-skill\ndescription: good\nmetadata:\n  version: \"1.0\"\n---\n")
 
         bad = tmp_path / "bad-skill"
         bad.mkdir()
@@ -91,8 +174,9 @@ Content
         skip.mkdir()
 
         errors = validate_skills(tmp_path)
-        assert len(errors) == 1
-        assert "bad-skill" in errors[0]
+        required_errors = [e for e in errors if "required" in e]
+        assert len(required_errors) >= 2
+        assert any("bad-skill" in e for e in required_errors)
 
 
 class TestGetSkillsCatalogWithProfile:
