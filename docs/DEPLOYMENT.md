@@ -13,9 +13,9 @@ AUTH_MODE=dev-none SKILLS_DIR=~/skills uv run skills-gateway run
 ## Docker Compose
 
 ```bash
-# Copy and edit env file
+# REQUIRED: Copy and edit env file before first run
 cp .env.example .env
-# Edit .env with your settings
+# Edit .env with your settings (at minimum, set AUTH_MODE)
 
 # Build and start
 docker compose up -d --build

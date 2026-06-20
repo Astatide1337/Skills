@@ -19,7 +19,7 @@ def register_tools(mcp: FastMCP, skills_dir: Path, cfg: GatewayConfig):
         catalog = get_skills_catalog(skills_dir)
         if cfg.active_profile and cfg.active_profile in cfg.profiles:
             allowed = set(cfg.profiles[cfg.active_profile].skills)
-            catalog = [s for s in catalog if s["name"] in allowed]
+            catalog = [s for s in catalog if s["id"] in allowed]
         results = []
         query_lower = query.lower()
         for skill in catalog:
@@ -79,7 +79,7 @@ def register_tools(mcp: FastMCP, skills_dir: Path, cfg: GatewayConfig):
         catalog = get_skills_catalog(skills_dir)
         if cfg.active_profile and cfg.active_profile in cfg.profiles:
             allowed = set(cfg.profiles[cfg.active_profile].skills)
-            catalog = [s for s in catalog if s["name"] in allowed]
+            catalog = [s for s in catalog if s["id"] in allowed]
         return json.dumps(catalog, indent=2)
 
     @mcp.tool()
@@ -91,6 +91,12 @@ def register_tools(mcp: FastMCP, skills_dir: Path, cfg: GatewayConfig):
         if ".." in path.split("/") or path.startswith("/"):
             return json.dumps({"error": "Invalid path"})
         file_path = skills_dir / path
+        try:
+            resolved_file = file_path.resolve()
+            resolved_skills_dir = skills_dir.resolve()
+            resolved_file.relative_to(resolved_skills_dir)
+        except (ValueError, OSError):
+            return json.dumps({"error": "Invalid path"})
         if not file_path.exists() or not file_path.is_file():
             return json.dumps({"error": f"File '{path}' not found"})
         return file_path.read_bytes().decode("utf-8", errors="replace")

@@ -23,14 +23,17 @@ def app_client(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def app_client_with_skills(monkeypatch):
+def app_client_with_skills(tmp_path, monkeypatch):
     for var in ("CLOUDFLARE_TEAM_DOMAIN", "CLOUDFLARE_AUD", "AUTH_MODE", "SKILLS_DIR", "SKG_CONFIG"):
         monkeypatch.delenv(var, raising=False)
     metrics.reset()
+    skill_dir = tmp_path / "example-skill"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text("---\nname: example-skill\ndescription: Example from test fixture\nmetadata:\n  version: \"1.0.0\"\n---\n# Example\n")
     cfg = GatewayConfig(
         service=ServiceConfig(),
         auth=AuthConfig(mode="dev-none"),
-        skills=SkillsConfig(dir="/home/ubuntu/skills"),
+        skills=SkillsConfig(dir=str(tmp_path)),
     )
     mcp = create_app(cfg)
     app = mcp.http_app(transport="streamable-http")

@@ -96,7 +96,7 @@ def register_routes(mcp, cfg: GatewayConfig):
     async def inventory(request):
         skills_path = Path(cfg.skills.dir).expanduser()
         catalog = get_skills_catalog(skills_path)
-        skill_errors = validate_skills(skills_path)
+        result = validate_skills(skills_path)
         resources_count = 0
         if skills_path.exists():
             for _ in skills_path.rglob("*"):
@@ -105,7 +105,8 @@ def register_routes(mcp, cfg: GatewayConfig):
             "service": "skills-gateway",
             "type": "skills",
             "skills_count": len(catalog),
-            "skills_invalid_count": len(skill_errors),
+            "skills_invalid_count": len(result["errors"]),
+            "skills_warnings_count": len(result["warnings"]),
             "resources_count": resources_count,
             "tools": ["skills_list", "skills_search", "skills_inspect", "skill_read"],
             "profiles": list(cfg.profiles.keys()),
@@ -122,12 +123,12 @@ def register_routes(mcp, cfg: GatewayConfig):
 
         skills_path = Path(cfg.skills.dir).expanduser()
         catalog = get_skills_catalog(skills_path)
-        skill_errors = validate_skills(skills_path)
+        result = validate_skills(skills_path)
 
         metrics.set_gauge("skills_gateway_up", 1)
         metrics.set_gauge("skills_gateway_ready", 1)
         metrics.set_gauge("skills_total", len(catalog))
-        metrics.set_gauge("skills_invalid_total", len(skill_errors))
+        metrics.set_gauge("skills_invalid_total", len(result["errors"]))
 
         return PlainTextResponse(metrics.expose(), media_type="text/plain; version=0.0.4")
 

@@ -32,12 +32,15 @@ class TestValidateCommand:
 
 
 class TestListCommand:
-    def test_list_with_skills(self, monkeypatch):
+    def test_list_with_skills(self, tmp_path, monkeypatch):
         for var in CF_ENV_VARS:
             monkeypatch.delenv(var, raising=False)
-        result = runner.invoke(app, ["list", "--config", "/dev/null", "--auth-mode", "dev-none", "--skills-dir", "/home/ubuntu/skills"])
+        skill_dir = tmp_path / "my-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("---\nname: my-skill\ndescription: Test skill\nmetadata:\n  version: \"1.0.0\"\n---\n")
+        result = runner.invoke(app, ["list", "--config", "/dev/null", "--auth-mode", "dev-none", "--skills-dir", str(tmp_path)])
         assert result.exit_code == 0
-        assert "react-best-practices" in result.stdout or "distributed-tracing" in result.stdout
+        assert "my-skill" in result.stdout
 
     def test_list_empty_dir(self, tmp_path, monkeypatch):
         for var in CF_ENV_VARS:
@@ -48,12 +51,15 @@ class TestListCommand:
 
 
 class TestInspectCommand:
-    def test_inspect_existing_skill(self, monkeypatch):
+    def test_inspect_existing_skill(self, tmp_path, monkeypatch):
         for var in CF_ENV_VARS:
             monkeypatch.delenv(var, raising=False)
-        result = runner.invoke(app, ["inspect", "react-best-practices", "--config", "/dev/null", "--skills-dir", "/home/ubuntu/skills"])
+        skill_dir = tmp_path / "demo-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("---\nname: demo-skill\ndescription: Demo\nmetadata:\n  version: \"1.0.0\"\n---\n")
+        result = runner.invoke(app, ["inspect", "demo-skill", "--config", "/dev/null", "--skills-dir", str(tmp_path)])
         assert result.exit_code == 0
-        assert "vercel-react-best-practices" in result.stdout
+        assert "demo-skill" in result.stdout
 
     def test_inspect_nonexistent_skill(self, monkeypatch):
         for var in CF_ENV_VARS:

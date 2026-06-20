@@ -40,10 +40,14 @@ def create_app(cfg: GatewayConfig) -> FastMCP:
     register_tools(mcp, skills_path, cfg)
     from skills_gateway.skills import get_skills_catalog, validate_skills
     catalog = get_skills_catalog(skills_path)
-    skill_errors = validate_skills(skills_path)
-    log_event("skill_scan_completed", f"Found {len(catalog)} skills, {len(skill_errors)} invalid", skills_count=len(catalog), skills_invalid_count=len(skill_errors))
+    result = validate_skills(skills_path)
+    skill_errors = result["errors"]
+    skill_warnings = result["warnings"]
+    log_event("skill_scan_completed", f"Found {len(catalog)} skills, {len(skill_errors)} invalid, {len(skill_warnings)} warnings", skills_count=len(catalog), skills_invalid_count=len(skill_errors), skills_warnings_count=len(skill_warnings))
     for err in skill_errors:
         log_event("skill_invalid", err, level="WARNING")
+    for warn in skill_warnings:
+        log_event("skill_warning", warn, level="WARNING")
 
     log_event("auth_mode_set", f"Auth mode: {cfg.auth.mode}", auth_mode=cfg.auth.mode)
     if cfg.active_profile:

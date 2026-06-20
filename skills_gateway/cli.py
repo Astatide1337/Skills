@@ -114,17 +114,26 @@ def validate(
     skills_path = Path(cfg.skills.dir).expanduser()
     if skills_path.exists():
         from skills_gateway.skills import validate_skills
-        skill_errors = validate_skills(skills_path)
-        all_errors.extend(skill_errors)
+        result = validate_skills(skills_path)
+        all_errors.extend(result["errors"])
     else:
         all_errors.append(f"skills.dir '{cfg.skills.dir}' does not exist")
 
     if all_errors:
         for e in all_errors:
             typer.echo(f"FAIL: {e}", err=True)
+
+    if skills_path.exists():
+        for w in result["warnings"]:
+            typer.echo(f"WARN: {w}", err=True)
+
+    if all_errors:
         raise typer.Exit(code=2)
     else:
-        typer.echo("OK: all checks passed")
+        if skills_path.exists() and result["warnings"]:
+            typer.echo("OK: all checks passed (with warnings)")
+        else:
+            typer.echo("OK: all checks passed")
 
 
 @app.command(name="list")
@@ -141,7 +150,7 @@ def list_skills(
 
     if cfg.active_profile and cfg.active_profile in cfg.profiles:
         allowed = set(cfg.profiles[cfg.active_profile].skills)
-        catalog = [s for s in catalog if s["name"] in allowed]
+        catalog = [s for s in catalog if s["id"] in allowed]
 
     if not catalog:
         typer.echo("No skills found")
@@ -207,8 +216,13 @@ def doctor(
 
     if skills_path.exists():
         from skills_gateway.skills import validate_skills
-        skill_errors = validate_skills(skills_path)
-        checks["skills_scan"] = "ok" if not skill_errors else f"failed: {len(skill_errors)} invalid skill(s)"
+        result = validate_skills(skills_path)
+        if result["errors"]:
+            checks["skills_scan"] = f"failed: {len(result['errors'])} invalid skill(s)"
+        elif result["warnings"]:
+            checks["skills_scan"] = f"ok ({len(result['warnings'])} warnings)"
+        else:
+            checks["skills_scan"] = "ok"
     else:
         checks["skills_scan"] = "skipped (skills_dir missing)"
 

@@ -27,6 +27,7 @@ def get_skills_catalog(skills_dir: Path) -> list[dict]:
             frontmatter = parse_skill_frontmatter(entry)
             if frontmatter and frontmatter.get("name"):
                 catalog.append({
+                    "id": entry.name,
                     "name": frontmatter["name"],
                     "description": frontmatter.get("description", ""),
                     "version": frontmatter.get("metadata", {}).get("version", ""),
@@ -44,11 +45,11 @@ RECOMMENDED_FIELDS = ("allowed-tools", "tags", "author", "license", "compatibili
 REQUIRED_METADATA = ("version",)
 
 
-def validate_skills(skills_dir: Path) -> list[str]:
+def validate_skills(skills_dir: Path) -> dict[str, list[str]]:
     errors = []
     warnings = []
     if not skills_dir.exists():
-        return errors
+        return {"errors": errors, "warnings": warnings}
     for entry in sorted(skills_dir.iterdir()):
         if not entry.is_dir():
             continue
@@ -71,7 +72,7 @@ def validate_skills(skills_dir: Path) -> list[str]:
         risk = frontmatter.get("risk_level")
         if risk and risk not in ("low", "medium", "high"):
             errors.append(f"{entry.name}: invalid risk_level '{risk}' (must be low, medium, or high)")
-    return errors + warnings
+    return {"errors": errors, "warnings": warnings}
 
 
 def get_skill_file_tree(skill_dir: Path) -> list[str]:
