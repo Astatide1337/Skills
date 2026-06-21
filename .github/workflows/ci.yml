@@ -16,10 +16,10 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras
 
       - name: Compile check
-        run: uv run python -m compileall skills_gateway/ tests/
+        run: uv run python -m compileall -q skills_gateway/ tests/
 
       - name: Run tests
         run: uv run pytest tests/ -v
