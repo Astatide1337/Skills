@@ -17,17 +17,17 @@ class TestVersionCommand:
 
 
 class TestValidateCommand:
-    def test_validate_dev_none(self, monkeypatch):
+    def test_validate_dev_none(self, tmp_path, monkeypatch):
         for var in CF_ENV_VARS:
             monkeypatch.delenv(var, raising=False)
-        result = runner.invoke(app, ["validate", "--config", "/dev/null", "--auth-mode", "dev-none", "--skills-dir", "/tmp"])
+        result = runner.invoke(app, ["validate", "--config", "/dev/null", "--auth-mode", "dev-none", "--skills-dir", str(tmp_path)])
         assert result.exit_code == 0
         assert "OK" in result.stdout
 
-    def test_validate_missing_cf_creds(self, monkeypatch):
+    def test_validate_missing_cf_creds(self, tmp_path, monkeypatch):
         for var in CF_ENV_VARS:
             monkeypatch.delenv(var, raising=False)
-        result = runner.invoke(app, ["validate", "--config", "/dev/null", "--auth-mode", "cloudflare-access", "--skills-dir", "/tmp"])
+        result = runner.invoke(app, ["validate", "--config", "/dev/null", "--auth-mode", "cloudflare-access", "--skills-dir", str(tmp_path)])
         assert result.exit_code == 2
 
 
@@ -61,16 +61,16 @@ class TestInspectCommand:
         assert result.exit_code == 0
         assert "demo-skill" in result.stdout
 
-    def test_inspect_nonexistent_skill(self, monkeypatch):
+    def test_inspect_nonexistent_skill(self, tmp_path, monkeypatch):
         for var in CF_ENV_VARS:
             monkeypatch.delenv(var, raising=False)
-        result = runner.invoke(app, ["inspect", "nonexistent-skill", "--config", "/dev/null", "--skills-dir", "/tmp"])
+        result = runner.invoke(app, ["inspect", "nonexistent-skill", "--config", "/dev/null", "--skills-dir", str(tmp_path)])
         assert result.exit_code == 1
 
 
 class TestDoctorCommand:
-    def test_doctor_dev_none(self, monkeypatch):
+    def test_doctor_dev_none(self, tmp_path, monkeypatch):
         for var in CF_ENV_VARS:
             monkeypatch.delenv(var, raising=False)
-        result = runner.invoke(app, ["doctor", "--config", "/dev/null", "--auth-mode", "dev-none", "--skills-dir", "/tmp"])
+        result = runner.invoke(app, ["doctor", "--config", "/dev/null", "--auth-mode", "dev-none", "--skills-dir", str(tmp_path)])
         assert "config: ok" in result.stdout
