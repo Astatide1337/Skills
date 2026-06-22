@@ -11,19 +11,7 @@ test:
 	uv run pytest tests/ -v
 
 smoke:
-	@echo "Smoke test: starting gateway in background..."
-	@AUTH_MODE=dev-none SKILLS_DIR=$$(mktemp -d) uv run skills-gateway run & \
-	PID=$$!; \
-	sleep 3; \
-	S=0; \
-	curl -sf http://localhost:8091/health && echo " [health OK]" || S=1; \
-	curl -sf http://localhost:8091/ready && echo " [ready OK]" || S=1; \
-	curl -sf http://localhost:8091/version && echo " [version OK]" || S=1; \
-	curl -sf http://localhost:8091/inventory && echo " [inventory OK]" || S=1; \
-	curl -sf http://localhost:8091/metrics && echo " [metrics OK]" || S=1; \
-	kill $$PID 2>/dev/null || true; \
-	wait $$PID 2>/dev/null || true; \
-	exit $$S
+	bash scripts/smoke-test.sh
 
 verify: compile test
 

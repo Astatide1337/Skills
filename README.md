@@ -52,6 +52,7 @@ See [docs/CONFIG.md](docs/CONFIG.md) for full configuration reference.
 ## Docker Deployment
 
 ```bash
+cp .env.example .env   # required before first docker compose run
 docker compose up -d --build
 docker compose ps
 curl http://localhost:8091/health
