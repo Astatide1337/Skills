@@ -1,0 +1,27 @@
+services:
+  skills-gateway:
+    build:
+      context: .
+      args:
+        SKG_COMMIT: ${SKG_COMMIT:-unknown}
+        SKG_BUILD_TIME: ${SKG_BUILD_TIME:-unknown}
+    image: skills-gateway:latest
+    ports:
+      - "${PORT:-8091}:8091"
+    volumes:
+      - ${SKILLS_DIR:-./skills}:/skills:ro
+    env_file:
+      - .env
+    environment:
+      - SKILLS_DIR=/skills
+      - AUTH_MODE=${AUTH_MODE:-dev-none}
+      - SKG_ENVIRONMENT=${SKG_ENVIRONMENT:-production}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
