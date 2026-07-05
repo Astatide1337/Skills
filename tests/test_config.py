@@ -3,6 +3,32 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch
 
+CONFIG_ENV_VARS = (
+    "AUTH_MODE",
+    "CLOUDFLARE_TEAM_DOMAIN",
+    "CLOUDFLARE_AUD",
+    "PUBLIC_BASE_URL",
+    "INTERNAL_BYPASS",
+    "HOST",
+    "PORT",
+    "MCP_PATH",
+    "SKILLS_DIR",
+    "LOG_LEVEL",
+    "LOG_FORMAT",
+    "METRICS_ENABLED",
+    "SKG_CONFIG",
+    "SKG_ENVIRONMENT",
+    "SKG_PROFILE",
+    "SKG_CATALOG",
+)
+
+
+@pytest.fixture(autouse=True)
+def clean_config_env(monkeypatch):
+    for var in CONFIG_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+
+
 from skills_gateway.config import (
     load_config,
     validate_config,
