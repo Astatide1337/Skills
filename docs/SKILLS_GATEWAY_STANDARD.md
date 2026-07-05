@@ -386,33 +386,42 @@ JWTs, access tokens, refresh tokens, client secrets, and audience tags must neve
 
 ## 9. Skill Manifest Schema
 
-### Required Fields
+Skills are defined by YAML frontmatter in each skill directory's `SKILL.md`. The gateway normalizes that frontmatter into a canonical manifest shape.
+
+### Canonical Fields
 
 ```yaml
-name: string          # Required — unique skill identifier
-description: string   # Required — what the skill does
-metadata:
-  version: string     # Required — semantic version
-```
-
-### Recommended Fields
-
-```yaml
-allowed-tools: list   # Tools the skill may invoke
+id: string             # Optional — defaults to directory name; if present, must match directory name
+name: string           # Required — human-readable skill name
+description: string    # Required — what the skill does
+version: string        # Required, or use metadata.version
+entrypoint: string     # Optional — defaults to SKILL.md and must exist
+risk_level: low | medium | high
+allowed-tools: list    # Tools the skill may invoke
 tags: list             # Searchable tags
 author: string         # Skill author
 license: string        # License identifier
 compatibility: string  # Compatible platforms
-risk_level: low | medium | high
+files: list            # Additional files that must exist
+inputs: object         # Declared input schema/metadata
+outputs: object        # Declared output schema/metadata
+permissions: object    # Declared permission requirements
+metadata:
+  version: string      # Backward-compatible version location
 ```
 
 ### Validation
 
-- Skills missing required fields are flagged as invalid
-- Invalid skills do not crash the gateway
-- Invalid skill count appears in `/inventory`
-- `skills-gateway validate` reports all validation errors with file paths
-- `skills-gateway doctor` includes skill validation in readiness check
+- `name`, `description`, and version are required. Version may be top-level `version` or `metadata.version`.
+- `id` defaults to the skill directory name. If explicitly provided, it must match the directory name.
+- `entrypoint` defaults to `SKILL.md` and must point to an existing file.
+- Listed files must exist and must be strings.
+- `risk_level` must be `low`, `medium`, or `high`.
+- Skills missing required fields are flagged as invalid.
+- Invalid skills do not crash the gateway.
+- Invalid skill count appears in `/inventory`.
+- `skills-gateway validate` reports all validation errors with file paths.
+- `skills-gateway doctor` includes skill validation in readiness check.
 
 ---
 

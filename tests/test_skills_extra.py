@@ -100,6 +100,71 @@ Content
         errors = validate_skills(tmp_path / "nonexistent")
         assert errors["errors"] == []
 
+
+    def test_top_level_version_satisfies_required_version(self, tmp_path):
+        skill_dir = tmp_path / "top-version-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("""---
+name: top-version-skill
+description: Uses top-level version
+version: "1.2.3"
+---
+
+Content
+""")
+        result = validate_skills(tmp_path)
+        version_errors = [e for e in result["errors"] if "version" in e]
+        assert version_errors == []
+
+    def test_explicit_id_must_match_directory(self, tmp_path):
+        skill_dir = tmp_path / "dir-name"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("""---
+id: other-name
+name: dir-name
+description: ID mismatch
+metadata:
+  version: "1.0.0"
+---
+
+Content
+""")
+        result = validate_skills(tmp_path)
+        assert any("must match skill directory name" in e for e in result["errors"])
+
+    def test_entrypoint_must_exist(self, tmp_path):
+        skill_dir = tmp_path / "missing-entrypoint"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("""---
+name: missing-entrypoint
+description: bad entrypoint
+metadata:
+  version: "1.0.0"
+entrypoint: MISSING.md
+---
+
+Content
+""")
+        result = validate_skills(tmp_path)
+        assert any("entrypoint" in e and "does not exist" in e for e in result["errors"])
+
+    def test_listed_files_must_exist(self, tmp_path):
+        skill_dir = tmp_path / "missing-file"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("""---
+name: missing-file
+description: bad listed file
+metadata:
+  version: "1.0.0"
+files:
+  - scripts/run.py
+---
+
+Content
+""")
+        result = validate_skills(tmp_path)
+        assert any("listed file" in e and "does not exist" in e for e in result["errors"])
+
     def test_risk_level_valid(self, tmp_path):
         skill_dir = tmp_path / "risk-skill"
         skill_dir.mkdir()

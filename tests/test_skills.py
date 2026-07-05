@@ -2,7 +2,7 @@ import json
 import pytest
 from pathlib import Path
 
-from skills_gateway.skills import parse_skill_frontmatter, get_skills_catalog, get_skill_file_tree
+from skills_gateway.skills import parse_skill_frontmatter, get_skills_catalog, get_skill_file_tree, normalize_skill_manifest
 
 
 @pytest.fixture
@@ -86,6 +86,30 @@ class TestGetSkillsCatalog:
         assert skill_a["description"] == "A test skill"
         assert skill_a["version"] == "1.0.0"
         assert skill_a["path"] == "skill-a"
+
+
+
+    def test_catalog_normalizes_canonical_fields(self, skills_dir):
+        catalog = get_skills_catalog(skills_dir)
+        skill_a = next(s for s in catalog if s["id"] == "skill-a")
+        assert skill_a["entrypoint"] == "SKILL.md"
+        assert skill_a["risk_level"] == "low"
+        assert skill_a["allowed_tools"] == []
+
+    def test_normalize_supports_top_level_version_and_entrypoint(self, tmp_path):
+        d = tmp_path / "canonical-skill"
+        d.mkdir()
+        (d / "README.md").write_text("entry")
+        frontmatter = {
+            "name": "canonical-skill",
+            "description": "desc",
+            "version": "2.0.0",
+            "entrypoint": "README.md",
+        }
+        manifest = normalize_skill_manifest(d, frontmatter)
+        assert manifest["id"] == "canonical-skill"
+        assert manifest["version"] == "2.0.0"
+        assert manifest["entrypoint"] == "README.md"
 
 
 class TestGetSkillFileTree:

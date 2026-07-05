@@ -1,7 +1,14 @@
 import re
 from pathlib import Path
+from typing import Any
 
 import yaml
+
+
+VALID_RISK_LEVELS = ("low", "medium", "high")
+REQUIRED_FIELDS = ("name", "description")
+RECOMMENDED_FIELDS = ("allowed-tools", "tags", "author", "license", "compatibility")
+REQUIRED_METADATA = ("version",)
 
 
 def parse_skill_frontmatter(skill_dir: Path) -> dict | None:
@@ -13,9 +20,53 @@ def parse_skill_frontmatter(skill_dir: Path) -> dict | None:
     if not match:
         return None
     try:
-        return yaml.safe_load(match.group(1))
+        data = yaml.safe_load(match.group(1))
     except yaml.YAMLError:
         return None
+    return data if isinstance(data, dict) else None
+
+
+def _version_from_frontmatter(frontmatter: dict[str, Any]) -> str:
+    version = frontmatter.get("version")
+    if version:
+        return str(version)
+    metadata = frontmatter.get("metadata", {})
+    if isinstance(metadata, dict) and metadata.get("version"):
+        return str(metadata["version"])
+    return ""
+
+
+def normalize_skill_manifest(skill_dir: Path, frontmatter: dict[str, Any]) -> dict[str, Any]:
+    """Normalize SKILL.md frontmatter into the canonical skill manifest shape.
+
+    Backward compatibility:
+    - `id` defaults to the skill directory name.
+    - `entrypoint` defaults to `SKILL.md`.
+    - `version` may be top-level or `metadata.version`.
+    """
+    metadata = frontmatter.get("metadata", {})
+    if not isinstance(metadata, dict):
+        metadata = {}
+    entrypoint = str(frontmatter.get("entrypoint") or "SKILL.md")
+    return {
+        "id": str(frontmatter.get("id") or skill_dir.name),
+        "name": frontmatter.get("name", ""),
+        "description": frontmatter.get("description", ""),
+        "version": _version_from_frontmatter(frontmatter),
+        "entrypoint": entrypoint,
+        "license": frontmatter.get("license", ""),
+        "compatibility": frontmatter.get("compatibility", ""),
+        "allowed_tools": frontmatter.get("allowed-tools", []),
+        "risk_level": frontmatter.get("risk_level", "low"),
+        "tags": frontmatter.get("tags", []),
+        "files": frontmatter.get("files", []),
+        "inputs": frontmatter.get("inputs", {}),
+        "outputs": frontmatter.get("outputs", {}),
+        "permissions": frontmatter.get("permissions", {}),
+        "author": frontmatter.get("author", ""),
+        "path": skill_dir.name,
+        "metadata": metadata,
+    }
 
 
 def get_skills_catalog(skills_dir: Path) -> list[dict]:
@@ -26,23 +77,8 @@ def get_skills_catalog(skills_dir: Path) -> list[dict]:
         if entry.is_dir():
             frontmatter = parse_skill_frontmatter(entry)
             if frontmatter and frontmatter.get("name"):
-                catalog.append({
-                    "id": entry.name,
-                    "name": frontmatter["name"],
-                    "description": frontmatter.get("description", ""),
-                    "version": frontmatter.get("metadata", {}).get("version", ""),
-                    "license": frontmatter.get("license", ""),
-                    "compatibility": frontmatter.get("compatibility", ""),
-                    "allowed_tools": frontmatter.get("allowed-tools", ""),
-                    "path": str(entry.relative_to(skills_dir)),
-                    "metadata": frontmatter.get("metadata", {}),
-                })
+                catalog.append(normalize_skill_manifest(entry, frontmatter))
     return catalog
-
-
-REQUIRED_FIELDS = ("name", "description")
-RECOMMENDED_FIELDS = ("allowed-tools", "tags", "author", "license", "compatibility")
-REQUIRED_METADATA = ("version",)
 
 
 def validate_skills(skills_dir: Path) -> dict[str, list[str]]:
@@ -59,18 +95,41 @@ def validate_skills(skills_dir: Path) -> dict[str, list[str]]:
         if frontmatter is None:
             errors.append(f"{entry.name}: invalid SKILL.md — could not parse YAML frontmatter")
             continue
+
+        manifest = normalize_skill_manifest(entry, frontmatter)
+
         for field in REQUIRED_FIELDS:
-            if not frontmatter.get(field):
+            if not manifest.get(field):
                 errors.append(f"{entry.name}: missing required field '{field}' in frontmatter")
-        metadata = frontmatter.get("metadata", {})
-        if isinstance(metadata, dict):
-            if not metadata.get("version"):
-                errors.append(f"{entry.name}: missing required field 'metadata.version' in frontmatter")
+
+        explicit_id = frontmatter.get("id")
+        if explicit_id and explicit_id != entry.name:
+            errors.append(f"{entry.name}: id '{explicit_id}' must match skill directory name '{entry.name}'")
+
+        if not manifest["version"]:
+            errors.append(f"{entry.name}: missing required field 'metadata.version' or 'version' in frontmatter")
+
+        entrypoint = manifest["entrypoint"]
+        if not (entry / entrypoint).exists():
+            errors.append(f"{entry.name}: entrypoint '{entrypoint}' does not exist")
+
+        files = manifest.get("files", [])
+        if files and not isinstance(files, list):
+            errors.append(f"{entry.name}: field 'files' must be a list")
+            files = []
+        for listed_file in files:
+            if not isinstance(listed_file, str):
+                errors.append(f"{entry.name}: field 'files' entries must be strings")
+                continue
+            if not (entry / listed_file).exists():
+                errors.append(f"{entry.name}: listed file '{listed_file}' does not exist")
+
         for field in RECOMMENDED_FIELDS:
             if field not in frontmatter:
                 warnings.append(f"{entry.name}: missing recommended field '{field}' in frontmatter")
-        risk = frontmatter.get("risk_level")
-        if risk and risk not in ("low", "medium", "high"):
+
+        risk = manifest.get("risk_level")
+        if risk and risk not in VALID_RISK_LEVELS:
             errors.append(f"{entry.name}: invalid risk_level '{risk}' (must be low, medium, or high)")
     return {"errors": errors, "warnings": warnings}
 
