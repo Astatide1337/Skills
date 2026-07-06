@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Skills Gateway MCP Server - Agent Skills standard"
 requires-python = ">=3.12"
 dependencies = [
-    "fastmcp>=3.4.0",
+    "fastmcp>=2.14.7,<3.0.0",
     "python-dotenv>=1.2.2",
     "pyjwt>=2.13.0",
     "pyyaml>=6.0",
