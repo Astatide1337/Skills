@@ -1,8 +1,12 @@
+import json
 import os
+import secrets
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from starlette.responses import JSONResponse, PlainTextResponse
+from starlette.requests import Request
+from starlette.responses import JSONResponse, PlainTextResponse, RedirectResponse
 
 from skills_gateway.config import GatewayConfig, VERSION, validate_config
 from skills_gateway.skills import get_skills_catalog, validate_skills
@@ -38,6 +42,64 @@ def register_routes(mcp, cfg: GatewayConfig):
             "scopes_supported": ["mcp"],
             "bearer_methods_supported": ["header"],
         }, headers={"Cache-Control": "public, max-age=3600"})
+
+    _oauth_clients: dict = {}
+    _oauth_codes: dict = {}
+
+    @mcp.custom_route("/register", methods=["POST"])
+    async def register_client(request: Request):
+        ct = (request.headers.get("content-type") or "").lower()
+        if "application/json" in ct:
+            body = await request.json()
+        else:
+            form = await request.form()
+            body = dict(form)
+        raw_uris = body.get("redirect_uris", ["https://chatgpt.com/aip/mcp/oauth/callback"])
+        redirect_uris = [raw_uris] if isinstance(raw_uris, str) else list(raw_uris)
+        client_id = body.get("client_id") or secrets.token_urlsafe(32)
+        client_secret = secrets.token_urlsafe(48)
+        _oauth_clients[client_id] = {
+            "client_id": client_id, "client_secret": client_secret,
+            "client_id_issued_at": int(time.time()), "redirect_uris": redirect_uris,
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"], "token_endpoint_auth_method": "client_secret_post",
+            "scope": "mcp", "client_name": body.get("client_name", ""),
+        }
+        return JSONResponse(_oauth_clients[client_id])
+
+    @mcp.custom_route("/authorize", methods=["GET"])
+    async def authorize(request: Request):
+        params = request.query_params
+        code = secrets.token_urlsafe(32)
+        redirect_uri = params.get("redirect_uri", "")
+        state = params.get("state", "")
+        _oauth_codes[code] = {"code": code, "client_id": params.get("client_id", "dev"),
+                              "expires_at": time.time() + 300, "redirect_uri": redirect_uri, "subject": "mcp-user"}
+        sep = "&" if "?" in redirect_uri else "?"
+        location = f"{redirect_uri}{sep}code={code}"
+        if state:
+            location += f"&state={state}"
+        return RedirectResponse(url=location, status_code=302)
+
+    @mcp.custom_route("/token", methods=["POST"])
+    async def exchange_token(request: Request):
+        form = await request.form()
+        grant_type = form.get("grant_type", "authorization_code")
+        if grant_type == "authorization_code":
+            code = form.get("code", "")
+            code_data = _oauth_codes.pop(code, None)
+            if code_data is None:
+                return JSONResponse(status_code=400, content={"error": "invalid_grant", "error_description": "authorization code does not exist or has expired"})
+            return JSONResponse({
+                "access_token": secrets.token_urlsafe(48), "token_type": "Bearer",
+                "expires_in": 3600, "refresh_token": secrets.token_urlsafe(48), "scope": "mcp",
+            })
+        elif grant_type == "refresh_token":
+            return JSONResponse({
+                "access_token": secrets.token_urlsafe(48), "token_type": "Bearer",
+                "expires_in": 3600, "scope": "mcp",
+            })
+        return JSONResponse(status_code=400, content={"error": "unsupported_grant_type"})
 
     @mcp.custom_route("/health", methods=["GET"])
     async def health(request):
@@ -91,6 +153,12 @@ def register_routes(mcp, cfg: GatewayConfig):
             "commit": BUILD_COMMIT,
             "build_time": BUILD_TIME,
         })
+
+    @mcp.custom_route("/skills", methods=["GET"])
+    async def skills_list_http(request):
+        skills_path = Path(cfg.skills.dir).expanduser()
+        catalog = get_skills_catalog(skills_path)
+        return JSONResponse({"skills": catalog})
 
     @mcp.custom_route("/inventory", methods=["GET"])
     async def inventory(request):

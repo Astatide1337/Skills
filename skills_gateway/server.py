@@ -90,7 +90,7 @@ def run_with_config(cfg: GatewayConfig):
     log_event("service_ready", "Skills Gateway ready to serve requests")
 
     mcp.run(
-        transport="streamable-http",
+        transport="sse",
         host=cfg.service.host,
         port=cfg.service.port,
         path=cfg.service.mcp_path,

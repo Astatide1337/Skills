@@ -139,11 +139,11 @@ class CloudflareAccessOAuthProvider(OAuthProvider):
             self._jwks_client = None
 
     @property
-    def _base_url(self) -> str:
+    def _my_base_url(self) -> str:
         return self._cfg.auth.public_base_url or "https://skills.astatide.com"
 
     @property
-    def _mcp_path(self) -> str:
+    def _my_mcp_path(self) -> str:
         return self._cfg.service.mcp_path
 
     async def get_client(self, client_id: str) -> OAuthClientInformationFull | None:
@@ -212,7 +212,7 @@ class CloudflareAccessOAuthProvider(OAuthProvider):
             client_id=client.client_id,
             scopes=authorization_code.scopes,
             expires_at=int(time.time()) + expires_in,
-            resource=f"{self._base_url}{self._mcp_path}",
+            resource=f"{self._my_base_url}{self._my_mcp_path}",
             subject=authorization_code.subject,
         )
         self._refresh_tokens[refresh_token] = RefreshToken(
@@ -270,7 +270,7 @@ class CloudflareAccessOAuthProvider(OAuthProvider):
             client_id=client.client_id,
             scopes=token_scopes,
             expires_at=int(time.time()) + expires_in,
-            resource=f"{self._base_url}{self._mcp_path}",
+            resource=f"{self._my_base_url}{self._my_mcp_path}",
             subject=refresh_token.subject,
         )
         return OAuthToken(access_token=access_token, expires_in=expires_in,
