@@ -55,10 +55,9 @@ def create_app(cfg: GatewayConfig) -> FastMCP:
     if cfg.active_catalog:
         log_event("catalog_set", f"Active catalog: {cfg.active_catalog}", catalog=cfg.active_catalog)
 
-    if cfg.observability.metrics_enabled:
-        from starlette.middleware import Middleware
-        from skills_gateway.metrics import MetricsMiddleware
-        mcp.add_middleware(Middleware(MetricsMiddleware))
+    # Do not register the Starlette ASGI metrics middleware with FastMCP here.
+    # FastMCP.add_middleware expects MCP middleware, not starlette.middleware.Middleware;
+    # registering the ASGI wrapper there breaks streamable HTTP initialize requests.
 
     register_routes(mcp, cfg)
 
