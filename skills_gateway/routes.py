@@ -60,7 +60,7 @@ def register_routes(mcp, cfg: GatewayConfig):
             all_ok = False
 
         try:
-            catalog = get_skills_catalog(skills_path)
+            get_skills_catalog(skills_path)
             checks["skills_scan"] = "ok"
         except Exception as e:
             checks["skills_scan"] = f"failed: {e}"
@@ -116,6 +116,16 @@ def register_routes(mcp, cfg: GatewayConfig):
             "active_catalog": cfg.active_catalog,
         })
 
+    @mcp.custom_route("/skills", methods=["GET"])
+    async def skills_catalog(request):
+        skills_path = Path(cfg.skills.dir).expanduser()
+        catalog = get_skills_catalog(skills_path)
+        return JSONResponse({
+            "service": "skills-gateway",
+            "type": "skills_catalog",
+            "skills": catalog,
+        })
+
     @mcp.custom_route("/metrics", methods=["GET"])
     async def metrics_endpoint(request):
         if not cfg.observability.metrics_enabled:
@@ -145,6 +155,7 @@ def register_routes(mcp, cfg: GatewayConfig):
                 "ready": "/ready",
                 "version": "/version",
                 "inventory": "/inventory",
+                "skills": "/skills",
                 "metrics": "/metrics",
             },
         })
