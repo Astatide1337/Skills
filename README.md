@@ -50,14 +50,13 @@ skills-gateway version             # Show version info
 
 ## Security
 
-Skills Gateway verifies Cloudflare Access JWTs in production using real JWKS-based signature verification. See [SECURITY.md](SECURITY.md) for full details.
+Skills Gateway supports two deployment postures:
 
-Quick summary:
-- **`cloudflare-access`**: Real CF Access JWT verification (RS256 signature, audience, issuer, expiry). Default in production.
-- **`internal-only`**: Same as cloudflare-access + optional Docker IP bypass.
-- **`dev-none`**: No auth. Development only.
-- **No bearer-token bypass**: Random `Authorization` headers rejected.
-- **Path traversal protection**: `..`, absolute paths, symlink escapes blocked for `skill_read`.
+1. **Edge-auth-only personal mode**: Cloudflare Access protects the hostname at the edge. The origin is private (127.0.0.1). App can use `dev-none`. Suitable for personal MCP usage.
+
+2. **Defense-in-depth production mode**: Cloudflare Access at the edge + app-level CF Access JWT verification (`cloudflare-access` mode). Suitable for multi-user or zero-trust deployments.
+
+See [SECURITY.md](SECURITY.md) for full details on authentication modes, JWT verification, internal bypass risks, and path traversal protections.
 
 ## Configuration
 

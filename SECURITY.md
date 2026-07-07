@@ -1,6 +1,30 @@
 # Security
 
-Skills Gateway authenticates MCP clients using Cloudflare Access JWTs or local development bypasses.
+Skills Gateway authenticates MCP clients using Cloudflare Access JWTs or local development bypasses. It supports two deployment postures.
+
+## Deployment Modes
+
+### 1. Edge-Auth-Only Personal Mode
+
+```
+Internet → Cloudflare Access (identity/login gate) → Private Origin (127.0.0.1)
+```
+
+- Cloudflare Access protects the hostname at the edge.
+- The origin is bound to `127.0.0.1` — not directly reachable from the public internet.
+- App auth can be `dev-none` because the edge already enforces identity.
+- Suitable for personal MCP tool usage.
+
+### 2. Defense-in-Depth Production Mode
+
+```
+Internet → Cloudflare Access → Origin validates CF JWT (RS256/JWKS)
+```
+
+- Cloudflare Access protects the hostname at the edge.
+- The app also validates the CF Access JWT (`cloudflare-access` mode) for defense in depth.
+- If the edge is bypassed or misconfigured, the origin still rejects unauthenticated requests.
+- Suitable for multi-user or zero-trust production deployments.
 
 ## Authentication Modes
 
