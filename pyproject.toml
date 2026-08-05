@@ -1,33 +1,13 @@
 [project]
-name = "skills-gateway"
-version = "0.1.0"
-description = "Skills Gateway MCP Server - Agent Skills standard"
+name = "astatide-skills-gateway"
+version = "0.2.0"
+description = "A small Streamable HTTP MCP server for versioned Agent Skills"
 requires-python = ">=3.12"
 dependencies = [
-    "fastmcp>=2.14.7,<3.0.0",
-    "python-dotenv>=1.2.2",
-    "pyjwt>=2.13.0",
-    "pyyaml>=6.0",
-    "typer>=0.9.0",
+    "fastmcp==3.4.0",
+    "pyyaml==6.0.3",
 ]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=9.0.0",
-]
-
-[project.scripts]
-skills-gateway = "skills_gateway.cli:cli_main"
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-
-[tool.uv]
-package = true
 
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-include = ["skills_gateway*"]
