@@ -11,13 +11,3 @@ services:
       start_period: 15s
       retries: 3
     restart: unless-stopped
-    networks:
-      default: {}
-      mcp_gateway:
-        aliases:
-          - skills-gateway
-
-networks:
-  mcp_gateway:
-    external: true
-    name: sj6itrzqb4zbrpxu0raq94zi_mcp
