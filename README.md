@@ -35,7 +35,7 @@ ChatGPT / Claude / Codex
 Cloudflare MCP Portal: https://mcp.astatide.com/mcp
           |  OAuth, Access policy, server selection
           v
-Coolify domain -> skills-gateway:8091 -> committed /skills files
+Cloudflare Tunnel -> cloudflared -> skills-gateway:8091 -> committed /skills files
 ```
 
 The origin must be protected by Cloudflare Access. The repository has no application-level OAuth or token store.
@@ -65,20 +65,20 @@ Create a Docker Compose resource in the existing Gateway project using:
 3. Compose file: `compose.yaml`
 4. Service: `skills-gateway`
 5. Port: `8091`
-6. Domain: the Coolify origin hostname used for the Skills MCP server.
-7. Leave environment variables empty; this application requires none.
+6. Do not assign a Coolify domain. The application is published only by its Cloudflare Tunnel.
+7. Add `CLOUDFLARE_SKILLS_TUNNEL_TOKEN` as a Coolify runtime variable.
 
-Deploy. Coolify owns builds, runtime logs, restart policy, health checks, TLS, redeployment, and rollback to a previous Git commit. No host-side setup or repository `.env` file is required.
+Deploy. Coolify owns builds, runtime logs, restart policy, health checks, redeployment, and rollback to a previous Git commit. `cloudflared` owns the outbound-only Cloudflare connection; no host-side setup or repository `.env` file is required.
 
 ## Cloudflare Portal setup
 
-In Cloudflare Zero Trust, add this service under MCP servers with its full HTTPS origin URL:
+In Cloudflare Zero Trust, add this service under MCP servers with:
 
 ```text
-https://<skills-origin-hostname>/mcp
+https://skills.astatide.com/mcp
 ```
 
-Use the origin's Cloudflare Access service-token headers as the upstream authentication method. Keep the Portal owner-only policy and enable only the Skills Gateway server for your personal portal. The client-facing URL remains:
+Keep the Portal owner-only policy and enable only the Skills Gateway server for your personal portal. The client-facing URL remains:
 
 ```text
 https://mcp.astatide.com/mcp
@@ -111,7 +111,7 @@ Review the upstream source and its license, checkout a new exact commit, replace
 - The Docker image contains the committed skills and no runtime credentials.
 - Skills are instructions, not a sandbox. Review every skill before merging it.
 - The service relies on Cloudflare Access for production authentication; a directly reachable unprotected origin would not be safe.
-- Coolify must not publish the origin without the Access application in front of it.
+- Coolify must not publish a public domain for this application; the tunnel is the only ingress.
 - The service exposes read-only catalog operations. It does not execute skill-bundled scripts.
 - The Dockerfile pins both the Python base image and the UV builder image by digest.
 
