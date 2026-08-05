@@ -24,8 +24,6 @@ profiles:
   web-engineering:
     - react-best-practices
     - web-design-guidelines
-    - vercel-cli-with-tokens
-    - figma-generate-design
     - webapp-testing
     - playwright-cli
     - frontend-design
@@ -54,14 +52,12 @@ profiles:
     - security-and-hardening
     - performance-optimization
     - ci-cd-and-automation
-    - documentation-and-adrs
     - shipping-and-launch
   video-and-media:
     - remotion-best-practices
   zero-token-architecture:
     - zero-token-boundary
     - evidence-gated-integration
-    - capability-firewall
     - minimalism-audit
   catalog-admin:
     - skill-scanner
@@ -118,14 +114,6 @@ skills:
     trust: established
     exported_path: skills/web-engineering/vercel/web-design-guidelines/SKILL.md
     source: {repository: https://github.com/vercel-labs/agent-skills, commit: ba46938889d4e58635362fb8f618e1178ac3ec46, path: skills/web-design-guidelines}
-  - profile: web-engineering
-    trust: established
-    exported_path: skills/web-engineering/vercel/vercel-cli-with-tokens/SKILL.md
-    source: {repository: https://github.com/vercel-labs/agent-skills, commit: 7c180d9044c9ae2b442b567aad4e42a28dd5ed62, path: skills/vercel-cli-with-tokens}
-  - profile: web-engineering
-    trust: established
-    exported_path: skills/web-engineering/openai/figma-generate-design/SKILL.md
-    source: {repository: https://github.com/openai/skills, commit: 49f948faa9258a0c61caceaf225e179651397431, path: skills/.curated/figma-generate-design}
   - profile: web-engineering
     trust: historical-official
     exported_path: skills/web-engineering/openai/frontend-skill/SKILL.md
@@ -264,10 +252,6 @@ skills:
     source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/ci-cd-and-automation}
   - profile: production-engineering
     trust: established
-    exported_path: skills/production-engineering/addy-osmani/documentation-and-adrs/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/documentation-and-adrs}
-  - profile: production-engineering
-    trust: established
     exported_path: skills/production-engineering/addy-osmani/shipping-and-launch/SKILL.md
     source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/shipping-and-launch}
   - profile: video-and-media
@@ -282,10 +266,6 @@ skills:
     trust: local-reviewed
     exported_path: skills/zero-token-architecture/custom/evidence-gated-integration/SKILL.md
     source: {repository: https://github.com/Astatide1337/Skills-MCP-Gateway, commit: df079bb7b902c4c61b698e3cb3937940059d6777, path: skills/zero-token-architecture/custom/evidence-gated-integration}
-  - profile: zero-token-architecture
-    trust: local-reviewed
-    exported_path: skills/zero-token-architecture/custom/capability-firewall/SKILL.md
-    source: {repository: https://github.com/Astatide1337/Skills-MCP-Gateway, commit: df079bb7b902c4c61b698e3cb3937940059d6777, path: skills/zero-token-architecture/custom/capability-firewall}
   - profile: zero-token-architecture
     trust: local-reviewed
     exported_path: skills/zero-token-architecture/custom/minimalism-audit/SKILL.md
