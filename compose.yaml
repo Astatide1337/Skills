@@ -2,6 +2,14 @@ services:
   skills-gateway:
     build:
       context: .
+    environment:
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-astatide-skills-gateway}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-deployment.environment=production,service.namespace=astatide}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://alloy:4318}
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
+      OTEL_TRACES_EXPORTER: ${OTEL_TRACES_EXPORTER:-otlp}
+      OTEL_METRICS_EXPORTER: ${OTEL_METRICS_EXPORTER:-otlp}
+      OTEL_LOGS_EXPORTER: ${OTEL_LOGS_EXPORTER:-none}
     expose:
       - "8091"
     healthcheck:
@@ -11,3 +19,9 @@ services:
       start_period: 15s
       retries: 3
     restart: unless-stopped
+    networks:
+      - observability
+
+networks:
+  observability:
+    external: true

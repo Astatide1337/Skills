@@ -23,4 +23,4 @@ EXPOSE 8091
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/health', timeout=3)"
 
-CMD ["python", "server.py"]
+CMD ["opentelemetry-instrument", "python", "server.py"]
