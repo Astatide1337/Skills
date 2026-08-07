@@ -58,6 +58,8 @@ The service is intentionally published only through Compose `expose`; in product
 
 ## Coolify deployment
 
+The production service joins the host-local external `observability` network and exports traces and application metrics to Alloy over private OTLP/HTTP. Coolify may override the defaults with `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_PROTOCOL`, `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER`, and `OTEL_LOGS_EXPORTER`. No Grafana Cloud credential belongs in this application; Alloy owns the write-only cloud token.
+
 Create a Docker Compose resource in the existing Gateway project using:
 
 1. Repository: `https://github.com/Astatide1337/Skills-MCP-Gateway`
