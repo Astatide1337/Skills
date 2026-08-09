@@ -3,6 +3,7 @@ services:
     build:
       context: .
     environment:
+      SKILLS_GATEWAY_AUTH_TOKEN: ${SKILLS_GATEWAY_AUTH_TOKEN:?SKILLS_GATEWAY_AUTH_TOKEN is required}
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-astatide-skills-gateway}
       OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-deployment.environment=production,service.namespace=astatide}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://alloy:4318}

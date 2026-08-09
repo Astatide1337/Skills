@@ -2,11 +2,11 @@
 
 This repository serves a reviewed, version-controlled Agent Skills catalog over Streamable HTTP at `/mcp`.
 
-The service reads committed files and exposes four read-only MCP tools. It does not download, execute, or synchronize skills at runtime. Cloudflare Access and the Cloudflare MCP Server Portal own production authentication and aggregation; Coolify builds and runs this Compose application.
+The service reads committed files and exposes four read-only MCP tools. It does not download, execute, or synchronize skills at runtime. The Cloudflare MCP Server Portal owns user authentication and aggregation. A separate bearer credential authenticates the Portal to this origin; Coolify builds and runs this Compose application and stores that credential.
 
 ## Catalog
 
-The catalog contains 55 exported skills: 51 pinned upstream skills and 4 repository-owned zero-token architecture skills. The source repository, exact commit, source path, profile, and trust classification for every export are recorded in [`catalog.yaml`](catalog.yaml).
+The catalog contains 51 exported skills. The source repository, exact commit, source path, profile, and trust classification for every export are recorded in [`catalog.yaml`](catalog.yaml).
 
 Profiles are `engineering-core`, `web-engineering`, `mcp-and-infrastructure`, `agent-manager`, `production-engineering`, `video-and-media`, `zero-token-architecture`, and `catalog-admin`.
 
@@ -18,7 +18,8 @@ OpenAI removed `frontend-skill` from the current `openai/skills` branch. The cat
 
 ## Zero-token-export policy
 
-- No API keys, OAuth tokens, cookies, or environment variables enter the container.
+- No upstream API keys, OAuth tokens, or cookies are embedded in the image or exported skill content.
+- The only application secret is the Portal-to-origin bearer credential supplied at runtime through `SKILLS_GATEWAY_AUTH_TOKEN`.
 - Skills are static files baked into the image; the gateway performs no outbound requests after startup.
 - Skill-bundled scripts are served as files but never executed by this MCP server.
 - The gateway exposes only `skills_list`, `skills_search`, `skills_inspect`, and `skill_read`.
@@ -33,20 +34,21 @@ ChatGPT / Claude / Codex
           |
           v
 Cloudflare MCP Portal: https://mcp.astatide.com/mcp
-          |  OAuth, Access policy, server selection
+          |  owner OAuth, Access policy, server selection
           v
-Coolify HTTPS proxy -> skills-gateway:8091 -> committed /skills files
+origin bearer auth -> skills-gateway:8091 -> committed /skills files
 ```
 
-The origin must be protected by Cloudflare Access. The repository has no application-level OAuth or token store.
+The `/mcp` origin requires `Authorization: Bearer <SKILLS_GATEWAY_AUTH_TOKEN>`. Health and version routes remain public for monitoring. The application has no user database or OAuth flow; owner identity is enforced by the Portal's Cloudflare Access policy.
 
 ## Local run
 
-Prerequisites: Docker Engine and Docker Compose.
+Prerequisites: Docker Engine, Docker Compose, and a random bearer credential of at least 32 characters exported as `SKILLS_GATEWAY_AUTH_TOKEN`.
 
 Run the same definition used by Coolify:
 
 ```bash
+export SKILLS_GATEWAY_AUTH_TOKEN="$(openssl rand -hex 32)"
 docker compose up -d --build
 docker compose ps
 docker compose exec -T skills-gateway python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8091/health').read().decode())"
@@ -68,9 +70,9 @@ Create a Docker Compose resource in the existing Gateway project using:
 4. Service: `skills-gateway`
 5. Port: `8091`
 6. Domain: `https://skills.astatide.com`.
-7. Leave environment variables empty; this application requires none.
+7. Add `SKILLS_GATEWAY_AUTH_TOKEN` as a locked secret. Generate a unique random value of at least 32 characters and do not reuse the Docker MCP Gateway token.
 
-Deploy. Coolify owns builds, runtime logs, restart policy, health checks, TLS, redeployment, and rollback to a previous Git commit. No host-side setup or repository `.env` file is required.
+Coolify owns builds, runtime logs, restart policy, health checks, TLS, redeployment, and rollback to a previous Git commit. No host-side setup or repository `.env` file is required.
 
 ## Cloudflare Portal setup
 
@@ -80,29 +82,41 @@ In Cloudflare Zero Trust, add this service under MCP servers with:
 https://skills.astatide.com/mcp
 ```
 
+Set its authentication type to bearer and provide the same `SKILLS_GATEWAY_AUTH_TOKEN` stored in Coolify. This credential is only for Portal-to-origin traffic; users continue to authenticate to the owner-only Portal with OAuth.
+
 Keep the Portal owner-only policy and enable only the Skills Gateway server for your personal portal. The client-facing URL remains:
 
 ```text
 https://mcp.astatide.com/mcp
 ```
 
-The Portal can expose or hide individual upstream servers and tools. After adding the upstream, force a sync and verify that the four catalog tools appear. The Portal's OAuth is separate from the upstream Access service token. [Cloudflare MCP Server Portals](https://developers.cloudflare.com/cloudflare-one/access-controls/ai-controls/mcp-portals/)
+The Portal can expose or hide individual upstream servers and tools. After adding the upstream, force a sync and verify that the four catalog tools appear. The Portal's owner OAuth is separate from the upstream origin bearer credential. [Cloudflare MCP Server Portals](https://developers.cloudflare.com/cloudflare-one/access-controls/ai-controls/mcp-portals/)
+
+For a no-downtime rollout, configure the bearer credential on the Cloudflare Skills Gateway MCP server first, then deploy the origin enforcement in Coolify. The existing origin ignores the added header until the authenticated release is live. For rotation, add the new credential to both control planes in one maintenance operation and immediately repeat the validation below.
 
 ## Validation and recovery
 
 Validate the Compose file before publishing a change:
 
 ```bash
-docker compose config --quiet
+SKILLS_GATEWAY_AUTH_TOKEN=0123456789abcdef0123456789abcdef docker compose config --quiet
 ```
 
 After deployment, check the Coolify health state and logs, then run:
 
 ```bash
 curl -fsS https://skills.astatide.com/health
+curl -sS -o /dev/null -w '%{http_code}\n' https://skills.astatide.com/mcp
+curl -fsS -H "Authorization: Bearer $SKILLS_GATEWAY_AUTH_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"smoke-test","version":"1"}}}' \
+  https://skills.astatide.com/mcp
 ```
 
-Recovery is deterministic: redeploy the last known-good Git commit in Coolify. Configuration and skills are backed up by Git; Coolify stores deployment state and Cloudflare stores Access/Portal configuration. Rotate the Cloudflare service token if it is exposed, then update the Portal upstream headers.
+The unauthenticated MCP request must return `401`; the authenticated initialization must return a successful MCP response.
+
+Recovery is deterministic: redeploy the last known-good Git commit in Coolify. Configuration and skills are backed up by Git; Coolify stores deployment state and Cloudflare stores Access/Portal configuration. If the origin bearer credential is exposed, rotate `SKILLS_GATEWAY_AUTH_TOKEN` in Coolify and the Skills Gateway MCP server configuration in Cloudflare.
 
 ## Updating skills
 
@@ -112,7 +126,7 @@ Review the upstream source and its license, checkout a new exact commit, replace
 
 - The Docker image contains the committed skills and no runtime credentials.
 - Skills are instructions, not a sandbox. Review every skill before merging it.
-- The service relies on Cloudflare Access and the Cloudflare MCP Portal for production authentication.
+- The service requires a dedicated origin bearer credential while Cloudflare Access protects the owner-facing Portal.
 - The VPS firewall should restrict ports 80/443 to Cloudflare IP ranges while preserving administrator access.
 - The service exposes read-only catalog operations. It does not execute skill-bundled scripts.
 - The Dockerfile pins both the Python base image and the UV builder image by digest.
@@ -139,5 +153,4 @@ Review the upstream source and its license, checkout a new exact commit, replace
 - [Addy Osmani agent skills](https://github.com/addyosmani/agent-skills)
 - [FastMCP Streamable HTTP](https://gofastmcp.com/servers/server)
 - [Cloudflare MCP Server Portals](https://developers.cloudflare.com/cloudflare-one/access-controls/ai-controls/mcp-portals/)
-- [Cloudflare Access service tokens](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/service-auth/service-token/)
 - [Coolify Docker Compose deployments](https://coolify.io/docs/applications/build-packs/docker-compose)
