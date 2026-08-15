@@ -20,7 +20,6 @@ The goal is not more automation. The goal is to make the normal path explicit, r
 ## Audit questions
 
 - What decision is being made repeatedly, and what exact fact would make it deterministic?
-- Can a Compose, Coolify, Git, or provider setting already own this behavior?
 - Is this file executable, or is it only documenting a command that should be documented once?
 - Does the proposed automation add state, credentials, retries, or an operator surface?
 - Can an untrusted input cause arbitrary command execution, URL access, data export, or deletion?
