@@ -1,5 +1,4 @@
 version: 1
-
 # This is a lockfile, not a runtime downloader. Every exported skill is reviewed,
 # copied from the source commit below, and served only from the image filesystem.
 policy:
@@ -8,7 +7,6 @@ policy:
   skill_network_access: false
   credentials_in_skill_content: false
   default_profile: all
-
 profiles:
   engineering-core:
     - systematic-debugging
@@ -22,7 +20,7 @@ profiles:
     - code-review
     - commit
   web-engineering:
-    - react-best-practices
+    - vercel-react-best-practices
     - web-design-guidelines
     - webapp-testing
     - playwright-cli
@@ -64,213 +62,211 @@ profiles:
     - skill-creator
     - writing-skills
     - find-skills
-
 skills:
   - profile: engineering-core
     trust: established
-    exported_path: skills/engineering-core/obra-superpowers/systematic-debugging/SKILL.md
-    source: {repository: https://github.com/obra/superpowers, commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/systematic-debugging}
+    exported_path: skills/systematic-debugging/SKILL.md
+    source: {repository: 'https://github.com/obra/superpowers', commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/systematic-debugging}
   - profile: engineering-core
     trust: established
-    exported_path: skills/engineering-core/obra-superpowers/verification-before-completion/SKILL.md
-    source: {repository: https://github.com/obra/superpowers, commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/verification-before-completion}
+    exported_path: skills/verification-before-completion/SKILL.md
+    source: {repository: 'https://github.com/obra/superpowers', commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/verification-before-completion}
   - profile: engineering-core
     trust: established
-    exported_path: skills/engineering-core/obra-superpowers/writing-plans/SKILL.md
-    source: {repository: https://github.com/obra/superpowers, commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/writing-plans}
+    exported_path: skills/writing-plans/SKILL.md
+    source: {repository: 'https://github.com/obra/superpowers', commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/writing-plans}
   - profile: engineering-core
     trust: established
-    exported_path: skills/engineering-core/obra-superpowers/executing-plans/SKILL.md
-    source: {repository: https://github.com/obra/superpowers, commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/executing-plans}
+    exported_path: skills/executing-plans/SKILL.md
+    source: {repository: 'https://github.com/obra/superpowers', commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/executing-plans}
   - profile: engineering-core
     trust: established
-    exported_path: skills/engineering-core/obra-superpowers/using-git-worktrees/SKILL.md
-    source: {repository: https://github.com/obra/superpowers, commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/using-git-worktrees}
+    exported_path: skills/using-git-worktrees/SKILL.md
+    source: {repository: 'https://github.com/obra/superpowers', commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/using-git-worktrees}
   - profile: engineering-core
     trust: established
-    exported_path: skills/engineering-core/obra-superpowers/requesting-code-review/SKILL.md
-    source: {repository: https://github.com/obra/superpowers, commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/requesting-code-review}
+    exported_path: skills/requesting-code-review/SKILL.md
+    source: {repository: 'https://github.com/obra/superpowers', commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/requesting-code-review}
   - profile: engineering-core
     trust: established
-    exported_path: skills/engineering-core/obra-superpowers/receiving-code-review/SKILL.md
-    source: {repository: https://github.com/obra/superpowers, commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/receiving-code-review}
+    exported_path: skills/receiving-code-review/SKILL.md
+    source: {repository: 'https://github.com/obra/superpowers', commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/receiving-code-review}
   - profile: engineering-core
     trust: established
-    exported_path: skills/engineering-core/obra-superpowers/finishing-a-development-branch/SKILL.md
-    source: {repository: https://github.com/obra/superpowers, commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/finishing-a-development-branch}
+    exported_path: skills/finishing-a-development-branch/SKILL.md
+    source: {repository: 'https://github.com/obra/superpowers', commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/finishing-a-development-branch}
   - profile: engineering-core
     trust: established
-    exported_path: skills/engineering-core/sentry/code-review/SKILL.md
-    source: {repository: https://github.com/getsentry/skills, commit: e7a87fa72645158f9b5e722cbb1c7e09266f48f1, path: skills/code-review}
+    exported_path: skills/code-review/SKILL.md
+    source: {repository: 'https://github.com/getsentry/skills', commit: e7a87fa72645158f9b5e722cbb1c7e09266f48f1, path: skills/code-review}
   - profile: engineering-core
     trust: established
-    exported_path: skills/engineering-core/sentry/commit/SKILL.md
-    source: {repository: https://github.com/getsentry/skills, commit: e7a87fa72645158f9b5e722cbb1c7e09266f48f1, path: skills/commit}
+    exported_path: skills/commit/SKILL.md
+    source: {repository: 'https://github.com/getsentry/skills', commit: e7a87fa72645158f9b5e722cbb1c7e09266f48f1, path: skills/commit}
   - profile: web-engineering
     trust: established
-    exported_path: skills/web-engineering/vercel/react-best-practices/SKILL.md
-    source: {repository: https://github.com/vercel-labs/agent-skills, commit: 805687f34e8c10b420e3d11335a0ca2c3c90d992, path: skills/react-best-practices}
+    exported_path: skills/vercel-react-best-practices/SKILL.md
+    source: {repository: 'https://github.com/vercel-labs/agent-skills', commit: 805687f34e8c10b420e3d11335a0ca2c3c90d992, path: skills/react-best-practices}
   - profile: web-engineering
     trust: established
-    exported_path: skills/web-engineering/vercel/web-design-guidelines/SKILL.md
-    source: {repository: https://github.com/vercel-labs/agent-skills, commit: ba46938889d4e58635362fb8f618e1178ac3ec46, path: skills/web-design-guidelines}
+    exported_path: skills/web-design-guidelines/SKILL.md
+    source: {repository: 'https://github.com/vercel-labs/agent-skills', commit: ba46938889d4e58635362fb8f618e1178ac3ec46, path: skills/web-design-guidelines}
   - profile: web-engineering
     trust: historical-official
-    exported_path: skills/web-engineering/openai/frontend-skill/SKILL.md
-    source: {repository: https://github.com/openai/skills, commit: 30444aed500c00c85294d12074f6e3ee794f808a, path: skills/.curated/frontend-skill}
+    exported_path: skills/frontend-skill/SKILL.md
+    source: {repository: 'https://github.com/openai/skills', commit: 30444aed500c00c85294d12074f6e3ee794f808a, path: skills/.curated/frontend-skill}
   - profile: web-engineering
     trust: established
-    exported_path: skills/web-engineering/addy-osmani/frontend-ui-engineering/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: 13ca1dea5cb8cd1eb13693e2ac8d1b254a1cd411, path: skills/frontend-ui-engineering}
+    exported_path: skills/frontend-ui-engineering/SKILL.md
+    source: {repository: 'https://github.com/addyosmani/agent-skills', commit: 13ca1dea5cb8cd1eb13693e2ac8d1b254a1cd411, path: skills/frontend-ui-engineering}
   - profile: web-engineering
     trust: established
-    exported_path: skills/web-engineering/shadcn-ui/shadcn/SKILL.md
-    source: {repository: https://github.com/shadcn-ui/ui, commit: 6cd3f4c65c361ab6554e06a77e6a0af9cf8b6e37, path: skills/shadcn, adaptation: removed non-portable user-invocable frontmatter}
+    exported_path: skills/shadcn/SKILL.md
+    source: {repository: 'https://github.com/shadcn-ui/ui', commit: 6cd3f4c65c361ab6554e06a77e6a0af9cf8b6e37, path: skills/shadcn, adaptation: removed non-portable user-invocable frontmatter}
   - profile: web-engineering
     trust: established
-    exported_path: skills/web-engineering/vercel/building-components/SKILL.md
-    source: {repository: https://github.com/vercel/components.build, commit: 5719ce3c9df04265f8c12e4567c424c7c516b5e5, path: skills/building-components}
+    exported_path: skills/building-components/SKILL.md
+    source: {repository: 'https://github.com/vercel/components.build', commit: 5719ce3c9df04265f8c12e4567c424c7c516b5e5, path: skills/building-components}
   - profile: web-engineering
     trust: established
-    exported_path: skills/web-engineering/vercel/composition-patterns/SKILL.md
-    source: {repository: https://github.com/vercel-labs/agent-skills, commit: a5343bd997c4cc4d8bf2ca61021bdc74b4d6c9d5, path: skills/composition-patterns}
+    exported_path: skills/vercel-composition-patterns/SKILL.md
+    source: {repository: 'https://github.com/vercel-labs/agent-skills', commit: a5343bd997c4cc4d8bf2ca61021bdc74b4d6c9d5, path: skills/composition-patterns}
   - profile: web-engineering
     trust: established
-    exported_path: skills/web-engineering/anthropic/webapp-testing/SKILL.md
-    source: {repository: https://github.com/anthropics/skills, commit: b29e7cf65e5cb78a5ac33d582270551bc74a14eb, path: skills/webapp-testing}
+    exported_path: skills/webapp-testing/SKILL.md
+    source: {repository: 'https://github.com/anthropics/skills', commit: b29e7cf65e5cb78a5ac33d582270551bc74a14eb, path: skills/webapp-testing}
   - profile: web-engineering
     trust: established
-    exported_path: skills/web-engineering/anthropic/frontend-design/SKILL.md
-    source: {repository: https://github.com/anthropics/skills, commit: b29e7cf65e5cb78a5ac33d582270551bc74a14eb, path: skills/frontend-design}
+    exported_path: skills/frontend-design/SKILL.md
+    source: {repository: 'https://github.com/anthropics/skills', commit: b29e7cf65e5cb78a5ac33d582270551bc74a14eb, path: skills/frontend-design}
   - profile: web-engineering
     trust: established
-    exported_path: skills/web-engineering/microsoft/playwright-cli/SKILL.md
-    source: {repository: https://github.com/microsoft/playwright-cli, commit: 72735e570555444aa1f0d13735f0a4cf4723b37f, path: skills/playwright-cli}
+    exported_path: skills/playwright-cli/SKILL.md
+    source: {repository: 'https://github.com/microsoft/playwright-cli', commit: 72735e570555444aa1f0d13735f0a4cf4723b37f, path: skills/playwright-cli}
   - profile: mcp-and-infrastructure
     trust: established
-    exported_path: skills/mcp-and-infrastructure/anthropic/mcp-builder/SKILL.md
-    source: {repository: https://github.com/anthropics/skills, commit: b29e7cf65e5cb78a5ac33d582270551bc74a14eb, path: skills/mcp-builder}
+    exported_path: skills/mcp-builder/SKILL.md
+    source: {repository: 'https://github.com/anthropics/skills', commit: b29e7cf65e5cb78a5ac33d582270551bc74a14eb, path: skills/mcp-builder}
   - profile: mcp-and-infrastructure
     trust: established
-    exported_path: skills/mcp-and-infrastructure/openai/cloudflare-deploy/SKILL.md
-    source: {repository: https://github.com/openai/skills, commit: 49f948faa9258a0c61caceaf225e179651397431, path: skills/.curated/cloudflare-deploy}
+    exported_path: skills/cloudflare-deploy/SKILL.md
+    source: {repository: 'https://github.com/openai/skills', commit: 49f948faa9258a0c61caceaf225e179651397431, path: skills/.curated/cloudflare-deploy}
   - profile: catalog-admin
     trust: established
-    exported_path: skills/catalog-admin/sentry/skill-scanner/SKILL.md
-    source: {repository: https://github.com/getsentry/skills, commit: e7a87fa72645158f9b5e722cbb1c7e09266f48f1, path: skills/skill-scanner}
+    exported_path: skills/skill-scanner/SKILL.md
+    source: {repository: 'https://github.com/getsentry/skills', commit: e7a87fa72645158f9b5e722cbb1c7e09266f48f1, path: skills/skill-scanner}
   - profile: catalog-admin
     trust: established
-    exported_path: skills/catalog-admin/anthropic/skill-creator/SKILL.md
-    source: {repository: https://github.com/anthropics/skills, commit: b29e7cf65e5cb78a5ac33d582270551bc74a14eb, path: skills/skill-creator}
+    exported_path: skills/skill-creator/SKILL.md
+    source: {repository: 'https://github.com/anthropics/skills', commit: b29e7cf65e5cb78a5ac33d582270551bc74a14eb, path: skills/skill-creator}
   - profile: catalog-admin
     trust: established
-    exported_path: skills/catalog-admin/obra-superpowers/writing-skills/SKILL.md
-    source: {repository: https://github.com/obra/superpowers, commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/writing-skills}
+    exported_path: skills/writing-skills/SKILL.md
+    source: {repository: 'https://github.com/obra/superpowers', commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/writing-skills}
   - profile: catalog-admin
     trust: established
-    exported_path: skills/catalog-admin/vercel/find-skills/SKILL.md
-    source: {repository: https://github.com/vercel-labs/skills, commit: ab4fc49265c443279a5deae20297e631470da68c, path: skills/find-skills}
+    exported_path: skills/find-skills/SKILL.md
+    source: {repository: 'https://github.com/vercel-labs/skills', commit: ab4fc49265c443279a5deae20297e631470da68c, path: skills/find-skills}
   - profile: agent-manager
     trust: established
-    exported_path: skills/agent-manager/matt-pocock/grill-me/SKILL.md
-    source: {repository: https://github.com/mattpocock/skills, commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/productivity/grill-me, adaptation: removed unsupported disable-model-invocation frontmatter}
+    exported_path: skills/grill-me/SKILL.md
+    source: {repository: 'https://github.com/mattpocock/skills', commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/productivity/grill-me, adaptation: removed unsupported disable-model-invocation frontmatter}
   - profile: agent-manager
     trust: established
-    exported_path: skills/agent-manager/matt-pocock/to-spec/SKILL.md
-    source: {repository: https://github.com/mattpocock/skills, commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/to-spec, adaptation: removed unsupported disable-model-invocation frontmatter}
+    exported_path: skills/to-spec/SKILL.md
+    source: {repository: 'https://github.com/mattpocock/skills', commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/to-spec, adaptation: removed unsupported disable-model-invocation frontmatter}
   - profile: agent-manager
     trust: established
-    exported_path: skills/agent-manager/matt-pocock/to-tickets/SKILL.md
-    source: {repository: https://github.com/mattpocock/skills, commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/to-tickets, adaptation: removed unsupported disable-model-invocation frontmatter}
+    exported_path: skills/to-tickets/SKILL.md
+    source: {repository: 'https://github.com/mattpocock/skills', commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/to-tickets, adaptation: removed unsupported disable-model-invocation frontmatter}
   - profile: agent-manager
     trust: established
-    exported_path: skills/agent-manager/matt-pocock/prototype/SKILL.md
-    source: {repository: https://github.com/mattpocock/skills, commit: fa460cbf095a893d14bf41d3db7798cada500259, path: skills/engineering/prototype}
+    exported_path: skills/prototype/SKILL.md
+    source: {repository: 'https://github.com/mattpocock/skills', commit: fa460cbf095a893d14bf41d3db7798cada500259, path: skills/engineering/prototype}
   - profile: agent-manager
     trust: established
-    exported_path: skills/agent-manager/matt-pocock/research/SKILL.md
-    source: {repository: https://github.com/mattpocock/skills, commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/research}
+    exported_path: skills/research/SKILL.md
+    source: {repository: 'https://github.com/mattpocock/skills', commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/research}
   - profile: agent-manager
     trust: established
-    exported_path: skills/agent-manager/matt-pocock/domain-modeling/SKILL.md
-    source: {repository: https://github.com/mattpocock/skills, commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/domain-modeling}
+    exported_path: skills/domain-modeling/SKILL.md
+    source: {repository: 'https://github.com/mattpocock/skills', commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/domain-modeling}
   - profile: agent-manager
     trust: established
-    exported_path: skills/agent-manager/matt-pocock/codebase-design/SKILL.md
-    source: {repository: https://github.com/mattpocock/skills, commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/codebase-design}
+    exported_path: skills/codebase-design/SKILL.md
+    source: {repository: 'https://github.com/mattpocock/skills', commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/codebase-design}
   - profile: agent-manager
     trust: established
-    exported_path: skills/agent-manager/matt-pocock/improve-codebase-architecture/SKILL.md
-    source: {repository: https://github.com/mattpocock/skills, commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/improve-codebase-architecture, adaptation: removed unsupported disable-model-invocation frontmatter}
+    exported_path: skills/improve-codebase-architecture/SKILL.md
+    source: {repository: 'https://github.com/mattpocock/skills', commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/improve-codebase-architecture, adaptation: removed unsupported disable-model-invocation frontmatter}
   - profile: agent-manager
     trust: established
-    exported_path: skills/agent-manager/matt-pocock/diagnosing-bugs/SKILL.md
-    source: {repository: https://github.com/mattpocock/skills, commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/diagnosing-bugs}
+    exported_path: skills/diagnosing-bugs/SKILL.md
+    source: {repository: 'https://github.com/mattpocock/skills', commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/engineering/diagnosing-bugs}
   - profile: agent-manager
     trust: established
-    exported_path: skills/agent-manager/matt-pocock/handoff/SKILL.md
-    source: {repository: https://github.com/mattpocock/skills, commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/productivity/handoff, adaptation: removed unsupported argument-hint and disable-model-invocation frontmatter}
+    exported_path: skills/handoff/SKILL.md
+    source: {repository: 'https://github.com/mattpocock/skills', commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/productivity/handoff, adaptation: removed unsupported argument-hint and disable-model-invocation frontmatter}
   - profile: production-engineering
     trust: established
-    exported_path: skills/production-engineering/addy-osmani/source-driven-development/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/source-driven-development}
+    exported_path: skills/source-driven-development/SKILL.md
+    source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/source-driven-development}
   - profile: production-engineering
     trust: established
-    exported_path: skills/production-engineering/addy-osmani/doubt-driven-development/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/doubt-driven-development}
+    exported_path: skills/doubt-driven-development/SKILL.md
+    source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/doubt-driven-development}
   - profile: production-engineering
     trust: established
-    exported_path: skills/production-engineering/addy-osmani/incremental-implementation/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/incremental-implementation}
+    exported_path: skills/incremental-implementation/SKILL.md
+    source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/incremental-implementation}
   - profile: production-engineering
     trust: established
-    exported_path: skills/production-engineering/addy-osmani/api-and-interface-design/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/api-and-interface-design}
+    exported_path: skills/api-and-interface-design/SKILL.md
+    source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/api-and-interface-design}
   - profile: production-engineering
     trust: established
-    exported_path: skills/production-engineering/addy-osmani/debugging-and-error-recovery/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/debugging-and-error-recovery}
+    exported_path: skills/debugging-and-error-recovery/SKILL.md
+    source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/debugging-and-error-recovery}
   - profile: production-engineering
     trust: established
-    exported_path: skills/production-engineering/addy-osmani/code-review-and-quality/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/code-review-and-quality}
+    exported_path: skills/code-review-and-quality/SKILL.md
+    source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/code-review-and-quality}
   - profile: production-engineering
     trust: established
-    exported_path: skills/production-engineering/addy-osmani/code-simplification/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/code-simplification}
+    exported_path: skills/code-simplification/SKILL.md
+    source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/code-simplification}
   - profile: production-engineering
     trust: established
-    exported_path: skills/production-engineering/addy-osmani/security-and-hardening/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/security-and-hardening}
+    exported_path: skills/security-and-hardening/SKILL.md
+    source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/security-and-hardening}
   - profile: production-engineering
     trust: established
-    exported_path: skills/production-engineering/addy-osmani/performance-optimization/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/performance-optimization}
+    exported_path: skills/performance-optimization/SKILL.md
+    source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/performance-optimization}
   - profile: production-engineering
     trust: established
-    exported_path: skills/production-engineering/addy-osmani/ci-cd-and-automation/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/ci-cd-and-automation}
+    exported_path: skills/ci-cd-and-automation/SKILL.md
+    source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/ci-cd-and-automation}
   - profile: production-engineering
     trust: established
-    exported_path: skills/production-engineering/addy-osmani/shipping-and-launch/SKILL.md
-    source: {repository: https://github.com/addyosmani/agent-skills, commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/shipping-and-launch}
+    exported_path: skills/shipping-and-launch/SKILL.md
+    source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/shipping-and-launch}
   - profile: video-and-media
     trust: established
-    exported_path: skills/video-and-media/remotion/remotion-best-practices/SKILL.md
-    source: {repository: https://github.com/remotion-dev/skills, commit: 7809e7935bc2e18f4b86526fa6022e6aadd8fe8b, path: skills/remotion-best-practices, adaptation: moved unsupported top-level version into metadata}
+    exported_path: skills/remotion-best-practices/SKILL.md
+    source: {repository: 'https://github.com/remotion-dev/skills', commit: 7809e7935bc2e18f4b86526fa6022e6aadd8fe8b, path: skills/remotion-best-practices, adaptation: moved unsupported top-level version into metadata}
   - profile: zero-token-architecture
     trust: local-reviewed
-    exported_path: skills/zero-token-architecture/custom/zero-token-boundary/SKILL.md
-    source: {repository: https://github.com/Astatide1337/Skills-MCP-Gateway, commit: df079bb7b902c4c61b698e3cb3937940059d6777, path: skills/zero-token-architecture/custom/zero-token-boundary}
+    exported_path: skills/zero-token-boundary/SKILL.md
+    source: {repository: 'https://github.com/Astatide1337/Skills', commit: df079bb7b902c4c61b698e3cb3937940059d6777, path: skills/zero-token-architecture/custom/zero-token-boundary}
   - profile: zero-token-architecture
     trust: local-reviewed
-    exported_path: skills/zero-token-architecture/custom/evidence-gated-integration/SKILL.md
-    source: {repository: https://github.com/Astatide1337/Skills-MCP-Gateway, commit: df079bb7b902c4c61b698e3cb3937940059d6777, path: skills/zero-token-architecture/custom/evidence-gated-integration}
+    exported_path: skills/evidence-gated-integration/SKILL.md
+    source: {repository: 'https://github.com/Astatide1337/Skills', commit: df079bb7b902c4c61b698e3cb3937940059d6777, path: skills/zero-token-architecture/custom/evidence-gated-integration}
   - profile: zero-token-architecture
     trust: local-reviewed
-    exported_path: skills/zero-token-architecture/custom/minimalism-audit/SKILL.md
-    source: {repository: https://github.com/Astatide1337/Skills-MCP-Gateway, commit: df079bb7b902c4c61b698e3cb3937940059d6777, path: skills/zero-token-architecture/custom/minimalism-audit}
-
+    exported_path: skills/minimalism-audit/SKILL.md
+    source: {repository: 'https://github.com/Astatide1337/Skills', commit: df079bb7b902c4c61b698e3cb3937940059d6777, path: skills/zero-token-architecture/custom/minimalism-audit}
 blocked:
   - id: next-best-practices
     reason: Vercel's current vercel-labs/next-skills README explicitly says next-best-practices is no longer a skill; the knowledge moved into version-matched Next.js bundled docs and generated AGENTS.md/CLAUDE.md files. No stale copy is imported.
