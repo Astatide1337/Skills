@@ -1,0 +1,17 @@
+{
+  "skill_name": "minimalism-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $minimalism-audit. Audit this proposed workflow: five agents independently summarize the same PR, two agents rewrite each summary, then a final agent merges them. Reduce unnecessary complexity while preserving review quality, traceability, and safety. Return a smaller deterministic workflow with explicit artifacts and stop conditions. Text only.",
+      "expected_output": "A minimalism audit that removes redundant work while preserving quality, traceability, safety, explicit artifacts, and deterministic stop conditions.",
+      "files": [],
+      "expectations": [
+        "The response identifies duplicated summaries and unnecessary agent stages as the waste.",
+        "The response proposes a smaller workflow with clear roles or stages.",
+        "The response preserves traceability/review quality through explicit artifacts or evidence.",
+        "The response defines deterministic stop conditions or acceptance criteria rather than optimizing tokens alone."
+      ]
+    }
+  ]
+}

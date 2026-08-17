@@ -1,0 +1,17 @@
+{
+  "skill_name": "vercel-react-best-practices",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $vercel-react-best-practices. Review this small Next.js page and give a focused optimization plan; do not rewrite the whole app:\n\n```tsx\nexport default async function Page() {\n  const user = await getUser();\n  const projects = await getProjects(user.id);\n  const activity = await getActivity(user.id);\n  return <Dashboard user={user} projects={projects} activity={activity} />;\n}\n```\n\nAssume the three calls are independent after authentication. Text only.",
+      "expected_output": "A focused Next.js/React performance review that identifies the server waterfall and proposes parallel, measurement-aware improvements.",
+      "files": [],
+      "expectations": [
+        "The response identifies the sequential data-fetching waterfall.",
+        "The response proposes parallelizing the independent project and activity requests, such as Promise.all.",
+        "The response keeps the recommendation scoped to the supplied page rather than proposing an unrelated rewrite.",
+        "The response mentions measuring or validating the performance effect."
+      ]
+    }
+  ]
+}

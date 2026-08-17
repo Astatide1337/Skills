@@ -1,0 +1,17 @@
+{
+  "skill_name": "receiving-code-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $receiving-code-review. A reviewer wrote: ‘This is too complex; simplify it.’ The change is a payment-webhook parser. Ask targeted questions to understand the reviewer's intent, then describe how to evaluate and resolve the feedback without blindly changing production behavior. Text only; do not edit files or claim that the change is complete.",
+      "expected_output": "A clarification-first response that turns an ambiguous review comment into actionable questions and a safe resolution/verification plan.",
+      "files": [],
+      "expectations": [
+        "The response asks targeted clarifying questions instead of treating the vague comment as a complete specification.",
+        "The response preserves payment-webhook behavior and calls for tests or verification before accepting a simplification.",
+        "The response separates understanding the intent from making the implementation change.",
+        "The response does not claim that production code was changed or that the review is already resolved."
+      ]
+    }
+  ]
+}

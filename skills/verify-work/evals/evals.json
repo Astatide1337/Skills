@@ -1,0 +1,17 @@
+{
+  "skill_name": "verify-work",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $verify-work. A developer says ‘the production deployment is done’ and provides only a green CI check and a merged pull request. Verify the claim from the evidence available, list the missing checks, and state exactly what can and cannot be claimed. Do not assume the live deployment succeeded.",
+      "expected_output": "An evidence-based verification report that distinguishes source/CI evidence from live production evidence and lists missing checks without claiming success.",
+      "files": [],
+      "expectations": [
+        "The response distinguishes merged source and green CI from live production behavior.",
+        "The response lists concrete deployment/route/health/log checks that are missing.",
+        "The response states what can and cannot be claimed from the supplied evidence.",
+        "The response does not claim that production is successfully deployed."
+      ]
+    }
+  ]
+}

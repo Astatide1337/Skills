@@ -1,0 +1,17 @@
+{
+  "skill_name": "debugging-and-error-recovery",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $debugging-and-error-recovery. A background worker processed 97 of 100 jobs, then crashed with ‘connection reset by peer’. Give me a recovery plan that avoids duplicate side effects, explains what to inspect first, and defines how to verify the remaining jobs. Do not claim that retrying blindly is safe.",
+      "expected_output": "A failure-recovery plan that inspects durable state, handles idempotency/duplicates, retries safely, and verifies completion.",
+      "files": [],
+      "expectations": [
+        "The response inspects durable job state and identifies the three potentially unprocessed jobs.",
+        "The response addresses idempotency or duplicate side effects before retrying.",
+        "The response treats connection reset as an observed error and proposes checking logs/connection context.",
+        "The response defines post-recovery verification of all 100 jobs."
+      ]
+    }
+  ]
+}

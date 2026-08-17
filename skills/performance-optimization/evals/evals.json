@@ -1,0 +1,17 @@
+{
+  "skill_name": "performance-optimization",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $performance-optimization. A dashboard endpoint takes 2.4 seconds and runs one database query per row in a 500-row result. Give me a measurement-first optimization plan, identify the likely bottleneck, propose the least risky improvement, and define success metrics. Do not claim a benchmark you have not run.",
+      "expected_output": "A measurement-first plan that identifies N+1 behavior, proposes batching/joining safely, and defines measurable before/after targets.",
+      "files": [],
+      "expectations": [
+        "The response identifies the per-row query pattern as an N+1/database bottleneck.",
+        "The response starts with profiling or measurements rather than asserting an unmeasured result.",
+        "The response proposes batching, a join, or another focused query reduction.",
+        "The response defines success metrics and does not claim the optimization was already performed."
+      ]
+    }
+  ]
+}

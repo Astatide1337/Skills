@@ -1,0 +1,17 @@
+{
+  "skill_name": "building-components",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $building-components. Design a composable React Card component for a design system with header, content, footer, loading, and error states. Avoid a large collection of boolean props. Explain the component API, composition model, styling/state conventions, and accessibility considerations. Text only.",
+      "expected_output": "A composable, accessible React component API that uses composition and explicit state patterns rather than boolean-prop sprawl.",
+      "files": [],
+      "expectations": [
+        "The response proposes a compositional Card API with subcomponents or slots for header/content/footer.",
+        "The response explicitly avoids boolean-prop proliferation.",
+        "The response models loading and error as explicit states with corresponding UI behavior.",
+        "The response addresses accessibility and keyboard/focus semantics where relevant."
+      ]
+    }
+  ]
+}

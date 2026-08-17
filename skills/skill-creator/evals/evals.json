@@ -1,0 +1,17 @@
+{
+  "skill_name": "skill-creator",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $skill-creator. Design a new skill named ‘release-notes’ that turns a verified git diff into concise release notes. Return the proposed SKILL.md frontmatter/body outline, explain what belongs in references instead of the main file, and define two eval cases with measurable expectations. Do not create files.",
+      "expected_output": "A valid skill design with compliant frontmatter, focused instructions, progressive disclosure, and concrete eval cases using measurable expectations.",
+      "files": [],
+      "expectations": [
+        "The response includes compliant lowercase hyphenated name and a useful trigger description in frontmatter.",
+        "The response keeps the main skill focused and moves detailed material to references or optional resources.",
+        "The response defines at least two concrete eval cases.",
+        "The eval design uses measurable expectations rather than vague quality claims."
+      ]
+    }
+  ]
+}

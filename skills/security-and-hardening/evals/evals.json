@@ -1,0 +1,17 @@
+{
+  "skill_name": "security-and-hardening",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $security-and-hardening. Audit this conceptual file-upload endpoint and give a prioritized hardening plan without making changes:\n\n```python\n@app.post('/upload')\ndef upload(file: UploadFile):\n    path = '/srv/uploads/' + file.filename\n    file.file.save(path)\n    return {'path': path}\n```\n\nConsider path traversal, content validation, authorization, storage, logging, and abuse limits.",
+      "expected_output": "A threat-oriented, prioritized hardening plan covering traversal, validation, authorization, storage exposure, logging, and abuse controls.",
+      "files": [],
+      "expectations": [
+        "The response identifies path traversal or unsafe filename/path construction.",
+        "The response covers file type/content validation and size or resource limits.",
+        "The response covers authorization and safe storage/access exposure.",
+        "The response prioritizes findings and includes logging/monitoring or abuse controls."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "skill_name": "remotion-best-practices",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $remotion-best-practices. Plan a Remotion composition that shows a 30-second product demo with word-level captions, a logo asset, and a progress bar. Explain frame/time mapping, asset loading, deterministic rendering, and how to validate the result. Text only; do not render a video.",
+      "expected_output": "A deterministic Remotion composition plan with frame-based timing, caption synchronization, asset handling, and validation.",
+      "files": [],
+      "expectations": [
+        "The response maps the 30-second timeline to frames using fps/duration rather than vague wall-clock timing.",
+        "The response addresses word-level caption timing and a progress bar tied to the current frame.",
+        "The response addresses deterministic asset loading/preloading and reproducible rendering.",
+        "The response includes validation of timing/output and does not claim that a video was rendered."
+      ]
+    }
+  ]
+}

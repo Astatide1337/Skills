@@ -72,6 +72,18 @@
         "Uses Message + Bubble + BubbleContent for the conversation rows instead of hand-rolled bubble divs",
         "Uses semantic color tokens and gap-* spacing; includes \"use client\" (isRSC)"
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "Use $shadcn. Plan the implementation of an ‘Invite member’ dialog in a Next.js app using the repository's shadcn/ui conventions. The dialog needs an email field, validation message, cancel and submit actions, loading state, and accessible labeling. Text only; identify the components and integration steps, but do not install packages or edit files.",
+      "expected_output": "A shadcn/ui-oriented implementation plan for an accessible dialog form with validation and loading states.",
+      "files": [],
+      "expectations": [
+        "The response uses the shadcn/ui Dialog and form-oriented component conventions.",
+        "The response includes accessible labeling for the dialog and email field.",
+        "The response handles validation feedback and a disabled or loading submit state.",
+        "The response preserves cancel/close behavior and does not claim to have installed or changed the project."
+      ]
     }
   ]
 }

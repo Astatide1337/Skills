@@ -1,0 +1,17 @@
+{
+  "skill_name": "source-driven-development",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $source-driven-development. I must outline a FastAPI endpoint using only this supplied source excerpt as authority:\n\n‘POST /v1/jobs accepts JSON {title: string, company: string}. It returns 201 with {id: string} on creation. A missing title returns 422. Authentication is not specified.’\n\nSeparate sourced requirements from unknowns, cite the excerpt in your reasoning, and list tests. Do not invent authentication, persistence, or undocumented response fields.",
+      "expected_output": "A source-bounded API outline that cites the supplied excerpt, preserves unknowns, and proposes tests without inventing unspecified behavior.",
+      "files": [],
+      "expectations": [
+        "The response uses the supplied POST /v1/jobs contract and the title/company fields.",
+        "The response preserves the documented 201/id and missing-title 422 behavior.",
+        "The response explicitly identifies authentication or persistence as unspecified rather than inventing a design.",
+        "The response lists tests tied to the documented contract."
+      ]
+    }
+  ]
+}

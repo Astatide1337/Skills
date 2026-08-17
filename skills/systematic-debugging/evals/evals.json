@@ -1,0 +1,17 @@
+{
+  "skill_name": "systematic-debugging",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $systematic-debugging. An API intermittently returns 500 only when a request includes a large JSON payload. We have one log line: ‘internal error’. Walk through the investigation without declaring a root cause: state facts and unknowns, list competing hypotheses, choose the cheapest discriminating check, then define how the result would change the next step.",
+      "expected_output": "A structured debugging workflow with facts/unknowns, competing hypotheses, a discriminating experiment, and conditional next steps.",
+      "files": [],
+      "expectations": [
+        "The response clearly separates facts from unknowns.",
+        "The response lists multiple competing hypotheses rather than one asserted cause.",
+        "The response chooses a cheap discriminating check or reproduction experiment.",
+        "The response defines conditional next steps based on observed results and avoids premature root-cause claims."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "skill_name": "code-review-and-quality",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use $code-review-and-quality. Review this diff and report findings by severity with concrete evidence and tests to add. Do not rewrite the patch:\n\n```diff\n+app.get('/users/:id', (req, res) => {\n+  const sql = `SELECT * FROM users WHERE id = '${req.params.id}'`;\n+  db.query(sql).then(rows => res.json(rows));\n+});\n```\n\nAssume the endpoint should return only the authenticated user's record.",
+      "expected_output": "A prioritized review that catches SQL injection, authorization failure, error handling issues, and proposes focused tests.",
+      "files": [],
+      "expectations": [
+        "The response identifies SQL injection/string interpolation and recommends parameterized queries.",
+        "The response identifies the missing authorization/ownership check.",
+        "The response assigns severity or prioritizes the findings.",
+        "The response proposes focused tests rather than claiming the patch is fixed."
+      ]
+    }
+  ]
+}
