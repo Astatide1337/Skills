@@ -1,0 +1,4 @@
+interface:
+  display_name: "Production Safety"
+  short_description: "Safely inspect and change production systems"
+  default_prompt: "Use $production-safety to plan and verify a safe production change."

@@ -11,13 +11,14 @@ skill-name/
   assets/       # optional
 ```
 
-The catalog currently contains 20 skills. `catalog.yaml` records the source
+The catalog currently contains 24 skills. `catalog.yaml` records the source
 repository, exact source commit, original source path, trust classification,
 profile, and installed path for every exported skill. Each `SKILL.md` carries
 the runtime-facing `name` and `description` frontmatter, so Codex, Claude Code,
 and other Agent Skills-compatible harnesses can discover the same metadata from
 the filesystem. Bundled scripts and reference material were copied with their
-skill and remain available through relative paths.
+skill and remain available through relative paths. Imported local archives are
+identified by their SHA-256 digest instead of a Git commit.
 
 The previous MCP Skills Gateway served these files over read-only MCP tools.
 That service is retired. Skills are now installed by copying the selected

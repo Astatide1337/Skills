@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify Work"
+  short_description: "Prove engineering work is actually complete"
+  default_prompt: "Use $verify-work to verify this change before claiming completion."

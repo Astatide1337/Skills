@@ -1,0 +1,128 @@
+---
+name: production-safety
+description: Use this skill whenever work touches production or production-like databases, persistent data, Kubernetes/OpenShift or other clusters, networking, DNS, storage, backups, migrations, authentication infrastructure, deployment state, or any external system where a wrong assumption can cause data loss, downtime, security impact, or difficult rollback. Begin read-only, establish the real topology and intent, and never treat access as authorization to mutate or destroy state.
+---
+
+# Production Safety
+
+Observe first. Change only from verified state.
+
+## 1. Establish the operation
+
+Before changing anything, state:
+
+- **Target:** exact environment, host, cluster, service, database, or external system.
+- **Intent:** inspect, copy, restore, migrate, move, reconfigure, deploy, repair, or delete.
+- **Source of truth:** which system/data/state is authoritative.
+- **Authorization:** what the user explicitly asked to change.
+
+Preserve semantic distinctions such as **copy vs move**, **restore vs replace**, **test vs production**, and **diagnose vs modify**.
+
+## 2. Start read-only
+
+Inspect before writing:
+
+- current topology and roles;
+- dependencies and traffic paths;
+- current configuration;
+- storage/data state;
+- health and recent events/logs;
+- replication/backup state when relevant;
+- the exact object/resource that would be changed.
+
+Do not mutate the system merely to discover how it is configured.
+
+## 3. Separate facts from assumptions
+
+Keep a short list:
+
+- **Known:** directly observed current state.
+- **Unknown:** material facts not yet verified.
+- **Assumed:** hypotheses that must not justify a risky action.
+
+If a material safety fact is unknown, investigate it before proceeding.
+
+## 4. Classify the proposed action
+
+### Read-only
+
+Examples: status, logs, describe/get, queries that do not mutate state.
+
+Proceed when authorized access exists.
+
+### Reversible write
+
+Examples: a scoped configuration change with a known rollback, a deployment update, creating a new isolated resource.
+
+Proceed only when the user's task authorizes changing that system and the rollback is understood.
+
+### Destructive or difficult-to-reverse
+
+Examples:
+
+- dropping or clearing data;
+- deleting persistent storage;
+- reinitializing or reconfiguring database topology;
+- force operations;
+- destructive migrations;
+- replacing authoritative data;
+- removing DNS/network paths;
+- deleting production resources.
+
+Do **not** execute until all of the following are established:
+
+1. exact target and role;
+2. why the action is necessary;
+3. affected dependencies;
+4. whether unique data/state exists;
+5. backup/recovery status;
+6. rollback or restoration path;
+7. blast radius if the assumption is wrong;
+8. explicit user authorization for the destructive action.
+
+## 5. Prefer the least risky path
+
+- Prefer inspection over mutation.
+- Prefer copy over move when the task is a copy.
+- Prefer additive/reversible changes before destructive replacement.
+- Prefer a test/UAT path before production when it provides meaningful evidence.
+- Preserve the authoritative source until the replacement is independently verified.
+- Avoid broad commands when a scoped command can accomplish the task.
+
+## 6. Execute incrementally
+
+For an authorized write:
+
+1. capture pre-change state;
+2. make one scoped change;
+3. inspect the immediate result;
+4. verify health and dependencies;
+5. continue only if the observed state matches expectations.
+
+Do not batch risky changes that make the cause of failure ambiguous.
+
+## 7. Verify recovery and outcome
+
+When relevant:
+
+- verify backups are usable, not merely present;
+- verify restored/copied record counts and errors;
+- verify replication/topology after database changes;
+- verify routes/connectivity after network changes;
+- verify workloads and user-visible health after deployment changes.
+
+A successful command exit is not sufficient proof.
+
+## Stop conditions
+
+Stop before writing if:
+
+- environment identity is uncertain;
+- topology or dependency assumptions conflict with live evidence;
+- the requested operation changed meaning;
+- backup/recovery state is unknown for a destructive action;
+- the rollback path is unclear;
+- the blast radius cannot be bounded;
+- the proposed action exceeds the user's authorization.
+
+Report the evidence and ask for the missing decision rather than guessing.

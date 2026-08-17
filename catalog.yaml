@@ -16,6 +16,7 @@ profiles:
     - shadcn
     - building-components
     - vercel-composition-patterns
+    - ui-quality
   mcp-and-infrastructure:
     - cloudflare-deploy
   agent-manager:
@@ -30,6 +31,9 @@ profiles:
     - code-simplification
     - security-and-hardening
     - performance-optimization
+    - production-safety
+    - systematic-debugging
+    - verify-work
   video-and-media:
     - remotion-best-practices
   zero-token-architecture:
@@ -109,6 +113,22 @@ skills:
     trust: established
     exported_path: skills/performance-optimization/SKILL.md
     source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/performance-optimization}
+  - profile: production-engineering
+    trust: local-reviewed
+    exported_path: skills/production-safety/SKILL.md
+    source: {archive: 'astatide-engineering-skills.zip', archive_sha256: '050549d0dd33e6fb5ca91354538c9de38968e3c7beb045c238393844e6a461a7', path: skills/production-safety, adaptation: normalized with skill-creator}
+  - profile: production-engineering
+    trust: local-reviewed
+    exported_path: skills/systematic-debugging/SKILL.md
+    source: {archive: 'astatide-engineering-skills.zip', archive_sha256: '050549d0dd33e6fb5ca91354538c9de38968e3c7beb045c238393844e6a461a7', path: skills/systematic-debugging, adaptation: normalized with skill-creator}
+  - profile: production-engineering
+    trust: local-reviewed
+    exported_path: skills/verify-work/SKILL.md
+    source: {archive: 'astatide-engineering-skills.zip', archive_sha256: '050549d0dd33e6fb5ca91354538c9de38968e3c7beb045c238393844e6a461a7', path: skills/verify-work, adaptation: normalized with skill-creator}
+  - profile: web-engineering
+    trust: local-reviewed
+    exported_path: skills/ui-quality/SKILL.md
+    source: {archive: 'astatide-engineering-skills.zip', archive_sha256: '050549d0dd33e6fb5ca91354538c9de38968e3c7beb045c238393844e6a461a7', path: skills/ui-quality, adaptation: normalized with skill-creator and agent-browser workflow}
   - profile: video-and-media
     trust: established
     exported_path: skills/remotion-best-practices/SKILL.md
