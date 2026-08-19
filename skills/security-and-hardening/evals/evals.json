@@ -160,6 +160,27 @@
           "anchors": {"1": "Misses IDOR", "3": "Flags authorization", "5": "Explains the concrete exploit and verification/control boundary"}
         }
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "Use $security-and-hardening. Review a multi-tenant API where GET /projects/:id checks only that the caller is logged in, while the database lookup uses the client-provided project id. Do not edit code. Explain the strongest verification test and the narrowest enforcement point.",
+      "expected_output": "A prioritized object-level authorization finding that uses two ordinary tenant identities, binds the query to authenticated tenant scope, and does not confuse authentication with authorization.",
+      "files": [],
+      "expectations": ["Identifies broken object-level authorization or cross-tenant access as the primary risk.", "Uses two distinct ordinary users or tenants in the negative test.", "Recommends enforcing tenant/object scope in the shared service or data-access boundary.", "Respects the review-only boundary and does not edit code."]
+    },
+    {
+      "id": 5,
+      "prompt": "Use $security-and-hardening. A GitHub Actions deployment uses a long-lived cloud key, broad default workflow permissions, an external action pinned to a tag, and pushes a mutable image tag to an OpenShift deployment. Give a prioritized hardening plan without changing the repository or cluster.",
+      "expected_output": "A delivery-chain hardening plan covering short-lived constrained identity, least job permissions, immutable automation and artifact identity, secret exposure, and the running deployment provenance.",
+      "files": [],
+      "expectations": ["Prefers short-lived OIDC or workload identity constrained to repository/ref/environment over the stored cloud key.", "Reduces workflow permissions and treats external automation as executable code that should use an immutable revision.", "Connects build provenance and image digest to the deployed revision instead of trusting a mutable tag.", "Does not mutate the repository, workflow, credentials, or cluster."]
+    },
+    {
+      "id": 6,
+      "prompt": "Use $security-and-hardening. An agent reads retrieved customer documents and can call a tool that accepts arbitrary URLs and performs account actions. Audit the design for cross-tenant retrieval, indirect prompt injection, SSRF, excessive agency, secret exposure, and cost amplification. Do not invoke the tool.",
+      "expected_output": "An agent-security threat model that treats all content and model output as untrusted, enforces tenant and action authorization outside the prompt, constrains URLs and egress, minimizes tools and credentials, and bounds consumption.",
+      "files": [],
+      "expectations": ["Requires authorization-scoped retrieval before similarity search and tests with two tenants.", "Treats retrieved instructions and model output as untrusted rather than relying on prompt wording.", "Constrains destinations and network egress against SSRF and validates tool actions server-side.", "Minimizes tool permissions and credentials and bounds iterations, tokens, time, or spend."]
     }
   ]
 }

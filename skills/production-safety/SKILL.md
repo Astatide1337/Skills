@@ -1,6 +1,6 @@
 ---
 name: production-safety
-description: Use this skill whenever work touches production or production-like databases, persistent data, Kubernetes/OpenShift or other clusters, networking, DNS, storage, backups, migrations, authentication infrastructure, deployment state, or any external system where a wrong assumption can cause data loss, downtime, security impact, or difficult rollback. Begin read-only, establish the real topology and intent, and never treat access as authorization to mutate or destroy state.
+description: Use whenever work touches production or production-like databases, persistent data, VPS hosts, Docker Compose or Podman services, Kubernetes/OpenShift or other clusters, GitHub/GitLab delivery workflows, GitOps controllers, infrastructure-as-code and its state, cloud IAM, certificates, networking, DNS, storage, queues, scheduled jobs, backups, migrations, observability, authentication infrastructure, deployment state, or any external system where a wrong assumption can cause data loss, downtime, security impact, or difficult rollback. Begin read-only, establish the real topology and intent, and never treat access as authorization to mutate or destroy state.
 ---
 
 # Production Safety
@@ -25,12 +25,20 @@ Inspect before writing:
 - current topology and roles;
 - dependencies and traffic paths;
 - current configuration;
+- declared desired state, reconciliation owner, infrastructure state backend, and pending plan/diff when applicable;
 - storage/data state;
 - health and recent events/logs;
 - replication/backup state when relevant;
+- identity, assumed role/service account, effective privileges, and credential lifetime when relevant;
 - the exact object/resource that would be changed.
 
 Do not mutate the system merely to discover how it is configured.
+
+For infrastructure-as-code, GitOps, IAM, Kubernetes, or managed-database work, read `references/infrastructure-checks.md` and apply only the relevant section.
+
+For this catalog owner's recurring VPS, container, repository-delivery, database,
+or live end-to-end work, also read `references/operator-profile.md`. These are
+evidence-based defaults, not claims about the current target; verify them each time.
 
 ### Execution-mode gate
 
@@ -60,6 +68,8 @@ external-secret or backup systems, dashboards, and human runbooks. “No consume
 found” is a verification result only after those categories were checked; do
 not treat an empty search or an unknown topology as proof of safe removal.
 
+Treat controllers and state engines as active writers. A manual live change can be reverted by reconciliation, overwrite another writer, or leave declared and actual state divergent. Establish ownership and the supported change path before writing.
+
 ## 4. Classify the proposed action
 
 ### Read-only
@@ -85,6 +95,9 @@ Examples:
 - destructive migrations;
 - replacing authoritative data;
 - removing DNS/network paths;
+- force-unlocking or directly editing infrastructure state;
+- broadening IAM trust or permissions, creating long-lived credentials, or disabling reconciliation or policy gates;
+- replacing or rotating certificates, keys, or secrets without proving every consumer has transitioned;
 - deleting production resources.
 
 Do **not** execute until all of the following are established:
@@ -97,6 +110,7 @@ Do **not** execute until all of the following are established:
 6. rollback or restoration path;
 7. blast radius if the assumption is wrong;
 8. explicit user authorization for the destructive action.
+9. controller/state-lock/concurrency status and whether another writer can race or revert the change.
 
 ## 5. Prefer the least risky path
 
@@ -128,8 +142,14 @@ When relevant:
 - verify replication/topology after database changes;
 - verify routes/connectivity after network changes;
 - verify workloads and user-visible health after deployment changes.
+- verify reconciliation converges to the intended revision without unexplained drift;
+- verify alerts, audit events, and error signals remain usable through the change.
 
 A successful command exit is not sufficient proof.
+
+Distinguish proof layers explicitly: static checks, local integration, CI,
+deployed service/API behavior, and user-visible browser behavior answer different
+questions. Do not report one as proof of another.
 
 ## Stop conditions
 

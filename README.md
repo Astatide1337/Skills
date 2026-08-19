@@ -11,7 +11,7 @@ skill-name/
   assets/       # optional
 ```
 
-The catalog currently contains 17 skills. `catalog.yaml` records the source
+The catalog currently contains 16 skills. `catalog.yaml` records the source
 repository, exact source commit, original source path, trust classification,
 profile, and installed path for every exported skill. Each `SKILL.md` carries
 the runtime-facing `name` and `description` frontmatter, so Codex, Claude Code,

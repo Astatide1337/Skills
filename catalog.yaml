@@ -43,8 +43,8 @@ skills:
         - {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/code-simplification}
         - {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/performance-optimization}
         - {repository: 'https://github.com/obra/superpowers', commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/receiving-code-review}
-  - {profile: production-engineering, trust: established, exported_path: skills/security-and-hardening/SKILL.md, source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/security-and-hardening}}
-  - {profile: production-engineering, trust: local-reviewed, exported_path: skills/production-safety/SKILL.md, source: {archive: 'astatide-engineering-skills.zip', archive_sha256: '050549d0dd33e6fb5ca91354538c9de38968e3c7beb045c238393844e6a461a7', path: skills/production-safety}}
+  - {profile: production-engineering, trust: local-reviewed, exported_path: skills/security-and-hardening/SKILL.md, source: {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/security-and-hardening, adaptation: personalized threat-model workflow with current application, supply-chain, runtime, data, and agent controls}}
+  - {profile: production-engineering, trust: local-reviewed, exported_path: skills/production-safety/SKILL.md, source: {archive: 'astatide-engineering-skills.zip', archive_sha256: '050549d0dd33e6fb5ca91354538c9de38968e3c7beb045c238393844e6a461a7', path: skills/production-safety, adaptation: personalized for VPS, container, GitHub/GitLab, database, and live end-to-end operations}}
   - profile: production-engineering
     trust: local-reviewed
     exported_path: skills/systematic-debugging/SKILL.md
