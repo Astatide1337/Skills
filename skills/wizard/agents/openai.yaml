@@ -1,0 +1,4 @@
+interface:
+  display_name: "Setup Wizard"
+  short_description: "Build safe, resumable project setup flows"
+  default_prompt: "Use $wizard to design a safe user-run setup flow for this project."

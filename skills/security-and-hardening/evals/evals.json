@@ -11,6 +11,154 @@
         "The response covers file type/content validation and size or resource limits.",
         "The response covers authorization and safe storage/access exposure.",
         "The response prioritizes findings and includes logging/monitoring or abuse controls."
+      ],
+      "checks": [
+        {
+          "id": "invocation-is-correct",
+          "type": "skill_available",
+          "text": "The selected skill is available to the treatment and absent from the baseline.",
+          "expected": "configuration"
+        },
+        {
+          "id": "upload-threats",
+          "type": "response_contains_all",
+          "text": "Covers unsafe path construction and content validation.",
+          "terms": ["path traversal", "validation"]
+        },
+        {
+          "id": "upload-limits",
+          "type": "response_contains_all",
+          "text": "Covers authorization and resource/abuse limits.",
+          "terms": ["authorization", "limit"]
+        },
+        {
+          "id": "upload-observability",
+          "type": "response_contains_all",
+          "text": "Covers safe storage/access and logging or monitoring.",
+          "terms": ["storage", "logging"]
+        },
+        {
+          "id": "no-project-mutation",
+          "type": "no_project_changes",
+          "text": "Does not modify the disposable project."
+        },
+        {
+          "id": "nonempty-response",
+          "type": "final_response_nonempty",
+          "text": "Produces a captured response.",
+          "min_chars": 180
+        }
+      ],
+      "rubric": [
+        {
+          "id": "threat-model",
+          "description": "Identifies trust boundaries, assets, abuse cases, and prioritized threats.",
+          "anchors": {"1": "Lists generic advice", "3": "Finds major issues", "5": "Prioritizes concrete threats and maps them to controls"}
+        },
+        {
+          "id": "control-quality",
+          "description": "Recommends implementable controls without making unsupported security claims.",
+          "anchors": {"1": "Vague or unsafe", "3": "Mostly actionable", "5": "Specific, scoped, layered controls with verification"}
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Use $security-and-hardening. Audit this webhook endpoint without making changes:\n\n```python\n@app.post('/webhooks/payment')\ndef payment(payload: dict, signature: str | None = Header(None)):\n    process_payment_event(payload)\n    return {'ok': True}\n```\n\nDiscuss signature verification, replay protection, authorization, idempotency, input validation, logging, rate limits, and error handling.",
+      "expected_output": "A prioritized webhook threat model and hardening plan that addresses authenticity, replay, duplicate delivery, abuse, and observability.",
+      "files": [],
+      "expectations": [
+        "The response requires authenticating the webhook before processing it.",
+        "The response covers replay protection and idempotency.",
+        "The response covers validation, rate limits, logging, and safe error handling.",
+        "The response prioritizes controls rather than claiming the endpoint is secure."
+      ],
+      "checks": [
+        {
+          "id": "invocation-is-correct",
+          "type": "skill_available",
+          "text": "The selected skill is available to the treatment and absent from the baseline.",
+          "expected": "configuration"
+        },
+        {
+          "id": "webhook-authenticity",
+          "type": "response_contains_all",
+          "text": "Covers signature verification and replay protection.",
+          "terms": ["signature", "replay"]
+        },
+        {
+          "id": "webhook-integrity",
+          "type": "response_contains_all",
+          "text": "Covers idempotency and input validation.",
+          "terms": ["idempotency", "validation"]
+        },
+        {
+          "id": "webhook-abuse-controls",
+          "type": "response_contains_all",
+          "text": "Covers rate limits, logging, and safe error handling.",
+          "terms": ["rate", "logging", "error"]
+        },
+        {
+          "id": "no-project-mutation",
+          "type": "no_project_changes",
+          "text": "Does not modify the disposable project."
+        }
+      ],
+      "rubric": [
+        {
+          "id": "webhook-boundary",
+          "description": "Treats the webhook as an untrusted boundary and sequences verification before side effects.",
+          "anchors": {"1": "Processes payload immediately", "3": "Mentions signature checking", "5": "Explicitly orders verification, replay/idempotency, validation, then side effects"}
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Use $security-and-hardening. Review this conceptual profile endpoint without editing it:\n\n```ts\napp.patch('/api/profile/:userId', async (req, res) => {\n  const user = await db.user.update({ where: { id: req.params.userId }, data: req.body });\n  res.json(user);\n});\n```\n\nGive a prioritized review covering IDOR, schema validation, mass assignment, session/CSRF assumptions, sensitive response fields, error disclosure, and audit logging.",
+      "expected_output": "A prioritized access-control and input-boundary review that identifies IDOR and unsafe data update/response patterns.",
+      "files": [],
+      "expectations": [
+        "The response identifies the authorization/IDOR risk.",
+        "The response covers schema validation and mass-assignment or field allowlisting.",
+        "The response addresses sensitive response data, errors, CSRF/session assumptions, and audit logging."
+      ],
+      "checks": [
+        {
+          "id": "invocation-is-correct",
+          "type": "skill_available",
+          "text": "The selected skill is available to the treatment and absent from the baseline.",
+          "expected": "configuration"
+        },
+        {
+          "id": "access-control",
+          "type": "response_contains_any",
+          "text": "Identifies IDOR or object-level authorization risk.",
+          "terms": ["IDOR", "object-level authorization", "authorization"]
+        },
+        {
+          "id": "input-boundary",
+          "type": "response_contains_all",
+          "text": "Covers schema validation and field allowlisting/mass assignment.",
+          "terms": ["validation", "allowlist"]
+        },
+        {
+          "id": "data-and-audit",
+          "type": "response_contains_all",
+          "text": "Covers sensitive response fields, errors, and logging.",
+          "terms": ["sensitive", "error", "logging"]
+        },
+        {
+          "id": "no-project-mutation",
+          "type": "no_project_changes",
+          "text": "Does not modify the disposable project."
+        }
+      ],
+      "rubric": [
+        {
+          "id": "authorization-analysis",
+          "description": "Prioritizes authorization based on the authenticated subject rather than a client-selected id.",
+          "anchors": {"1": "Misses IDOR", "3": "Flags authorization", "5": "Explains the concrete exploit and verification/control boundary"}
+        }
       ]
     }
   ]

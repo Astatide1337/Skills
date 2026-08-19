@@ -11,6 +11,20 @@ Multi-dimensional code review with quality gates. Every change gets reviewed bef
 
 **The approval standard:** Approve a change when it definitely improves overall code health, even if it isn't perfect. Perfect code doesn't exist — the goal is continuous improvement. Don't block a change because it isn't exactly how you would have written it. If it improves the codebase and follows the project's conventions, approve it.
 
+## Evidence and workspace boundary
+
+Inspect only the supplied project root and artifacts explicitly named by the
+task. Do not search parent directories, `/tmp`, evaluator/grader paths, or
+unrelated repositories for a missing source tree, diff, manifest, or result.
+If required evidence is absent, say exactly what is missing and provide a
+bounded review plan; do not invent findings or claim a review was completed.
+
+When the task is text-only, offline, or says not to browse/install/run
+commands, use only the supplied source and release notes. Do not run package
+audits, fetch changelogs, query registries, or install dependencies. Mark
+external maintenance, vulnerability, and license facts as unknown until
+authorized evidence is supplied.
+
 ## When to Use
 
 - Before merging any PR or change
@@ -76,7 +90,7 @@ For detailed security guidance, see `security-and-hardening`. Does the change in
 
 ### 5. Performance
 
-For detailed profiling and optimization, see `performance-optimization`. Does the change introduce performance problems?
+For a suspected regression, use the measured workflow in `references/backend-performance.md`. Does the change introduce performance problems?
 
 - Any N+1 query patterns?
 - Any unbounded loops or unconstrained data fetching?
@@ -84,6 +98,14 @@ For detailed profiling and optimization, see `performance-optimization`. Does th
 - Any unnecessary re-renders in UI components?
 - Any missing pagination on list endpoints?
 - Any large objects created in hot paths?
+
+## Handling review feedback
+
+Before implementing a review comment, restate the requested change, locate the relevant code, and verify that the premise is technically correct for this repository. Ask when scope is ambiguous. Push back with evidence when a suggestion would break behavior, violate an established constraint, or add unjustified complexity. Never perform agreement; either implement the verified request or explain the concrete conflict. See `references/review-feedback.md`.
+
+## Behavior-preserving simplification
+
+When the goal is cleanup, first lock down observable behavior and then reduce concepts, branches, indirection, and duplication. Do not mix semantic changes into a simplification pass. See `references/behavior-preserving-simplification.md`.
 
 ## Structural Remedies
 
@@ -394,3 +416,11 @@ After review is complete:
 - [ ] Dependency upgrades were reviewed against their changelog, isolated per package, and verified by a green suite with the lockfile diff reviewed
 
 **Presumptive blockers:** surface and propose the simpler design for each of these; escalate to Required only when the change actively makes structure worse: a refactor that relocates complexity instead of reducing it; a change that pushes a file past the size boundary with no decomposition; feature logic added to a shared module; a near-duplicate of an existing canonical helper; a silent fallback that hides an unclear invariant.
+
+## Execution boundary
+
+Match the task's requested mode and the tools it authorizes.
+
+- For text-only, plan-only, or review-only requests, use the supplied prompt and explicitly provided context. Do not inspect the workspace, run shell/CLI commands, call network/MCP/browser tools, or edit files. If required context is missing, say so and identify the smallest artifact needed.
+- For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
+- Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.

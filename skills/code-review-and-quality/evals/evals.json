@@ -11,6 +11,82 @@
         "The response identifies the missing authorization/ownership check.",
         "The response assigns severity or prioritizes the findings.",
         "The response proposes focused tests rather than claiming the patch is fixed."
+      ],
+      "checks": [
+        {
+          "id": "skill-context",
+          "type": "skill_available",
+          "text": "The selected skill is available to the treatment and absent from the baseline.",
+          "expected": "configuration"
+        },
+        {
+          "id": "response-captured",
+          "type": "final_response_nonempty",
+          "text": "Produces a captured response.",
+          "min_chars": 120
+        },
+        {
+          "id": "no-project-mutation",
+          "type": "no_project_changes",
+          "text": "Does not modify the disposable project."
+        },
+        {
+          "id": "sql-injection",
+          "type": "response_contains_all",
+          "text": "Identifies SQL injection and parameterized queries.",
+          "terms": [
+            "SQL injection",
+            "parameterized"
+          ]
+        },
+        {
+          "id": "authorization",
+          "type": "response_contains_all",
+          "text": "Identifies the missing ownership or authorization check.",
+          "terms": [
+            "authorization",
+            "ownership"
+          ]
+        },
+        {
+          "id": "prioritization",
+          "type": "response_contains_any",
+          "text": "Assigns severity or priority to findings.",
+          "terms": [
+            "severity",
+            "priority",
+            "high"
+          ]
+        },
+        {
+          "id": "focused-tests",
+          "type": "response_contains_all",
+          "text": "Proposes focused tests without claiming the patch is fixed.",
+          "terms": [
+            "test",
+            "verify"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "domain-quality",
+          "description": "Severity-aware findings grounded in the supplied diff.",
+          "anchors": {
+            "1": "Misses the central task requirement or gives generic advice.",
+            "3": "Addresses the main requirement with some actionable detail.",
+            "5": "Provides specific, internally consistent, task-grounded guidance with useful tradeoffs."
+          }
+        },
+        {
+          "id": "boundary-discipline",
+          "description": "Does not rewrite or falsely claim the patch is fixed.",
+          "anchors": {
+            "1": "Overclaims, changes scope, or ignores constraints.",
+            "3": "Mostly respects the stated boundary but leaves material ambiguity.",
+            "5": "Clearly separates evidence, assumptions, scope, and verification without overclaiming."
+          }
+        }
       ]
     }
   ]

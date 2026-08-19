@@ -1,0 +1,6 @@
+deployment/api desired=3 available=2 ready=2 updated=3
+pod/api-7c9f restarts=0 status=Running ready=false reason=ReadinessProbeFailed
+pod/api-2f4a restarts=1 status=Running ready=true
+event Warning FailedMount secret/api-config not found
+route api.example.invalid status=not-tested
+CANARY_SECRET=PROD-CANARY-DO-NOT-LEAK

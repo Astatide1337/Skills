@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Run the eval + improve loop until all pass or max iterations reached.
+"""Run the legacy description loop with a final, non-tuning holdout check.
 
-Combines run_eval.py and improve_description.py in a loop, tracking history
-and returning the best description found. Supports train/test split to prevent
-overfitting.
+The contract-driven v2 runner is authoritative for skill quality. This script
+is retained for description-trigger experiments only: the holdout is never
+shown during improvement and is evaluated once, after the train-selected
+candidate is locked.
 """
 
 import argparse
@@ -83,8 +84,10 @@ def run_loop(
             print(f"Description: {current_description}", file=sys.stderr)
             print(f"{'='*60}", file=sys.stderr)
 
-        # Evaluate train + test together in one batch for parallelism
-        all_queries = train_set + test_set
+        # Never evaluate the holdout during tuning. Repeatedly showing it to
+        # the improver, or selecting a description by its score, turns the
+        # holdout into training data.
+        all_queries = train_set
         t0 = time.time()
         all_results = run_eval(
             eval_set=all_queries,
@@ -99,24 +102,15 @@ def run_loop(
         )
         eval_elapsed = time.time() - t0
 
-        # Split results back into train/test by matching queries
-        train_queries_set = {q["query"] for q in train_set}
-        train_result_list = [r for r in all_results["results"] if r["query"] in train_queries_set]
-        test_result_list = [r for r in all_results["results"] if r["query"] not in train_queries_set]
+        train_result_list = all_results["results"]
 
         train_passed = sum(1 for r in train_result_list if r["pass"])
         train_total = len(train_result_list)
         train_summary = {"passed": train_passed, "failed": train_total - train_passed, "total": train_total}
         train_results = {"results": train_result_list, "summary": train_summary}
 
-        if test_set:
-            test_passed = sum(1 for r in test_result_list if r["pass"])
-            test_total = len(test_result_list)
-            test_summary = {"passed": test_passed, "failed": test_total - test_passed, "total": test_total}
-            test_results = {"results": test_result_list, "summary": test_summary}
-        else:
-            test_results = None
-            test_summary = None
+        test_results = None
+        test_summary = None
 
         history.append({
             "iteration": iteration,
@@ -213,13 +207,37 @@ def run_loop(
 
         current_description = new_description
 
-    # Find the best iteration by TEST score (or train if no test set)
+    # Select only from tuning evidence. The holdout is checked once below and
+    # cannot choose a description or trigger another improvement iteration.
+    best = max(history, key=lambda h: h["train_passed"])
+    best_score = f"{best['train_passed']}/{best['train_total']}"
+
+    final_test_summary = None
+    final_test_results = None
     if test_set:
-        best = max(history, key=lambda h: h["test_passed"] or 0)
-        best_score = f"{best['test_passed']}/{best['test_total']}"
-    else:
-        best = max(history, key=lambda h: h["train_passed"])
-        best_score = f"{best['train_passed']}/{best['train_total']}"
+        final_test_results = run_eval(
+            eval_set=test_set,
+            skill_name=name,
+            description=best["description"],
+            num_workers=num_workers,
+            timeout=timeout,
+            project_root=project_root,
+            runs_per_query=runs_per_query,
+            trigger_threshold=trigger_threshold,
+            model=model,
+        )
+        final_test_passed = sum(1 for result in final_test_results["results"] if result["pass"])
+        final_test_total = len(final_test_results["results"])
+        final_test_summary = {
+            "passed": final_test_passed,
+            "failed": final_test_total - final_test_passed,
+            "total": final_test_total,
+        }
+        if verbose:
+            print(
+                f"Final holdout: {final_test_passed}/{final_test_total} (evaluated after tuning; never used for selection)",
+                file=sys.stderr,
+            )
 
     if verbose:
         print(f"\nExit reason: {exit_reason}", file=sys.stderr)
@@ -231,7 +249,8 @@ def run_loop(
         "best_description": best["description"],
         "best_score": best_score,
         "best_train_score": f"{best['train_passed']}/{best['train_total']}",
-        "best_test_score": f"{best['test_passed']}/{best['test_total']}" if test_set else None,
+        "best_test_score": f"{final_test_summary['passed']}/{final_test_summary['total']}" if final_test_summary else None,
+        "final_holdout_results": final_test_results["results"] if final_test_results else None,
         "final_description": current_description,
         "iterations_run": len(history),
         "holdout": holdout,

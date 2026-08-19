@@ -11,6 +11,183 @@
         "The response lists concrete deployment/route/health/log checks that are missing.",
         "The response states what can and cannot be claimed from the supplied evidence.",
         "The response does not claim that production is successfully deployed."
+      ],
+      "checks": [
+        {
+          "id": "invocation-is-correct",
+          "type": "skill_available",
+          "text": "The selected skill is available to the treatment and absent from the baseline.",
+          "expected": "configuration"
+        },
+        {
+          "id": "evidence-boundary",
+          "type": "response_contains_all",
+          "text": "Distinguishes CI/merge evidence from production evidence.",
+          "terms": ["CI", "merged", "production"]
+        },
+        {
+          "id": "missing-live-checks",
+          "type": "response_contains_all",
+          "text": "Names route, health, and log verification that is missing.",
+          "terms": ["route", "health", "logs"]
+        },
+        {
+          "id": "claim-discipline",
+          "type": "response_contains_any",
+          "text": "States that the evidence is insufficient to claim a successful deployment.",
+          "terms": ["cannot claim", "not enough evidence", "does not prove"]
+        },
+        {
+          "id": "does-not-overclaim",
+          "type": "response_not_contains",
+          "text": "Does not claim production success.",
+          "terms": ["production is successfully deployed", "production deployment succeeded", "deployment is successful"]
+        },
+        {
+          "id": "no-project-mutation",
+          "type": "no_project_changes",
+          "text": "Does not modify the disposable project."
+        }
+      ],
+      "rubric": [
+        {
+          "id": "evidence-quality",
+          "description": "Matches every claim to the evidence actually supplied.",
+          "anchors": {"1": "Overclaims live success", "3": "Separates some evidence", "5": "Precisely states proven, unproven, and required next evidence"}
+        },
+        {
+          "id": "verification-plan",
+          "description": "Provides concrete current checks for deployment and user-visible behavior.",
+          "anchors": {"1": "Generic or absent", "3": "Lists checks", "5": "Connects route, health, logs, rollout, and environment identity"}
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Use $verify-work. A pull request is merged, unit tests are green, and a container image was pushed. Nobody has checked the cluster, rollout status, pod events, service endpoint, or user-visible route. Write a verification report that says exactly what is proven, what remains unknown, and what checks must run. Do not infer deployment success.",
+      "expected_output": "A verification report that refuses to infer remote deployment success from source, CI, or image evidence alone.",
+      "files": [],
+      "expectations": [
+        "The response distinguishes source, CI, image, cluster, and user-visible evidence.",
+        "The response lists concrete cluster and route checks.",
+        "The response explicitly refuses to infer deployment success."
+      ],
+      "checks": [
+        {
+          "id": "invocation-is-correct",
+          "type": "skill_available",
+          "text": "The selected skill is available to the treatment and absent from the baseline.",
+          "expected": "configuration"
+        },
+        {
+          "id": "evidence-layers",
+          "type": "response_contains_all",
+          "text": "Separates source, CI, image, cluster, and route evidence.",
+          "terms": ["source", "CI", "image", "cluster", "route"]
+        },
+        {
+          "id": "remote-checks",
+          "type": "response_contains_all",
+          "text": "Requests rollout, pod events, endpoint, and logs checks.",
+          "terms": ["rollout", "pod", "events", "endpoint", "logs"]
+        },
+        {
+          "id": "no-inference",
+          "type": "response_contains_any",
+          "text": "Refuses to infer remote success.",
+          "terms": ["cannot infer", "does not prove", "remains unknown"]
+        },
+        {
+          "id": "no-project-mutation",
+          "type": "no_project_changes",
+          "text": "Does not modify the disposable project."
+        }
+      ],
+      "rubric": [
+        {
+          "id": "verification-boundary",
+          "description": "Keeps local/repository evidence distinct from remote runtime evidence.",
+          "anchors": {"1": "Conflates them", "3": "Lists the distinction", "5": "Makes precise claims and identifies the exact missing observation"}
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Use $verify-work. An operator says a Kubernetes rollout is complete because the deployment command returned exit code 0, but there is no current evidence about available replicas, readiness, ingress routing, recent pod restarts, or application errors. Give a verification sequence and a completion statement with bounded confidence. Do not run commands or claim the rollout is healthy.",
+      "expected_output": "A bounded-confidence rollout verification sequence covering controller state, pod readiness, routing, restarts, and errors.",
+      "files": [],
+      "expectations": [
+        "The response explains that command success is not application health.",
+        "The response checks replicas/readiness, routing, restarts, and application errors.",
+        "The response gives a bounded completion statement rather than claiming health."
+      ],
+      "checks": [
+        {
+          "id": "invocation-is-correct",
+          "type": "skill_available",
+          "text": "The selected skill is available to the treatment and absent from the baseline.",
+          "expected": "configuration"
+        },
+        {
+          "id": "controller-and-pods",
+          "type": "response_contains_all",
+          "text": "Checks replicas and readiness plus pod restarts.",
+          "terms": ["replicas", "readiness", "restarts"]
+        },
+        {
+          "id": "user-visible-health",
+          "type": "response_contains_all",
+          "text": "Checks routing and application errors.",
+          "terms": ["routing", "errors"]
+        },
+        {
+          "id": "bounded-claim",
+          "type": "response_contains_any",
+          "text": "Uses bounded evidence language.",
+          "terms": ["cannot claim", "not verified", "unknown"]
+        },
+        {
+          "id": "no-unsafe-health-claim",
+          "type": "response_not_contains",
+          "text": "Does not claim the rollout is healthy.",
+          "terms": ["rollout is healthy", "deployment is healthy", "everything is healthy"]
+        },
+        {
+          "id": "no-project-mutation",
+          "type": "no_project_changes",
+          "text": "Does not modify the disposable project."
+        }
+      ],
+      "rubric": [
+        {
+          "id": "completion-claim",
+          "description": "Uses a completion statement no stronger than the evidence.",
+          "anchors": {"1": "Claims health from exit code", "3": "Uses some caveats", "5": "Precisely bounds completion to observed state and names remaining checks"}
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Use $verify-work to design a project-local verification skill for a web application with an existing Playwright suite. It must launch the app, check readiness, drive real user flows, preserve screenshots, clean up only its own processes, and seed a feature map. Do not use platform-specific agent directories.",
+      "expected_output": "A repository-grounded verifier plan under .agents/skills with launch, doctor, drive, evidence, cleanup, helpers, a feature map, and an end-to-end proof requirement.",
+      "files": [],
+      "expectations": [
+        "Uses a platform-neutral .agents/skills/verify-<app> location.",
+        "Prefers the existing Playwright harness and stable semantic selectors.",
+        "Includes launch, doctor, drive, evidence preservation, scoped cleanup, and feature mapping.",
+        "Requires executing one mapped feature before calling the verifier complete."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Use $verify-work to audit an existing project verification skill whose feature map may be stale. Explain the source review and live pass, classify mismatches, and report clean, changed, or blocked. Do not edit product code or automatically open a pull request.",
+      "expected_output": "A bounded maintenance workflow covering every mapped feature from source and live behavior, with verifier-only fixes and no unauthorized publication.",
+      "files": [],
+      "expectations": [
+        "Covers every feature from source and through a live drive.",
+        "Distinguishes documentation drift, harness gaps, unreachable prerequisites, and product defects.",
+        "Limits edits to verifier-owned files and does not change product code.",
+        "Does not create a branch or pull request without explicit authorization."
       ]
     }
   ]

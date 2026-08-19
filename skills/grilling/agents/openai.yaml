@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grilling"
+  short_description: "Pressure-test a plan one assumption at a time"
+  default_prompt: "Use $grilling to interrogate this plan before implementation."

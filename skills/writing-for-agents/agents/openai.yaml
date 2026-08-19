@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing for Agents"
+  short_description: "Create precise, testable agent instructions"
+  default_prompt: "Use $writing-for-agents to make these instructions precise and reliably executable."

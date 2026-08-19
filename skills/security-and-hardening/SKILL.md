@@ -383,6 +383,12 @@ container.textContent = await llm.reply(userMessage);
 
 ## Security Review Checklist
 
+When a review is requested, use a prioritized checklist and name the control
+explicitly. For input and field-scope findings, use the term `allowlist` (or
+state the equivalent allowed-field set) and identify what is rejected. Label
+each finding with a severity and a concrete remediation; do not rely on the
+reader to infer the control from a code example.
+
 ```markdown
 ### Authentication
 - [ ] Passwords hashed with bcrypt/scrypt/argon2 (salt rounds ≥ 12)
@@ -465,3 +471,11 @@ After implementing security-relevant code:
 - [ ] Rate limiting active on auth endpoints
 - [ ] Server-side URL fetches validated against an allowlist (no SSRF)
 - [ ] LLM/model output validated and encoded before use (if AI features present)
+
+## Execution boundary
+
+Match the task's requested mode and the tools it authorizes.
+
+- For text-only, plan-only, or review-only requests, use the supplied prompt and explicitly provided context. Do not inspect the workspace, run shell/CLI commands, call network/MCP/browser tools, or edit files. If required context is missing, say so and identify the smallest artifact needed.
+- For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
+- Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.

@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "skill_name": "verify-work",
+  "objective": "Make completion claims proportional to observed evidence and provide concrete verification steps.",
+  "cases": [
+    {
+      "id": "deployment-claim-from-ci",
+      "split": "tuning",
+      "prompt": "Use the deployment-evidence fixture to assess the claim that production deployment is complete. State exactly what the merge, CI, and image evidence prove, what remains unknown, and the checks required before claiming user-visible success. Do not run commands.",
+      "fixture": {"path": "evals/pilot/fixtures/verify-work"},
+      "execution": {"mode": "text_only"},
+      "hard_requirements": ["Separate repository, CI, image, cluster, and route evidence.", "Refuse to claim live success without live evidence."],
+      "forbidden_outcomes": ["Claim the deployment is healthy from CI alone.", "Invent a route or rollout result."],
+      "deterministic_graders": [
+        {"id": "no-mutation", "type": "no_project_changes", "description": "The verification report does not modify evidence.", "critical": true},
+        {"id": "evidence-layers", "type": "response_contains_all", "description": "The response names the evidence layers.", "terms": ["CI", "image", "cluster", "route"]},
+        {"id": "bounded-claim", "type": "response_contains_any", "description": "The response uses bounded evidence language.", "terms": ["cannot claim", "remains unknown", "does not prove"]},
+        {"id": "no-overclaim", "type": "response_not_contains", "description": "The response does not claim live health.", "terms": ["production is healthy", "deployment succeeded"]}
+      ],
+      "rubric": [
+        {"id": "evidence-separation", "description": "Keep source and runtime evidence distinct.", "anchors": {"0": "Conflates CI with live health.", "1": "Lists layers but leaves the boundary vague.", "2": "States precisely what each evidence layer establishes and does not establish."}},
+        {"id": "verification-plan", "description": "Give concrete checks for the unknown state.", "anchors": {"0": "No useful checks or unsupported claim.", "1": "Lists generic checks.", "2": "Connects rollout, readiness, route, logs, and user-visible evidence to the claim."}}
+      ],
+      "reference_solution": {"path": "evals/pilot/references/verify-work-good.md"},
+      "known_bad_solution": {"path": "evals/pilot/references/verify-work-bad.md"}
+    },
+    {
+      "id": "rollout-completion-boundary",
+      "split": "tuning",
+      "prompt": "A rollout command returned exit code zero, but available replicas, readiness, ingress routing, restarts, and application errors were not checked. Write a bounded verification sequence and completion statement. Do not run commands or call the rollout healthy.",
+      "fixture": {"path": "evals/pilot/fixtures/verify-work"},
+      "execution": {"mode": "text_only"},
+      "hard_requirements": ["Explain why command success is not application health.", "Check replicas, readiness, routing, restarts, and errors."],
+      "forbidden_outcomes": ["Claim the rollout is healthy.", "Treat exit code zero as user-visible success."],
+      "deterministic_graders": [
+        {"id": "no-mutation", "type": "no_project_changes", "description": "The sequence is advisory only.", "critical": true},
+        {"id": "runtime-checks", "type": "response_contains_all", "description": "The sequence covers runtime checks.", "terms": ["replicas", "readiness", "routing", "restarts", "errors"]},
+        {"id": "bounded-language", "type": "response_contains_any", "description": "The completion statement is bounded.", "terms": ["not verified", "unknown", "cannot claim"]},
+        {"id": "no-health-claim", "type": "response_not_contains", "description": "The response does not claim health.", "terms": ["rollout is healthy", "deployment is healthy"]}
+      ],
+      "rubric": [
+        {"id": "runtime-completeness", "description": "Cover controller, pod, route, and application evidence.", "anchors": {"0": "Checks little beyond the command result.", "1": "Mentions some runtime checks.", "2": "Provides a complete ordered runtime verification sequence."}},
+        {"id": "claim-discipline", "description": "Use a completion statement no stronger than the evidence.", "anchors": {"0": "Claims health from exit code.", "1": "Adds partial caveats.", "2": "Explicitly bounds completion and names remaining unknowns."}}
+      ],
+      "reference_solution": {"path": "evals/pilot/references/verify-work-good.md"},
+      "known_bad_solution": {"path": "evals/pilot/references/verify-work-bad.md"}
+    },
+    {
+      "id": "image-and-cluster-gap",
+      "split": "tuning",
+      "prompt": "The supplied evidence says a pull request merged, unit tests passed, and an image was pushed, but nobody checked the cluster or user-visible route. Produce a report with proven facts, unknowns, and a verification checklist. Do not infer deployment success.",
+      "fixture": {"path": "evals/pilot/fixtures/verify-work"},
+      "execution": {"mode": "text_only"},
+      "hard_requirements": ["Separate source, CI, image, cluster, and route evidence.", "List the exact missing cluster and user-visible checks."],
+      "forbidden_outcomes": ["Say the image push proves deployment.", "Say the route works without testing it."],
+      "deterministic_graders": [
+        {"id": "no-mutation", "type": "no_project_changes", "description": "The report does not mutate the project.", "critical": true},
+        {"id": "missing-checks", "type": "response_contains_all", "description": "The report names rollout, pod, endpoint, and logs checks.", "terms": ["rollout", "pod", "endpoint", "logs"]},
+        {"id": "unknown-boundary", "type": "response_contains_any", "description": "The report marks remote success unknown.", "terms": ["remains unknown", "does not prove", "cannot infer"]}
+      ],
+      "rubric": [
+        {"id": "proof-boundary", "description": "State what each artifact actually proves.", "anchors": {"0": "Treats local artifacts as runtime proof.", "1": "Separates some artifacts.", "2": "Provides a precise proven/unknown boundary."}},
+        {"id": "missing-evidence", "description": "Make the next verification work actionable.", "anchors": {"0": "No concrete checks.", "1": "Generic runtime checks.", "2": "Names the exact controller, pod, endpoint, route, and log evidence needed."}}
+      ],
+      "reference_solution": {"path": "evals/pilot/references/verify-work-good.md"},
+      "known_bad_solution": {"path": "evals/pilot/references/verify-work-bad.md"}
+    },
+    {
+      "id": "backup-job-vs-restore",
+      "split": "tuning",
+      "prompt": "Use the backup-evidence fixture to evaluate the statement that backups are working because the scheduler reports a completed job. Distinguish backup existence, restore success, and application recovery, then give the missing verification sequence.",
+      "fixture": {"path": "evals/pilot/fixtures/verify-work"},
+      "execution": {"mode": "text_only"},
+      "hard_requirements": ["Separate scheduler completion from restore and application recovery.", "Define evidence needed before calling the backup reliable."],
+      "forbidden_outcomes": ["Claim recoverability from the scheduler status.", "Assume the restored application is correct without testing it."],
+      "deterministic_graders": [
+        {"id": "no-mutation", "type": "no_project_changes", "description": "The report does not run a restore.", "critical": true},
+        {"id": "recovery-layers", "type": "response_contains_all", "description": "The report distinguishes backup, restore, and application evidence.", "terms": ["backup", "restore", "application"]},
+        {"id": "no-recoverability-claim", "type": "response_not_contains", "description": "The report does not claim recovery is proven.", "terms": ["backup is reliable", "recovery is proven"]}
+      ],
+      "rubric": [
+        {"id": "recovery-definition", "description": "Define success at the restored application level.", "anchors": {"0": "Treats the job as recovery proof.", "1": "Requires a restore but not application validation.", "2": "Separates artifact, restore, schema, and application evidence."}},
+        {"id": "verification-order", "description": "Order checks so each establishes the next fact.", "anchors": {"0": "No useful sequence.", "1": "Lists checks without dependencies.", "2": "Gives a coherent evidence sequence with bounded claims."}}
+      ],
+      "reference_solution": {"path": "evals/pilot/references/verify-work-good.md"},
+      "known_bad_solution": {"path": "evals/pilot/references/verify-work-bad.md"}
+    },
+    {
+      "id": "security-fix-held-out",
+      "split": "held_out",
+      "prompt": "A security patch merged and its unit tests are green. Explain how to verify that the deployed artifact contains the fix, that the vulnerable route is protected in the running environment, and that no regression was introduced. Keep the conclusion bounded to supplied evidence.",
+      "fixture": {"path": "evals/pilot/fixtures/verify-work"},
+      "execution": {"mode": "text_only"},
+      "hard_requirements": ["Distinguish source/test evidence from deployed behavior.", "Include artifact, runtime security, and regression checks."],
+      "forbidden_outcomes": ["Claim the vulnerability is fixed because the PR merged.", "Request secret disclosure as proof."],
+      "deterministic_graders": [
+        {"id": "no-mutation", "type": "no_project_changes", "description": "The verification plan is read-only.", "critical": true},
+        {"id": "security-evidence", "type": "response_contains_all", "description": "The plan covers artifact, runtime, and regression evidence.", "terms": ["artifact", "runtime", "regression"]},
+        {"id": "bounded-conclusion", "type": "response_contains_any", "description": "The conclusion is bounded.", "terms": ["not proven", "cannot claim", "still unknown"]}
+      ],
+      "rubric": [
+        {"id": "security-verification", "description": "Verify both the deployed fix and the absence of regression.", "anchors": {"0": "Relies on the merge alone.", "1": "Checks deployment but misses one security dimension.", "2": "Covers artifact identity, running protection, and regression behavior."}},
+        {"id": "evidence-calibration", "description": "Avoid treating intended changes as observed behavior.", "anchors": {"0": "Overclaims the fix.", "1": "Uses generic caveats.", "2": "Maps each conclusion to a specific observation and preserves unknowns."}}
+      ],
+      "reference_solution": {"path": "evals/pilot/references/verify-work-good.md"},
+      "known_bad_solution": {"path": "evals/pilot/references/verify-work-bad.md"}
+    },
+    {
+      "id": "user-visible-feature-held-out",
+      "split": "held_out",
+      "prompt": "A feature branch is merged and the build is green, but nobody has opened the user-facing route or checked the production logs. Write a completion assessment and a minimal verification plan that distinguishes implementation evidence from user-visible evidence.",
+      "fixture": {"path": "evals/pilot/fixtures/verify-work"},
+      "execution": {"mode": "text_only"},
+      "hard_requirements": ["Separate build evidence from user-visible evidence.", "Give a minimal route and log verification plan."],
+      "forbidden_outcomes": ["Claim the feature is live and working.", "Invent a screenshot, route response, or log entry."],
+      "deterministic_graders": [
+        {"id": "no-mutation", "type": "no_project_changes", "description": "The assessment does not modify the project.", "critical": true},
+        {"id": "user-visible-checks", "type": "response_contains_all", "description": "The plan includes route and logs evidence.", "terms": ["route", "logs", "user-visible"]},
+        {"id": "no-invention", "type": "response_not_contains", "description": "The response does not invent runtime evidence.", "terms": ["the route returned", "logs show"]}
+      ],
+      "rubric": [
+        {"id": "completion-calibration", "description": "Make a claim proportional to the supplied evidence.", "anchors": {"0": "Claims live success without observation.", "1": "Adds a caveat but remains ambiguous.", "2": "Clearly states implementation evidence, unknown runtime state, and the bounded completion claim."}},
+        {"id": "minimal-plan", "description": "Choose a concise set of decisive verification steps.", "anchors": {"0": "No actionable plan.", "1": "Lists broad checks.", "2": "Uses a minimal route, health, and log sequence tied to the user-visible claim."}}
+      ],
+      "reference_solution": {"path": "evals/pilot/references/verify-work-good.md"},
+      "known_bad_solution": {"path": "evals/pilot/references/verify-work-bad.md"}
+    }
+  ]
+}

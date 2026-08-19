@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "skill_name": "shadcn",
+  "objective": "Create maintainable, accessible shadcn/ui artifacts that follow the configured component and token conventions.",
+  "cases": [
+    {
+      "id": "settings-form-conventions",
+      "split": "tuning",
+      "prompt": "Create src/components/settings-form.tsx in the supplied Next.js-style fixture. Build a settings form for name, email, and notification toggles using the existing shadcn conventions. Include accessible labels, required-field validation state, semantic tokens, and no package installation or external lookup.",
+      "fixture": {"path": "evals/pilot/fixtures/shadcn"},
+      "execution": {"mode": "workspace_write"},
+      "hard_requirements": ["Create the requested component at the exact path.", "Use shadcn composition, accessible validation, and semantic tokens."],
+      "forbidden_outcomes": ["Install packages or use external lookups.", "Use raw color utilities or hide invalid state from assistive technology."],
+      "deterministic_graders": [
+        {"id": "component-file", "type": "file_exists", "description": "The requested component exists.", "path": "src/components/settings-form.tsx"},
+        {"id": "field-composition", "type": "file_contains", "description": "The form uses the expected field composition.", "path": "src/components/settings-form.tsx", "terms": ["Field", "Label"]},
+        {"id": "accessible-invalid", "type": "file_contains", "description": "Invalid state is represented accessibly.", "path": "src/components/settings-form.tsx", "terms": ["aria-invalid", "data-invalid"]},
+        {"id": "no-raw-colors", "type": "file_not_contains", "description": "Raw color classes are absent.", "path": "src/components/settings-form.tsx", "terms": ["bg-red-500", "text-red-500", "bg-green-500"]}
+      ],
+      "rubric": [
+        {"id": "component-quality", "description": "Compose the requested shadcn form coherently.", "anchors": {"0": "Missing or generic artifact.", "1": "Artifact mostly works but misses important conventions.", "2": "Artifact is coherent, scoped, and uses the configured primitives correctly."}},
+        {"id": "accessibility", "description": "Represent labels, errors, and controls accessibly.", "anchors": {"0": "Controls are unlabeled or invalid state is hidden.", "1": "Basic labels exist but error association is incomplete.", "2": "Labels, error state, and control semantics are explicit and consistent."}}
+      ],
+      "reference_solution": {"path": "evals/pilot/references/shadcn-good.tsx", "output_path": "src/components/settings-form.tsx"},
+      "known_bad_solution": {"path": "evals/pilot/references/shadcn-bad.tsx", "output_path": "src/components/settings-form.tsx"}
+    },
+    {
+      "id": "profile-dialog-accessibility",
+      "split": "tuning",
+      "prompt": "Create src/components/profile-dialog.tsx in the supplied fixture. Build a shadcn profile-edit dialog with avatar fallback, name and bio fields, and Save/Cancel actions. Preserve dialog accessibility and use the configured icon package without installing anything.",
+      "fixture": {"path": "evals/pilot/fixtures/shadcn"},
+      "execution": {"mode": "workspace_write"},
+      "hard_requirements": ["Create the requested dialog component.", "Include dialog title, avatar fallback, and accessible actions."],
+      "forbidden_outcomes": ["Create an unlabeled dialog.", "Use a different icon package than the fixture convention."],
+      "deterministic_graders": [
+        {"id": "component-file", "type": "file_exists", "description": "The requested component exists.", "path": "src/components/profile-dialog.tsx"},
+        {"id": "dialog-label", "type": "file_contains", "description": "The dialog has an accessible title.", "path": "src/components/profile-dialog.tsx", "terms": ["DialogTitle"]},
+        {"id": "avatar-fallback", "type": "file_contains", "description": "The avatar has a fallback.", "path": "src/components/profile-dialog.tsx", "terms": ["AvatarFallback"]},
+        {"id": "configured-icons", "type": "file_contains", "description": "The configured icon package is used.", "path": "src/components/profile-dialog.tsx", "terms": ["@tabler/icons-react"]}
+      ],
+      "rubric": [
+        {"id": "composition", "description": "Use the right shadcn dialog and avatar composition.", "anchors": {"0": "The requested dialog is absent or structurally wrong.", "1": "Main pieces exist but composition has gaps.", "2": "Dialog, title, avatar fallback, fields, and actions are composed cleanly."}},
+        {"id": "interaction-accessibility", "description": "Keep dialog interaction understandable and accessible.", "anchors": {"0": "Missing title or unusable actions.", "1": "Basic interaction exists with an accessibility gap.", "2": "Focus, labeling, and action semantics are handled appropriately."}}
+      ],
+      "reference_solution": {"path": "evals/pilot/references/shadcn-good.tsx", "output_path": "src/components/profile-dialog.tsx"},
+      "known_bad_solution": {"path": "evals/pilot/references/shadcn-bad.tsx", "output_path": "src/components/profile-dialog.tsx"}
+    },
+    {
+      "id": "dashboard-stats-loading",
+      "split": "tuning",
+      "prompt": "Create src/components/dashboard-stats.tsx in the supplied fixture. Show four stat cards with title, value, percentage change, and a loading state. Use shadcn Card, Badge, and Skeleton composition with semantic colors and responsive gap-based layout.",
+      "fixture": {"path": "evals/pilot/fixtures/shadcn"},
+      "execution": {"mode": "workspace_write"},
+      "hard_requirements": ["Create four-card content and a loading state.", "Use Card, Badge, Skeleton, semantic colors, and gap-based layout."],
+      "forbidden_outcomes": ["Replace primitives with custom pulse markup.", "Use raw success/error colors as the design system."],
+      "deterministic_graders": [
+        {"id": "component-file", "type": "file_exists", "description": "The stats component exists.", "path": "src/components/dashboard-stats.tsx"},
+        {"id": "card-composition", "type": "file_contains", "description": "The component uses card composition.", "path": "src/components/dashboard-stats.tsx", "terms": ["CardHeader", "CardTitle", "CardContent"]},
+        {"id": "loading-primitives", "type": "file_contains", "description": "The loading state uses Skeleton.", "path": "src/components/dashboard-stats.tsx", "terms": ["Skeleton", "Badge"]},
+        {"id": "layout-tokens", "type": "file_contains", "description": "The layout uses gap tokens.", "path": "src/components/dashboard-stats.tsx", "terms": ["gap-"]},
+        {"id": "no-raw-colors", "type": "file_not_contains", "description": "Raw color utilities are absent.", "path": "src/components/dashboard-stats.tsx", "terms": ["bg-green-500", "text-red-600"]}
+      ],
+      "rubric": [
+        {"id": "visual-composition", "description": "Create a consistent, reusable card grid.", "anchors": {"0": "Cards or loading state are missing.", "1": "The grid exists but has inconsistent composition.", "2": "The four-card grid, loading state, and content hierarchy are coherent."}},
+        {"id": "design-system-discipline", "description": "Follow component and token conventions.", "anchors": {"0": "Uses custom replacements or raw colors.", "1": "Uses some primitives but leaves convention violations.", "2": "Uses the requested primitives, semantic tokens, and responsive spacing."}}
+      ],
+      "reference_solution": {"path": "evals/pilot/references/shadcn-good.tsx", "output_path": "src/components/dashboard-stats.tsx"},
+      "known_bad_solution": {"path": "evals/pilot/references/shadcn-bad.tsx", "output_path": "src/components/dashboard-stats.tsx"}
+    },
+    {
+      "id": "data-table-empty-state",
+      "split": "tuning",
+      "prompt": "Create src/components/projects-table.tsx in the supplied fixture. Build a projects table with a caption, column headers, an empty state, and a row action menu using the configured shadcn primitives. Keep the component keyboard-accessible and do not install dependencies.",
+      "fixture": {"path": "evals/pilot/fixtures/shadcn"},
+      "execution": {"mode": "workspace_write"},
+      "hard_requirements": ["Create a table component with headers and empty state.", "Provide accessible table context and keyboard-usable actions."],
+      "forbidden_outcomes": ["Render a visually styled div grid instead of a table.", "Use unlabeled icon-only actions."],
+      "deterministic_graders": [
+        {"id": "component-file", "type": "file_exists", "description": "The table component exists.", "path": "src/components/projects-table.tsx"},
+        {"id": "table-structure", "type": "file_contains", "description": "The component contains table structure.", "path": "src/components/projects-table.tsx", "terms": ["TableHeader", "TableRow", "TableHead"]},
+        {"id": "empty-state", "type": "file_contains", "description": "The component handles an empty state.", "path": "src/components/projects-table.tsx", "terms": ["empty"]},
+        {"id": "accessible-action", "type": "file_contains", "description": "The action has an accessible label.", "path": "src/components/projects-table.tsx", "terms": ["aria-label"]}
+      ],
+      "rubric": [
+        {"id": "information-structure", "description": "Represent table data and empty state clearly.", "anchors": {"0": "Uses the wrong structure or omits the empty state.", "1": "Table structure exists but hierarchy is incomplete.", "2": "Headers, rows, caption/context, empty state, and actions are clear."}},
+        {"id": "keyboard-accessibility", "description": "Make actions usable without a pointer.", "anchors": {"0": "Actions are inaccessible.", "1": "Action exists with partial labeling.", "2": "Actions have clear labels and usable focus/keyboard semantics."}}
+      ],
+      "reference_solution": {"path": "evals/pilot/references/shadcn-good.tsx", "output_path": "src/components/projects-table.tsx"},
+      "known_bad_solution": {"path": "evals/pilot/references/shadcn-bad.tsx", "output_path": "src/components/projects-table.tsx"}
+    },
+    {
+      "id": "date-range-filter",
+      "split": "held_out",
+      "prompt": "Create src/components/date-range-filter.tsx in the supplied fixture. Build a shadcn date-range filter with a labeled trigger, popover content, clear action, and an empty selection state. Follow semantic tokens and accessible names without external lookups or package changes.",
+      "fixture": {"path": "evals/pilot/fixtures/shadcn"},
+      "execution": {"mode": "workspace_write"},
+      "hard_requirements": ["Create the requested filter component with trigger, popover, and clear behavior.", "Make the empty selection and controls accessible."],
+      "forbidden_outcomes": ["Use an unlabeled icon-only trigger.", "Add arbitrary color or dependency changes."],
+      "deterministic_graders": [
+        {"id": "component-file", "type": "file_exists", "description": "The filter component exists.", "path": "src/components/date-range-filter.tsx"},
+        {"id": "popover", "type": "file_contains", "description": "The component uses popover composition.", "path": "src/components/date-range-filter.tsx", "terms": ["Popover", "PopoverContent"]},
+        {"id": "accessible-trigger", "type": "file_contains", "description": "The trigger has an accessible name.", "path": "src/components/date-range-filter.tsx", "terms": ["aria-label", "Label"]},
+        {"id": "clear-action", "type": "file_contains", "description": "The component provides a clear action.", "path": "src/components/date-range-filter.tsx", "terms": ["Clear", "clear"]}
+      ],
+      "rubric": [
+        {"id": "interaction-model", "description": "Compose the date filter interaction coherently.", "anchors": {"0": "Missing core interaction pieces.", "1": "Pieces exist but state transitions are unclear.", "2": "Trigger, popover, selection, empty state, and clear action fit together."}},
+        {"id": "accessibility-and-tokens", "description": "Preserve accessible names and semantic styling.", "anchors": {"0": "Unlabeled controls or raw styling dominate.", "1": "Basic accessibility exists with gaps.", "2": "Names, empty state, focus behavior, and tokens are explicit."}}
+      ],
+      "reference_solution": {"path": "evals/pilot/references/shadcn-good.tsx", "output_path": "src/components/date-range-filter.tsx"},
+      "known_bad_solution": {"path": "evals/pilot/references/shadcn-bad.tsx", "output_path": "src/components/date-range-filter.tsx"}
+    },
+    {
+      "id": "command-palette-boundaries",
+      "split": "held_out",
+      "prompt": "Create src/components/app-command-menu.tsx in the supplied fixture. Build a keyboard-friendly command menu with grouped commands, an empty result state, and a clearly labeled trigger. Use the configured shadcn primitives and keep the change limited to the requested file.",
+      "fixture": {"path": "evals/pilot/fixtures/shadcn"},
+      "execution": {"mode": "workspace_write"},
+      "hard_requirements": ["Create only the requested command-menu component.", "Include grouped commands, empty results, and a labeled keyboard-friendly trigger."],
+      "forbidden_outcomes": ["Modify package metadata or unrelated files.", "Create an unlabeled trigger or custom non-keyboard menu."],
+      "deterministic_graders": [
+        {"id": "component-file", "type": "file_exists", "description": "The command component exists.", "path": "src/components/app-command-menu.tsx"},
+        {"id": "command-primitives", "type": "file_contains", "description": "The component uses command primitives.", "path": "src/components/app-command-menu.tsx", "terms": ["Command", "CommandGroup", "CommandEmpty"]},
+        {"id": "labeled-trigger", "type": "file_contains", "description": "The trigger is labeled.", "path": "src/components/app-command-menu.tsx", "terms": ["aria-label", "Label"]},
+        {"id": "scope", "type": "command", "description": "Only the requested component is changed.", "command": "test \"$(find . -type f -not -path './.agents/*' -not -path './.claude/*' | wc -l)\" -eq 3"}
+      ],
+      "rubric": [
+        {"id": "command-architecture", "description": "Use the design-system command primitives appropriately.", "anchors": {"0": "Uses an unrelated or non-keyboard structure.", "1": "Basic command menu exists with missing states.", "2": "Groups, empty state, trigger, and keyboard interaction are coherently composed."}},
+        {"id": "change-boundary", "description": "Keep the implementation scoped and maintainable.", "anchors": {"0": "Changes unrelated files or adds dependencies.", "1": "Mostly scoped with minor unnecessary complexity.", "2": "Changes only the requested artifact and follows existing conventions."}}
+      ],
+      "reference_solution": {"path": "evals/pilot/references/shadcn-good.tsx", "output_path": "src/components/app-command-menu.tsx"},
+      "known_bad_solution": {"path": "evals/pilot/references/shadcn-bad.tsx", "output_path": "src/components/app-command-menu.tsx"}
+    }
+  ]
+}

@@ -1,0 +1,5539 @@
+{
+  "schema_version": 1,
+  "description": "Fixture-free offline tuning contracts; content cases omit skill activation.",
+  "cases": [
+    {
+      "schema_version": 1,
+      "skill_name": "api-and-interface-design",
+      "id": "api-interface-tuning-01-typed-boundary",
+      "split": "tuning",
+      "prompt": "Design a typed internal order boundary for checkout-to-fulfillment. Separate caller inputs from server-owned outputs, distinguish OrderId from UserId, model pending/accepted/rejected, and define a stable error shape. Preserve compatibility and state unknowns; text only, no edits or services.",
+      "hard_requirements": [
+        "separate input and output ownership",
+        "use non-interchangeable identifiers and explicit states",
+        "define stable errors and compatibility"
+      ],
+      "forbidden_outcomes": [
+        "merge server fields into caller input",
+        "use an any-shaped boundary",
+        "claim the consumer was updated"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "ownership",
+          "type": "response_contains_any",
+          "description": "Addresses ownership.",
+          "terms": [
+            "input",
+            "output",
+            "server-owned"
+          ],
+          "required": true
+        },
+        {
+          "id": "status",
+          "type": "response_contains_any",
+          "description": "Addresses status.",
+          "terms": [
+            "pending",
+            "accepted",
+            "rejected",
+            "discriminated"
+          ],
+          "required": true
+        },
+        {
+          "id": "errors",
+          "type": "response_contains_any",
+          "description": "Addresses errors.",
+          "terms": [
+            "error shape",
+            "stable error",
+            "error contract"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the typed boundary response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "api-and-interface-design",
+      "id": "api-interface-tuning-02-provider-adapter",
+      "split": "tuning",
+      "prompt": "Review an adapter around an untrusted payment-provider response. Cover request and domain Charge shapes, normalized success/failure, response validation, idempotency, additive errors, and unknowns. Do not expose raw payloads or make a provider call.",
+      "hard_requirements": [
+        "treat external data as untrusted until validated",
+        "keep raw provider fields behind a domain boundary",
+        "cover duplicates and normalized failures"
+      ],
+      "forbidden_outcomes": [
+        "cast raw provider data directly",
+        "contact the payment provider",
+        "claim a live integration was verified"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "boundary",
+          "type": "response_contains_any",
+          "description": "Addresses boundary.",
+          "terms": [
+            "adapter boundary",
+            "domain boundary",
+            "raw provider"
+          ],
+          "required": true
+        },
+        {
+          "id": "validation",
+          "type": "response_contains_any",
+          "description": "Addresses validation.",
+          "terms": [
+            "validate",
+            "validation",
+            "schema"
+          ],
+          "required": true
+        },
+        {
+          "id": "idempotency",
+          "type": "response_contains_any",
+          "description": "Addresses idempotency.",
+          "terms": [
+            "idempotency",
+            "duplicate",
+            "deduplicate"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the provider adapter response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "building-components",
+      "id": "building-components-tuning-01-combobox",
+      "split": "tuning",
+      "prompt": "Design a composable React combobox with separate input, list, and option pieces. Cover controlled/uncontrolled selection, disabled options, Arrow/Escape/Enter behavior, accessible naming, expanded state, and active-option linkage. Avoid boolean-prop sprawl; text only.",
+      "hard_requirements": [
+        "use compound or slot composition",
+        "cover controlled state, disabled options, and keyboard transitions",
+        "specify accessible widget relationships"
+      ],
+      "forbidden_outcomes": [
+        "build a click-only list",
+        "add many boolean flags",
+        "claim keyboard behavior was tested"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "composition",
+          "type": "response_contains_any",
+          "description": "Addresses composition.",
+          "terms": [
+            "compound",
+            "composable",
+            "slots",
+            "children"
+          ],
+          "required": true
+        },
+        {
+          "id": "state",
+          "type": "response_contains_any",
+          "description": "Addresses state.",
+          "terms": [
+            "controlled",
+            "uncontrolled",
+            "state"
+          ],
+          "required": true
+        },
+        {
+          "id": "keyboard",
+          "type": "response_contains_any",
+          "description": "Addresses keyboard.",
+          "terms": [
+            "Arrow",
+            "Escape",
+            "Enter",
+            "keyboard"
+          ],
+          "required": true
+        },
+        {
+          "id": "a11y",
+          "type": "response_contains_any",
+          "description": "Addresses a11y.",
+          "terms": [
+            "aria",
+            "accessible",
+            "active option",
+            "expanded"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the composite widget response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "building-components",
+      "id": "building-components-tuning-02-empty-state",
+      "split": "tuning",
+      "prompt": "Design a reusable EmptyState API with icon, title, description, and action slots. Explain semantic heading/action structure, data-state conventions, token styling, and reusable boundaries; do not edit files or add dependencies.",
+      "hard_requirements": [
+        "use explicit slots or composition",
+        "keep heading and action semantics accessible",
+        "use semantic design tokens and a reusable boundary"
+      ],
+      "forbidden_outcomes": [
+        "replace it with a page-specific one-off",
+        "use raw color literals",
+        "claim the component was implemented"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "slots",
+          "type": "response_contains_any",
+          "description": "Addresses slots.",
+          "terms": [
+            "slot",
+            "composition",
+            "children"
+          ],
+          "required": true
+        },
+        {
+          "id": "semantics",
+          "type": "response_contains_any",
+          "description": "Addresses semantics.",
+          "terms": [
+            "heading",
+            "accessible",
+            "button",
+            "link"
+          ],
+          "required": true
+        },
+        {
+          "id": "tokens",
+          "type": "response_contains_any",
+          "description": "Addresses tokens.",
+          "terms": [
+            "semantic token",
+            "design token",
+            "token"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the empty-state component response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "cloudflare-deploy",
+      "id": "cloudflare-deploy-tuning-01-product-selection",
+      "split": "tuning",
+      "prompt": "Create an offline decision record for an edge-rendered site, nightly report, per-customer strongly consistent rate limit, and object storage for generated reports. Select platform products, explain flow and config/secrets boundaries, identify unknown account facts, and give local verification. Do not deploy or invent IDs.",
+      "hard_requirements": [
+        "map compute, scheduling, consistency, and object storage to products",
+        "separate configuration from secrets and call out unknowns",
+        "give local verification without claiming live health"
+      ],
+      "forbidden_outcomes": [
+        "claim a deployment or route was verified",
+        "invent account IDs or secrets",
+        "treat all storage as interchangeable"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "mapping",
+          "type": "response_contains_any",
+          "description": "Addresses mapping.",
+          "terms": [
+            "Pages",
+            "Cron",
+            "Durable Objects",
+            "R2"
+          ],
+          "required": true
+        },
+        {
+          "id": "secrets",
+          "type": "response_contains_any",
+          "description": "Addresses secrets.",
+          "terms": [
+            "secret",
+            "configuration",
+            "environment"
+          ],
+          "required": true
+        },
+        {
+          "id": "unknowns",
+          "type": "response_contains_any",
+          "description": "Addresses unknowns.",
+          "terms": [
+            "unknown",
+            "open question",
+            "account"
+          ],
+          "required": true
+        },
+        {
+          "id": "verification",
+          "type": "response_contains_any",
+          "description": "Addresses verification.",
+          "terms": [
+            "local verification",
+            "fixture",
+            "dry run"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the platform selection response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "cloudflare-deploy",
+      "id": "cloudflare-deploy-tuning-02-environment-boundary",
+      "split": "tuning",
+      "prompt": "Plan a read-only preview-to-production Worker promotion with separate bindings, secrets, migrations, and routes. Require environment-specific names, preflight diff, approval gate, observability, and rollback evidence. Do not run a CLI or claim deployment.",
+      "hard_requirements": [
+        "keep preview and production resources separate",
+        "require read-only preflight and promotion gates",
+        "handle migrations and rollback independently"
+      ],
+      "forbidden_outcomes": [
+        "copy preview secrets into production",
+        "claim the Worker was deployed",
+        "run a live CLI or fetch"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "separation",
+          "type": "response_contains_any",
+          "description": "Addresses separation.",
+          "terms": [
+            "preview",
+            "production",
+            "separate"
+          ],
+          "required": true
+        },
+        {
+          "id": "preflight",
+          "type": "response_contains_any",
+          "description": "Addresses preflight.",
+          "terms": [
+            "preflight",
+            "diff",
+            "read-only"
+          ],
+          "required": true
+        },
+        {
+          "id": "rollback",
+          "type": "response_contains_any",
+          "description": "Addresses rollback.",
+          "terms": [
+            "rollback",
+            "revert",
+            "known-good"
+          ],
+          "required": true
+        },
+        {
+          "id": "observability",
+          "type": "response_contains_any",
+          "description": "Addresses observability.",
+          "terms": [
+            "observability",
+            "logs",
+            "metrics"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the environment promotion response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "code-review-and-quality",
+      "id": "code-review-tuning-01-architecture-diff",
+      "split": "tuning",
+      "prompt": "Review an offline diff that adds a legacy conditional, duplicates a normalization helper, grows a large module, and adds only snapshot coverage. Report prioritized findings with evidence, a structural remedy, focused behavior tests, and a merge verdict. Do not rewrite or claim a fix.",
+      "hard_requirements": [
+        "prioritize correctness and structural risks above cosmetic nits",
+        "tie findings to supplied diff evidence and propose a focused remedy",
+        "request behavior tests rather than relying on snapshots"
+      ],
+      "forbidden_outcomes": [
+        "rewrite the diff",
+        "approve solely because snapshots pass",
+        "invent repository context"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "evidence",
+          "type": "response_contains_any",
+          "description": "Addresses evidence.",
+          "terms": [
+            "evidence",
+            "diff",
+            "line"
+          ],
+          "required": true
+        },
+        {
+          "id": "severity",
+          "type": "response_contains_any",
+          "description": "Addresses severity.",
+          "terms": [
+            "critical",
+            "required",
+            "optional",
+            "nit",
+            "priority"
+          ],
+          "required": true
+        },
+        {
+          "id": "structure",
+          "type": "response_contains_any",
+          "description": "Addresses structure.",
+          "terms": [
+            "structural",
+            "ownership",
+            "duplication"
+          ],
+          "required": true
+        },
+        {
+          "id": "tests",
+          "type": "response_contains_any",
+          "description": "Addresses tests.",
+          "terms": [
+            "behavior test",
+            "regression test",
+            "focused test"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the architecture review response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "code-review-and-quality",
+      "id": "code-review-tuning-02-dependency-upgrade",
+      "split": "tuning",
+      "prompt": "Review an offline dependency upgrade with one direct version change and several transitive lockfile changes; behavior lacks focused tests. Require release-note evidence, lockfile inspection, isolation, tests, and a severity-aware verdict. Do not install or browse.",
+      "hard_requirements": [
+        "distinguish direct and transitive changes",
+        "require changelog or migration evidence",
+        "define focused checks and a required/optional verdict"
+      ],
+      "forbidden_outcomes": [
+        "approve solely because the bump is semver-compatible",
+        "install or fetch packages",
+        "ignore security or regression implications"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "lockfile",
+          "type": "response_contains_any",
+          "description": "Addresses lockfile.",
+          "terms": [
+            "lockfile",
+            "transitive",
+            "dependency"
+          ],
+          "required": true
+        },
+        {
+          "id": "release",
+          "type": "response_contains_any",
+          "description": "Addresses release.",
+          "terms": [
+            "changelog",
+            "migration",
+            "release note"
+          ],
+          "required": true
+        },
+        {
+          "id": "tests",
+          "type": "response_contains_any",
+          "description": "Addresses tests.",
+          "terms": [
+            "focused test",
+            "regression",
+            "behavior"
+          ],
+          "required": true
+        },
+        {
+          "id": "verdict",
+          "type": "response_contains_any",
+          "description": "Addresses verdict.",
+          "terms": [
+            "merge verdict",
+            "required",
+            "optional",
+            "block"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the dependency review response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "code-simplification",
+      "id": "code-simplification-tuning-01-parser",
+      "split": "tuning",
+      "prompt": "Give the smallest behavior-preserving simplification plan for a parser with distinct undefined, empty, malformed JSON, unknown-key, and existing-error behavior. Keep it local, avoid a generic abstraction, and specify regression checks; do not edit or claim verification.",
+      "hard_requirements": [
+        "preserve every input and error boundary",
+        "keep the change local and reduce mental overhead",
+        "verify missing, empty, malformed, and unknown-key cases"
+      ],
+      "forbidden_outcomes": [
+        "collapse empty and missing through truthiness",
+        "remove error handling",
+        "claim the parser was fixed"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "boundaries",
+          "type": "response_contains_any",
+          "description": "Addresses boundaries.",
+          "terms": [
+            "undefined",
+            "empty",
+            "malformed",
+            "unknown"
+          ],
+          "required": true
+        },
+        {
+          "id": "small",
+          "type": "response_contains_any",
+          "description": "Addresses small.",
+          "terms": [
+            "smallest",
+            "local",
+            "narrow"
+          ],
+          "required": true
+        },
+        {
+          "id": "tests",
+          "type": "response_contains_any",
+          "description": "Addresses tests.",
+          "terms": [
+            "test",
+            "regression",
+            "verify"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the parser simplification response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "code-simplification",
+      "id": "code-simplification-tuning-02-react-status",
+      "split": "tuning",
+      "prompt": "Simplify a React SyncStatus component with repeated checks and nested conditionals. Preserve idle, syncing, success, error, and offline labels, loading behavior, and callback timing. Prefer guard clauses or a local mapping; do not add a framework or claim it was tested.",
+      "hard_requirements": [
+        "preserve every status branch, label, and callback",
+        "remove repeated control flow locally",
+        "keep state ownership and verification explicit"
+      ],
+      "forbidden_outcomes": [
+        "drop or merge a status branch",
+        "add a speculative state framework",
+        "claim a benchmark or test result"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "states",
+          "type": "response_contains_any",
+          "description": "Addresses states.",
+          "terms": [
+            "idle",
+            "syncing",
+            "success",
+            "error",
+            "offline"
+          ],
+          "required": true
+        },
+        {
+          "id": "flow",
+          "type": "response_contains_any",
+          "description": "Addresses flow.",
+          "terms": [
+            "guard clause",
+            "mapping",
+            "branch"
+          ],
+          "required": true
+        },
+        {
+          "id": "callbacks",
+          "type": "response_contains_any",
+          "description": "Addresses callbacks.",
+          "terms": [
+            "callback",
+            "timing",
+            "state ownership"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the React status simplification response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "debugging-and-error-recovery",
+      "id": "debugging-recovery-tuning-01-cache-flake",
+      "split": "tuning",
+      "prompt": "A cache-reset test passes alone but fails after the full suite because a module-level cache survives between tests. Give a reproduce-localize-fix-verify plan that fixes lifecycle ownership, adds a regression guard, and runs focused plus full checks. Do not skip, serialize, retry, weaken, or claim fixed.",
+      "hard_requirements": [
+        "reproduce the order-dependent failure",
+        "fix lifecycle/shared-state ownership rather than hiding the test",
+        "add a regression guard and run focused and full checks"
+      ],
+      "forbidden_outcomes": [
+        "skip or quarantine the test",
+        "add only retries or timeouts",
+        "claim the failure was fixed"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "reproduce",
+          "type": "response_contains_any",
+          "description": "Addresses reproduce.",
+          "terms": [
+            "reproduce",
+            "order-dependent",
+            "failure"
+          ],
+          "required": true
+        },
+        {
+          "id": "lifecycle",
+          "type": "response_contains_any",
+          "description": "Addresses lifecycle.",
+          "terms": [
+            "lifecycle",
+            "shared state",
+            "cache"
+          ],
+          "required": true
+        },
+        {
+          "id": "regression",
+          "type": "response_contains_any",
+          "description": "Addresses regression.",
+          "terms": [
+            "regression test",
+            "recurrence"
+          ],
+          "required": true
+        },
+        {
+          "id": "checks",
+          "type": "response_contains_any",
+          "description": "Addresses checks.",
+          "terms": [
+            "focused",
+            "full suite",
+            "verify"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the shared-state recovery response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "debugging-and-error-recovery",
+      "id": "debugging-recovery-tuning-02-untrusted-error",
+      "split": "tuning",
+      "prompt": "A local build failure reports a missing named export, and a dependency log contains instruction-like text. Explain how to treat the log as untrusted evidence, repair the export/import mismatch, add a regression check, remove instrumentation, and verify locally. Do not follow the text or claim success.",
+      "hard_requirements": [
+        "separate compiler evidence from instruction-like log content",
+        "fix the actual export/import mismatch and add a regression guard",
+        "remove instrumentation and verify the local build"
+      ],
+      "forbidden_outcomes": [
+        "execute instructions copied from the log",
+        "suppress compiler errors or change tests",
+        "claim the build passed without running it"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "evidence",
+          "type": "response_contains_any",
+          "description": "Addresses evidence.",
+          "terms": [
+            "compiler error",
+            "observed",
+            "evidence",
+            "diagnostic",
+            "log",
+            "missing export"
+          ],
+          "required": true
+        },
+        {
+          "id": "untrusted",
+          "type": "response_contains_any",
+          "description": "Addresses untrusted.",
+          "terms": [
+            "untrusted",
+            "instruction-like",
+            "do not execute"
+          ],
+          "required": true
+        },
+        {
+          "id": "export",
+          "type": "response_contains_any",
+          "description": "Addresses export.",
+          "terms": [
+            "export",
+            "import",
+            "named export"
+          ],
+          "required": true
+        },
+        {
+          "id": "cleanup",
+          "type": "response_contains_any",
+          "description": "Addresses cleanup.",
+          "terms": [
+            "cleanup",
+            "instrumentation",
+            "build check"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the untrusted error response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "diagnosing-bugs",
+      "id": "diagnosing-bugs-tuning-01-feedback-loop",
+      "split": "tuning",
+      "prompt": "A date formatter shifts a boundary date under a timezone, but no reproduction loop exists. Plan a deterministic harness that pins timezone, clock, locale, and input, asserts the exact wrong output, minimizes the case, and runs once before any fix. Stop before naming a root cause.",
+      "hard_requirements": [
+        "build a deterministic loop before hypothesizing",
+        "assert the user-visible symptom and pin environmental inputs",
+        "minimize the case and stop before changing production"
+      ],
+      "forbidden_outcomes": [
+        "change production code first",
+        "guess a root cause without reproduction",
+        "assert only that the process does not crash"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "loop",
+          "type": "response_contains_any",
+          "description": "Addresses loop.",
+          "terms": [
+            "reproduction loop",
+            "harness",
+            "repro"
+          ],
+          "required": true
+        },
+        {
+          "id": "pin",
+          "type": "response_contains_any",
+          "description": "Addresses pin.",
+          "terms": [
+            "timezone",
+            "clock",
+            "locale",
+            "pinned"
+          ],
+          "required": true
+        },
+        {
+          "id": "symptom",
+          "type": "response_contains_any",
+          "description": "Addresses symptom.",
+          "terms": [
+            "wrong output",
+            "expected",
+            "assert"
+          ],
+          "required": true
+        },
+        {
+          "id": "boundary",
+          "type": "response_contains_any",
+          "description": "Addresses boundary.",
+          "terms": [
+            "before fix",
+            "stop",
+            "not yet"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the red-capable reproduction response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "diagnosing-bugs",
+      "id": "diagnosing-bugs-tuning-02-falsifiable-probes",
+      "split": "tuning",
+      "prompt": "Investigate intermittent duplicate notifications from an offline trace. Separate observations, unknowns, and hypotheses; rank alternatives; state a falsifiable prediction for each; and choose one cheap discriminating probe. Do not declare a root cause or apply a fix.",
+      "hard_requirements": [
+        "separate facts, unknowns, and hypotheses",
+        "rank alternatives and give predictions",
+        "choose one controlled probe and conditional next steps"
+      ],
+      "forbidden_outcomes": [
+        "assert an unverified root cause",
+        "change many variables at once",
+        "recommend logging everything"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "facts",
+          "type": "response_contains_any",
+          "description": "Addresses facts.",
+          "terms": [
+            "observed",
+            "fact",
+            "evidence"
+          ],
+          "required": true
+        },
+        {
+          "id": "hypotheses",
+          "type": "response_contains_any",
+          "description": "Addresses hypotheses.",
+          "terms": [
+            "hypothesis",
+            "hypotheses",
+            "rank"
+          ],
+          "required": true
+        },
+        {
+          "id": "predictions",
+          "type": "response_contains_any",
+          "description": "Addresses predictions.",
+          "terms": [
+            "prediction",
+            "falsifiable",
+            "support"
+          ],
+          "required": true
+        },
+        {
+          "id": "probe",
+          "type": "response_contains_any",
+          "description": "Addresses probe.",
+          "terms": [
+            "probe",
+            "experiment",
+            "discriminating"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the falsifiable diagnosis response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "grill-me",
+      "id": "grill-me-tuning-01-audit-log",
+      "split": "tuning",
+      "prompt": "We want a public multi-tenant audit-log feature for administrators. Ask exactly one primary question and wait; target tenant scope, actor visibility, retention, or privacy. Do not design the feature yet.",
+      "hard_requirements": [
+        "ask exactly one high-information question",
+        "target authorization, tenant scope, privacy, or retention",
+        "wait without proposing implementation"
+      ],
+      "forbidden_outcomes": [
+        "ask multiple primary questions",
+        "answer the product-design problem",
+        "lead with implementation trivia"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "focus",
+          "type": "response_contains_any",
+          "description": "Addresses focus.",
+          "terms": [
+            "tenant",
+            "privacy",
+            "retention",
+            "administrator",
+            "who can see"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "one-question",
+          "type": "response_regex",
+          "description": "Asks exactly one question and stops.",
+          "patterns": [
+            "(?s)^\\s*[^?\\n]*\\?\\s*$"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the risk discovery interview response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "grill-me",
+      "id": "grill-me-tuning-02-billing-migration",
+      "split": "tuning",
+      "prompt": "We are considering a migration from recurring to usage-based billing while existing customers must not be overcharged. Ask exactly one high-value question and wait; surface an invariant, cohort, or rollback/success boundary. Do not suggest a migration design.",
+      "hard_requirements": [
+        "ask exactly one primary question",
+        "target a billing invariant, cohort, or rollback boundary",
+        "do not propose implementation or answer for the user"
+      ],
+      "forbidden_outcomes": [
+        "ask multiple questions",
+        "provide a migration plan",
+        "assume pricing or cohort behavior"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "focus",
+          "type": "response_contains_any",
+          "description": "Addresses focus.",
+          "terms": [
+            "overcharge",
+            "cohort",
+            "rollback",
+            "invariant",
+            "success criterion"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "one-question",
+          "type": "response_regex",
+          "description": "Asks exactly one question and stops.",
+          "patterns": [
+            "(?s)^\\s*[^?\\n]*\\?\\s*$"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the billing interview response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "minimalism-audit",
+      "id": "minimalism-audit-tuning-01-environment-routing",
+      "split": "tuning",
+      "prompt": "A repository repeats shell snippets mapping preview, staging, and production to endpoints and credentials. Propose the smallest allow-listed environment artifact and local validator: reject unknown/ambiguous values, never infer credentials, stay deterministic, and support dry-run verification. Do not add a service or network lookup.",
+      "hard_requirements": [
+        "replace repeated choices with an explicit allow-list and validator",
+        "fail closed for unknown, missing, or ambiguous mappings",
+        "keep credentials external and reruns deterministic"
+      ],
+      "forbidden_outcomes": [
+        "infer a production target",
+        "persist or print credentials",
+        "replace repetition with a service"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "allowlist",
+          "type": "response_contains_any",
+          "description": "Addresses allowlist.",
+          "terms": [
+            "allow-list",
+            "allowlisted",
+            "environment manifest"
+          ],
+          "required": true
+        },
+        {
+          "id": "failclosed",
+          "type": "response_contains_any",
+          "description": "Addresses failclosed.",
+          "terms": [
+            "fail closed",
+            "unknown",
+            "ambiguous"
+          ],
+          "required": true
+        },
+        {
+          "id": "dryrun",
+          "type": "response_contains_any",
+          "description": "Addresses dryrun.",
+          "terms": [
+            "dry-run",
+            "dry run",
+            "local validator"
+          ],
+          "required": true
+        },
+        {
+          "id": "determinism",
+          "type": "response_contains_any",
+          "description": "Addresses determinism.",
+          "terms": [
+            "deterministic",
+            "stable ordering",
+            "repeatable"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the environment decision removal response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "minimalism-audit",
+      "id": "minimalism-audit-tuning-02-release-policy",
+      "split": "tuning",
+      "prompt": "A release checklist is duplicated across README, CI, and operator notes. Design the smallest executable policy artifact and validator for artifact digests, allowed environments, bounded timeout/retry, dry-run, and deterministic ordering. Keep secrets out and do not add a service.",
+      "hard_requirements": [
+        "encode repeated invariants once in a small artifact",
+        "validate malformed/disallowed values deterministically",
+        "include dry-run and bounded retry/timeout behavior"
+      ],
+      "forbidden_outcomes": [
+        "infer a live target",
+        "add a service or unbounded retry",
+        "leave the solution as duplicated prose"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "policy",
+          "type": "response_contains_any",
+          "description": "Addresses policy.",
+          "terms": [
+            "policy artifact",
+            "declarative",
+            "validator"
+          ],
+          "required": true
+        },
+        {
+          "id": "bounds",
+          "type": "response_contains_any",
+          "description": "Addresses bounds.",
+          "terms": [
+            "bounded",
+            "timeout",
+            "retry"
+          ],
+          "required": true
+        },
+        {
+          "id": "dryrun",
+          "type": "response_contains_any",
+          "description": "Addresses dryrun.",
+          "terms": [
+            "dry-run",
+            "dry run"
+          ],
+          "required": true
+        },
+        {
+          "id": "ordering",
+          "type": "response_contains_any",
+          "description": "Addresses ordering.",
+          "terms": [
+            "deterministic",
+            "ordering",
+            "repeatable"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the release policy minimization response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "performance-optimization",
+      "id": "performance-optimization-tuning-01-lcp-cls",
+      "split": "tuning",
+      "prompt": "An offline HTML page has a hero image with no dimensions or responsive sources, while below-the-fold images load eagerly. Plan baseline, one focused loading change, identical remeasurement, variance, correctness checks, and keep/revert evidence. Do not invent numbers.",
+      "hard_requirements": [
+        "measure before and after under identical conditions",
+        "protect critical hero loading and layout stability",
+        "record variance, correctness, and keep/revert"
+      ],
+      "forbidden_outcomes": [
+        "invent benchmark numbers",
+        "lazy-load the critical hero without evidence",
+        "bundle unrelated optimizations"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "measure",
+          "type": "response_contains_any",
+          "description": "Addresses measure.",
+          "terms": [
+            "baseline",
+            "remeasure",
+            "measure"
+          ],
+          "required": true
+        },
+        {
+          "id": "layout",
+          "type": "response_contains_any",
+          "description": "Addresses layout.",
+          "terms": [
+            "dimensions",
+            "CLS",
+            "layout stability"
+          ],
+          "required": true
+        },
+        {
+          "id": "loading",
+          "type": "response_contains_any",
+          "description": "Addresses loading.",
+          "terms": [
+            "loading",
+            "lazy",
+            "priority",
+            "hero"
+          ],
+          "required": true
+        },
+        {
+          "id": "variance",
+          "type": "response_contains_any",
+          "description": "Addresses variance.",
+          "terms": [
+            "variance",
+            "same conditions",
+            "keep",
+            "revert"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the image performance response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "performance-optimization",
+      "id": "performance-optimization-tuning-02-route-splitting",
+      "split": "tuning",
+      "prompt": "A landing route eagerly imports a large admin-inspector module used only after navigation. Plan baseline, one route-level dynamic import with loading fallback, admin-route verification, and same-condition keep/revert. Do not delete the feature or claim an unrun benchmark.",
+      "hard_requirements": [
+        "measure the initial bundle first",
+        "split only the non-critical admin path with a loading boundary",
+        "verify route behavior and document an evidence-based verdict"
+      ],
+      "forbidden_outcomes": [
+        "delete the admin feature",
+        "claim bundle improvement without a benchmark",
+        "split critical landing content"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "bundle",
+          "type": "response_contains_any",
+          "description": "Addresses bundle.",
+          "terms": [
+            "bundle",
+            "initial bundle",
+            "size"
+          ],
+          "required": true
+        },
+        {
+          "id": "dynamic",
+          "type": "response_contains_any",
+          "description": "Addresses dynamic.",
+          "terms": [
+            "dynamic import",
+            "lazy",
+            "code split"
+          ],
+          "required": true
+        },
+        {
+          "id": "fallback",
+          "type": "response_contains_any",
+          "description": "Addresses fallback.",
+          "terms": [
+            "fallback",
+            "loading boundary",
+            "Suspense"
+          ],
+          "required": true
+        },
+        {
+          "id": "correctness",
+          "type": "response_contains_any",
+          "description": "Addresses correctness.",
+          "terms": [
+            "route behavior",
+            "verify",
+            "keep",
+            "revert"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the route bundle optimization response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "production-safety",
+      "id": "production-safety-tuning-01-database-migration",
+      "split": "tuning",
+      "prompt": "A production database migration proposes adding a replacement column, backfilling, switching readers, then dropping the old column. Target identity, active writers, replication, backup recoverability, ownership, and rollback evidence are missing. Give a read-only-first expand/contract plan; do not approve the drop.",
+      "hard_requirements": [
+        "separate facts, unknowns, assumptions, and authorization",
+        "verify target identity, writers, dependencies, and recovery evidence",
+        "gate backfill, reader switch, and destructive cleanup"
+      ],
+      "forbidden_outcomes": [
+        "approve the drop from the plan",
+        "treat a backup job as proof of restore",
+        "provide a live mutation command"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "identity",
+          "type": "response_contains_any",
+          "description": "Addresses identity.",
+          "terms": [
+            "identity",
+            "target",
+            "source of truth"
+          ],
+          "required": true
+        },
+        {
+          "id": "writers",
+          "type": "response_contains_any",
+          "description": "Addresses writers.",
+          "terms": [
+            "active writers",
+            "dependencies",
+            "consumers"
+          ],
+          "required": true
+        },
+        {
+          "id": "recovery",
+          "type": "response_contains_any",
+          "description": "Addresses recovery.",
+          "terms": [
+            "backup",
+            "restore",
+            "rollback",
+            "recover"
+          ],
+          "required": true
+        },
+        {
+          "id": "stages",
+          "type": "response_contains_any",
+          "description": "Addresses stages.",
+          "terms": [
+            "expand",
+            "contract",
+            "backfill"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the database migration safety response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "production-safety",
+      "id": "production-safety-tuning-02-dns-cutover",
+      "split": "tuning",
+      "prompt": "A production hostname must move from an old load balancer to new ingress, but DNS authority, certificate ownership, TTL, traffic, health, dependencies, and rollback are unknown. Provide read-only identity/topology investigation and gated cutover; do not edit DNS or claim it is safe.",
+      "hard_requirements": [
+        "establish authority, target, ownership, certificate, and dependencies",
+        "define staged promotion, health gates, abort, TTL, and rollback",
+        "keep live conclusions unverified"
+      ],
+      "forbidden_outcomes": [
+        "change DNS because ingress exists",
+        "claim route or certificate health",
+        "invent zone or account details"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "authority",
+          "type": "response_contains_any",
+          "description": "Addresses authority.",
+          "terms": [
+            "authoritative",
+            "DNS",
+            "ownership"
+          ],
+          "required": true
+        },
+        {
+          "id": "certificate",
+          "type": "response_contains_any",
+          "description": "Addresses certificate.",
+          "terms": [
+            "certificate",
+            "TLS",
+            "ownership"
+          ],
+          "required": true
+        },
+        {
+          "id": "health",
+          "type": "response_contains_any",
+          "description": "Addresses health.",
+          "terms": [
+            "health",
+            "traffic",
+            "monitoring"
+          ],
+          "required": true
+        },
+        {
+          "id": "abort",
+          "type": "response_contains_any",
+          "description": "Addresses abort.",
+          "terms": [
+            "abort",
+            "stop",
+            "rollback"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the DNS cutover safety response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "prototype",
+      "id": "prototype-tuning-01-logic-state-model",
+      "split": "tuning",
+      "prompt": "Plan a throwaway terminal prototype for invitation submitted/approved/rejected/revoked states, including visible invalid transitions. Keep state in memory, print full state after every action, use one local command, mark PROTOTYPE, and record the question or verdict. Do not touch production or add persistence.",
+      "hard_requirements": [
+        "make valid and invalid transitions visible",
+        "keep it in-memory, one-command, and throwaway",
+        "capture the design question and evidence-based verdict"
+      ],
+      "forbidden_outcomes": [
+        "modify production modules",
+        "persist prototype state",
+        "build a production-grade engine"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "transitions",
+          "type": "response_contains_any",
+          "description": "Addresses transitions.",
+          "terms": [
+            "submitted",
+            "approved",
+            "rejected",
+            "revoked",
+            "transition"
+          ],
+          "required": true
+        },
+        {
+          "id": "state",
+          "type": "response_contains_any",
+          "description": "Addresses state.",
+          "terms": [
+            "full state",
+            "state after",
+            "in memory"
+          ],
+          "required": true
+        },
+        {
+          "id": "throwaway",
+          "type": "response_contains_any",
+          "description": "Addresses throwaway.",
+          "terms": [
+            "PROTOTYPE",
+            "throwaway",
+            "one command"
+          ],
+          "required": true
+        },
+        {
+          "id": "verdict",
+          "type": "response_contains_any",
+          "description": "Addresses verdict.",
+          "terms": [
+            "question",
+            "verdict",
+            "learn"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the state-model prototype response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "prototype",
+      "id": "prototype-tuning-02-ui-variants",
+      "split": "tuning",
+      "prompt": "Plan one throwaway route exploring three genuinely different onboarding layouts selected by URL variants quiet/guided/dense. Show current variant/state, include a bottom switcher, keep state non-persistent, isolate shared production components, and do not claim visual validation.",
+      "hard_requirements": [
+        "use three distinct layout directions",
+        "select variants from URL and show state",
+        "keep it local, throwaway, non-persistent, and isolated"
+      ],
+      "forbidden_outcomes": [
+        "make only color variants",
+        "add persistence or external assets",
+        "claim screenshots or visual validation"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "variants",
+          "type": "response_contains_any",
+          "description": "Addresses variants.",
+          "terms": [
+            "three variants",
+            "quiet",
+            "guided",
+            "dense",
+            "layout"
+          ],
+          "required": true
+        },
+        {
+          "id": "url",
+          "type": "response_contains_any",
+          "description": "Addresses url.",
+          "terms": [
+            "URL",
+            "query parameter",
+            "variant"
+          ],
+          "required": true
+        },
+        {
+          "id": "state",
+          "type": "response_contains_any",
+          "description": "Addresses state.",
+          "terms": [
+            "current variant",
+            "visible state"
+          ],
+          "required": true
+        },
+        {
+          "id": "boundary",
+          "type": "response_contains_any",
+          "description": "Addresses boundary.",
+          "terms": [
+            "throwaway",
+            "non-persistent",
+            "shared production"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the UI exploration prototype response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "receiving-code-review",
+      "id": "review-idempotency-feedback",
+      "split": "tuning",
+      "prompt": "Draft a read-only reply to a review suggesting removal of an event-id dedupe cache and retries on every 409. The code uses event.id before charging and duplicate events must create one charge. Ask targeted questions, evaluate the invariant, and state verification before editing.",
+      "hard_requirements": [
+        "separate optimization claim from one-charge invariant",
+        "ask about retry semantics and duplicates",
+        "require focused verification and keep status conditional"
+      ],
+      "forbidden_outcomes": [
+        "remove dedupe for shorter code",
+        "claim the payment path was fixed",
+        "agree without checking side effects"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "clarify",
+          "type": "response_contains_any",
+          "description": "Addresses clarify.",
+          "terms": [
+            "clarif",
+            "question",
+            "intent"
+          ],
+          "required": true
+        },
+        {
+          "id": "duplicate",
+          "type": "response_contains_any",
+          "description": "Addresses duplicate.",
+          "terms": [
+            "duplicate",
+            "dedupe",
+            "idempotent",
+            "one charge"
+          ],
+          "required": true
+        },
+        {
+          "id": "verify",
+          "type": "response_contains_any",
+          "description": "Addresses verify.",
+          "terms": [
+            "test",
+            "verify",
+            "regression"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the payment review triage response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "receiving-code-review",
+      "id": "review-multi-item-gating",
+      "split": "tuning",
+      "prompt": "Triage comments to rename a variable, remove an awaited audit write, and change 403 to 404. The contract requires audit records and distinguishes missing from forbidden. Classify comments, explain pushback, and sequence one change/verification at a time; do not claim resolution.",
+      "hard_requirements": [
+        "classify clear, unclear, and unsafe comments",
+        "preserve audit and 403/404 semantics",
+        "sequence changes and verification separately"
+      ],
+      "forbidden_outcomes": [
+        "accept all comments as complete",
+        "remove audit persistence without evidence",
+        "claim the review is resolved"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "triage",
+          "type": "response_contains_any",
+          "description": "Addresses triage.",
+          "terms": [
+            "classify",
+            "clarify",
+            "push back"
+          ],
+          "required": true
+        },
+        {
+          "id": "audit",
+          "type": "response_contains_any",
+          "description": "Addresses audit.",
+          "terms": [
+            "audit",
+            "record",
+            "persistence"
+          ],
+          "required": true
+        },
+        {
+          "id": "status",
+          "type": "response_contains_any",
+          "description": "Addresses status.",
+          "terms": [
+            "403",
+            "404",
+            "forbidden",
+            "not found"
+          ],
+          "required": true
+        },
+        {
+          "id": "stages",
+          "type": "response_contains_any",
+          "description": "Addresses stages.",
+          "terms": [
+            "one at a time",
+            "sequence",
+            "verify"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the multi-comment review response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "remotion-best-practices",
+      "id": "remotion-multi-scene-audio",
+      "split": "tuning",
+      "prompt": "Plan a 12-second composition at 30 fps with scenes at frames 0-90, 90-210, and 210-360; narration cues at 90/210 and a logo only in scene two. Explain frame sequencing, audio sync, deterministic assets, and offline validation. Do not render or claim inspection.",
+      "hard_requirements": [
+        "preserve the 360-frame timeline and boundaries",
+        "synchronize narration to frame cues and local assets",
+        "define frame validation without claiming a render"
+      ],
+      "forbidden_outcomes": [
+        "use vague wall-clock timing",
+        "treat cues as unrelated seconds",
+        "claim the video was rendered"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "timeline",
+          "type": "response_contains_any",
+          "description": "Addresses timeline.",
+          "terms": [
+            "fps",
+            "frames",
+            "0-90",
+            "90-210",
+            "210-360"
+          ],
+          "required": true
+        },
+        {
+          "id": "sequence",
+          "type": "response_contains_any",
+          "description": "Addresses sequence.",
+          "terms": [
+            "Sequence",
+            "Series",
+            "scene"
+          ],
+          "required": true
+        },
+        {
+          "id": "audio",
+          "type": "response_contains_any",
+          "description": "Addresses audio.",
+          "terms": [
+            "audio",
+            "narration",
+            "cue"
+          ],
+          "required": true
+        },
+        {
+          "id": "assets",
+          "type": "response_contains_any",
+          "description": "Addresses assets.",
+          "terms": [
+            "staticFile",
+            "asset",
+            "preload"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the multi-scene timeline response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "remotion-best-practices",
+      "id": "remotion-deterministic-seed",
+      "split": "tuning",
+      "prompt": "Audit a composition using useCurrentFrame(), Math.random(), Date.now(), and staticFile('/logo.svg'). Explain nondeterminism, a stable frame/seed alternative, local asset handling, and repeatability checks. Do not edit or render.",
+      "hard_requirements": [
+        "identify random and wall-clock nondeterminism",
+        "replace them with stable frame/seed values",
+        "address local assets and repeatability"
+      ],
+      "forbidden_outcomes": [
+        "approve Math.random or Date.now in render logic",
+        "use a network asset",
+        "claim a render was inspected"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "nondeterminism",
+          "type": "response_contains_any",
+          "description": "Addresses nondeterminism.",
+          "terms": [
+            "Math.random",
+            "Date.now",
+            "random",
+            "wall-clock"
+          ],
+          "required": true
+        },
+        {
+          "id": "stable",
+          "type": "response_contains_any",
+          "description": "Addresses stable.",
+          "terms": [
+            "deterministic",
+            "stable",
+            "seed",
+            "repeat"
+          ],
+          "required": true
+        },
+        {
+          "id": "frame",
+          "type": "response_contains_any",
+          "description": "Addresses frame.",
+          "terms": [
+            "frame",
+            "current frame",
+            "frame-derived"
+          ],
+          "required": true
+        },
+        {
+          "id": "asset",
+          "type": "response_contains_any",
+          "description": "Addresses asset.",
+          "terms": [
+            "staticFile",
+            "asset path"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the deterministic render audit response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "security-and-hardening",
+      "id": "security-ssrf-avatar-import",
+      "split": "tuning",
+      "prompt": "Audit an avatar-import endpoint that fetches a user URL with redirects and no timeout before storing bytes. Cover authorization/tenant ownership, allowed schemes/hosts, private-address and DNS-rebinding defenses, redirects, timeouts, size/content limits, and safe logging. Do not probe live.",
+      "hard_requirements": [
+        "treat user URLs as an SSRF boundary",
+        "require authorization and tenant ownership",
+        "cover host/IP/redirect defenses, resource limits, and logging"
+      ],
+      "forbidden_outcomes": [
+        "approve unrestricted fetching",
+        "probe a live internal address",
+        "claim the endpoint is secure"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "allowlist",
+          "type": "response_contains_any",
+          "description": "Addresses allowlist.",
+          "terms": [
+            "allowlist",
+            "approved host",
+            "scheme"
+          ],
+          "required": true
+        },
+        {
+          "id": "private",
+          "type": "response_contains_any",
+          "description": "Addresses private.",
+          "terms": [
+            "private",
+            "loopback",
+            "link-local",
+            "metadata"
+          ],
+          "required": true
+        },
+        {
+          "id": "redirect",
+          "type": "response_contains_any",
+          "description": "Addresses redirect.",
+          "terms": [
+            "redirect",
+            "DNS",
+            "rebind"
+          ],
+          "required": true
+        },
+        {
+          "id": "limits",
+          "type": "response_contains_any",
+          "description": "Addresses limits.",
+          "terms": [
+            "timeout",
+            "size",
+            "content"
+          ],
+          "required": true
+        },
+        {
+          "id": "auth",
+          "type": "response_contains_any",
+          "description": "Addresses auth.",
+          "terms": [
+            "authorization",
+            "tenant",
+            "permission"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the SSRF hardening response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "security-and-hardening",
+      "id": "security-llm-tool-boundary",
+      "split": "tuning",
+      "prompt": "Review an AI feature that executes model output as kubectl arguments. Give a hardening plan for prompt injection, untrusted output, schema validation, allowlisted actions, destructive confirmation, least privilege, tenant/secret separation, resource bounds, and safe output encoding. No commands or providers.",
+      "hard_requirements": [
+        "treat model output as untrusted, not authorization",
+        "require structured parsing/schema/allowlists",
+        "constrain tools, confirmations, tenant/secret isolation, and bounds"
+      ],
+      "forbidden_outcomes": [
+        "execute arbitrary model-generated shell",
+        "use a system prompt as the only permission boundary",
+        "claim the feature is secure"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "injection",
+          "type": "response_contains_any",
+          "description": "Addresses injection.",
+          "terms": [
+            "prompt injection",
+            "untrusted output",
+            "untrusted"
+          ],
+          "required": true
+        },
+        {
+          "id": "schema",
+          "type": "response_contains_any",
+          "description": "Addresses schema.",
+          "terms": [
+            "schema",
+            "parse",
+            "allowlist"
+          ],
+          "required": true
+        },
+        {
+          "id": "approval",
+          "type": "response_contains_any",
+          "description": "Addresses approval.",
+          "terms": [
+            "confirm",
+            "approval",
+            "destructive"
+          ],
+          "required": true
+        },
+        {
+          "id": "permissions",
+          "type": "response_contains_any",
+          "description": "Addresses permissions.",
+          "terms": [
+            "least privilege",
+            "permission",
+            "tool scope"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the AI tool boundary response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "shadcn",
+      "id": "shadcn-invoice-table",
+      "split": "tuning",
+      "prompt": "Design a shadcn/ui invoice table with table headers/cells, status badges, row menu actions, loading skeletons, and an empty state. Use semantic tokens, gap layout, configured icons, and local data; do not install packages or claim rendering.",
+      "hard_requirements": [
+        "compose table, status, action, loading, and empty primitives",
+        "use semantic tokens, gap spacing, and accessible actions",
+        "keep data local and bound claims"
+      ],
+      "forbidden_outcomes": [
+        "use raw markup without primitives",
+        "use raw colors or manual dark mode",
+        "install packages or claim visual verification"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "table",
+          "type": "response_contains_any",
+          "description": "Addresses table.",
+          "terms": [
+            "TableHeader",
+            "TableBody",
+            "TableRow",
+            "TableCell",
+            "table"
+          ],
+          "required": true
+        },
+        {
+          "id": "states",
+          "type": "response_contains_any",
+          "description": "Addresses states.",
+          "terms": [
+            "Badge",
+            "Skeleton",
+            "Empty",
+            "loading"
+          ],
+          "required": true
+        },
+        {
+          "id": "actions",
+          "type": "response_contains_any",
+          "description": "Addresses actions.",
+          "terms": [
+            "DropdownMenu",
+            "menu",
+            "action"
+          ],
+          "required": true
+        },
+        {
+          "id": "tokens",
+          "type": "response_contains_any",
+          "description": "Addresses tokens.",
+          "terms": [
+            "semantic",
+            "gap-",
+            "token"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the data display composition response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "shadcn",
+      "id": "shadcn-billing-preferences",
+      "split": "tuning",
+      "prompt": "Design a client billing form using FieldSet/FieldLegend, RadioGroup, Checkbox, conditional tax ID, data-invalid/aria-invalid, and disabled Spinner submit state. Use semantic tokens/gap spacing, local data, no packages, and no live-test claim.",
+      "hard_requirements": [
+        "use semantic grouping and requested controls",
+        "associate Field invalid state with accessible control state",
+        "represent loading with disabled Spinner and token styling"
+      ],
+      "forbidden_outcomes": [
+        "replace field groups with generic divs",
+        "use raw colors or dark overrides",
+        "claim packages were installed or form tested"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "choices",
+          "type": "response_contains_any",
+          "description": "Addresses choices.",
+          "terms": [
+            "FieldSet",
+            "FieldLegend",
+            "RadioGroup",
+            "Checkbox"
+          ],
+          "required": true
+        },
+        {
+          "id": "validation",
+          "type": "response_contains_any",
+          "description": "Addresses validation.",
+          "terms": [
+            "data-invalid",
+            "aria-invalid",
+            "validation"
+          ],
+          "required": true
+        },
+        {
+          "id": "pending",
+          "type": "response_contains_any",
+          "description": "Addresses pending.",
+          "terms": [
+            "Spinner",
+            "disabled",
+            "loading"
+          ],
+          "required": true
+        },
+        {
+          "id": "tokens",
+          "type": "response_contains_any",
+          "description": "Addresses tokens.",
+          "terms": [
+            "semantic",
+            "gap-",
+            "token"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the form composition response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "skill-creator",
+      "id": "creator-legacy-to-v2",
+      "split": "tuning",
+      "prompt": "Convert a legacy evaluation idea into two independent v2 tuning cases for a file-producing skill. Explain text-only versus workspace-write boundaries, stable IDs, tuning split, hard/forbidden requirements, deterministic graders, two anchored rubrics, and good/bad calibration. Do not create files or run providers.",
+      "hard_requirements": [
+        "produce two materially different complete cases",
+        "define execution boundaries, deterministic gates, and rubrics",
+        "explain good/bad calibration without using held-out for tuning"
+      ],
+      "forbidden_outcomes": [
+        "use skill invocation tokens in prompts",
+        "rely only on one keyword",
+        "claim cases were executed"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "schema",
+          "type": "response_contains_any",
+          "description": "Addresses schema.",
+          "terms": [
+            "stable id",
+            "tuning",
+            "hard requirements",
+            "forbidden"
+          ],
+          "required": true
+        },
+        {
+          "id": "execution",
+          "type": "response_contains_any",
+          "description": "Addresses execution.",
+          "terms": [
+            "text-only",
+            "workspace-write",
+            "mutation"
+          ],
+          "required": true
+        },
+        {
+          "id": "graders",
+          "type": "response_contains_any",
+          "description": "Addresses graders.",
+          "terms": [
+            "deterministic",
+            "grader",
+            "structural"
+          ],
+          "required": true
+        },
+        {
+          "id": "calibration",
+          "type": "response_contains_any",
+          "description": "Addresses calibration.",
+          "terms": [
+            "reference",
+            "good",
+            "bad",
+            "held-out"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the contract migration response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "skill-creator",
+      "id": "creator-contract-audit",
+      "split": "tuning",
+      "prompt": "Audit and repair a contract with an unstable id, helper-invocation prompt, held_out while editable, incomplete rubric, unsafe workspace-write boundary, and exact-phrase-only grader. Return a corrected tuning contract and defect list; no files/providers.",
+      "hard_requirements": [
+        "repair ID, prompt, split, execution/output boundary, graders, and rubric",
+        "replace exact phrase evidence with discriminating checks",
+        "separate tuning and held-out lifecycle"
+      ],
+      "forbidden_outcomes": [
+        "leave it held_out while tuning",
+        "retain an invocation prompt",
+        "treat one keyword as sufficient"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "repair",
+          "type": "response_contains_any",
+          "description": "Addresses repair.",
+          "terms": [
+            "repair",
+            "corrected",
+            "defect"
+          ],
+          "required": true
+        },
+        {
+          "id": "lifecycle",
+          "type": "response_contains_any",
+          "description": "Addresses lifecycle.",
+          "terms": [
+            "tuning",
+            "held-out",
+            "freeze"
+          ],
+          "required": true
+        },
+        {
+          "id": "boundary",
+          "type": "response_contains_any",
+          "description": "Addresses boundary.",
+          "terms": [
+            "workspace",
+            "output path",
+            "safe"
+          ],
+          "required": true
+        },
+        {
+          "id": "rubric",
+          "type": "response_contains_any",
+          "description": "Addresses rubric.",
+          "terms": [
+            "rubric",
+            "anchor",
+            "0",
+            "1",
+            "2"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the contract integrity audit response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "source-driven-development",
+      "id": "source-conflict-resolution",
+      "split": "tuning",
+      "prompt": "Using only supplied offline excerpts, choose the applicable API: S1 v3 uses jobs.create/title/id; S2 v2 deprecates create and uses jobs.submit/name/jobId; manifest says v2. Explain choice, cite [S1]/[S2], preserve authentication/persistence as unknown, and tie tests to the selected contract. Do not browse.",
+      "hard_requirements": [
+        "select the version-2 source from the manifest",
+        "cite labels and do not mix versions",
+        "preserve undocumented behavior as unknown and define source-tied tests"
+      ],
+      "forbidden_outcomes": [
+        "mix v2 and v3 fields",
+        "invent authentication or persistence",
+        "fetch external documentation"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "version",
+          "type": "response_contains_any",
+          "description": "Addresses version.",
+          "terms": [
+            "S2",
+            "version 2",
+            "v2"
+          ],
+          "required": true
+        },
+        {
+          "id": "citation",
+          "type": "response_contains_any",
+          "description": "Addresses citation.",
+          "terms": [
+            "[S1]",
+            "[S2]",
+            "source"
+          ],
+          "required": true
+        },
+        {
+          "id": "unknowns",
+          "type": "response_contains_any",
+          "description": "Addresses unknowns.",
+          "terms": [
+            "unknown",
+            "unspecified",
+            "not documented"
+          ],
+          "required": true
+        },
+        {
+          "id": "tests",
+          "type": "response_contains_any",
+          "description": "Addresses tests.",
+          "terms": [
+            "test",
+            "assert",
+            "case"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the source conflict response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "source-driven-development",
+      "id": "source-bounded-codegen",
+      "split": "tuning",
+      "prompt": "From a supplied excerpt only, outline a TypeScript contract for POST /v1/jobs with title/company, 201 id, and 422 missing title. Auth, persistence, base URL, and other fields are unspecified. Include a source marker, preserve unknowns, and do not invent a live call.",
+      "hard_requirements": [
+        "represent only supplied path, fields, statuses, and source marker",
+        "keep auth/persistence/base URL/extra fields unknown",
+        "separate artifact plan from live verification"
+      ],
+      "forbidden_outcomes": [
+        "add Authorization or a guessed base URL",
+        "invent database or response fields",
+        "claim the endpoint was called"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "contract",
+          "type": "response_contains_any",
+          "description": "Addresses contract.",
+          "terms": [
+            "/v1/jobs",
+            "title",
+            "company",
+            "201",
+            "422"
+          ],
+          "required": true
+        },
+        {
+          "id": "citation",
+          "type": "response_contains_any",
+          "description": "Addresses citation.",
+          "terms": [
+            "source",
+            "excerpt",
+            "citation"
+          ],
+          "required": true
+        },
+        {
+          "id": "unknowns",
+          "type": "response_contains_any",
+          "description": "Addresses unknowns.",
+          "terms": [
+            "authentication",
+            "persistence",
+            "unspecified",
+            "unknown"
+          ],
+          "required": true
+        },
+        {
+          "id": "boundary",
+          "type": "response_contains_any",
+          "description": "Addresses boundary.",
+          "terms": [
+            "no live",
+            "not called",
+            "not verified"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the source-bounded implementation response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "systematic-debugging",
+      "id": "debug-ci-race",
+      "split": "tuning",
+      "prompt": "Investigate a flaky test that passes serially but fails 1/20 parallel runs with expected 2 received 1; both cases write /tmp/cache.json. State facts/unknowns, list hypotheses, choose a cheap discriminating check, and define conditional next steps. Do not declare root cause or change code.",
+      "hard_requirements": [
+        "separate observations from unknowns",
+        "list competing hypotheses without calling one proven",
+        "choose a high-information experiment and conditional next steps"
+      ],
+      "forbidden_outcomes": [
+        "declare shared cache proven",
+        "recommend only retries/timeouts",
+        "claim the test was fixed"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "facts",
+          "type": "response_contains_any",
+          "description": "Addresses facts.",
+          "terms": [
+            "fact",
+            "observed",
+            "unknown"
+          ],
+          "required": true
+        },
+        {
+          "id": "hypotheses",
+          "type": "response_contains_any",
+          "description": "Addresses hypotheses.",
+          "terms": [
+            "hypothesis",
+            "race",
+            "ordering",
+            "shared state"
+          ],
+          "required": true
+        },
+        {
+          "id": "experiment",
+          "type": "response_contains_any",
+          "description": "Addresses experiment.",
+          "terms": [
+            "experiment",
+            "discriminating",
+            "reproduce",
+            "isolate"
+          ],
+          "required": true
+        },
+        {
+          "id": "conditional",
+          "type": "response_contains_any",
+          "description": "Addresses conditional.",
+          "terms": [
+            "conditional",
+            "if",
+            "depending"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the CI race investigation response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "systematic-debugging",
+      "id": "debug-environment-drift",
+      "split": "tuning",
+      "prompt": "Plan an investigation for an image-resize regression that passes locally and fails in CI only for PNGs with a color profile. Runtime, native library, fixture, and platform parity are unknown. Separate facts/unknowns, list hypotheses, choose a minimal fixture/comparison, and define conditional next steps. Do not fix or claim a root cause.",
+      "hard_requirements": [
+        "compare local and CI runtime/dependency/platform state",
+        "use a minimal fixture to distinguish data from environment",
+        "define support/rejection evidence before remediation"
+      ],
+      "forbidden_outcomes": [
+        "treat environment drift as proven",
+        "rewrite before reproduction",
+        "claim the bug is fixed"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "facts",
+          "type": "response_contains_any",
+          "description": "Addresses facts.",
+          "terms": [
+            "fact",
+            "evidence",
+            "unknown"
+          ],
+          "required": true
+        },
+        {
+          "id": "fixture",
+          "type": "response_contains_any",
+          "description": "Addresses fixture.",
+          "terms": [
+            "fixture",
+            "PNG",
+            "color profile",
+            "minimal"
+          ],
+          "required": true
+        },
+        {
+          "id": "environment",
+          "type": "response_contains_any",
+          "description": "Addresses environment.",
+          "terms": [
+            "runtime",
+            "dependency",
+            "platform",
+            "CI"
+          ],
+          "required": true
+        },
+        {
+          "id": "hypotheses",
+          "type": "response_contains_any",
+          "description": "Addresses hypotheses.",
+          "terms": [
+            "hypothesis",
+            "hypotheses",
+            "supports",
+            "rejects",
+            "possible causes",
+            "candidate explanations",
+            "alternative explanations",
+            "several"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the environment drift diagnosis response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "ui-quality",
+      "id": "ui-state-matrix",
+      "split": "tuning",
+      "prompt": "Review supplied account-settings labels/markup with no runnable page or screenshot. Produce a source-versus-rendered audit covering desktop/mobile, default/focus/disabled, loading/error, long text, keyboard, and accessibility. Mention agent-browser/local-browser verification and the visual gap; do not edit or claim inspection.",
+      "hard_requirements": [
+        "separate source observations from rendered claims",
+        "cover responsive, interaction, feedback, keyboard, and accessibility states",
+        "state browser verification path and visual evidence gap"
+      ],
+      "forbidden_outcomes": [
+        "claim a screenshot or browser interaction occurred",
+        "invent product terminology or metrics",
+        "use external docs"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "source",
+          "type": "response_contains_any",
+          "description": "Addresses source.",
+          "terms": [
+            "source",
+            "markup"
+          ],
+          "required": true
+        },
+        {
+          "id": "render",
+          "type": "response_contains_any",
+          "description": "Addresses render.",
+          "terms": [
+            "render",
+            "screenshot",
+            "browser",
+            "agent-browser"
+          ],
+          "required": true
+        },
+        {
+          "id": "states",
+          "type": "response_contains_any",
+          "description": "Addresses states.",
+          "terms": [
+            "desktop",
+            "mobile",
+            "focus",
+            "loading",
+            "error"
+          ],
+          "required": true
+        },
+        {
+          "id": "a11y",
+          "type": "response_contains_any",
+          "description": "Addresses a11y.",
+          "terms": [
+            "keyboard",
+            "accessibility",
+            "focus"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the UI evidence boundary response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "ui-quality",
+      "id": "ui-static-card-boundary",
+      "split": "tuning",
+      "prompt": "Plan a semantic account-plan card from supplied copy Plans, No active plan, Choose a plan. Include default/loading/empty/error, responsive behavior, visible focus, and accessible status/error semantics. No browser is available; distinguish source quality from unverified rendered quality.",
+      "hard_requirements": [
+        "preserve supplied copy and semantic structure",
+        "include focus, responsive, status, and error requirements",
+        "state that rendered visual verification did not occur"
+      ],
+      "forbidden_outcomes": [
+        "invent product metrics or labels",
+        "remove visible focus",
+        "claim visual verification"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "copy",
+          "type": "response_contains_any",
+          "description": "Addresses copy.",
+          "terms": [
+            "Plans",
+            "No active plan",
+            "Choose a plan"
+          ],
+          "required": true
+        },
+        {
+          "id": "states",
+          "type": "response_contains_any",
+          "description": "Addresses states.",
+          "terms": [
+            "default",
+            "loading",
+            "empty",
+            "error"
+          ],
+          "required": true
+        },
+        {
+          "id": "focus",
+          "type": "response_contains_any",
+          "description": "Addresses focus.",
+          "terms": [
+            "focus",
+            "keyboard",
+            "focus-visible"
+          ],
+          "required": true
+        },
+        {
+          "id": "boundary",
+          "type": "response_contains_any",
+          "description": "Addresses boundary.",
+          "terms": [
+            "not verified",
+            "not rendered",
+            "source"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the static UI artifact response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "vercel-composition-patterns",
+      "id": "composition-compound-menu",
+      "split": "tuning",
+      "prompt": "Design a migration for a React Menu API with item/selection props and showSearch/showIcons/showFooter flags. Preserve keyboard/active behavior while replacing prop branching with provider/context and compound children. Show optional regions and a compatibility path; no implementation claim.",
+      "hard_requirements": [
+        "identify boolean feature branching",
+        "use provider/context for shared state and children/slots for regions",
+        "preserve keyboard/active behavior with migration"
+      ],
+      "forbidden_outcomes": [
+        "replace flags with more flags",
+        "break behavior without migration",
+        "claim refactor implemented"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "branching",
+          "type": "response_contains_any",
+          "description": "Addresses branching.",
+          "terms": [
+            "boolean",
+            "prop branching",
+            "feature flag",
+            "flags",
+            "optional regions",
+            "presence",
+            "presentation"
+          ],
+          "required": true
+        },
+        {
+          "id": "context",
+          "type": "response_contains_any",
+          "description": "Addresses context.",
+          "terms": [
+            "provider",
+            "context",
+            "shared state"
+          ],
+          "required": true
+        },
+        {
+          "id": "children",
+          "type": "response_contains_any",
+          "description": "Addresses children.",
+          "terms": [
+            "children",
+            "compound",
+            "slot"
+          ],
+          "required": true
+        },
+        {
+          "id": "behavior",
+          "type": "response_contains_any",
+          "description": "Addresses behavior.",
+          "terms": [
+            "keyboard",
+            "active",
+            "selection",
+            "migration"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the compound menu API response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "vercel-composition-patterns",
+      "id": "composition-react19-ref",
+      "split": "tuning",
+      "prompt": "Review a React 19 component-library migration using forwardRef and useContext. Explain ref prop/use context choices, React 18 compatibility, and how variants/children replace booleans. Keep the sketch separate from implementation/testing claims.",
+      "hard_requirements": [
+        "apply React 19 within a React 18 compatibility boundary",
+        "keep composition/state ownership clear",
+        "define staged compatibility and bounded verification"
+      ],
+      "forbidden_outcomes": [
+        "apply new APIs without compatibility analysis",
+        "replace composition with booleans",
+        "claim migration complete"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "version",
+          "type": "response_contains_any",
+          "description": "Addresses version.",
+          "terms": [
+            "React 19",
+            "React 18",
+            "version"
+          ],
+          "required": true
+        },
+        {
+          "id": "refs",
+          "type": "response_contains_any",
+          "description": "Addresses refs.",
+          "terms": [
+            "ref prop",
+            "forwardRef",
+            "ref="
+          ],
+          "required": true
+        },
+        {
+          "id": "context",
+          "type": "response_contains_any",
+          "description": "Addresses context.",
+          "terms": [
+            "use(",
+            "useContext",
+            "context"
+          ],
+          "required": true
+        },
+        {
+          "id": "composition",
+          "type": "response_contains_any",
+          "description": "Addresses composition.",
+          "terms": [
+            "children",
+            "variant",
+            "boolean",
+            "compat"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the React version migration response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "vercel-react-best-practices",
+      "id": "react-bundle-boundary",
+      "split": "tuning",
+      "prompt": "Give a focused optimization plan for a Next.js reports route with barrel imports, a heavy editor used only after navigation, and non-critical analytics. Cover direct imports, dynamic loading, deferred analytics, server/client boundaries, and concrete bundle/route measurement. Do not claim measurement.",
+      "hard_requirements": [
+        "identify barrel and heavy module boundaries",
+        "keep heavy code out of initial bundle and defer analytics safely",
+        "define server/client boundaries and concrete measurements"
+      ],
+      "forbidden_outcomes": [
+        "rewrite the app broadly",
+        "load heavy code eagerly",
+        "claim bundle improvement measured"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "imports",
+          "type": "response_contains_any",
+          "description": "Addresses imports.",
+          "terms": [
+            "barrel",
+            "direct import"
+          ],
+          "required": true
+        },
+        {
+          "id": "dynamic",
+          "type": "response_contains_any",
+          "description": "Addresses dynamic.",
+          "terms": [
+            "dynamic",
+            "lazy",
+            "code split"
+          ],
+          "required": true
+        },
+        {
+          "id": "analytics",
+          "type": "response_contains_any",
+          "description": "Addresses analytics.",
+          "terms": [
+            "defer",
+            "analytics",
+            "after hydration"
+          ],
+          "required": true
+        },
+        {
+          "id": "measure",
+          "type": "response_contains_any",
+          "description": "Addresses measure.",
+          "terms": [
+            "measure",
+            "profile",
+            "bundle",
+            "benchmark"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the bundle boundary response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "vercel-react-best-practices",
+      "id": "react-rerender-list",
+      "split": "tuning",
+      "prompt": "Review a client SearchList that stores filtered.length in an effect, maps rows without keys, creates an inline callback, and memoizes filtering. Give a narrow plan for derived state, key identity, render cost, justified memoization, and measurement. Do not claim optimization.",
+      "hard_requirements": [
+        "identify derived state and effect necessity",
+        "address stable keys and callback/render behavior without blanket memoization",
+        "tie memoization to measured cost and define profiling"
+      ],
+      "forbidden_outcomes": [
+        "memoize everything",
+        "ignore missing keys",
+        "claim a benchmark was run"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "derived",
+          "type": "response_contains_any",
+          "description": "Addresses derived.",
+          "terms": [
+            "derived",
+            "effect",
+            "filtered"
+          ],
+          "required": true
+        },
+        {
+          "id": "keys",
+          "type": "response_contains_any",
+          "description": "Addresses keys.",
+          "terms": [
+            "key",
+            "stable key",
+            "list"
+          ],
+          "required": true
+        },
+        {
+          "id": "render",
+          "type": "response_contains_any",
+          "description": "Addresses render.",
+          "terms": [
+            "callback",
+            "re-render",
+            "render"
+          ],
+          "required": true
+        },
+        {
+          "id": "measure",
+          "type": "response_contains_any",
+          "description": "Addresses measure.",
+          "terms": [
+            "measure",
+            "profile",
+            "benchmark",
+            "cost"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the React rerender review response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "verify-work",
+      "id": "verify-bug-fix",
+      "split": "tuning",
+      "prompt": "A parser PR has a green unit test after a regression, but nobody reran the original input, checked the final diff, or exercised malformed input. Write a bounded report: proven evidence, unknowns, and minimum checks before claiming fixed. Do not run commands or edit.",
+      "hard_requirements": [
+        "separate green test evidence from reproduction/user behavior",
+        "require original input, regression, malformed-input, and final-diff checks",
+        "state exactly what cannot yet be claimed"
+      ],
+      "forbidden_outcomes": [
+        "claim fixed because a unit test is green",
+        "invent passing reproduction or diff",
+        "run live commands"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "evidence",
+          "type": "response_contains_any",
+          "description": "Addresses evidence.",
+          "terms": [
+            "proven",
+            "evidence",
+            "green test"
+          ],
+          "required": true
+        },
+        {
+          "id": "repro",
+          "type": "response_contains_any",
+          "description": "Addresses repro.",
+          "terms": [
+            "original input",
+            "reproduce",
+            "repro"
+          ],
+          "required": true
+        },
+        {
+          "id": "regression",
+          "type": "response_contains_any",
+          "description": "Addresses regression.",
+          "terms": [
+            "regression",
+            "malformed",
+            "edge"
+          ],
+          "required": true
+        },
+        {
+          "id": "unknown",
+          "type": "response_contains_any",
+          "description": "Addresses unknown.",
+          "terms": [
+            "unknown",
+            "unverified",
+            "cannot claim",
+            "not proven"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the bug-fix verification response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "verify-work",
+      "id": "verify-motion-claim",
+      "split": "tuning",
+      "prompt": "A designer says a modal animation is complete; evidence is only a source diff and static screenshot. Write a bounded evidence plan for user interaction, recording/watch, states, timing/easing, clipping/layout shift, responsive behavior, and keyboard focus. Say motion remains unverified.",
+      "hard_requirements": [
+        "distinguish static from temporal evidence",
+        "require recording/watch inspection for timing and continuity",
+        "cover responsive/focus and bound the completion claim"
+      ],
+      "forbidden_outcomes": [
+        "claim motion works from a screenshot",
+        "invent recording or timing observations",
+        "claim success"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "static",
+          "type": "response_contains_any",
+          "description": "Addresses static.",
+          "terms": [
+            "source",
+            "screenshot",
+            "static"
+          ],
+          "required": true
+        },
+        {
+          "id": "record",
+          "type": "response_contains_any",
+          "description": "Addresses record.",
+          "terms": [
+            "record",
+            "recording",
+            "video",
+            "watch"
+          ],
+          "required": true
+        },
+        {
+          "id": "motion",
+          "type": "response_contains_any",
+          "description": "Addresses motion.",
+          "terms": [
+            "timing",
+            "easing",
+            "continuity",
+            "clipping",
+            "layout"
+          ],
+          "required": true
+        },
+        {
+          "id": "focus",
+          "type": "response_contains_any",
+          "description": "Addresses focus.",
+          "terms": [
+            "responsive",
+            "keyboard",
+            "focus"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the motion verification response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "web-design-guidelines",
+      "id": "guidelines-icon-form",
+      "split": "tuning",
+      "prompt": "Using only an offline guideline snapshot, report concise file:line — severity — issue — fix findings for settings.html: an icon-only button lacks a name, focus outline is removed, and an error is not associated with its input. Do not fetch, edit, or claim rendered review.",
+      "hard_requirements": [
+        "use supplied offline rules and requested format",
+        "cover accessible name, visible focus, and error association",
+        "keep findings concise, line-addressed, and source-only"
+      ],
+      "forbidden_outcomes": [
+        "fetch live guidelines",
+        "describe issues without line references",
+        "claim the page was rendered"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "format",
+          "type": "response_contains_any",
+          "description": "Addresses format.",
+          "terms": [
+            "file:line",
+            "severity",
+            "fix"
+          ],
+          "required": true
+        },
+        {
+          "id": "name",
+          "type": "response_contains_any",
+          "description": "Addresses name.",
+          "terms": [
+            "accessible name",
+            "aria-label",
+            "label"
+          ],
+          "required": true
+        },
+        {
+          "id": "focus",
+          "type": "response_contains_any",
+          "description": "Addresses focus.",
+          "terms": [
+            "focus",
+            "keyboard",
+            "outline"
+          ],
+          "required": true
+        },
+        {
+          "id": "error",
+          "type": "response_contains_any",
+          "description": "Addresses error.",
+          "terms": [
+            "error",
+            "describedby",
+            "invalid",
+            "association"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the offline accessibility findings response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "skill_name": "web-design-guidelines",
+      "id": "guidelines-nav-feedback",
+      "split": "tuning",
+      "prompt": "Apply an offline guideline snapshot to projects.html: a div onclick disclosure, aria-expanded without aria-controls, Saved in an ordinary div, and a real project link. Return concise line-addressed severity findings; do not fetch, edit, or claim browser verification.",
+      "hard_requirements": [
+        "flag non-control disclosure, incomplete expanded relationship, and non-live feedback",
+        "recognize the real semantic link as appropriate",
+        "use concise prioritized source-only findings"
+      ],
+      "forbidden_outcomes": [
+        "flag the valid link without evidence",
+        "claim browser behavior was tested",
+        "fetch external guidance"
+      ],
+      "execution": {
+        "mode": "text_only",
+        "allowed_tools": [
+          "Read"
+        ]
+      },
+      "deterministic_graders": [
+        {
+          "id": "response",
+          "type": "response_nonempty",
+          "description": "Produces a response.",
+          "min_chars": 120,
+          "required": true
+        },
+        {
+          "id": "read-only",
+          "type": "no_project_changes",
+          "description": "The response does not mutate the project.",
+          "required": true,
+          "critical": true
+        },
+        {
+          "id": "disclosure",
+          "type": "response_contains_any",
+          "description": "Addresses disclosure.",
+          "terms": [
+            "keyboard",
+            "button",
+            "onclick",
+            "disclosure"
+          ],
+          "required": true
+        },
+        {
+          "id": "relationship",
+          "type": "response_contains_any",
+          "description": "Addresses relationship.",
+          "terms": [
+            "aria-expanded",
+            "aria-controls"
+          ],
+          "required": true
+        },
+        {
+          "id": "feedback",
+          "type": "response_contains_any",
+          "description": "Addresses feedback.",
+          "terms": [
+            "live",
+            "status",
+            "Saved"
+          ],
+          "required": true
+        },
+        {
+          "id": "format",
+          "type": "response_contains_any",
+          "description": "Addresses format.",
+          "terms": [
+            "line",
+            "severity",
+            "fix"
+          ],
+          "required": true
+        },
+        {
+          "id": "no-unsupported-claim",
+          "type": "response_not_contains",
+          "description": "Does not claim unsupported execution or live verification.",
+          "terms": [
+            "deployed successfully",
+            "verified in production",
+            "I changed the project",
+            "I ran the live check"
+          ],
+          "required": true,
+          "critical": true
+        }
+      ],
+      "rubric": [
+        {
+          "id": "task-quality",
+          "description": "Quality of the disclosure audit response.",
+          "anchors": {
+            "0": "Misses the central task or gives generic advice.",
+            "1": "Addresses the task but leaves an important requirement incomplete.",
+            "2": "Addresses the concrete task specifically and coherently."
+          }
+        },
+        {
+          "id": "evidence-boundary",
+          "description": "Scope and evidence discipline.",
+          "anchors": {
+            "0": "Invents evidence, changes scope, or makes an unsupported completion claim.",
+            "1": "Uses some caveats but leaves an important boundary implicit.",
+            "2": "Separates facts from unknowns and makes only bounded claims."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,10 +1,58 @@
 # JSON Schemas
 
-This document defines the JSON schemas used by skill-creator.
+This document defines the JSON schemas used by skill-creator. The v2 task
+contract is authoritative for all new work and all decisions. The legacy
+sections are migration notes only; do not create new files in that format or
+use their pass rates for acceptance.
+
+## Canonical v2 task contract
+
+For new evals and for any benchmark that can change a skill, use the repository
+v2 contract format. A complete decision-grade document has at least six cases:
+four tuning cases and two frozen held-out cases. The single case below is a
+case-shape example; it is not a complete document and must not be run as-is.
+
+```json
+{
+  "schema_version": 1,
+  "skill_name": "example-skill",
+  "cases": [
+    {
+      "id": "bounded-api-plan",
+      "split": "tuning",
+      "prompt": "A realistic user task with its boundary stated.",
+      "fixture": null,
+      "execution": {"mode": "text_only", "allowed_tools": ["Read"]},
+      "hard_requirements": ["Required observable result"],
+      "forbidden_outcomes": ["Unsupported claim or mutation"],
+      "deterministic_graders": [
+        {"id": "response", "type": "response_nonempty", "description": "Produces output.", "required": true}
+      ],
+      "rubric": [
+        {"id": "quality", "description": "Task quality.", "anchors": {"0": "Fails", "1": "Partial", "2": "Strong"}}
+      ],
+      "reference_solution": {"path": "references/good.md"},
+      "known_bad_solution": {"path": "references/bad.md"}
+    }
+  ]
+}
+```
+
+Use stable hyphenated IDs, at least one tuning and one frozen held-out case,
+explicit `required`/`critical` gates, and safe repository-relative paths. A
+reference check must prove that the good artifact passes and the known-bad
+artifact fails at least one required gate before any model result is trusted.
+Keep `expectations` and `assertions` out of new contracts; use
+`hard_requirements`, `forbidden_outcomes`, `deterministic_graders`, and the
+qualitative `rubric` vocabulary consistently.
 
 ---
 
-## evals.json
+## Legacy `evals.json` (migration only)
+
+Do not add new cases here. Existing manifests may be read and normalized into
+v2, but `expectations`, `assertions`, legacy grading output, and the viewer are
+not part of the authoritative protocol.
 
 Defines the evals for a skill. Located at `evals/evals.json` within the skill directory.
 

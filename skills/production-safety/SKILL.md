@@ -32,6 +32,15 @@ Inspect before writing:
 
 Do not mutate the system merely to discover how it is configured.
 
+### Execution-mode gate
+
+Resolve the prompt's tool and network boundary before probing. In a text-only,
+offline, plan-only, or no-command task, do not run `kubectl`, `oc`, `dig`,
+`curl`, `openssl`, cloud CLIs, package managers, or identity probes. Use only
+the supplied evidence, label live topology and identity as unknown, and list
+the exact read-only commands an authorized operator would run later. Never
+turn a failed probe into evidence that a production dependency is absent.
+
 ## 3. Separate facts from assumptions
 
 Keep a short list:
@@ -41,6 +50,15 @@ Keep a short list:
 - **Assumed:** hypotheses that must not justify a risky action.
 
 If a material safety fact is unknown, investigate it before proceeding.
+Authorization is also a fact: do not infer that access, a read-only credential,
+or a successful identity check authorizes a write. Record the requested scope
+and exact approved action separately from the credentials available.
+
+For any dependency or removal review, map all consumers before changing the
+source: workloads, service accounts, operators/controllers, scheduled jobs,
+external-secret or backup systems, dashboards, and human runbooks. “No consumer
+found” is a verification result only after those categories were checked; do
+not treat an empty search or an unknown topology as proof of safe removal.
 
 ## 4. Classify the proposed action
 
@@ -126,3 +144,11 @@ Stop before writing if:
 - the proposed action exceeds the user's authorization.
 
 Report the evidence and ask for the missing decision rather than guessing.
+
+## Execution boundary
+
+Match the task's requested mode and the tools it authorizes.
+
+- For text-only, plan-only, or review-only requests, use the supplied prompt and explicitly provided context. Do not inspect the workspace, run shell/CLI commands, call network/MCP/browser tools, or edit files. If required context is missing, say so and identify the smallest artifact needed.
+- For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
+- Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.

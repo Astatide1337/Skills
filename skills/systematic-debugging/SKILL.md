@@ -17,6 +17,8 @@ Find the cause before fixing the symptom.
    - Reproduce the same failure in the closest practical environment.
    - Record the exact command, request, user flow, or conditions that trigger it.
    - If it cannot be reproduced, gather current logs/state before changing anything.
+   - Invest disproportionate effort in a tight feedback loop that fails on the user's exact symptom. Prefer, in order: a focused test, request/CLI fixture, browser script, captured-trace replay, throwaway harness, fuzz loop, bisection, or differential comparison.
+   - Tighten the loop until it is fast, deterministic, and runnable without interpretation. For flaky bugs, raise and measure the reproduction rate instead of waiting for a perfect repro.
 
 3. **Inspect the real system.**
    - Read the relevant code, configuration, tests, logs, runtime state, and recent changes.
@@ -48,6 +50,7 @@ Find the cause before fixing the symptom.
    - Re-run the exact reproduction.
    - Run the smallest relevant regression checks.
    - Confirm the mechanism is fixed, not merely hidden.
+   - Remove temporary instrumentation and preserve the minimized reproduction as a regression test when it exercises the real failure seam.
 
 ## Stop conditions
 
@@ -76,3 +79,17 @@ When the debugging task is complete, report:
 - **Fix:** what changed.
 - **Verification:** how the original failure was re-tested.
 - **Uncertainty:** anything material that remains unverified.
+
+## Output-shape discipline
+
+For a text-only diagnosis, make the conditional structure explicit: write
+`If <observed result>, then <next check>` (or an equivalent clearly conditional
+branch) for each material hypothesis.
+
+## Execution boundary
+
+Match the task's requested mode and the tools it authorizes.
+
+- For text-only, plan-only, or review-only requests, use the supplied prompt and explicitly provided context. Do not inspect the workspace, run shell/CLI commands, call network/MCP/browser tools, or edit files. If required context is missing, say so and identify the smallest artifact needed.
+- For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
+- Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.

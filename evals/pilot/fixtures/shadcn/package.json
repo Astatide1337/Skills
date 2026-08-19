@@ -1,0 +1,5 @@
+{
+  "name": "pilot-ui",
+  "private": true,
+  "dependencies": {"@/components/ui": "local", "@tabler/icons-react": "pilot"}
+}

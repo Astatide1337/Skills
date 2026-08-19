@@ -1,0 +1,4 @@
+environment=preview
+database=preview-db
+production_database=production-db
+rollback=restore prior application image and verify schema compatibility
