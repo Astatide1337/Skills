@@ -1,4 +1,0 @@
-interface:
-  display_name: "UI Quality"
-  short_description: "Inspect and improve rendered interface quality"
-  default_prompt: "Use $ui-quality to review this interface with screenshots."

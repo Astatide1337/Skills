@@ -11,17 +11,11 @@ profiles:
   engineering-core:
     - receiving-code-review
   web-engineering:
-    - vercel-react-best-practices
-    - web-design-guidelines
-    - shadcn
-    - building-components
-    - vercel-composition-patterns
-    - ui-quality
+    - web-interface
   mcp-and-infrastructure:
     - cloudflare-deploy
   agent-manager:
     - grill-me
-    - prototype
     - diagnosing-bugs
   production-engineering:
     - source-driven-development
@@ -44,25 +38,18 @@ skills:
     exported_path: skills/receiving-code-review/SKILL.md
     source: {repository: 'https://github.com/obra/superpowers', commit: 44c9b2d6e889982ac18c27d05a19fefe335194e1, path: skills/receiving-code-review}
   - profile: web-engineering
-    trust: established
-    exported_path: skills/vercel-react-best-practices/SKILL.md
-    source: {repository: 'https://github.com/vercel-labs/agent-skills', commit: 805687f34e8c10b420e3d11335a0ca2c3c90d992, path: skills/react-best-practices}
-  - profile: web-engineering
-    trust: established
-    exported_path: skills/web-design-guidelines/SKILL.md
-    source: {repository: 'https://github.com/vercel-labs/agent-skills', commit: ba46938889d4e58635362fb8f618e1178ac3ec46, path: skills/web-design-guidelines}
-  - profile: web-engineering
-    trust: established
-    exported_path: skills/shadcn/SKILL.md
-    source: {repository: 'https://github.com/shadcn-ui/ui', commit: 6cd3f4c65c361ab6554e06a77e6a0af9cf8b6e37, path: skills/shadcn, adaptation: removed non-portable user-invocable frontmatter}
-  - profile: web-engineering
-    trust: established
-    exported_path: skills/building-components/SKILL.md
-    source: {repository: 'https://github.com/vercel/components.build', commit: 5719ce3c9df04265f8c12e4567c424c7c516b5e5, path: skills/building-components}
-  - profile: web-engineering
-    trust: established
-    exported_path: skills/vercel-composition-patterns/SKILL.md
-    source: {repository: 'https://github.com/vercel-labs/agent-skills', commit: a5343bd997c4cc4d8bf2ca61021bdc74b4d6c9d5, path: skills/composition-patterns}
+    trust: local-reviewed
+    exported_path: skills/web-interface/SKILL.md
+    source:
+      composition:
+        - {repository: 'https://github.com/vercel-labs/agent-skills', commit: 805687f34e8c10b420e3d11335a0ca2c3c90d992, path: skills/react-best-practices}
+        - {repository: 'https://github.com/vercel-labs/agent-skills', commit: ba46938889d4e58635362fb8f618e1178ac3ec46, path: skills/web-design-guidelines}
+        - {repository: 'https://github.com/shadcn-ui/ui', commit: 6cd3f4c65c361ab6554e06a77e6a0af9cf8b6e37, path: skills/shadcn}
+        - {repository: 'https://github.com/vercel/components.build', commit: 5719ce3c9df04265f8c12e4567c424c7c516b5e5, path: skills/building-components}
+        - {repository: 'https://github.com/vercel-labs/agent-skills', commit: a5343bd997c4cc4d8bf2ca61021bdc74b4d6c9d5, path: skills/composition-patterns}
+        - {archive: 'astatide-engineering-skills.zip', archive_sha256: '050549d0dd33e6fb5ca91354538c9de38968e3c7beb045c238393844e6a461a7', path: skills/ui-quality}
+        - {repository: 'https://github.com/mattpocock/skills', commit: fa460cbf095a893d14bf41d3db7798cada500259, path: skills/engineering/prototype, adaptation: UI branch only}
+      adaptation: synthesized as a lean offline UI workflow; excludes registry publishing and logic-state prototypes
   - profile: mcp-and-infrastructure
     trust: established
     exported_path: skills/cloudflare-deploy/SKILL.md
@@ -75,10 +62,6 @@ skills:
     trust: established
     exported_path: skills/grill-me/SKILL.md
     source: {repository: 'https://github.com/mattpocock/skills', commit: 2ab958093e83e0ec752e6c1c5932da465bf23e0c, path: skills/productivity/grill-me, adaptation: removed unsupported disable-model-invocation frontmatter}
-  - profile: agent-manager
-    trust: established
-    exported_path: skills/prototype/SKILL.md
-    source: {repository: 'https://github.com/mattpocock/skills', commit: fa460cbf095a893d14bf41d3db7798cada500259, path: skills/engineering/prototype}
   - profile: agent-manager
     trust: established
     exported_path: skills/diagnosing-bugs/SKILL.md
@@ -123,10 +106,6 @@ skills:
     trust: local-reviewed
     exported_path: skills/verify-work/SKILL.md
     source: {archive: 'astatide-engineering-skills.zip', archive_sha256: '050549d0dd33e6fb5ca91354538c9de38968e3c7beb045c238393844e6a461a7', path: skills/verify-work, adaptation: normalized with skill-creator}
-  - profile: web-engineering
-    trust: local-reviewed
-    exported_path: skills/ui-quality/SKILL.md
-    source: {archive: 'astatide-engineering-skills.zip', archive_sha256: '050549d0dd33e6fb5ca91354538c9de38968e3c7beb045c238393844e6a461a7', path: skills/ui-quality, adaptation: normalized with skill-creator and agent-browser workflow}
   - profile: zero-token-architecture
     trust: local-reviewed
     exported_path: skills/minimalism-audit/SKILL.md

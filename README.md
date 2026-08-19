@@ -11,7 +11,7 @@ skill-name/
   assets/       # optional
 ```
 
-The catalog currently contains 24 skills. `catalog.yaml` records the source
+The catalog currently contains 17 skills. `catalog.yaml` records the source
 repository, exact source commit, original source path, trust classification,
 profile, and installed path for every exported skill. Each `SKILL.md` carries
 the runtime-facing `name` and `description` frontmatter, so Codex, Claude Code,
@@ -42,7 +42,7 @@ Install every skill into the detected Codex/Claude/project directory:
 Install selected skills into an explicit target:
 
 ```bash
-./install.sh --target ~/.codex/skills --skill systematic-debugging --skill writing-plans
+./install.sh --target ~/.codex/skills --skill systematic-debugging --skill web-interface
 ```
 
 The target is the directory that directly contains skill directories, not the

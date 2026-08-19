@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Interface"
+  short_description: "Build, review, and verify web interfaces"
+  default_prompt: "Use $web-interface to implement or review this web interface."
