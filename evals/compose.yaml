@@ -1,0 +1,5 @@
+services:
+  default:
+    image: aisiuk/inspect-tool-support
+    working_dir: /workspace
+    init: true

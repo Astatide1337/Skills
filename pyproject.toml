@@ -1,0 +1,14 @@
+[project]
+name = "astatide-skills-evals"
+version = "0.1.0"
+description = "Inspect AI evaluation task for the Astatide Agent Skills catalog"
+requires-python = ">=3.11,<3.15"
+dependencies = [
+  "inspect-ai>=0.3.234,<0.4",
+  "inspect-swe>=0.2.67,<0.3",
+  "openai>=3.1,<4",
+  "pyyaml>=6.0.2,<7",
+]
+
+[tool.uv]
+package = false

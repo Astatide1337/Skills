@@ -54,15 +54,45 @@ logic is used.
 
 ## Validate
 
-Run the local migration and Agent Skills checks:
+Run the deterministic catalog, reference, dataset, and Agent Skills checks:
 
 ```bash
 ./scripts/validate-skills.sh
+uv run python -m unittest discover -s tests -v
 ```
 
 The validator checks the catalog count, one-level skill layout, required
-frontmatter, naming limits, description limits, and catalog-to-filesystem
-coverage. It does not execute skill-bundled scripts.
+frontmatter, naming limits, description limits, catalog coverage, relative
+Markdown links, and the Inspect dataset. The installer tests use a temporary
+target and do not touch an installed harness. CI runs these deterministic checks
+on pushes and pull requests; it does not make model calls.
+
+## Evaluate
+
+Behavior evaluation uses [Inspect AI](https://inspect.aisi.org.uk/) and
+[Inspect SWE](https://meridianlabs-ai.github.io/inspect_swe/) rather than a
+repository-specific runner. `evals/skills.py` exposes one representative catalog
+task. It runs Codex CLI in a Docker sandbox with every catalog skill available;
+the same task accepts `with_skills=false` for a no-skill baseline.
+
+Install the pinned evaluation environment and verify task discovery without a
+model call:
+
+```bash
+uv sync --frozen
+uv run inspect list tasks evals/skills.py
+```
+
+Run treatment and baseline only when Docker and model credentials are available:
+
+```bash
+uv run inspect eval evals/skills.py@catalog --model <provider/model>
+uv run inspect eval evals/skills.py@catalog -T with_skills=false --model <provider/model>
+```
+
+Inspect owns sandbox execution, transcripts, retries, scoring, logs, and result
+viewing. Keep cases in `evals/cases/catalog.json` representative and shared;
+do not create a separate harness or a mandatory suite for every skill.
 
 ## Provenance and safety
 
@@ -72,6 +102,8 @@ coverage. It does not execute skill-bundled scripts.
 - Credentials, cookies, and external service tokens do not belong in skills.
 - Bundled scripts are preserved for an agent to run when appropriate, but the
   repository installer and validator never execute them.
+- Live Inspect evaluations can execute model-generated code only inside their
+  configured Docker sandbox and are never part of automatic CI.
 
 See [`catalog.yaml`](catalog.yaml) for the complete migration inventory and
 source provenance.
