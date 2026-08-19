@@ -44,6 +44,7 @@ skills:
       composition:
         - {repository: 'https://github.com/vercel-labs/agent-skills', commit: 805687f34e8c10b420e3d11335a0ca2c3c90d992, path: skills/react-best-practices}
         - {repository: 'https://github.com/vercel-labs/agent-skills', commit: ba46938889d4e58635362fb8f618e1178ac3ec46, path: skills/web-design-guidelines}
+        - {repository: 'https://github.com/vercel-labs/web-interface-guidelines', commit: e3d624baaf29dc1fc645aff3e38f03e564d2d6b1, path: command.md, adaptation: paraphrased offline audit snapshot}
         - {repository: 'https://github.com/shadcn-ui/ui', commit: 6cd3f4c65c361ab6554e06a77e6a0af9cf8b6e37, path: skills/shadcn}
         - {repository: 'https://github.com/vercel/components.build', commit: 5719ce3c9df04265f8c12e4567c424c7c516b5e5, path: skills/building-components}
         - {repository: 'https://github.com/vercel-labs/agent-skills', commit: a5343bd997c4cc4d8bf2ca61021bdc74b4d6c9d5, path: skills/composition-patterns}

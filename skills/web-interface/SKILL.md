@@ -1,6 +1,6 @@
 ---
 name: web-interface
-description: Design, implement, prototype, or review user-facing web interfaces. Use for layout, UI components, responsive behavior, accessibility, visual QA, React or Next.js UI performance, shadcn work, or UI option exploration. Do not use for backend-only work, generic refactors, package or component-library publishing, or video and Remotion work.
+description: Design, implement, prototype, optimize, or review user-facing web interfaces and reusable UI components. Use for layout or styling, responsive behavior, themes, accessibility, forms and interactions, visual QA, React or Next.js performance, component API or design-system work, shadcn projects or registries, and visual option exploration. Do not use for backend-only work, non-UI prototypes, generic refactors, component-package publishing, or video and Remotion work.
 ---
 
 # Web Interface
@@ -23,14 +23,17 @@ they affect.
 
 ## Choose the lane
 
-Classify the task before changing code. Load only the reference that matches
-the actual work; do not read every reference by default.
+Classify the task before changing code. Load every reference that matches the
+actual work, but do not read the full library by default.
 
 | Situation | Read |
 | --- | --- |
 | React or Next.js code has a user-visible performance concern | [React and Next performance](./references/react-next-performance.md) |
 | A reusable component has prop bloat, shared state, or an API-design problem | [Component APIs](./references/component-apis.md) |
-| The user explicitly requests shadcn, or the project has `components.json` | [shadcn projects](./references/shadcn.md) |
+| Creating a reusable primitive, component, or design-system foundation | [Component authoring](./references/component-authoring.md) |
+| Using or composing shadcn components in a project with `components.json` | [shadcn projects](./references/shadcn.md) |
+| Running the shadcn CLI, adding/updating items, changing presets, or working with registries | [shadcn operations](./references/shadcn-operations.md) |
+| Auditing UI code, accessibility, UX, or final interface quality | [Web interface audit](./references/web-audit.md) |
 | The user explicitly wants competing visual directions | [UI prototyping](./references/ui-prototyping.md) |
 
 Use the base workflow below for every lane. A React project does not
@@ -54,6 +57,8 @@ project is not necessarily a shadcn project.
 5. **Verify what changed.** Exercise the changed controls and inspect the
    rendered state. Repeat after correcting visible defects. If the interface
    cannot be opened, report that as an acceptance gap instead of guessing.
+6. **Preserve accepted choices.** Treat explicit user corrections as constraints
+   for the current task. Keep accepted parts stable while iterating elsewhere.
 
 ## Interface baseline
 
