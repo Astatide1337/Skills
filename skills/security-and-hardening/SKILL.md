@@ -1,6 +1,6 @@
 ---
 name: security-and-hardening
-description: Threat-model, review, implement, or verify security controls for application code, APIs, authentication and authorization, tenant data, secrets, dependencies, CI/CD, containers, Kubernetes/OpenShift, webhooks, uploads, server-side fetches, and LLM or agent features. Use for security audits, security-sensitive feature work, vulnerability remediation, abuse-case analysis, or hardening before release. Prioritize exploitable trust-boundary failures, preserve explicit read-only boundaries, and distinguish code security from authorization to change live systems.
+description: Threat-model, audit, review, implement, or verify security controls across a whole codebase or a specific application, API, authentication and authorization flow, tenant boundary, secret, dependency, CI/CD pipeline, container, Kubernetes/OpenShift workload, webhook, upload, server-side fetch, or LLM/agent feature. Use for repository-wide security audits, security-sensitive feature work, vulnerability remediation, abuse-case analysis, or hardening before release. Prioritize exploitable trust-boundary failures, preserve explicit read-only boundaries, and distinguish code security from authorization to change live systems.
 ---
 
 # Security and Hardening
@@ -48,6 +48,7 @@ Read only the references needed for the task:
 
 | Surface | Reference |
 |---|---|
+| Whole repository or broad codebase security audit | `references/codebase-audit.md` |
 | APIs, browser applications, auth, tenant/object access, sessions, input/output | `references/application-security.md` |
 | Webhooks, uploads, server-side URL fetches, third-party data, queues | `references/untrusted-integrations.md` |
 | Dependencies, lockfiles, CI/CD, build artifacts, containers, clusters | `references/supply-chain-and-runtime.md` |

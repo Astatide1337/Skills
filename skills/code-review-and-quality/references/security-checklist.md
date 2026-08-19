@@ -3,6 +3,13 @@
 Use this as a bounded review aid; it does not replace the project's threat
 model or the `security-and-hardening` skill.
 
+Escalate to `security-and-hardening` when the change touches identity,
+authorization or tenant scope, credentials or sensitive data, interpreter or
+network/file boundaries, third-party callbacks, dependency/build execution,
+deployment privilege, or when any check below reveals a plausible attack path.
+Use its codebase-audit workflow when the requested scope extends beyond the
+change under review.
+
 For each changed trust boundary, record the input, owner, validation, and
 failure behavior. Check:
 

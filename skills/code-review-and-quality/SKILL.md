@@ -77,7 +77,12 @@ Does the change fit the system's design?
 
 ### 4. Security
 
-For detailed security guidance, see `security-and-hardening`. Does the change introduce vulnerabilities?
+Does the change introduce vulnerabilities? Use this section as a bounded screen.
+Invoke `security-and-hardening` for a deeper audit when a change adds or modifies
+authentication, authorization, tenant/object scope, secrets or sensitive data,
+unsafe execution/rendering/fetch boundaries, externally reachable integrations,
+dependency/build trust, deployment privilege, or another material trust boundary;
+also invoke it when this screen finds a plausible exploitable path.
 
 - Is user input validated and sanitized?
 - Are secrets kept out of code, logs, and version control?

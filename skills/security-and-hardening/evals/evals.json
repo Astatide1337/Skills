@@ -181,6 +181,13 @@
       "expected_output": "An agent-security threat model that treats all content and model output as untrusted, enforces tenant and action authorization outside the prompt, constrains URLs and egress, minimizes tools and credentials, and bounds consumption.",
       "files": [],
       "expectations": ["Requires authorization-scoped retrieval before similarity search and tests with two tenants.", "Treats retrieved instructions and model output as untrusted rather than relying on prompt wording.", "Constrains destinations and network egress against SSRF and validates tool actions server-side.", "Minimizes tool permissions and credentials and bounds iterations, tokens, time, or spend."]
+    },
+    {
+      "id": 7,
+      "prompt": "Use $security-and-hardening to perform a read-only security audit of an unfamiliar multi-service repository. Explain how you will establish coverage, inspect code and configuration, use scanners without trusting them blindly, protect any discovered secret values, classify findings, and report what remains unaudited. Do not install dependencies, execute project code, inspect git history, or make changes.",
+      "expected_output": "A bounded whole-codebase audit workflow that maps architecture and trust boundaries, traces candidate findings to reachable controls or sinks, respects tool restrictions, protects secrets, and reports evidence and coverage honestly.",
+      "files": [],
+      "expectations": ["Inventories applications, entry points, frameworks, data stores, identity, integrations, workers, CI, and deployment surfaces from repository evidence.", "Builds a coverage map and traces attacker-controlled sources through identity/authorization to sinks or side effects.", "Treats searches and scanners as candidate generators requiring reachability and control confirmation.", "Never prints secret values and respects the no-install, no-execution, no-history, and no-edit boundaries.", "Separates confirmed vulnerabilities, likely issues needing a bounded check, defense-in-depth gaps, and hygiene while listing excluded or unknown surfaces."]
     }
   ]
 }
