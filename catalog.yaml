@@ -34,8 +34,6 @@ profiles:
     - production-safety
     - systematic-debugging
     - verify-work
-  video-and-media:
-    - remotion-best-practices
   zero-token-architecture:
     - minimalism-audit
   catalog-admin:
@@ -129,10 +127,6 @@ skills:
     trust: local-reviewed
     exported_path: skills/ui-quality/SKILL.md
     source: {archive: 'astatide-engineering-skills.zip', archive_sha256: '050549d0dd33e6fb5ca91354538c9de38968e3c7beb045c238393844e6a461a7', path: skills/ui-quality, adaptation: normalized with skill-creator and agent-browser workflow}
-  - profile: video-and-media
-    trust: established
-    exported_path: skills/remotion-best-practices/SKILL.md
-    source: {repository: 'https://github.com/remotion-dev/skills', commit: 7809e7935bc2e18f4b86526fa6022e6aadd8fe8b, path: skills/remotion-best-practices, adaptation: moved unsupported top-level version into metadata}
   - profile: zero-token-architecture
     trust: local-reviewed
     exported_path: skills/minimalism-audit/SKILL.md
