@@ -147,10 +147,10 @@
     },
     {
       "id": "heldout-pipeline-minimization",
-      "skill_name": "minimalism-audit",
+      "skill_name": "create-workflow",
       "split": "held_out",
       "execution": {"mode": "text_only", "allowed_tools": ["Read"]},
-      "prompt": "Use $minimalism-audit. Audit a workflow where three agents each independently inspect a diff, two agents rewrite the findings, and a final agent publishes a report. Reduce it to the smallest deterministic workflow that preserves evidence, review traceability, and safety. Name the artifacts and stop conditions. Text only.",
+      "prompt": "Use $create-workflow. Audit a workflow where three agents each independently inspect a diff, two agents rewrite the findings, and a final agent publishes a report. Reduce it to the smallest deterministic workflow that preserves evidence, review traceability, and safety. Name the artifacts and stop conditions. Text only.",
       "deterministic_graders": [
         {"id": "response", "type": "response_nonempty", "description": "Produces an audit.", "min_chars": 180},
         {"id": "redundancy", "type": "response_contains_all", "description": "Identifies duplicated work.", "terms": ["duplicate", "redundant"]},

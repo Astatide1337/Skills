@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Workflow"
+  short_description: "Turn repeated decisions into deterministic workflows"
+  default_prompt: "Use $create-workflow to turn this repeated procedure into the smallest safe, verifiable repository workflow."

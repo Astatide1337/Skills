@@ -1778,8 +1778,8 @@
     },
     {
       "schema_version": 1,
-      "skill_name": "minimalism-audit",
-      "id": "minimalism-audit-tuning-01-environment-routing",
+      "skill_name": "create-workflow",
+      "id": "create-workflow-tuning-01-environment-routing",
       "split": "tuning",
       "prompt": "A repository repeats shell snippets mapping preview, staging, and production to endpoints and credentials. Propose the smallest allow-listed environment artifact and local validator: reject unknown/ambiguous values, never infer credentials, stay deterministic, and support dry-run verification. Do not add a service or network lookup.",
       "hard_requirements": [
@@ -1894,8 +1894,8 @@
     },
     {
       "schema_version": 1,
-      "skill_name": "minimalism-audit",
-      "id": "minimalism-audit-tuning-02-release-policy",
+      "skill_name": "create-workflow",
+      "id": "create-workflow-tuning-02-release-policy",
       "split": "tuning",
       "prompt": "A release checklist is duplicated across README, CI, and operator notes. Design the smallest executable policy artifact and validator for artifact digests, allowed environments, bounded timeout/retry, dry-run, and deterministic ordering. Keep secrets out and do not add a service.",
       "hard_requirements": [

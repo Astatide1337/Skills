@@ -9,7 +9,7 @@ profiles:
   web-engineering: [web-interface]
   agent-workflows: [grilling, writing-for-agents, wizard, how, architect, teach, unslop, why]
   production-engineering: [code-review-and-quality, security-and-hardening, production-safety, systematic-debugging, verify-work]
-  zero-token-architecture: [minimalism-audit]
+  workflow-automation: [create-workflow]
   catalog-admin: [skill-creator]
 skills:
   - profile: web-engineering
@@ -60,7 +60,7 @@ skills:
         - {archive: 'astatide-engineering-skills.zip', archive_sha256: '050549d0dd33e6fb5ca91354538c9de38968e3c7beb045c238393844e6a461a7', path: skills/verify-work}
         - {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/create-verification-skill, adaptation: platform-neutral project verifier under .agents/skills}
         - {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/maintain-verification-skill, adaptation: optional parallelism and no automatic PR creation}
-  - {profile: zero-token-architecture, trust: local-reviewed, exported_path: skills/minimalism-audit/SKILL.md, source: {repository: 'https://github.com/Astatide1337/Skills', commit: df079bb7b902c4c61b698e3cb3937940059d6777, path: skills/zero-token-architecture/custom/minimalism-audit}}
+  - {profile: workflow-automation, trust: local-reviewed, exported_path: skills/create-workflow/SKILL.md, source: {repository: 'https://github.com/Astatide1337/Skills', commit: df079bb7b902c4c61b698e3cb3937940059d6777, path: skills/zero-token-architecture/custom/minimalism-audit, adaptation: renamed and broadened from audit to creation and simplification}}
   - {profile: catalog-admin, trust: established, exported_path: skills/skill-creator/SKILL.md, source: {repository: 'https://github.com/anthropics/skills', commit: b29e7cf65e5cb78a5ac33d582270551bc74a14eb, path: skills/skill-creator}}
 blocked:
   - {id: next-best-practices, reason: knowledge moved to version-matched Next.js bundled docs}
