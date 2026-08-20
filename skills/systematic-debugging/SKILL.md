@@ -35,6 +35,9 @@ Find the cause before fixing the symptom.
 
 6. **Run the cheapest discriminating check.**
    - Choose the check that best separates the hypotheses.
+   - Name one smallest next experiment first: exact input or cohort, observation,
+     and how each possible result changes the next step. Put broader follow-up
+     checks after it rather than presenting an undifferentiated investigation list.
    - Change only diagnostic state when necessary; avoid behavior-changing fixes at this stage.
    - If evidence contradicts the current explanation, discard the explanation.
 
@@ -90,6 +93,10 @@ branch) for each material hypothesis.
 
 Match the task's requested mode and the tools it authorizes.
 
-- For text-only, plan-only, or review-only requests, use the supplied prompt and explicitly provided context. Do not inspect the workspace, run shell/CLI commands, call network/MCP/browser tools, or edit files. If required context is missing, say so and identify the smallest artifact needed.
+- For prompt-only tasks that explicitly forbid workspace or tool use, use only
+  the supplied text. `Review-only`, `diagnose`, and `do not edit` prohibit
+  mutation, not observation: inspect in-scope supplied files with read-only
+  tools unless the user also forbids that inspection. If required evidence is
+  absent after checking the declared scope, identify the smallest artifact needed.
 - For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
 - Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.

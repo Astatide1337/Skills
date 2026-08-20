@@ -19,4 +19,14 @@ Classify every conclusion:
 
 Return the question and code anchor, direct findings, reasonable inferences, competing hypotheses when needed, specific unknowns, sources consulted, and an overall confidence summary. Never cite code behavior as proof of author intent. Preserve uncertainty instead of completing a tidy story.
 
+When the investigation informs a proposed change, finish by naming the current
+evidence needed to know whether the historical constraint still applies. Make
+it operational and specific—current configuration or enforced limit, migration
+state, runtime telemetry, failure/cancellation behavior, and a safe validation
+path as relevant—not merely “confirm in production.”
+
+Use a final `Before changing this` paragraph for that evidence. Distinguish the
+current enforced constraint, observed runtime behavior, and cleanup/failure
+telemetry so the recommendation cannot end with historical evidence alone.
+
 See `references/epistemics.md`.

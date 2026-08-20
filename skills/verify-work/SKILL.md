@@ -7,6 +7,13 @@ description: Use before claiming any engineering task is complete or correct, an
 
 Completion requires current evidence.
 
+For a claim-verification request, make the handoff explicit even when no tools
+are available: **Proven**, **Unknown**, **Next checks**, and **Narrow claim**.
+Name the evidence required at every relevant layer (artifact, environment
+deployment record, running revision or digest, rollout/workload health,
+service/API behavior, and user-visible behavior). Never collapse “not observed”
+into a generic request to verify production.
+
 ## Select the mode
 
 - **Verify a change:** follow the core workflow below.
@@ -113,6 +120,10 @@ Instead report the strongest verified state and the remaining verification gap.
 
 Match the task's requested mode and the tools it authorizes.
 
-- For text-only, plan-only, or review-only requests, use the supplied prompt and explicitly provided context. Do not inspect the workspace, run shell/CLI commands, call network/MCP/browser tools, or edit files. If required context is missing, say so and identify the smallest artifact needed.
+- For prompt-only tasks that explicitly forbid workspace or tool use, use only
+  the supplied text. `Review-only`, `diagnose`, and `do not edit` prohibit
+  mutation, not observation: inspect in-scope supplied files with read-only
+  tools unless the user also forbids that inspection. If required evidence is
+  absent after checking the declared scope, identify the smallest artifact needed.
 - For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
 - Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.

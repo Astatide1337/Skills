@@ -25,6 +25,11 @@ audits, fetch changelogs, query registries, or install dependencies. Mark
 external maintenance, vulnerability, and license facts as unknown until
 authorized evidence is supplied.
 
+`Review-only`, `do not edit`, and `do not run the application` still permit
+read-only inspection of supplied files and diffs. Open those artifacts before
+reporting a finding. Ask for missing evidence only after checking the declared
+workspace; do not replace an available patch with a hypothetical review plan.
+
 ## When to Use
 
 - Before merging any PR or change
@@ -83,6 +88,13 @@ authentication, authorization, tenant/object scope, secrets or sensitive data,
 unsafe execution/rendering/fetch boundaries, externally reachable integrations,
 dependency/build trust, deployment privilege, or another material trust boundary;
 also invoke it when this screen finds a plausible exploitable path.
+
+For a plausible trust-boundary flaw, the finding is incomplete unless it states
+the attacker-controlled input, missing enforcement boundary, reachable asset or
+victim, impact, narrow remediation, and a negative test using two distinct
+ordinary identities where authorization scope is involved. Explicitly hand the
+case to `security-and-hardening` for deeper analysis; do not merely mention that
+security deserves attention.
 
 - Is user input validated and sanitized?
 - Are secrets kept out of code, logs, and version control?
@@ -426,6 +438,10 @@ After review is complete:
 
 Match the task's requested mode and the tools it authorizes.
 
-- For text-only, plan-only, or review-only requests, use the supplied prompt and explicitly provided context. Do not inspect the workspace, run shell/CLI commands, call network/MCP/browser tools, or edit files. If required context is missing, say so and identify the smallest artifact needed.
+- For prompt-only tasks that explicitly forbid workspace or tool use, use only
+  the supplied text. `Review-only`, `diagnose`, and `do not edit` prohibit
+  mutation, not observation: inspect in-scope supplied files with read-only
+  tools unless the user also forbids that inspection. If required evidence is
+  absent after checking the declared scope, identify the smallest artifact needed.
 - For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
 - Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.

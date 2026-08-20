@@ -7,6 +7,14 @@ description: "Create or simplify a repeatable repository workflow by converting 
 
 Make the normal path explicit, replayable, and boring. The goal is not maximum automation; it is removing repeated judgment without creating a larger operational burden.
 
+## Lock the acceptance contract
+
+Before choosing an implementation, copy every literal deliverable from the
+request into a short checklist: exact output paths, filenames, command names,
+inputs, allowed changes, and required checks. These are constraints, not naming
+suggestions. Verify each literal against the final workspace before reporting;
+if one is absent, the workflow is not complete.
+
 ## Modes
 
 - **Create:** capture a recurring manual or agent-run procedure as a repository-owned workflow.
@@ -30,14 +38,27 @@ invent paths, endpoints, digests, owners, or successful writes.
 
 ## Workflow
 
-1. Observe the workflow from a fresh checkout. Record every human or agent decision, input, output, side effect, retry, and failure branch.
-2. Separate invariants from choices. An invariant belongs in configuration or a schema; a bounded check belongs in validation; a repeatable transformation belongs in a script; orchestration belongs in the platform only when the platform already owns it.
-3. Export the smallest artifact that removes each repeated decision, in this order: existing platform capability, declarative config, schema, validation, idempotent script, CI or task-runner orchestration, then a service. Do not add a service to replace one command.
-4. Make inputs explicit and allow-listed. Fail closed on missing, unknown, malformed, or ambiguous values. Never infer credentials, endpoints, scopes, paths, or destructive targets.
-5. Make reruns safe. Use stable paths, deterministic ordering, explicit timeouts, bounded retries, dry-run support for writes, and no hidden network or filesystem discovery.
-6. Keep secrets outside the artifact. Accept them only through the platform’s runtime secret mechanism; never generate, persist, log, or echo them.
-7. Add a verification path that starts from a clean checkout and proves the artifact’s output, failure behavior, and absence of unintended side effects.
-8. Remove or supersede the old procedure so two sources of truth do not survive. Preserve a short human escape hatch only for failures the workflow cannot safely resolve.
+1. Observe only enough of the current procedure to name the repeated decision,
+   declared inputs, desired output, and required failure. Do not expand a small
+   check into a general policy engine.
+2. Choose the smallest artifact that removes that decision: existing config,
+   declarative config, schema, validator, idempotent script, platform
+   orchestration, then service—in that order.
+3. Preserve the requested interface exactly. Treat an explicit path, filename,
+   command name, input format, and exit-code contract as acceptance criteria;
+   do not substitute a clearer name or a different integration point without
+   asking. Re-read these literals before writing and again before reporting.
+4. Implement only the checks required by the repeated mistake and supplied
+   input contract. Do not add duplicate detection, alternate formats, discovery,
+   mutation, dry-run machinery, retries, or extensibility unless the task needs
+   them. Every extra branch needs its own justification and test.
+5. Make reruns safe and output stable. Prefer simple set operations and explicit
+   sorting over stateful parsing. Never read secret values when names suffice.
+6. Verify the current fixture, one focused success case, the required failure,
+   and a rerun. Use temporary copies for alternate cases; do not rewrite the
+   repository's source fixtures merely to exercise the validator.
+7. Remove a superseded procedure only when the request identifies one and its
+   ownership is clear.
 
 ## Refuse automation when it is worse
 
@@ -61,15 +82,11 @@ values. Reject an artifact that contains a digest with no verifiable target.
 
 For planning, return a decision table with `repeated step`, `exported artifact`, `input contract`, `owner`, `failure behavior`, and `verification command`.
 
-For implementation, create the smallest repository-native artifact, remove the superseded path, and run its clean-checkout, normal-path, failure-path, rerun, and side-effect checks. Report any remaining judgment as an explicit manual boundary.
-
-Do not claim the workflow is ready until all five proof gates have current evidence:
-
-1. **Bootstrap:** a clean checkout can discover and invoke it.
-2. **Normal path:** valid inputs produce the declared artifact or state.
-3. **Failure path:** missing, malformed, ambiguous, or disallowed inputs fail closed with a useful error.
-4. **Rerun:** a second identical run is safe and produces no unexplained drift.
-5. **Side effects:** observed filesystem, network, credentials, and external mutations match the declared contract.
+For implementation, create the smallest repository-native artifact and report
+the exact commands and observed results for the focused checks above. Apply
+clean-checkout, dry-run, rollback, retry, and side-effect gates only when the
+workflow actually writes state, crosses environments, or performs delivery;
+do not force production ceremony onto a read-only local validator.
 
 Delete wrappers, duplicate configuration, speculative integrations, and runtime inference. Leave unresolved provider behavior blocked rather than encoding a guess.
 
@@ -77,6 +94,10 @@ Delete wrappers, duplicate configuration, speculative integrations, and runtime 
 
 Match the task's requested mode and the tools it authorizes.
 
-- For text-only, plan-only, or review-only requests, use the supplied prompt and explicitly provided context. Do not inspect the workspace, run shell/CLI commands, call network/MCP/browser tools, or edit files. If required context is missing, say so and identify the smallest artifact needed.
+- For prompt-only tasks that explicitly forbid workspace or tool use, use only
+  the supplied text. `Review-only`, `diagnose`, and `do not edit` prohibit
+  mutation, not observation: inspect in-scope supplied files with read-only
+  tools unless the user also forbids that inspection. If required evidence is
+  absent after checking the declared scope, identify the smallest artifact needed.
 - For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
 - Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.

@@ -7,6 +7,13 @@ description: Use whenever work touches production or production-like databases, 
 
 Observe first. Change only from verified state.
 
+For any request to approve deletion or another destructive action, lead with
+the decision (`not approved` while material facts are unknown), then explicitly
+enumerate the safety gate: exact identity and environment, consumers and active
+writers, reclaim/deletion behavior, unique state, usable recovery evidence,
+rollback, blast radius, and authorization for that exact action. Do not compress
+these into “verify dependencies and backups”; name every missing gate.
+
 ## 1. Establish the operation
 
 Before changing anything, state:
@@ -169,6 +176,10 @@ Report the evidence and ask for the missing decision rather than guessing.
 
 Match the task's requested mode and the tools it authorizes.
 
-- For text-only, plan-only, or review-only requests, use the supplied prompt and explicitly provided context. Do not inspect the workspace, run shell/CLI commands, call network/MCP/browser tools, or edit files. If required context is missing, say so and identify the smallest artifact needed.
+- For prompt-only tasks that explicitly forbid workspace or tool use, use only
+  the supplied text. `Review-only`, `diagnose`, and `do not edit` prohibit
+  mutation, not observation: inspect in-scope supplied files with read-only
+  tools unless the user also forbids that inspection. If required evidence is
+  absent after checking the declared scope, identify the smallest artifact needed.
 - For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
 - Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.

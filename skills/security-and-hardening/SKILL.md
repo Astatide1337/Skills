@@ -108,6 +108,12 @@ systems beyond explicit authorization. A unit test, static analyzer, dependency
 audit, CI pass, health endpoint, and live adversarial test are distinct evidence
 layers; report them separately.
 
+For object or tenant authorization, make the negative test a two-identity
+matrix: the owning ordinary identity performs the operation successfully, then
+a different ordinary identity performs that same operation against the same
+object and is denied without revealing existence. Add role or admin cases only
+after this baseline proves horizontal isolation.
+
 ## 7. Report by risk
 
 For each finding, provide:

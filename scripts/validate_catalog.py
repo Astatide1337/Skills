@@ -80,6 +80,7 @@ def main() -> None:
     if not isinstance(cases, list) or not cases:
         fail("Inspect dataset must be a non-empty JSON array")
     case_ids: set[str] = set()
+    covered_skills: set[str] = set()
     for case in cases:
         case_id = case.get("id") if isinstance(case, dict) else None
         if not isinstance(case_id, str) or not NAME.fullmatch(case_id) or case_id in case_ids:
@@ -89,7 +90,17 @@ def main() -> None:
         metadata = case.get("metadata")
         if not isinstance(metadata, dict) or not isinstance(metadata.get("allow_changes"), bool):
             fail(f"eval case {case_id} needs explicit allow_changes")
+        skill = metadata.get("skill")
+        if not isinstance(skill, str) or skill not in names:
+            fail(f"eval case {case_id} names an unknown skill: {skill!r}")
+        if skill in covered_skills:
+            fail(f"skill has more than one primary eval case: {skill}")
+        covered_skills.add(skill)
         case_ids.add(case_id)
+
+    missing_coverage = names - covered_skills
+    if missing_coverage:
+        fail(f"skills missing primary eval coverage: {sorted(missing_coverage)}")
 
     print(f"validated {len(skill_files)} skills and {len(cases)} Inspect cases")
 

@@ -10,7 +10,11 @@ Write for execution, not admiration. State the outcome, triggering conditions, a
 ## Method
 
 1. Name the concrete behavior the document should produce.
-2. Put discovery metadata in the description: what the instruction does and when it applies.
+2. State both the trigger and objective in the produced instructions. A reader
+   must be able to answer “when do I invoke this?” and “what observable state
+   should result?” without inferring either from the filename. For an Agent
+   Skill, put the trigger in frontmatter; for a runbook or task specification,
+   use a short applicability or trigger statement in the document itself.
 3. Separate universal rules from task-specific procedure.
 4. Use imperative, observable language. Replace “be careful” with the check that demonstrates care.
 5. Resolve conflicts and precedence explicitly.

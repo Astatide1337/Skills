@@ -35,6 +35,10 @@ Every skill requires `SKILL.md` with YAML frontmatter containing `name` and
 - Add `assets/` only for files copied into outputs. Do not add auxiliary
   READMEs, changelogs, installation guides, or duplicate summaries.
 
+Start with only `SKILL.md`. Add a reference, script, or asset only when a named
+decision or repeated operation cannot stay reliable and lean in the root file.
+A possible future audience, format, or template is not sufficient justification.
+
 Use lowercase hyphenated names under 64 characters and keep the directory name
 identical to the frontmatter name.
 
@@ -78,10 +82,17 @@ layer. Add a small representative case to `evals/cases/catalog.json` only when
 the skill teaches material behavior or resolves a meaningful routing collision.
 Prefer shared cases over one suite per skill.
 
-The repository task uses Inspect AI and Inspect SWE to run Codex CLI in a Docker
-sandbox with every catalog skill available. It supports the same task without
-skills as a baseline. Inspect owns execution, transcripts, limits, retries,
-scorers, logs, and result viewing.
+When asked to design an evaluation, the deliverable must name all four parts:
+the representative case, treatment (catalog skill available), identical
+baseline (skill absent), and the behavioral evidence or scorer used to compare
+them. A case without the paired baseline is not an efficacy evaluation.
+
+The repository task uses Inspect AI to run the locally authenticated Codex CLI
+inside Codex's workspace sandbox. The treatment injects the selected catalog
+skill verbatim and exposes its files; the baseline receives neither. This
+isolates instruction efficacy from routing. Test installation and automatic
+routing separately. Personal configuration and unrelated installed skills are
+excluded. Inspect owns cases, concurrency, scorers, logs, and result viewing.
 
 Validate task discovery without a model call:
 
@@ -89,17 +100,22 @@ Validate task discovery without a model call:
 uv run inspect list tasks evals/skills.py
 ```
 
-Run the treatment and baseline only when the user authorizes model usage and the
-Docker/runtime prerequisites are available:
+Run the treatment and baseline only when the user authorizes model usage and
+`codex login status` confirms a signed-in ChatGPT session:
 
 ```bash
-uv run inspect eval evals/skills.py@catalog --model <provider/model>
-uv run inspect eval evals/skills.py@catalog -T with_skills=false --model <provider/model>
+uv run inspect eval evals/skills.py@catalog -T native_model=gpt-5.6-luna --max-samples 2
+uv run inspect eval evals/skills.py@catalog -T with_skills=false -T native_model=gpt-5.6-luna --max-samples 2
 ```
 
 Review transcripts and per-case scores in Inspect View. Do not tune on a hidden
 case after observing it, treat repeated runs as independent tasks, or claim a
 skill improved from a single noisy sample.
+
+For a design-only skill proposal, finish with concrete repository commands for
+structural validation and task discovery, plus a compact case specification
+showing input, hidden target behavior, treatment, baseline, and comparison
+signal. Do not leave these as “use the existing validator” or “add an eval.”
 
 ## 7. Finish deliberately
 

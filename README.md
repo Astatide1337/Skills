@@ -11,7 +11,7 @@ skill-name/
   assets/       # optional
 ```
 
-The catalog currently contains 16 skills. `catalog.yaml` records the source
+The catalog currently contains 17 skills. `catalog.yaml` records the source
 repository, exact source commit, original source path, trust classification,
 profile, and installed path for every exported skill. Each `SKILL.md` carries
 the runtime-facing `name` and `description` frontmatter, so Codex, Claude Code,
@@ -69,11 +69,14 @@ on pushes and pull requests; it does not make model calls.
 
 ## Evaluate
 
-Behavior evaluation uses [Inspect AI](https://inspect.aisi.org.uk/) and
-[Inspect SWE](https://meridianlabs-ai.github.io/inspect_swe/) rather than a
-repository-specific runner. `evals/skills.py` exposes one representative catalog
-task. It runs Codex CLI in a Docker sandbox with every catalog skill available;
-the same task accepts `with_skills=false` for a no-skill baseline.
+Behavior evaluation uses [Inspect AI](https://inspect.aisi.org.uk/) for cases,
+scoring, concurrency, and logs. `evals/skills.py` exposes one representative
+catalog task and invokes the locally installed Codex CLI through the user's
+signed-in ChatGPT subscription. The treatment injects the selected catalog
+skill verbatim and also exposes the catalog in an ephemeral Codex home; the
+baseline receives neither. Explicit injection isolates instruction efficacy
+from CLI skill-routing and reserved-path bugs. Personal configuration, rules,
+plugins, and unrelated installed skills are excluded from both arms.
 
 Install the pinned evaluation environment and verify task discovery without a
 model call:
@@ -83,16 +86,24 @@ uv sync --frozen
 uv run inspect list tasks evals/skills.py
 ```
 
-Run treatment and baseline only when Docker and model credentials are available:
+Confirm that the CLI is signed in, then run treatment and baseline with the
+same native model:
 
 ```bash
-uv run inspect eval evals/skills.py@catalog --model <provider/model>
-uv run inspect eval evals/skills.py@catalog -T with_skills=false --model <provider/model>
+codex login status
+uv run inspect eval evals/skills.py@catalog -T native_model=gpt-5.6-luna --max-samples 2
+uv run inspect eval evals/skills.py@catalog -T with_skills=false -T native_model=gpt-5.6-luna --max-samples 2
 ```
 
 Inspect owns sandbox execution, transcripts, retries, scoring, logs, and result
-viewing. Keep cases in `evals/cases/catalog.json` representative and shared;
-do not create a separate harness or a mandatory suite for every skill.
+viewing. The grader receives the final response, bounded diffs and artifacts,
+and observed command evidence, and returns a 0–4 quality score. Codex's
+workspace sandbox contains each sample, and graders run read-only. Keep cases
+in `evals/cases/catalog.json` representative and shared;
+do not create a separate harness. One trial per skill is a smoke benchmark, not
+proof of efficacy; use `--epochs 2 --no-epochs-reducer` or more for unstable
+cases and repeat across models before making catalog decisions. Test routing
+and installation separately from content efficacy.
 
 ## Provenance and safety
 
@@ -102,8 +113,8 @@ do not create a separate harness or a mandatory suite for every skill.
 - Credentials, cookies, and external service tokens do not belong in skills.
 - Bundled scripts are preserved for an agent to run when appropriate, but the
   repository installer and validator never execute them.
-- Live Inspect evaluations can execute model-generated code only inside their
-  configured Docker sandbox and are never part of automatic CI.
+- Live Inspect evaluations can execute model-generated code inside Codex's
+  workspace sandbox and are never part of automatic CI.
 
 See [`catalog.yaml`](catalog.yaml) for the complete migration inventory and
 source provenance.

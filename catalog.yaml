@@ -6,7 +6,7 @@ policy:
   credentials_in_skill_content: false
   default_profile: all
 profiles:
-  web-engineering: [web-interface]
+  web-engineering: [web-interface, html-artifacts]
   agent-workflows: [grilling, writing-for-agents, wizard, how, architect, teach, unslop, why]
   production-engineering: [code-review-and-quality, security-and-hardening, production-safety, systematic-debugging, verify-work]
   workflow-automation: [create-workflow]
@@ -26,6 +26,7 @@ skills:
         - {archive: 'astatide-engineering-skills.zip', archive_sha256: '050549d0dd33e6fb5ca91354538c9de38968e3c7beb045c238393844e6a461a7', path: skills/ui-quality}
         - {repository: 'https://github.com/mattpocock/skills', commit: fa460cbf095a893d14bf41d3db7798cada500259, path: skills/engineering/prototype}
       adaptation: lean offline UI composition
+  - {profile: web-engineering, trust: local-reviewed, exported_path: skills/html-artifacts/SKILL.md, source: {repository: 'https://github.com/dogum/html-artifacts', commit: c14a4ec2a5ad09fe24163f4430d46ee4bb8c1269, path: skill, adaptation: platform-neutral trigger boundaries, strict offline packaging, modern accessibility, factual reporting, deterministic validation, and rendered verification}}
   - {profile: agent-workflows, trust: established, exported_path: skills/grilling/SKILL.md, source: {repository: 'https://github.com/mattpocock/skills', commit: 885e2ca4d842d139e9aef4e48d366c63cb1b8013, path: skills/productivity/grilling, adaptation: portable evidence lookup}}
   - {profile: agent-workflows, trust: established, exported_path: skills/writing-for-agents/SKILL.md, source: {repository: 'https://github.com/mattpocock/skills', commit: 885e2ca4d842d139e9aef4e48d366c63cb1b8013, path: skills/productivity/writing-for-agents, adaptation: Codex-supported mechanics}}
   - {profile: agent-workflows, trust: established, exported_path: skills/wizard/SKILL.md, source: {repository: 'https://github.com/mattpocock/skills', commit: 885e2ca4d842d139e9aef4e48d366c63cb1b8013, path: skills/engineering/wizard, adaptation: user-controlled and secret-safe}}
