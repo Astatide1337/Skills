@@ -72,6 +72,11 @@ PostgreSQL, Docker, or Kubernetes from familiarity alone.
 - Minimize privilege, credential lifetime, exposed data, network reachability,
   and failure detail.
 - Make externally retried side effects authentic, replay-aware, and idempotent.
+- Bound abuse by identity, tenant, resource, and expensive operation. Define
+  burst and sustained limits, concurrency caps, payload ceilings, and failure
+  behavior from the actual cost model. Treat client IP as one signal, not a
+  durable identity, and ensure rejected work does not consume the expensive
+  resource first.
 - Fail closed for security decisions while preserving diagnosable audit events.
 
 Framework defaults are inputs to the analysis, not proof of enforcement.
@@ -107,6 +112,12 @@ Use isolated accounts and owned fixtures. Do not probe third-party or production
 systems beyond explicit authorization. A unit test, static analyzer, dependency
 audit, CI pass, health endpoint, and live adversarial test are distinct evidence
 layers; report them separately.
+
+For dependency findings, establish the installed version, reachable affected
+component, attacker-controlled path, runtime or build-time exposure, and
+existing mitigation before assigning severity. Record irrelevant advisories as
+triaged rather than silently ignoring them; scanner severity alone is not
+exploitability.
 
 For object or tenant authorization, make the negative test a two-identity
 matrix: the owning ordinary identity performs the operation successfully, then

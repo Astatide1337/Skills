@@ -19,6 +19,10 @@ Classify every conclusion:
 
 Return the question and code anchor, direct findings, reasonable inferences, competing hypotheses when needed, specific unknowns, sources consulted, and an overall confidence summary. Never cite code behavior as proof of author intent. Preserve uncertainty instead of completing a tidy story.
 
+Label the confidence tier beside each material conclusion, not only in a final
+summary. Include the searched scope and any meaningful null result so `Unknown`
+can be distinguished from `not investigated`.
+
 When the investigation informs a proposed change, finish by naming the current
 evidence needed to know whether the historical constraint still applies. Make
 it operational and specific—current configuration or enforced limit, migration
@@ -29,4 +33,6 @@ Use a final `Before changing this` paragraph for that evidence. Distinguish the
 current enforced constraint, observed runtime behavior, and cleanup/failure
 telemetry so the recommendation cannot end with historical evidence alone.
 
-See `references/epistemics.md`.
+Read `references/epistemics.md` before synthesizing confidence or resolving
+contradictory evidence. Read `references/code-archaeology.md` for repository
+history investigations.

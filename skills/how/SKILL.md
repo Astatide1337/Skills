@@ -17,4 +17,5 @@ For complex systems, split the exploration into distinct angles locally or with 
 
 Return: overview, key concepts, step-by-step flow, where things live, and genuine gotchas. Cite clickable files and symbols. Use a small diagram only when it materially clarifies three or more moving parts.
 
-See `references/critique-rubric.md` for critique mode.
+Read `references/critique-rubric.md` before making architectural judgments in
+critique mode.

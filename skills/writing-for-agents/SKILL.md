@@ -24,4 +24,8 @@ Write for execution, not admiration. State the outcome, triggering conditions, a
 
 Avoid personality theater, duplicated policy, unsupported metadata, hidden prerequisites, vague “best practices,” and procedures that claim success without evidence.
 
+Read `references/instruction-design.md` when deciding what context to include,
+where it should live, how to prevent premature completion, or how to prune an
+existing instruction set. Apply its no-op test before adding another rule.
+
 For skill mechanics in this repository, follow `skill-creator` and the catalog validator rather than assuming another agent harness's frontmatter fields.

@@ -17,6 +17,17 @@ Before editing, establish:
 - required tools, evidence, and execution boundaries;
 - the target catalog and install location.
 
+Derive these from the user's real workflow before inventing an ideal one. Review
+the current conversation, existing skill, recurring requests, corrections,
+failed attempts, and tools actually available. Corrections are especially
+valuable: they show where generic agent behavior diverges from the user's
+expectations. Ask for missing success criteria or edge cases only when they
+cannot be discovered safely from that evidence.
+
+Design for lack of surprise. A user who reads the description should predict
+when the skill activates, what authority it assumes, what artifact it produces,
+and where it stops.
+
 Do not create a skill for generic knowledge Codex already handles well or for a
 one-off instruction better placed in the user's request or `AGENTS.md`.
 
@@ -50,6 +61,8 @@ identical to the frontmatter name.
   execution unreliable.
 
 Do not encode one example so narrowly that the skill fails to generalize.
+Explain the reason for non-obvious constraints so the agent can apply them to
+new cases. Reserve absolute language for real invariants and safety boundaries.
 
 ## 4. Implement safely
 
@@ -108,7 +121,17 @@ uv run inspect eval evals/skills.py@catalog -T native_model=gpt-5.6-luna --max-s
 uv run inspect eval evals/skills.py@catalog -T with_skills=false -T native_model=gpt-5.6-luna --max-samples 2
 ```
 
-Review transcripts and per-case scores in Inspect View. Do not tune on a hidden
+Review transcripts and per-case scores in Inspect View. Look for qualitative
+failure modes as well as the scalar grade: ignored instructions, unnecessary
+steps, surprising authority, weak evidence, accidental overfitting, and user
+corrections the rubric missed. A numerical win with worse interaction quality
+is not an improvement.
+
+Test trigger quality separately with positive, near-miss, and adversarial
+requests. The behavior case measures what the skill teaches after injection; it
+does not prove that the description routes correctly.
+
+Do not tune on a hidden
 case after observing it, treat repeated runs as independent tasks, or claim a
 skill improved from a single noisy sample.
 
@@ -116,11 +139,17 @@ For a design-only skill proposal, finish with concrete repository commands for
 structural validation and task discovery, plus a compact case specification
 showing input, hidden target behavior, treatment, baseline, and comparison
 signal. Do not leave these as “use the existing validator” or “add an eval.”
+Inspect the repository before naming those commands. If the design task does
+not provide a catalog checkout, give the expected command shape conditionally
+and say it was not verified; do not invent paths, task names, models, or
+automatic-routing settings.
 
 ## 7. Finish deliberately
 
 - Re-read the description against positive and negative triggers.
 - Remove duplicated or generic text.
 - Ensure every reference is reachable from `SKILL.md`.
+- Compare the result with the original conversation and corrections. Confirm
+  that it solves the user's workflow rather than only passing the eval wording.
 - Report validation actually run and limitations of any evaluation evidence.
 - Install, commit, or publish only when the user requests that stage.

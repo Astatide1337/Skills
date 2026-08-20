@@ -42,6 +42,7 @@ Read only the references needed for the request:
 | Interactive explainer, prototype, tuner, triage tool, custom editor | [Interactive artifacts](references/interactive-artifacts.md) |
 | Architecture diagram, flowchart, technical figure, slide deck | [Diagrams and decks](references/diagrams-and-decks.md) |
 | Any artifact's visual system, responsive behavior, or accessibility | [Visual and accessibility baseline](references/visual-accessibility.md) |
+| Matching an existing product, report family, or personal visual language | [Style matching](references/style-matching.md) |
 
 For application UI or reusable product components, hand visual and interaction
 decisions to `web-interface`; this skill owns the standalone document and its
@@ -82,8 +83,8 @@ Every artifact must:
    source material, required sections, and whether the artifact is read-only or
    interactive.
 2. **Choose one visual grammar.** Derive tokens from an existing codebase or
-   select a restrained typographic direction. Use layout, type, and a small
-   semantic palette consistently.
+   supplied examples when they exist; otherwise select a restrained typographic
+   direction. Use layout, type, and a small semantic palette consistently.
 3. **Sketch information architecture.** Decide what must be visible at first
    glance, what compares side by side, what can collapse, and how the reader
    navigates on mobile.

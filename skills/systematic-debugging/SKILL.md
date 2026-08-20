@@ -19,6 +19,12 @@ Find the cause before fixing the symptom.
    - If it cannot be reproduced, gather current logs/state before changing anything.
    - Invest disproportionate effort in a tight feedback loop that fails on the user's exact symptom. Prefer, in order: a focused test, request/CLI fixture, browser script, captured-trace replay, throwaway harness, fuzz loop, bisection, or differential comparison.
    - Tighten the loop until it is fast, deterministic, and runnable without interpretation. For flaky bugs, raise and measure the reproduction rate instead of waiting for a perfect repro.
+   - Run at least one command, request, or interaction capable of producing the
+     failure before calling it reproduced. A plausible test plan is not a red
+     state.
+   - Minimize the reproduction. Remove inputs, services, timing, and setup one
+     at a time until every remaining element is load-bearing. Record what can
+     be removed without changing the failure.
 
 3. **Inspect the real system.**
    - Read the relevant code, configuration, tests, logs, runtime state, and recent changes.
@@ -30,15 +36,23 @@ Find the cause before fixing the symptom.
    - Treat anything not directly observed as an assumption.
 
 5. **Form competing hypotheses.**
-   - Prefer a small set of plausible causes.
-   - For each hypothesis, identify evidence that would support or reject it.
+   - Prefer three to five plausible causes when the evidence permits; use fewer
+     when the search space is genuinely narrow.
+   - Rank them by current evidence, not intuition alone.
+   - Write each as: `If H is true, observation O should occur; observation R
+     would reject it.`
 
 6. **Run the cheapest discriminating check.**
    - Choose the check that best separates the hypotheses.
    - Name one smallest next experiment first: exact input or cohort, observation,
      and how each possible result changes the next step. Put broader follow-up
      checks after it rather than presenting an undifferentiated investigation list.
-   - Change only diagnostic state when necessary; avoid behavior-changing fixes at this stage.
+   - Give that first experiment a red-capable procedure: the exact action that
+     can exhibit the user's symptom, how many repetitions or what time window
+     will measure it, and the observation that counts as failure. Then state
+     which elements to remove while preserving the failure to minimize the
+     reproduction.
+   - Change only diagnostic state when necessary; avoid behavior-changing fixes at this stage. Mark temporary logs, probes, flags, and fixtures so their removal is verifiable.
    - If evidence contradicts the current explanation, discard the explanation.
 
 7. **Establish the root cause.**
@@ -54,6 +68,10 @@ Find the cause before fixing the symptom.
    - Run the smallest relevant regression checks.
    - Confirm the mechanism is fixed, not merely hidden.
    - Remove temporary instrumentation and preserve the minimized reproduction as a regression test when it exercises the real failure seam.
+   - If the minimized reproduction cannot become a stable test, identify the
+     narrowest seam that can assert the broken invariant and explain the gap.
+   - Record the prevention follow-up when the failure exposed a missing alert,
+     invariant, deployment check, or operational runbook.
 
 ## Stop conditions
 

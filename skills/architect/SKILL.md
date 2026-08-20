@@ -30,4 +30,6 @@ the written sequence.
 
 Pause for approval only when requested or when the choice changes public contracts, data ownership, migration strategy, or other material scope.
 
-See `references/rationale-template.md`.
+Use `references/rationale-template.md` for the decision record. Read
+`references/design-red-flags.md` when comparing module boundaries or reviewing
+an existing proposal.

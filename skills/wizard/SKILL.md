@@ -1,19 +1,42 @@
 ---
 name: wizard
-description: Design a user-run setup wizard for configuration, credentials, or multi-step project onboarding. Use when setup needs human input, browser steps, local environment changes, or external secrets and should be repeatable without letting the agent silently mutate accounts.
+description: Design or implement a user-run setup wizard for configuration, credentials, or multi-step project onboarding. Use when setup needs human input, browser steps, local environment changes, or external secrets and should be repeatable without letting the agent silently mutate accounts.
 ---
 
 # Wizard
 
-Create a script or runbook the user controls. Do not run an interactive setup end-to-end on their behalf.
+Create a project-native interactive script the user controls. Use a runbook only
+when the repository cannot support a portable script or the user requests
+design-only guidance. Do not run external account setup end-to-end on their
+behalf.
 
 1. Inspect the repository's existing setup, package manager, environment conventions, and documented prerequisites.
-2. List required inputs and classify them as public configuration, secret, or external account action.
-3. Make every step resumable and idempotent. Detect completed work before changing it.
-4. Validate inputs without echoing secrets. Restrict environment-variable names to safe identifiers.
-5. Show exact target files, repositories, services, and accounts before writes.
-6. Put secret values only in the platform or local secret store the project already uses. Never commit them.
-7. Include verification after each boundary and a cleanup/recovery path for partial setup.
-8. Leave the final external mutation or credential entry visibly under user control unless they explicitly authorize execution.
+2. Derive the stages from real setup boundaries. For every input, record its
+   source, destination, whether it is secret, validation rule, and safe
+   completed-state check. Do not invent browser steps the provider does not
+   require.
+3. Map the interactive journey before implementing it. Show prerequisites,
+   browser-owned actions, local inputs, previewed writes, verification, and
+   disconnect or rollback.
+4. Make every step resumable and idempotent. Detect completed work before changing it.
+5. Validate inputs without echoing secrets. Use hidden input where supported and
+   never pass secret values through command arguments, logs, or shell tracing.
+   Restrict environment-variable names to safe identifiers.
+6. Show exact target files, repositories, services, and accounts before writes.
+7. Put secret values only in the platform or local secret store the project already uses. Never commit them.
+8. Include verification after each boundary and a cleanup/recovery path for partial setup.
+9. Leave external account mutation and credential entry visibly under user control unless they explicitly authorize execution.
 
-Prefer a short project-native script over a universal framework. Explain how to resume, rerun, and remove what it created.
+For a shell wizard, use strict mode, quote expansions, detect required commands,
+handle interruption, and support common Unix environments. Update environment
+files by exact key without duplicating entries and preserve unrelated content.
+Validate syntax and use the repository's shell linter when available. Exercise
+a temporary test configuration without real secrets or account writes. Make
+dry-run reject or replace live-looking credential values; its output must use
+obvious fixed placeholders and must not echo any supplied secret or identifier.
+Test missing dependencies as well as the happy path. Document the exact files
+and keys removed by rollback, preserving unrelated configuration.
+
+Prefer a short project-native script over a universal framework. Keep it
+ephemeral unless repeated setup justifies committing it. Explain how to resume,
+rerun, and remove what it created.
