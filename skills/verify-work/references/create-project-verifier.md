@@ -29,7 +29,10 @@ Never trust a `dry-run` label without observing what it still changes or contact
 
 ## Seed the feature map
 
-Add `features/README.md` and one file for each of the top three to five user-facing features discoverable from routes, commands, menus, or documentation. Each feature records:
+Create only the feature-map files needed for the verifier scope the user asked
+for. Do not add a project README or general product documentation. Keep a
+compact index in the verifier's `SKILL.md`; add a feature file only when its
+launch, drive, or evidence recipe cannot stay clear there. Each feature records:
 
 - sub-features;
 - how a user reaches it;

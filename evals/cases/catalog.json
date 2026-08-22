@@ -171,5 +171,15 @@
     },
     "metadata": {"allow_changes": true, "required_files": ["config.json", "experiments.md"], "skill": "hillclimb"},
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
+  },
+  {
+    "id": "pull-requests-gitlab-review-cycle",
+    "input": "Draft, but do not post, a revised title and description plus a reply to the current inline comment on GitLab merge request !42. Its current head is `def456`; the pipeline is green for `def456`, while a failed pipeline on `abc123` is superseded. The reviewer correctly notes that the supplied handler trusts `body.tenantId` when updating a record. The model slug is `gpt-5.6-terra`; the owner is Soham. Do not edit, push, resolve a thread, merge, or report routine pipeline/test results.",
+    "target": "Treat the GitLab MR as the same review artifact as a PR, but use MR terminology. Ignore the superseded pipeline failure, identify the current tenant-boundary comment as actionable, and state that the MR is not ready while it remains unresolved. Draft an outcome-oriented title and the standard Problem/Fix description with Review focus only if it materially helps; do not include routine pipeline/test claims, a file inventory, or a tool log. Draft a concise evidence-backed comment that starts with the exact model-slug attribution for Soham, with no harness name, and requests a tenant-scoped lookup or update. Make no workspace or remote change.",
+    "files": {
+      "src/records.ts": "export async function updateRecord(actor, body) {\n  if (!actor) throw new Error('unauthenticated')\n  return db.record.update({ where: { id: body.id }, data: { tenantId: body.tenantId, name: body.name } })\n}\n"
+    },
+    "metadata": {"allow_changes": false, "skill": "pull-requests"},
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
   }
 ]

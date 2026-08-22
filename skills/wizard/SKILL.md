@@ -5,10 +5,11 @@ description: Design or implement a user-run setup wizard for configuration, cred
 
 # Wizard
 
-Create a project-native interactive script the user controls. Use a runbook only
-when the repository cannot support a portable script or the user requests
-design-only guidance. Do not run external account setup end-to-end on their
-behalf.
+Create a project-native interactive script the user controls. When the
+repository cannot support a portable script or the user requests design-only
+guidance, give the procedure in the response; create a project runbook only
+when the user explicitly requests that document. Do not run external account
+setup end-to-end on their behalf.
 
 1. Inspect the repository's existing setup, package manager, environment conventions, and documented prerequisites.
 2. Derive the stages from real setup boundaries. For every input, record its

@@ -1,0 +1,33 @@
+{
+  "name": "astatide-skills",
+  "version": "1.0.0",
+  "description": "A focused personal catalog of reviewed agent workflows for engineering, design, quality, and writing.",
+  "author": {
+    "name": "Astatide"
+  },
+  "homepage": "https://github.com/Astatide1337/Skills",
+  "repository": "https://github.com/Astatide1337/Skills",
+  "keywords": [
+    "agent-skills",
+    "engineering",
+    "productivity",
+    "quality"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Astatide Skills",
+    "shortDescription": "Focused workflows for careful software work.",
+    "longDescription": "A reviewed personal catalog of focused skills for planning, engineering, interface work, verification, security, production safety, and clear writing.",
+    "developerName": "Astatide",
+    "category": "Productivity",
+    "capabilities": [
+      "Skills"
+    ],
+    "websiteURL": "https://github.com/Astatide1337/Skills",
+    "defaultPrompt": [
+      "Review this change before I merge it.",
+      "Debug this failure systematically.",
+      "Build a polished, accessible web interface."
+    ]
+  }
+}

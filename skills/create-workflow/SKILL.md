@@ -1,6 +1,6 @@
 ---
 name: create-workflow
-description: "Create or simplify a repeatable repository workflow by converting recurring human or agent decisions into the smallest deterministic artifact: existing configuration, declarative config, schema, validation, idempotent script, or platform automation. Use when setup, release, maintenance, review, or repair still depends on remembering steps, interpreting routine state, or repeatedly making the same bounded choices."
+description: "Create or simplify a repeatable repository workflow by converting a recurring, bounded decision into the smallest deterministic artifact. Use when setup, release, maintenance, review, or repair depends on remembering steps, interpreting routine state, or repeatedly making the same choice. Do not use for a one-off procedure or to add project documentation unprompted."
 ---
 
 # Create Workflow
@@ -62,7 +62,11 @@ invent paths, endpoints, digests, owners, or successful writes.
 
 ## Refuse automation when it is worse
 
-Prefer concise documentation when the procedure is rare, judgment is genuinely contextual, the inputs cannot be validated, or automation would introduce credentials, persistent state, external mutation, or maintenance cost disproportionate to the mistake it prevents. A valid result is “document this once; do not automate it,” with the reason and reconsideration trigger.
+When the procedure is rare, judgment is genuinely contextual, the inputs cannot
+be validated, or automation would introduce disproportionate credentials,
+state, mutation, or maintenance cost, recommend a one-off procedure in the
+response rather than automating it. Write it into repository documentation only
+when the user requests a project document or names the destination.
 
 When the artifact carries a digest, bind every digest to an explicit relative
 path or immutable artifact identity. A syntax-valid digest is not evidence: the

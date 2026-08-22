@@ -11,7 +11,7 @@ skill-name/
   assets/       # optional
 ```
 
-The catalog currently contains 18 skills. `catalog.yaml` records the source
+The catalog currently contains 19 skills. `catalog.yaml` records the source
 repository, exact source commit, original source path, trust classification,
 profile, and installed path for every exported skill. Each `SKILL.md` carries
 the runtime-facing `name` and `description` frontmatter, so Codex, Claude Code,
@@ -51,6 +51,32 @@ parent harness directory. When `--target` is omitted, the installer prefers
 directory. If more than one target is plausible, pass `--target` explicitly.
 Selected skill directories are replaced verbatim on every install; no merge
 logic is used.
+
+### Personal global instructions
+
+[`global-instructions/AGENTS.md`](global-instructions/AGENTS.md) is the
+portable source for the user's cross-repository working defaults. It is kept
+separate from the skill installer deliberately: applying global instructions
+to a harness is an explicit, user-controlled external change.
+
+### ChatGPT plugin
+
+ChatGPT on the web can load this catalog through its plugin directory. Build or
+refresh the private, skills-only `Astatide Skills` plugin with:
+
+```bash
+./scripts/install-chatgpt-plugin.sh
+```
+
+The command copies the current catalog into `~/plugins/astatide-skills`, creates
+or refreshes its personal marketplace entry, preserves a replaced generated
+plugin under `~/.local/state/skills-catalog-backups/`, and validates the result.
+It does not modify the catalog source. The generated plugin is immediately
+available to Codex through the personal marketplace. In ChatGPT, open
+**Plugins**, choose **Personal**, and install **Astatide Skills** when that
+source is available to your account or workspace; then begin a new Chat or Work
+conversation. Local and repo marketplace availability can vary by ChatGPT
+surface. Use `@` to invoke a particular plugin skill explicitly when needed.
 
 ## Validate
 

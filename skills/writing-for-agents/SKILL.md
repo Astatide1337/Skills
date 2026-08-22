@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: Write or revise instructions that another coding agent must follow reliably. Use for AGENTS.md, SKILL.md, agent prompts, runbooks, and task specifications where trigger clarity, scope, evidence, and testability matter.
+description: Write or revise a requested instruction that another coding agent must follow reliably. Use for AGENTS.md, SKILL.md, agent prompts, runbooks, and task specifications where trigger clarity, scope, evidence, and testability matter. Do not use to add project documentation or agent rules unprompted.
 ---
 
 # Writing for Agents
@@ -23,6 +23,10 @@ Write for execution, not admiration. State the outcome, triggering conditions, a
 8. Test with realistic trigger, near-miss, and adversarial prompts.
 
 Avoid personality theater, duplicated policy, unsupported metadata, hidden prerequisites, vague “best practices,” and procedures that claim success without evidence.
+
+Do not create an AGENTS file, README, runbook, plan, or other project document
+because it seems useful. Treat the existing project documentation as read-only
+unless the user asks to create or revise a named instruction artifact.
 
 Read `references/instruction-design.md` when deciding what context to include,
 where it should live, how to prevent premature completion, or how to prune an

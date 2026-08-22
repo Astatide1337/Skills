@@ -1,6 +1,6 @@
 ---
 name: code-review-and-quality
-description: Conducts multi-axis code review. Use before merging any change. Use when reviewing code written by yourself, another agent, or a human. Use when you need to assess code quality across multiple dimensions before it enters the main branch.
+description: Review a proposed or actual code change before merge across correctness, simplicity, architecture, security, and performance. Use when the user asks for a code or PR review, or before approving a change. Do not use as a substitute for a focused security audit or for posting a PR comment.
 ---
 
 # Code Review and Quality

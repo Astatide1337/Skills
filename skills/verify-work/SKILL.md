@@ -1,6 +1,6 @@
 ---
 name: verify-work
-description: Use before claiming any engineering task is complete or correct, and when a repository needs a repeatable way to prove real user-facing behavior. Verify the requested observable result rather than only compilation or tests. For UI work inspect screenshots; for temporal behavior record and watch it. Can create or maintain a platform-neutral project-local verification skill with launch, doctor, drive, evidence, cleanup, and feature-map instructions.
+description: Verify a requested observable engineering result before claiming work is complete or correct. Use for completion claims and when the user explicitly asks for a reusable project verifier. Do not use tests, compilation, or a green pipeline as a substitute for the behavior the request names.
 ---
 
 # Verify Work
@@ -17,8 +17,12 @@ into a generic request to verify production.
 ## Select the mode
 
 - **Verify a change:** follow the core workflow below.
-- **Create a project verifier:** when the repository lacks a reliable scripted way to launch and exercise the real product, read `references/create-project-verifier.md`.
-- **Maintain a project verifier:** when an existing verification skill or feature map may have drifted, read `references/maintain-project-verifier.md`.
+- **Create a project verifier:** only when the user explicitly asks for a
+  reusable verifier and the repository lacks a reliable way to launch and
+  exercise the real product; then read `references/create-project-verifier.md`.
+- **Maintain a project verifier:** only when the user asks to improve an
+  existing verification skill or feature map; then read
+  `references/maintain-project-verifier.md`.
 
 Project-local verification skills live at `.agents/skills/verify-<app>/` unless the repository declares another agent-skill location. Do not create platform-specific directories by default.
 

@@ -7,7 +7,7 @@ policy:
   default_profile: all
 profiles:
   web-engineering: [web-interface, html-artifacts]
-  agent-workflows: [grilling, writing-for-agents, wizard, how, architect, teach, unslop, why]
+  agent-workflows: [grilling, writing-for-agents, wizard, how, architect, teach, unslop, why, pull-requests]
   production-engineering: [code-review-and-quality, security-and-hardening, production-safety, systematic-debugging, verify-work]
   workflow-automation: [create-workflow, hillclimb]
   catalog-admin: [skill-creator]
@@ -35,6 +35,7 @@ skills:
   - {profile: agent-workflows, trust: established, exported_path: skills/teach/SKILL.md, source: {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/teach, adaptation: portable how/why composition}}
   - {profile: agent-workflows, trust: local-reviewed, exported_path: skills/unslop/SKILL.md, source: {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/unslop, adaptation: fact-preserving reconstruction, context-sensitive factual/voice/agent modes, restored AI-pattern taxonomy, and safeguards against invented personality or destructive terminology bans}}
   - {profile: agent-workflows, trust: established, exported_path: skills/why/SKILL.md, source: {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/why, adaptation: available-source evidence workflow}}
+  - {profile: agent-workflows, trust: local-reviewed, exported_path: skills/pull-requests/SKILL.md, source: {repository: 'https://github.com/pingdotgg/t3code', commit: 592c5983c14d248aa3cfddb8e6c7372f12cd1ab6, path: AGENTS.md, adaptation: unified GitHub PR and GitLab MR lifecycle with deterministic mode/authority gates, reviewer-centered problem/fix descriptions, current-head evidence, and personalized model-slug attribution}}
   - profile: production-engineering
     trust: local-reviewed
     exported_path: skills/code-review-and-quality/SKILL.md

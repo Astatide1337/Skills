@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: Create, revise, validate, package, or evaluate Agent Skills in this catalog. Use when designing a new SKILL.md, improving triggers or progressive disclosure, maintaining bundled references/scripts/assets, checking portability, or measuring whether a skill improves real Codex behavior. Keep skills lean and use the repository's Inspect AI evaluation task instead of creating a custom harness.
+description: Create, revise, validate, package, or evaluate a catalog skill. Use when a repeated, evidenced agent behavior needs a focused SKILL.md or when auditing a skill's trigger, scope, resources, or evaluation. Do not use for a one-off request, generic knowledge, or global/project rules that belong outside the catalog.
 ---
 
 # Skill Creator
@@ -28,16 +28,31 @@ Design for lack of surprise. A user who reads the description should predict
 when the skill activates, what authority it assumes, what artifact it produces,
 and where it stops.
 
-Do not create a skill for generic knowledge Codex already handles well or for a
-one-off instruction better placed in the user's request or `AGENTS.md`.
+Choose the lowest layer that fixes the observed failure:
+
+- current request or response for a one-off need;
+- personal/global instruction for a cross-repository working default;
+- repository instruction, configuration, test, or script for project-specific
+  behavior that can be enforced there; and
+- a skill only when a distinct recurring invocation needs focused guidance.
+
+Do not create a skill for generic knowledge Codex already handles well. Do not
+create or rewrite project documentation as a side effect of skill work; author
+README files, AGENTS files, plans, or runbooks only when the user asks for that
+artifact. A requested `SKILL.md` is the catalog artifact, not a reason to add
+adjacent project docs.
 
 ## 2. Design progressive disclosure
 
 Every skill requires `SKILL.md` with YAML frontmatter containing `name` and
 `description`.
 
-- Put all trigger information in `description`; the body is unavailable until
+- Treat `description` as a routing instruction, not a miniature manual. Put
+  the user situation that should select the skill first, then one or two nearby
+  non-triggers when they prevent a collision. The body is unavailable until
   after selection.
+- Good: `Use when the user asks to watch an already-open PR. Do not use to
+  create one.` Bad: `Helps with pull requests and GitHub workflows.`
 - Keep the body to essential workflow, decisions, safety gates, and reference
   routing. Assume Codex is capable; omit tutorials and motivational prose.
 - Put detailed variants, schemas, domain rules, and examples in one-level
