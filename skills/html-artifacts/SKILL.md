@@ -11,10 +11,16 @@ itself, and remains useful outside the conversation.
 
 ## Lock the deliverable
 
-Extract the exact requested output path before designing. Write, validate,
-open, and finally link that same path. Never rename an explicit deliverable to
-match the title or subject. If the request says `report.html`, completion means
-`report.html` exists—not a more descriptive alternative.
+HTML artifacts are disposable deliverables and must never dirty a repository,
+home directory, project tree, or other persistent location. Before designing,
+create a dedicated directory directly beneath `/tmp` with `mktemp -d`, then
+write, validate, open, and finally link the artifact from that directory.
+
+Preserve an explicitly requested filename, but place it beneath the new `/tmp`
+directory. If the user supplies a path outside `/tmp`, explain that the skill's
+artifact-isolation rule requires relocating the file to `/tmp`; do not write a
+second copy at the requested persistent path. When no filename is supplied,
+choose a descriptive kebab-case `.html` filename inside the new directory.
 
 ## Decide the medium
 
@@ -53,9 +59,10 @@ the product.
 
 Every artifact must:
 
-1. Use the exact output path and filename requested by the user. When none is
-   supplied, choose one descriptive, kebab-case `.html` file. Treat the path as
-   part of the deliverable and verify that exact file before reporting it.
+1. Exist only beneath a dedicated directory created directly under `/tmp` for
+   the current task. Preserve a requested filename, or choose one descriptive,
+   kebab-case `.html` filename when none is supplied. Resolve the final path
+   before writing and verify with `realpath` that it remains beneath `/tmp`.
 2. Work offline with embedded CSS and JavaScript. Use inline SVG or data URIs
    for essential images. External links may be references, but external fonts,
    scripts, stylesheets, APIs, and runtime assets may not be required.
@@ -88,10 +95,11 @@ Every artifact must:
 3. **Sketch information architecture.** Decide what must be visible at first
    glance, what compares side by side, what can collapse, and how the reader
    navigates on mobile.
-4. **Implement the smallest complete file.** Prefer platform HTML, CSS, and
-   JavaScript. Add interaction only when it reduces cognitive or mechanical
-   work. Before writing, copy any explicit output path from the request rather
-   than renaming it from the document's subject.
+4. **Implement the smallest complete file.** Create a dedicated output folder
+   with `mktemp -d` and confirm its canonical path begins with `/tmp/`. Prefer
+   platform HTML, CSS, and JavaScript. Add interaction only when it reduces
+   cognitive or mechanical work. Preserve an explicit filename, but never its
+   non-temporary parent directory.
 5. **Validate the source.** Run:
 
    ```bash
