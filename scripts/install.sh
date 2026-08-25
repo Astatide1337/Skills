@@ -4,8 +4,8 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: ./install.sh [--all | --skill NAME ...] [--target PATH]
-       ./install.sh --list
+Usage: ./scripts/install.sh [--all | --skill NAME ...] [--target PATH]
+       ./scripts/install.sh --list
 
 Options:
   --all             Install every skill in the repository.
@@ -20,7 +20,7 @@ harness is present or when installing into a different project.
 EOF
 }
 
-repo_root=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+repo_root=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 skills_root="$repo_root/skills"
 target=""
 install_all=false

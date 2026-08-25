@@ -1,146 +1,76 @@
 # Astatide Skills
 
-This repository is the source of truth for the reviewed Agent Skills catalog.
-It contains plain filesystem skills, with one installable directory per skill:
+The reviewed, installable Agent Skills catalog. Each directory in `skills/` is
+self-contained and portable across compatible harnesses.
 
 ```text
-skill-name/
+skills/<skill-name>/
   SKILL.md
   scripts/      # optional
   references/   # optional
   assets/       # optional
 ```
 
-The catalog currently contains 19 skills. `catalog.yaml` records the source
-repository, exact source commit, original source path, trust classification,
-profile, and installed path for every exported skill. Each `SKILL.md` carries
-the runtime-facing `name` and `description` frontmatter, so Codex, Claude Code,
-and other Agent Skills-compatible harnesses can discover the same metadata from
-the filesystem. Bundled scripts and reference material were copied with their
-skill and remain available through relative paths. Imported local archives are
-identified by their SHA-256 digest instead of a Git commit.
-
-The previous MCP Skills Gateway served these files over read-only MCP tools.
-That service is retired. Skills are now installed by copying the selected
-directories into the harness's local skill directory; no runtime server,
-downloader, or skill-related MCP connection is required.
+`catalog.yaml` records each skill's source, pinned revision or archive digest,
+trust classification, and installed path. Skills are copied locally at install
+time; the catalog does not fetch or run remote content.
 
 ## Install
 
-List available skills:
+List the catalog:
 
 ```bash
-./install.sh --list
+./scripts/install.sh --list
 ```
 
-Install every skill into the detected Codex/Claude/project directory:
+Install every skill into an explicit harness directory:
 
 ```bash
-./install.sh --all
+./scripts/install.sh --all --target ~/.codex/skills
+./scripts/install.sh --all --target ~/.config/opencode/skills
 ```
 
-Install selected skills into an explicit target:
+Install selected skills instead:
 
 ```bash
-./install.sh --target ~/.codex/skills --skill systematic-debugging --skill web-interface
+./scripts/install.sh --target ~/.claude/skills \
+  --skill systematic-debugging --skill web-interface
 ```
 
-The target is the directory that directly contains skill directories, not the
-parent harness directory. When `--target` is omitted, the installer prefers
-`~/.codex/skills`, then `~/.claude/skills`, then a project `.agents/skills`
-directory. If more than one target is plausible, pass `--target` explicitly.
-Selected skill directories are replaced verbatim on every install; no merge
-logic is used.
+Without `--target`, the installer detects a Codex, Claude, or project
+`.agents` directory. Pass an explicit target whenever more than one is present.
+Each selected skill directory is replaced as a complete copy.
 
-### Personal global instructions
+## Global instructions
 
 [`global-instructions/AGENTS.md`](global-instructions/AGENTS.md) is the
-portable source for the user's cross-repository working defaults. It is kept
-separate from the skill installer deliberately: applying global instructions
-to a harness is an explicit, user-controlled external change.
+portable source for cross-repository working defaults. Installing it is always
+an explicit, user-controlled action and is separate from skill installation.
 
-### ChatGPT plugin
+## Validate and evaluate
 
-ChatGPT on the web can load this catalog through its plugin directory. Build or
-refresh the private, skills-only `Astatide Skills` plugin with:
-
-```bash
-./scripts/install-chatgpt-plugin.sh
-```
-
-The command copies the current catalog into `~/plugins/astatide-skills`, creates
-or refreshes its personal marketplace entry, preserves a replaced generated
-plugin under `~/.local/state/skills-catalog-backups/`, and validates the result.
-It does not modify the catalog source. The generated plugin is immediately
-available to Codex through the personal marketplace. In ChatGPT, open
-**Plugins**, choose **Personal**, and install **Astatide Skills** when that
-source is available to your account or workspace; then begin a new Chat or Work
-conversation. Local and repo marketplace availability can vary by ChatGPT
-surface. Use `@` to invoke a particular plugin skill explicitly when needed.
-
-## Validate
-
-Run the deterministic catalog, reference, dataset, and Agent Skills checks:
+Run deterministic structure and catalog checks:
 
 ```bash
 ./scripts/validate-skills.sh
-uv run python -m unittest discover -s tests -v
 ```
 
-The validator checks the catalog count, one-level skill layout, required
-frontmatter, naming limits, description limits, catalog coverage, relative
-Markdown links, and the Inspect dataset. The installer tests use a temporary
-target and do not touch an installed harness. CI runs these deterministic checks
-on pushes and pull requests; it does not make model calls.
-
-## Evaluate
-
-Behavior evaluation uses [Inspect AI](https://inspect.aisi.org.uk/) for cases,
-scoring, concurrency, and logs. `evals/skills.py` exposes one representative
-catalog task and invokes the locally installed Codex CLI through the user's
-signed-in ChatGPT subscription. The treatment injects the selected catalog
-skill verbatim and also exposes the catalog in an ephemeral Codex home; the
-baseline receives neither. Explicit injection isolates instruction efficacy
-from CLI skill-routing and reserved-path bugs. Personal configuration, rules,
-plugins, and unrelated installed skills are excluded from both arms.
-
-Install the pinned evaluation environment and verify task discovery without a
-model call:
+The optional Inspect evaluation fixtures live in `evals/`. To verify task
+discovery without making a model call:
 
 ```bash
 uv sync --frozen
 uv run inspect list tasks evals/skills.py
 ```
 
-Confirm that the CLI is signed in, then run treatment and baseline with the
-same native model:
+Run live evaluations only deliberately: they use the locally authenticated
+Codex CLI and can execute model-generated code inside its workspace sandbox.
 
-```bash
-codex login status
-uv run inspect eval evals/skills.py@catalog -T native_model=gpt-5.6-luna --max-samples 2
-uv run inspect eval evals/skills.py@catalog -T with_skills=false -T native_model=gpt-5.6-luna --max-samples 2
-```
+## Safety and provenance
 
-Inspect owns sandbox execution, transcripts, retries, scoring, logs, and result
-viewing. The grader receives the final response, bounded diffs and artifacts,
-and observed command evidence, and returns a 0–4 quality score. Codex's
-workspace sandbox contains each sample, and graders run read-only. Keep cases
-in `evals/cases/catalog.json` representative and shared;
-do not create a separate harness. One trial per skill is a smoke benchmark, not
-proof of efficacy; use `--epochs 2 --no-epochs-reducer` or more for unstable
-cases and repeat across models before making catalog decisions. Test routing
-and installation separately from content efficacy.
-
-## Provenance and safety
-
-- The catalog is pinned to reviewed upstream commits; it does not fetch content
-  at install or runtime.
-- Installer copies are local filesystem operations only.
+- Installer work is local filesystem copying only.
 - Credentials, cookies, and external service tokens do not belong in skills.
-- Bundled scripts are preserved for an agent to run when appropriate, but the
-  repository installer and validator never execute them.
-- Live Inspect evaluations can execute model-generated code inside Codex's
-  workspace sandbox and are never part of automatic CI.
+- Bundled skill scripts are preserved for an agent to use when appropriate;
+  the installer and validator do not execute them.
 
-See [`catalog.yaml`](catalog.yaml) for the complete migration inventory and
-source provenance.
+See [`catalog.yaml`](catalog.yaml) for the catalog's source provenance.
