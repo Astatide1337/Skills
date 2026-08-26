@@ -1,6 +1,6 @@
 ---
 name: web-interface
-description: Design, implement, prototype, optimize, or review user-facing web interfaces and reusable UI components. Use for layout or styling, responsive behavior, themes, accessibility, forms and interactions, visual QA, React or Next.js performance, component API or design-system work, shadcn projects or registries, and visual option exploration. Do not use for backend-only work, non-UI prototypes, generic refactors, component-package publishing, or video and Remotion work.
+description: Design, implement, prototype, optimize, or review user-facing web UI and components, including layout, accessibility, interaction, responsiveness, and visual QA. Not backend-only work.
 ---
 
 # Web Interface

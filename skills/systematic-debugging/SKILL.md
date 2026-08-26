@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Use this skill whenever a bug, failing test or CI job, runtime error, regression, broken integration, performance problem, or other unexpected behavior has an unknown or uncertain cause. Diagnose the real root cause before changing behavior; do not jump from a plausible explanation to a fix. Use even when the likely fix seems obvious if the failure has not been reproduced and explained.
+description: Diagnose an unexplained bug, failure, regression, runtime error, or performance problem before fixing it. Find and verify the root cause; do not guess.
 ---
 
 # Systematic Debugging

@@ -1,6 +1,6 @@
 ---
 name: pull-requests
-description: Manage one GitHub pull request or GitLab merge request through drafting, opening, monitoring, reviewer communication, and handoff. Use when the user asks to create, file, draft, watch, babysit, reply to, comment on, or suggest a change on a PR or MR. Do not use for a standalone full code review, an unasked merge, or deployment work.
+description: Manage a GitHub PR or GitLab MR by drafting, opening, monitoring, communicating with reviewers, or handing off. Not standalone code review or deployment work.
 ---
 
 # Pull requests

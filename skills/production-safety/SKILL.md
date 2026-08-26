@@ -1,6 +1,6 @@
 ---
 name: production-safety
-description: Use whenever work touches production or production-like databases, persistent data, VPS hosts, Docker Compose or Podman services, Kubernetes/OpenShift or other clusters, GitHub/GitLab delivery workflows, GitOps controllers, infrastructure-as-code and its state, cloud IAM, certificates, networking, DNS, storage, queues, scheduled jobs, backups, migrations, observability, authentication infrastructure, deployment state, or any external system where a wrong assumption can cause data loss, downtime, security impact, or difficult rollback. Begin read-only, establish the real topology and intent, and never treat access as authorization to mutate or destroy state.
+description: Safely inspect or change production-like systems, infrastructure, delivery workflows, credentials, persistent data, or external services. Start read-only and verify scope, dependencies, authorization, and recovery before risk.
 ---
 
 # Production Safety

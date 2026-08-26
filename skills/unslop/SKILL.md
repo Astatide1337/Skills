@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Rewrite prose to remove recognizable AI patterns while preserving meaning and producing a natural voice appropriate to the context. Use for padded, generic, repetitive, theatrical, sterile, overly polished, or formulaic drafts, including documentation, explanations, plans, reports, review comments, posts, essays, and product copy. Do not use to alter quoted text, impose personality on factual or agent-facing instructions, or rewrite already-natural prose merely to enforce a house style.
+description: Rewrite padded, generic, repetitive, or formulaic prose into natural, specific language while preserving facts, quotes, meaning, and appropriate voice.
 ---
 
 # Unslop

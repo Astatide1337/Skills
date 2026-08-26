@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: Write or revise a requested instruction that another coding agent must follow reliably. Use for AGENTS.md, SKILL.md, agent prompts, runbooks, and task specifications where trigger clarity, scope, evidence, and testability matter. Do not use to add project documentation or agent rules unprompted.
+description: Write or revise agent instructions such as AGENTS.md, SKILL.md, prompts, runbooks, or task specs. Not unprompted documentation.
 ---
 
 # Writing for Agents

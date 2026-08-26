@@ -1,6 +1,6 @@
 ---
 name: security-and-hardening
-description: Threat-model, audit, review, implement, or verify security controls across a whole codebase or a specific application, API, authentication and authorization flow, tenant boundary, secret, dependency, CI/CD pipeline, container, Kubernetes/OpenShift workload, webhook, upload, server-side fetch, or LLM/agent feature. Use for repository-wide security audits, security-sensitive feature work, vulnerability remediation, abuse-case analysis, or hardening before release. Prioritize exploitable trust-boundary failures, preserve explicit read-only boundaries, and distinguish code security from authorization to change live systems.
+description: Audit or harden application and infrastructure security, including auth, tenant boundaries, secrets, dependencies, CI, containers, and agent features.
 ---
 
 # Security and Hardening

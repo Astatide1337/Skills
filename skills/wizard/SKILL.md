@@ -1,6 +1,6 @@
 ---
 name: wizard
-description: Design or implement a user-run setup wizard for configuration, credentials, or multi-step project onboarding. Use when setup needs human input, browser steps, local environment changes, or external secrets and should be repeatable without letting the agent silently mutate accounts.
+description: Design or implement a user-run setup wizard for configuration, credentials, or multi-step onboarding. Keep browser, secrets, and account changes under user control.
 ---
 
 # Wizard

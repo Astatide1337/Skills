@@ -1,6 +1,6 @@
 ---
 name: teach
-description: Teach a code change or subsystem in plain language so the user can work with it. Use when the user asks to learn, understand deeply, or be walked through code rather than merely receive a reference answer.
+description: Teach a code change or subsystem in plain language so the user can understand and work with it.
 ---
 
 # Teach

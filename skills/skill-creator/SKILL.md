@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: Create, revise, validate, package, or evaluate a catalog skill. Use when a repeated, evidenced agent behavior needs a focused SKILL.md or when auditing a skill's trigger, scope, resources, or evaluation. Do not use for a one-off request, generic knowledge, or global/project rules that belong outside the catalog.
+description: Create, revise, validate, package, or evaluate a catalog skill when a repeated agent behavior needs focused, testable instructions. Not one-off or global rules.
 ---
 
 # Skill Creator

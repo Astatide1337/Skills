@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: Interrogate a plan or design before implementation. Use when the user asks to grill, challenge, pressure-test, or expose hidden assumptions in an approach.
+description: Pressure-test a plan or design before implementation, including its assumptions, risks, tradeoffs, and failure modes.
 ---
 
 # Grilling

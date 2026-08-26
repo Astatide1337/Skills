@@ -1,6 +1,6 @@
 ---
 name: hillclimb
-description: Improve one measurable outcome through repeated controlled experiments. Use when asked to optimize, tune, beat a baseline, raise or lower a metric, compare variants empirically, or keep improving until a target is reached. Do not use for ordinary bug fixes, one-pass implementation, subjective improvement with no repeatable evaluation, or production experiments whose safety and authorization are not established.
+description: Improve one measurable outcome through controlled experiments and a fixed evaluation. Not for ordinary fixes or unsafe production experiments.
 ---
 
 # Hillclimb

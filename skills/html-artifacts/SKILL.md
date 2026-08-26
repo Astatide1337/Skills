@@ -1,6 +1,6 @@
 ---
 name: html-artifacts
-description: Create or revise a polished, self-contained HTML artifact when the requested deliverable benefits materially from spatial layout, visual hierarchy, inline diagrams, interaction, presentation mode, or exporting edited state. Use for HTML reports, comparisons, plans, architecture or flow explainers, annotated reviews, incident timelines, slide decks, interactive demonstrations, and one-off editors. Also use when the user explicitly asks for an HTML artifact or standalone HTML report. Do not use for ordinary chat answers, code-only output, maintained application UI, simple prose that is clearer as Markdown, or artifacts whose primary format must remain easy to diff.
+description: Create or revise a self-contained HTML artifact when visual layout, interaction, diagrams, presentation, or export materially helps. Not ordinary prose or maintained app UI.
 ---
 
 # HTML Artifacts

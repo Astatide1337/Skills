@@ -1,6 +1,6 @@
 ---
 name: architect
-description: Sketch types, signatures, usage, data flow, and module boundaries before implementing non-trivial work. Use when jumping directly to code risks locking in the wrong ownership or public interface.
+description: Plan non-trivial code boundaries before implementation when types, ownership, data flow, or module interfaces are unclear.
 ---
 
 # Architect

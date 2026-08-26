@@ -1,6 +1,6 @@
 ---
 name: verify-work
-description: Verify a requested observable engineering result before claiming work is complete or correct. Use for completion claims and when the user explicitly asks for a reusable project verifier. Do not use tests, compilation, or a green pipeline as a substitute for the behavior the request names.
+description: Verify an observable engineering result before claiming completion. Use behavior evidence, not tests, builds, or green CI alone.
 ---
 
 # Verify Work

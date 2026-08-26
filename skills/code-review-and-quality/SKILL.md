@@ -1,6 +1,6 @@
 ---
 name: code-review-and-quality
-description: Review a proposed or actual code change before merge across correctness, simplicity, architecture, security, and performance. Use when the user asks for a code or PR review, or before approving a change. Do not use as a substitute for a focused security audit or for posting a PR comment.
+description: Review code or a proposed change for correctness, simplicity, architecture, security, and performance before merge. Not a focused security audit.
 ---
 
 # Code Review and Quality
