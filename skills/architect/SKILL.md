@@ -1,6 +1,6 @@
 ---
 name: architect
-description: Plan non-trivial code boundaries before implementation when types, ownership, data flow, or module interfaces are unclear.
+description: Plan non-trivial code boundaries before implementation when types, ownership, data flow, or module interfaces are unclear; includes routine architecture critique and candidate comparison.
 ---
 
 # Architect

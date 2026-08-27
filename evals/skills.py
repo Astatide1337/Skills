@@ -3,23 +3,46 @@
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 from pathlib import Path
 from uuid import uuid4
 
 from inspect_ai import Task, task
-from inspect_ai.dataset import json_dataset
+from inspect_ai.dataset import MemoryDataset, Sample, json_dataset
 from inspect_ai.model import ModelOutput
 from inspect_ai.scorer import Score, Target, accuracy, mean, scorer
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.util import sandbox
+import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = REPO_ROOT / "skills"
 CASES = Path(__file__).parent / "cases" / "catalog.json"
+ROUTING_CASES = Path(__file__).parent / "cases" / "routing.json"
 GRADE_SCHEMA = Path(__file__).parent / "grade-schema.json"
+ROUTE_SCHEMA = Path(__file__).parent / "route-schema.json"
 AUTH_FILE = Path.home() / ".codex" / "auth.json"
+SKILL_NAMES = {
+    path.name
+    for path in SKILLS_ROOT.iterdir()
+    if (path / "SKILL.md").is_file()
+}
+
+# A primary case may contain a genuinely distinct second deliverable. Keep
+# those expectations explicit instead of treating every extra selection as a
+# routing error, while still scoring unnecessary selections separately.
+ROUTING_EXPECTED_OVERRIDES: dict[str, list[str]] = {
+    "architect-event-contract": ["architect"],
+    "hillclimb-batch-tuning": ["hillclimb"],
+    "how-request-flow": ["how", "architect"],
+    "html-artifact-evidence-report": ["html-artifacts"],
+    "systematic-debugging-cache-regression": ["systematic-debugging"],
+    "verify-deployment-claim": ["production-safety", "verify-work"],
+    "web-interface-settings": ["web-interface"],
+    "teach-idempotency-change": ["teach"],
+}
 
 
 def isolated_codex_home(with_skills: bool) -> tempfile.TemporaryDirectory[str]:
@@ -72,6 +95,11 @@ async def run_codex(
             sandbox_mode,
             "--model",
             model,
+            # The parent Inspect model setting does not flow into this
+            # nested native Codex process. Pin the requested eval effort here
+            # so a "Luna Max" run is actually Max reasoning.
+            "-c",
+            'model_reasoning_effort="max"',
             "--json",
             "--output-last-message",
             output_file,
@@ -130,6 +158,154 @@ def native_codex(with_skills: bool, model: str) -> Solver:
         return state
 
     return solve
+
+
+def catalog_routing_index() -> str:
+    """Return only compact trigger metadata, not full skill instructions."""
+
+    rows: list[str] = []
+    for skill_path in sorted(SKILLS_ROOT.iterdir()):
+        skill_file = skill_path / "SKILL.md"
+        if not skill_file.is_file():
+            continue
+        text = skill_file.read_text()
+        match = re.match(r"^---\n(.*?)\n---(?:\n|$)", text, re.DOTALL)
+        if not match:
+            continue
+        frontmatter = yaml.safe_load(match.group(1))
+        if isinstance(frontmatter, dict):
+            name = frontmatter.get("name")
+            description = frontmatter.get("description")
+            if isinstance(name, str) and isinstance(description, str):
+                rows.append(f"- {name}: {description.strip()}")
+    return "\n".join(rows)
+
+
+def routing_dataset() -> MemoryDataset:
+    """Build positive primary cases plus explicit no-skill near misses."""
+
+    catalog_cases = json.loads(CASES.read_text())
+    routing_cases = json.loads(ROUTING_CASES.read_text())
+    samples: list[Sample] = []
+    for case in catalog_cases:
+        skill = case["metadata"]["skill"]
+        expected = ROUTING_EXPECTED_OVERRIDES.get(case["id"], [skill])
+        samples.append(
+            Sample(
+                input=case["input"],
+                target=skill,
+                id=f"route-{case['id']}",
+                metadata={
+                    "expected_skills": expected,
+                    "route_kind": "positive",
+                },
+            )
+        )
+    for case in routing_cases:
+        samples.append(
+            Sample(
+                input=case["input"],
+                target="no catalog skill",
+                id=case["id"],
+                metadata=case["metadata"],
+            )
+        )
+    return MemoryDataset(samples=samples, name="catalog-routing", shuffled=False)
+
+
+@solver
+def route_codex(model: str) -> Solver:
+    """Ask the native model to route without giving it a skill by fiat."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        prompt = (
+            "You are routing a user request to a local catalog of agent skills. "
+            "Choose only skills whose instructions materially govern this request. "
+            "Do not select a skill merely because the request mentions its subject. "
+            "Select no skills for ordinary questions, explanations, or work that "
+            "does not need a catalog workflow. Prefer the smallest sufficient set. "
+            "Treat a skill description as a trigger, not a checklist: do not add "
+            "grilling for an ordinary architecture critique (architect already "
+            "owns candidate critique; require an explicit grill/pressure-test "
+            "request), how for a teaching request that already asks for a "
+            "plain-language walkthrough, verify-work for a "
+            "routine implementation verification summary, web-interface for a "
+            "standalone disposable HTML artifact, or production-safety merely "
+            "because a local diagnosis follows a deploy. Add a second skill only "
+            "when it owns a distinct requested deliverable, such as a walkthrough "
+            "plus a separate code review or an explicit production claim check. "
+            "Return only JSON matching the supplied schema, with canonical skill "
+            "names exactly as shown in the catalog. Do not perform the task.\n\n"
+            f"CATALOG:\n{catalog_routing_index()}\n\n"
+            f"USER REQUEST:\n{state.input_text}"
+        )
+        completion, events = await run_codex(
+            prompt,
+            model=model,
+            with_skills=False,
+            sandbox_mode="read-only",
+            output_schema=ROUTE_SCHEMA,
+            timeout=300,
+        )
+        state.output = ModelOutput.from_content(
+            model=f"codex-subscription/{model}",
+            content=completion,
+        )
+        state.output.metadata = {"codex_jsonl": events}
+        return state
+
+    return solve
+
+
+def selected_route(state: TaskState) -> tuple[set[str], str | None]:
+    """Parse a route once for the coverage and minimality scorers."""
+
+    try:
+        value = json.loads(state.output.completion)
+    except (AttributeError, json.JSONDecodeError):
+        return set(), "router did not return a JSON object"
+    selected_value = value.get("skills") if isinstance(value, dict) else None
+    if not isinstance(selected_value, list) or not all(
+        isinstance(skill, str) for skill in selected_value
+    ):
+        return set(), "router skills must be a string array"
+    selected = selected_value
+    unknown = sorted(set(selected) - SKILL_NAMES)
+    if unknown:
+        return set(), f"router selected unknown skills: {unknown}"
+    if len(selected) != len(set(selected)):
+        return set(), "router repeated a skill"
+    return set(selected), None
+
+
+@scorer(metrics=[accuracy()])
+def routing_coverage():
+    """Require every materially necessary skill, including no-skill cases."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        expected = set((state.metadata or {}).get("expected_skills", []))
+        selected, error = selected_route(state)
+        if error:
+            return Score(value=0, explanation=error)
+        missing = sorted(expected - selected)
+        return Score(value=1 if not missing else 0, explanation=f"missing={missing or None}")
+
+    return score
+
+
+@scorer(metrics=[accuracy()])
+def routing_minimality():
+    """Require that no selected skill is unnecessary for the case."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        expected = set((state.metadata or {}).get("expected_skills", []))
+        selected, error = selected_route(state)
+        if error:
+            return Score(value=0, explanation=error)
+        extra = sorted(selected - expected)
+        return Score(value=1 if not extra else 0, explanation=f"unnecessary={extra or None}")
+
+    return score
 
 
 @scorer(metrics=[accuracy()])
@@ -202,6 +378,7 @@ async def workspace_evidence(state: TaskState) -> str:
         else:
             sections.append(f"REQUIRED FILE {path}:\n{content[:20000]}")
     command_records: list[str] = []
+    tool_records: list[str] = []
     events = (state.output.metadata or {}).get("codex_jsonl", "")
     for line in events.splitlines():
         try:
@@ -210,6 +387,17 @@ async def workspace_evidence(state: TaskState) -> str:
             continue
         item = event.get("item", {})
         if event.get("type") != "item.completed" or item.get("type") != "command_execution":
+            if event.get("type") == "item.completed" and item.get("type") in {
+                "web_search",
+                "browser",
+                "browser_use",
+            }:
+                # Codex emits bounded tool metadata, not page bodies. Keep it
+                # in grader evidence so an attempted bare search cannot look
+                # like a validated source result.
+                tool_records.append(
+                    "TOOL: " + json.dumps(item, ensure_ascii=False)[:4000]
+                )
             continue
         command_records.append(
             "COMMAND: "
@@ -219,6 +407,8 @@ async def workspace_evidence(state: TaskState) -> str:
         )
     if command_records:
         sections.append("OBSERVED COMMAND EVIDENCE:\n" + "\n\n".join(command_records)[-20000:])
+    if tool_records:
+        sections.append("OBSERVED TOOL METADATA:\n" + "\n".join(tool_records)[-12000:])
     return "\n\n".join(sections) or "No workspace changes or required artifacts."
 
 
@@ -277,6 +467,19 @@ def catalog(with_skills: bool = True, native_model: str = "gpt-5.6-luna") -> Tas
             if with_skills
             else [workspace_policy(), native_behavior_grade(model=native_model)]
         ),
+        model="mockllm/model",
+        sandbox="local",
+    )
+
+
+@task
+def routing(native_model: str = "gpt-5.6-luna") -> Task:
+    """Evaluate activation timing and minimal skill selection."""
+
+    return Task(
+        dataset=routing_dataset(),
+        solver=route_codex(model=native_model),
+        scorer=[routing_coverage(), routing_minimality()],
         model="mockllm/model",
         sandbox="local",
     )

@@ -102,7 +102,31 @@ def main() -> None:
     if missing_coverage:
         fail(f"skills missing primary eval coverage: {sorted(missing_coverage)}")
 
-    print(f"validated {len(skill_files)} skills and {len(cases)} Inspect cases")
+    routing_path = ROOT / "evals/cases/routing.json"
+    routing_cases = json.loads(routing_path.read_text())
+    if not isinstance(routing_cases, list) or not routing_cases:
+        fail("routing eval dataset must be a non-empty JSON array")
+    routing_ids: set[str] = set()
+    for case in routing_cases:
+        case_id = case.get("id") if isinstance(case, dict) else None
+        if not isinstance(case_id, str) or not NAME.fullmatch(case_id) or case_id in routing_ids:
+            fail(f"invalid or duplicate routing case id: {case_id!r}")
+        if not isinstance(case.get("input"), str) or not case["input"].strip():
+            fail(f"routing case {case_id} needs input")
+        metadata = case.get("metadata")
+        expected = metadata.get("expected_skills") if isinstance(metadata, dict) else None
+        if not isinstance(expected, list) or not all(
+            isinstance(skill, str) and skill in names for skill in expected
+        ):
+            fail(f"routing case {case_id} needs known expected_skills")
+        if metadata.get("route_kind") not in {"positive", "negative"}:
+            fail(f"routing case {case_id} needs route_kind")
+        routing_ids.add(case_id)
+
+    print(
+        f"validated {len(skill_files)} skills, {len(cases)} behavior cases, "
+        f"and {len(routing_cases)} routing negatives"
+    )
 
 
 if __name__ == "__main__":

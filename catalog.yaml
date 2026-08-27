@@ -7,6 +7,7 @@ policy:
   default_profile: all
 profiles:
   web-engineering: [web-interface, html-artifacts]
+  internet-research: [internet-reach]
   agent-workflows: [grilling, writing-for-agents, wizard, how, architect, teach, unslop, why, pull-requests]
   production-engineering: [code-review-and-quality, security-and-hardening, production-safety, systematic-debugging, verify-work]
   workflow-automation: [create-workflow, hillclimb]
@@ -36,6 +37,20 @@ skills:
   - {profile: agent-workflows, trust: local-reviewed, exported_path: skills/unslop/SKILL.md, source: {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/unslop, adaptation: fact-preserving reconstruction, context-sensitive factual/voice/agent modes, restored AI-pattern taxonomy, and safeguards against invented personality or destructive terminology bans}}
   - {profile: agent-workflows, trust: established, exported_path: skills/why/SKILL.md, source: {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/why, adaptation: available-source evidence workflow}}
   - {profile: agent-workflows, trust: local-reviewed, exported_path: skills/pull-requests/SKILL.md, source: {repository: 'https://github.com/pingdotgg/t3code', commit: 592c5983c14d248aa3cfddb8e6c7372f12cd1ab6, path: AGENTS.md, adaptation: unified GitHub PR and GitLab MR lifecycle with deterministic mode/authority gates, reviewer-centered problem/fix descriptions, current-head evidence, and personalized model-slug attribution}}
+  - profile: internet-research
+    trust: local-reviewed
+    exported_path: skills/internet-reach/SKILL.md
+    source:
+      composition:
+        - {repository: 'https://github.com/Panniantong/Agent-Reach', commit: 06c202b03400a7d31886bf4399213706da1a0324, path: agent_reach/skill/SKILL_en.md}
+        - {repository: 'https://github.com/Panniantong/Agent-Reach', commit: 06c202b03400a7d31886bf4399213706da1a0324, path: agent_reach/skill/references/social.md}
+        - {repository: 'https://github.com/Panniantong/Agent-Reach', commit: 06c202b03400a7d31886bf4399213706da1a0324, path: agent_reach/skill/references/web.md}
+        - {repository: 'https://github.com/Panniantong/Agent-Reach', commit: 06c202b03400a7d31886bf4399213706da1a0324, path: agent_reach/skill/references/search.md}
+        - {repository: 'https://github.com/Panniantong/Agent-Reach', commit: 06c202b03400a7d31886bf4399213706da1a0324, path: agent_reach/skill/references/video.md}
+        - {repository: 'https://github.com/Panniantong/Agent-Reach', commit: 06c202b03400a7d31886bf4399213706da1a0324, path: agent_reach/skill/references/career.md}
+        - {repository: 'https://github.com/mozilla/firefox-devtools-mcp', commit: e04a9551efb0345add549d5cd55c1937b6eefbde, path: README.md}
+        - {repository: 'https://github.com/mozilla/firefox-devtools-mcp', commit: e04a9551efb0345add549d5cd55c1937b6eefbde, path: SECURITY.md}
+      adaptation: source-scoped search for Reddit, YouTube, Instagram, and LinkedIn with public fallbacks, strict per-source evidence, a single headless Zen profile named Agent, portable per-machine binary/profile settings, a slim read-only browser bridge, bounded public fetches, and no account writes or cookie extraction
   - profile: production-engineering
     trust: local-reviewed
     exported_path: skills/code-review-and-quality/SKILL.md

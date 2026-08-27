@@ -28,6 +28,7 @@ Install every skill into an explicit harness directory:
 ```bash
 ./scripts/install.sh --all --target ~/.codex/skills
 ./scripts/install.sh --all --target ~/.config/opencode/skills
+./scripts/install.sh --all --target ~/.claude/skills
 ```
 
 Install selected skills instead:
@@ -37,9 +38,9 @@ Install selected skills instead:
   --skill systematic-debugging --skill web-interface
 ```
 
-Without `--target`, the installer detects a Codex, Claude, or project
-`.agents` directory. Pass an explicit target whenever more than one is present.
-Each selected skill directory is replaced as a complete copy.
+Without `--target`, the installer detects a Codex, OpenCode, Claude, or
+project `.agents` directory. Pass an explicit target whenever more than one is
+present. Each selected skill directory is replaced as a complete copy.
 
 ## Global instructions
 

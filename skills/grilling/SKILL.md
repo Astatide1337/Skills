@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: Pressure-test a plan or design before implementation, including its assumptions, risks, tradeoffs, and failure modes.
+description: Pressure-test a plan or design when the user explicitly asks to grill or challenge assumptions, risks, tradeoffs, or failure modes. Routine architecture critique belongs to architect.
 ---
 
 # Grilling

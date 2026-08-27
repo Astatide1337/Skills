@@ -1,0 +1,32 @@
+[
+  {
+    "id": "route-no-skill-arithmetic",
+    "input": "What is 2 + 2? Answer in one sentence. Do not inspect files or use a workflow.",
+    "metadata": {"expected_skills": [], "route_kind": "negative"}
+  },
+  {
+    "id": "route-no-skill-pasted-summary",
+    "input": "Summarize this pasted text in two sentences. Do not browse, edit files, or apply a writing transformation: The build finished after a cache miss.",
+    "metadata": {"expected_skills": [], "route_kind": "negative"}
+  },
+  {
+    "id": "route-no-skill-general-pr-definition",
+    "input": "In general terms, what is a pull request? This is a conceptual question, not a request to manage one.",
+    "metadata": {"expected_skills": [], "route_kind": "negative"}
+  },
+  {
+    "id": "route-no-skill-css-explanation",
+    "input": "Explain the difference between CSS Grid and Flexbox using a tiny prose example. Do not modify or review a web interface.",
+    "metadata": {"expected_skills": [], "route_kind": "negative"}
+  },
+  {
+    "id": "route-no-skill-plain-draft",
+    "input": "Write a short, factual two-sentence status update from these notes. This is a new draft, not a rewrite of existing prose: deploy is complete; support is monitoring.",
+    "metadata": {"expected_skills": [], "route_kind": "negative"}
+  },
+  {
+    "id": "route-no-skill-pasted-code-question",
+    "input": "What does this expression return for x = 3? Answer from the pasted code only; do not debug or change a repository: `x * 2`.",
+    "metadata": {"expected_skills": [], "route_kind": "negative"}
+  }
+]
