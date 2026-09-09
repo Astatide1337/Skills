@@ -21,6 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = REPO_ROOT / "skills"
 CASES = Path(__file__).parent / "cases" / "catalog.json"
 ROUTING_CASES = Path(__file__).parent / "cases" / "routing.json"
+GLOBAL_INSTRUCTIONS = REPO_ROOT / "global-instructions" / "AGENTS.md"
 GRADE_SCHEMA = Path(__file__).parent / "grade-schema.json"
 ROUTE_SCHEMA = Path(__file__).parent / "route-schema.json"
 AUTH_FILE = Path.home() / ".codex" / "auth.json"
@@ -42,6 +43,14 @@ ROUTING_EXPECTED_OVERRIDES: dict[str, list[str]] = {
     "verify-deployment-claim": ["production-safety", "verify-work"],
     "web-interface-settings": ["web-interface"],
     "teach-idempotency-change": ["teach"],
+    "follow-instructions-shibboleth-boundary": [
+        "follow-instructions",
+        "systematic-debugging",
+        "production-safety",
+        "security-and-hardening",
+        "pull-requests",
+        "verify-work",
+    ],
 }
 
 
@@ -111,7 +120,10 @@ async def run_codex(
             result = await sandbox().exec(
                 command,
                 input=prompt,
-                env={"CODEX_HOME": codex_home},
+                # Codex also discovers user-level skills under ~/.agents.
+                # Isolate HOME as well as CODEX_HOME so the baseline receives
+                # neither catalog nor unrelated personal skills.
+                env={"CODEX_HOME": str(codex_home), "HOME": str(codex_home)},
                 timeout=timeout,
                 timeout_retry=False,
                 concurrency=True,
@@ -190,6 +202,8 @@ def routing_dataset() -> MemoryDataset:
     for case in catalog_cases:
         skill = case["metadata"]["skill"]
         expected = ROUTING_EXPECTED_OVERRIDES.get(case["id"], [skill])
+        if expected and "follow-instructions" not in expected:
+            expected = ["follow-instructions", *expected]
         samples.append(
             Sample(
                 input=case["input"],
@@ -234,8 +248,10 @@ def route_codex(model: str) -> Solver:
             "because a local diagnosis follows a deploy. Add a second skill only "
             "when it owns a distinct requested deliverable, such as a walkthrough "
             "plus a separate code review or an explicit production claim check. "
+            "Apply the governing global instructions when selecting skills. "
             "Return only JSON matching the supplied schema, with canonical skill "
             "names exactly as shown in the catalog. Do not perform the task.\n\n"
+            f"GOVERNING GLOBAL INSTRUCTIONS:\n{GLOBAL_INSTRUCTIONS.read_text()}\n\n"
             f"CATALOG:\n{catalog_routing_index()}\n\n"
             f"USER REQUEST:\n{state.input_text}"
         )
@@ -377,7 +393,7 @@ async def workspace_evidence(state: TaskState) -> str:
             sections.append(f"REQUIRED FILE {path}: MISSING")
         else:
             sections.append(f"REQUIRED FILE {path}:\n{content[:20000]}")
-    command_records: list[str] = []
+    execution_records: list[str] = []
     tool_records: list[str] = []
     events = (state.output.metadata or {}).get("codex_jsonl", "")
     for line in events.splitlines():
@@ -386,7 +402,14 @@ async def workspace_evidence(state: TaskState) -> str:
         except json.JSONDecodeError:
             continue
         item = event.get("item", {})
-        if event.get("type") != "item.completed" or item.get("type") != "command_execution":
+        if event.get("type") != "item.completed":
+            continue
+        if item.get("type") == "file_change":
+            execution_records.append(
+                "FILE CHANGE: " + json.dumps(item, ensure_ascii=False)[:5000]
+            )
+            continue
+        if item.get("type") != "command_execution":
             if event.get("type") == "item.completed" and item.get("type") in {
                 "web_search",
                 "browser",
@@ -399,14 +422,21 @@ async def workspace_evidence(state: TaskState) -> str:
                     "TOOL: " + json.dumps(item, ensure_ascii=False)[:4000]
                 )
             continue
-        command_records.append(
+        execution_records.append(
             "COMMAND: "
             f"{item.get('command', '')[:1000]}\n"
             f"EXIT: {item.get('exit_code')}\n"
             f"OUTPUT:\n{item.get('aggregated_output', '')[:5000]}"
         )
-    if command_records:
-        sections.append("OBSERVED COMMAND EVIDENCE:\n" + "\n\n".join(command_records)[-20000:])
+    if execution_records:
+        execution_evidence = "\n\n".join(execution_records)
+        if len(execution_evidence) > 40000:
+            execution_evidence = (
+                execution_evidence[:20000]
+                + "\n\n... MIDDLE EXECUTION EVIDENCE OMITTED ...\n\n"
+                + execution_evidence[-20000:]
+            )
+        sections.append("OBSERVED ORDERED EXECUTION EVIDENCE:\n" + execution_evidence)
     if tool_records:
         sections.append("OBSERVED TOOL METADATA:\n" + "\n".join(tool_records)[-12000:])
     return "\n\n".join(sections) or "No workspace changes or required artifacts."

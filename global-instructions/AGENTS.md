@@ -3,6 +3,14 @@
 These are the user's working defaults. Direct user instructions and more
 specific repository instructions win.
 
+## Skill compliance
+
+- Whenever one or more other catalog skills apply, use `follow-instructions`
+  before substantive task action. After reading every selected skill and its
+  required references, maintain its instruction ledger through completion. Do
+  not mutate state, publish, or claim completion while a relevant obligation
+  remains unresolved.
+
 ## Work from evidence
 
 - Solve the request that was actually made. Prefer the smallest system, change,
