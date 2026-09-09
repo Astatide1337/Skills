@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Rewrite padded, generic, repetitive, or formulaic prose into natural, specific language while preserving facts, quotes, meaning, and appropriate voice.
+description: Rewrite padded or formulaic prose into a natural, specific voice while preserving facts, quotes, meaning, and context.
 ---
 
 # Unslop

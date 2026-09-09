@@ -1,6 +1,6 @@
 ---
 name: why
-description: Investigate why code or architecture exists using history and external evidence. Use for rationale, lineage, constraints, odd constants, or defensive code.
+description: Investigate why code or architecture exists using history and external evidence. Not for ordinary how/what explanations.
 ---
 
 # Why

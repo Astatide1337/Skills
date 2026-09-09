@@ -1,6 +1,6 @@
 ---
 name: verify-work
-description: Verify an observable engineering result before claiming completion. Use behavior evidence, not tests, builds, or green CI alone.
+description: Verify an observable engineering result before claiming completion. Require behavior evidence; tests, builds, or green CI alone are insufficient.
 ---
 
 # Verify Work

@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: Create, revise, validate, package, or evaluate a catalog skill when a repeated agent behavior needs focused, testable instructions. Not one-off or global rules.
+description: Create, revise, validate, package, or evaluate a catalog skill when repeated behavior needs focused, testable instructions. Not one-off knowledge or global rules.
 ---
 
 # Skill Creator

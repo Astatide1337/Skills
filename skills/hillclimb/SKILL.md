@@ -1,6 +1,6 @@
 ---
 name: hillclimb
-description: Improve one measurable outcome through controlled experiments and a fixed evaluation. Not for ordinary fixes or unsafe production experiments.
+description: Tune one measurable outcome with controlled experiments and a fixed evaluation. Not for ordinary fixes or unsafe production experiments.
 ---
 
 # Hillclimb

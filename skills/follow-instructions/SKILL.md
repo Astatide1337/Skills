@@ -1,6 +1,6 @@
 ---
 name: follow-instructions
-description: Use whenever another catalog skill applies. Route every independently applicable skill, compile its action-changing obligations into gates, and block mutation, publication, or completion while a prerequisite is unresolved. When work changes which identity or process can access existing secrets, or introduces a distinct trust-boundary decision not owned by another selected workflow, also use security-and-hardening even if production-safety applies. Do not use alone for casual conversation or simple factual answers.
+description: Use whenever another catalog skill applies. Route skills; gate mutation, publication, and completion on evidence. Add security-and-hardening for secret-access changes. Not casual questions.
 ---
 
 # Follow Instructions

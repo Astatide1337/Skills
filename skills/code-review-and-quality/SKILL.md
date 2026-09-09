@@ -1,6 +1,6 @@
 ---
 name: code-review-and-quality
-description: Review code or a proposed change for correctness, simplicity, architecture, security, and performance before merge. Not a focused security audit.
+description: Review a proposed or actual change for correctness, simplicity, architecture, security, and performance before merge. Not a focused security audit.
 ---
 
 # Code Review and Quality

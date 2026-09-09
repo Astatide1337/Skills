@@ -1,6 +1,6 @@
 ---
 name: internet-reach
-description: Use when the user asks to search or read the public web, Reddit, YouTube, Instagram, LinkedIn, GitHub, or an RSS/Atom feed. Search the requested source explicitly and return source links; use the isolated Zen profile named Agent only when a page needs JavaScript or sign-in. Do not use for ordinary project browsing or account actions.
+description: Use when asked to search/read web sources, including Reddit, YouTube, Instagram, LinkedIn, GitHub, or RSS. Return direct links; use isolated Zen for rendered/sign-in pages. Not project browsing.
 ---
 
 # Internet reach

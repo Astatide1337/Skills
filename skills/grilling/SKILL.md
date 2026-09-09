@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: Pressure-test a plan or design when the user explicitly asks to grill or challenge assumptions, risks, tradeoffs, or failure modes. Routine architecture critique belongs to architect.
+description: Use when the user explicitly asks to pressure-test a plan or design. Challenge assumptions, risks, tradeoffs, and failure modes; routine critique belongs to architect.
 ---
 
 # Grilling

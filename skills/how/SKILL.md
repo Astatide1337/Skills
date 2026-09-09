@@ -1,6 +1,6 @@
 ---
 name: how
-description: Explain a codebase subsystem's runtime flow, ownership, boundaries, and file placement. Use for walkthroughs or “where should this live?” questions.
+description: Explain a codebase subsystem's runtime flow, ownership, boundaries, or file placement. Use for walkthroughs, not generic conceptual questions.
 ---
 
 # How

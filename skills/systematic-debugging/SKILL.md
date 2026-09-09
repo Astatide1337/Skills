@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Diagnose an unexplained bug, failure, regression, runtime error, or performance problem before fixing it. Find and verify the root cause; do not guess.
+description: Diagnose an unexplained bug, failure, regression, runtime error, or performance problem before fixing it. Prove root cause; do not guess.
 ---
 
 # Systematic Debugging
