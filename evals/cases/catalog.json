@@ -63,7 +63,7 @@
       "evidence.md": "# Release verification evidence\n\n| Check | Outcome | Owner | Evidence |\n| --- | --- | --- | --- |\n| Configuration schema | Pass | Platform | Parser exited 0 |\n| Installer contents | Pass | Platform | 17 directories copied |\n| API smoke test | Fail | Backend | POST /session returned 500 |\n| Tenant isolation | Not run | Security | No second identity available |\n| Keyboard flow | Not run | Web | Browser was not launched |\n| Production revision | Not run | Release | No environment access |\n",
       "style-guide.md": "Use a publication-like system: Georgia headings, system sans-serif body, warm sand background, near-black ink, rust only for emphasis, square corners, thin horizontal rules, and compact tabular data. Do not reproduce the application's sidebar or top navigation in standalone reports."
     },
-    "metadata": {"allow_changes": true, "required_files": ["report.html"], "skill": "html-artifacts"},
+    "metadata": {"allow_changes": true, "skill": "html-artifacts"},
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
   },
   {

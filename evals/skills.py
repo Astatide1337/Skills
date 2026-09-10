@@ -87,7 +87,11 @@ async def run_codex(
     with_skills: bool,
     sandbox_mode: str,
     output_schema: Path | None = None,
-    timeout: int = 900,
+    # Max-effort native cases can spend more than fifteen minutes in one
+    # isolated command session (for example, a full artifact or deployment
+    # investigation). Keep a finite bound while avoiding false evaluation
+    # failures caused solely by the old 900-second cap.
+    timeout: int = 1800,
 ) -> tuple[str, str]:
     """Run signed-in Codex in the current Inspect local sandbox workspace."""
 
@@ -241,13 +245,30 @@ def route_codex(model: str) -> Solver:
             "Treat a skill description as a trigger, not a checklist: do not add "
             "grilling for an ordinary architecture critique (architect already "
             "owns candidate critique; require an explicit grill/pressure-test "
-            "request), how for a teaching request that already asks for a "
-            "plain-language walkthrough, verify-work for a "
+            "request). For a repository walkthrough or a request phrased "
+            "'walk me through what happens,' select how (even when a separate "
+            "architecture critique is requested), not teach. Conversely, when "
+            "the primary wording explicitly asks to be taught, learn, or "
+            "understand a change, select teach even if the explanation includes "
+            "runtime flow; add how only for a separate repository walkthrough. "
+            "Do not "
+            "add verify-work for a "
             "routine implementation verification summary, web-interface for a "
             "standalone disposable HTML artifact, or production-safety merely "
             "because a local diagnosis follows a deploy. Add a second skill only "
             "when it owns a distinct requested deliverable, such as a walkthrough "
             "plus a separate code review or an explicit production claim check. "
+            "Do not add verify-work merely because a domain skill requires tests, "
+            "a holdout, or evidence inside its own workflow. Do not add architect "
+            "merely because a security review discusses boundaries or data flow; "
+            "security-and-hardening owns that assessment unless architecture is "
+            "an explicit separate deliverable. Do not add security-and-hardening "
+            "merely because a setup wizard stores local credentials; the wizard "
+            "owns safe credential handling unless the user explicitly asks for "
+            "a security audit, hardening, or threat model. "
+            "Do select verify-work when the request explicitly conditions a "
+            "completion, publication, deployment, or MR claim on observable "
+            "success (for example, 'do not claim it unless it succeeds'). "
             "Apply the governing global instructions when selecting skills. "
             "Return only JSON matching the supplied schema, with canonical skill "
             "names exactly as shown in the catalog. Do not perform the task.\n\n"
@@ -468,7 +489,10 @@ def native_behavior_grade(model: str):
             with_skills=False,
             sandbox_mode="read-only",
             output_schema=GRADE_SCHEMA,
-            timeout=300,
+            # Native grading can require several minutes for a long, evidence-
+            # rich workspace response. Keep it bounded, but do not let a
+            # valid sample fail solely because the grader's prompt is large.
+            timeout=900,
         )
         try:
             grade = json.loads(completion)

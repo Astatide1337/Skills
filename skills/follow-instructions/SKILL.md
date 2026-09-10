@@ -55,6 +55,22 @@ Do not mutate while a required checkpoint field is blank or inferred. Keep the
 full ledger internal unless it blocks progress, instructions conflict, the user
 requests an audit, or a missed obligation requires disclosure.
 
+### Required sensitive-work handoff
+
+If the task involves secrets, multiple processes or containers, or an external
+publication claim, the final response must contain these headings and concrete
+evidence, even when the change is withheld:
+
+- `Alternatives tested:` each material hypothesis and the observation that
+  distinguished it;
+- `Boundary map:` one row per relevant owner or process, naming its input,
+  filesystem/API boundary, and sensitive-data access; and
+- `Effect and evidence:` the complete source-to-consumer path, checks run,
+  runtime/publication limits, and the narrow observable claim supported.
+
+Do not replace these with a sentence that merely says the boundary was
+reviewed. If a field is unknown, name the missing check instead of inferring it.
+
 ## Cross the gates in order
 
 ### 1. Inspection

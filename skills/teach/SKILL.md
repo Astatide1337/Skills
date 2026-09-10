@@ -1,6 +1,6 @@
 ---
 name: teach
-description: Teach a code change or subsystem in plain language so the user can maintain it. Use for explanation, not implementation or review.
+description: Teach a code change or subsystem so the user can maintain it. Use when teaching is explicit; not a repository walkthrough, implementation, or review.
 ---
 
 # Teach
