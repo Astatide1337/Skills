@@ -21,10 +21,18 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = REPO_ROOT / "skills"
 CASES = Path(__file__).parent / "cases" / "catalog.json"
 ROUTING_CASES = Path(__file__).parent / "cases" / "routing.json"
+WORKFLOW_CASES = Path(__file__).parent / "cases" / "workflows.json"
 GLOBAL_INSTRUCTIONS = REPO_ROOT / "global-instructions" / "AGENTS.md"
 GRADE_SCHEMA = Path(__file__).parent / "grade-schema.json"
 ROUTE_SCHEMA = Path(__file__).parent / "route-schema.json"
+LEGACY_ROUTE_SCHEMA = Path(__file__).parent / "legacy-route-schema.json"
+WORKFLOW_ROUTE_SCHEMA = Path(__file__).parent / "workflow-route-schema.json"
 AUTH_FILE = Path.home() / ".codex" / "auth.json"
+WORKFLOW_DEFAULT_SETUP = (
+    "git init -q && git config user.email eval@example.invalid && "
+    "git config user.name Eval && git add . && "
+    "git commit --allow-empty -qm baseline"
+)
 SKILL_NAMES = {
     path.name
     for path in SKILLS_ROOT.iterdir()
@@ -57,7 +65,13 @@ ROUTING_EXPECTED_OVERRIDES: dict[str, list[str]] = {
 def isolated_codex_home(with_skills: bool) -> tempfile.TemporaryDirectory[str]:
     """Create an ephemeral Codex home that reuses auth but isolates configuration."""
 
-    directory = tempfile.TemporaryDirectory(prefix="skills-eval-codex-")
+    # Codex may create helper binaries next to its ephemeral home.  Keep the
+    # isolated home out of /tmp (which the CLI deliberately refuses for PATH
+    # aliases) while still cleaning it up after each sample.
+    directory = tempfile.TemporaryDirectory(
+        prefix="skills-eval-codex-",
+        dir=str(Path.home() / ".cache"),
+    )
     home = Path(directory.name)
     if not AUTH_FILE.is_file():
         directory.cleanup()
@@ -133,7 +147,11 @@ async def run_codex(
                 concurrency=True,
             )
             if not result.success:
-                raise RuntimeError(f"native Codex failed: {result.stderr.strip()}")
+                raise RuntimeError(
+                    "native Codex failed: "
+                    f"exit={result.returncode}; stderr={result.stderr.strip()}; "
+                    f"stdout={result.stdout[-4000:]}"
+                )
             completion = await sandbox().read_file(output_file)
             return completion.strip(), result.stdout
         finally:
@@ -141,12 +159,17 @@ async def run_codex(
 
 
 @solver
-def native_codex(with_skills: bool, model: str) -> Solver:
+def native_codex(
+    with_skills: bool,
+    model: str,
+    *,
+    inject_skill: bool = True,
+) -> Solver:
     """Execute a sample with the locally authenticated Codex CLI."""
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         prompt = state.input_text
-        if with_skills:
+        if with_skills and inject_skill:
             skill = (state.metadata or {}).get("skill")
             skill_path = SKILLS_ROOT / skill / "SKILL.md"
             instructions = skill_path.read_text()
@@ -169,8 +192,10 @@ def native_codex(with_skills: bool, model: str) -> Solver:
             content=completion,
         )
         state.output.metadata = {"codex_jsonl": events}
-        if with_skills:
+        if with_skills and inject_skill:
             state.output.metadata["injected_skill"] = skill
+        elif with_skills:
+            state.output.metadata["skill_discovery"] = "installed-catalog"
         return state
 
     return solve
@@ -231,6 +256,24 @@ def routing_dataset() -> MemoryDataset:
     return MemoryDataset(samples=samples, name="catalog-routing", shuffled=False)
 
 
+def workflows_dataset() -> MemoryDataset:
+    """Load workflow cases with the same global rules at each fixture root."""
+
+    dataset = json_dataset(str(WORKFLOW_CASES))
+    global_rules = GLOBAL_INSTRUCTIONS.read_text()
+    for sample in dataset.samples:
+        files = dict(sample.files or {})
+        files["AGENTS.md"] = global_rules
+        sample.files = files
+        if not sample.setup:
+            sample.setup = WORKFLOW_DEFAULT_SETUP
+        sample.metadata = {
+            **(sample.metadata or {}),
+            "execution_scope": "trusted-synthetic-local",
+        }
+    return dataset
+
+
 @solver
 def route_codex(model: str) -> Solver:
     """Ask the native model to route without giving it a skill by fiat."""
@@ -281,7 +324,7 @@ def route_codex(model: str) -> Solver:
             model=model,
             with_skills=False,
             sandbox_mode="read-only",
-            output_schema=ROUTE_SCHEMA,
+            output_schema=LEGACY_ROUTE_SCHEMA,
             timeout=300,
         )
         state.output = ModelOutput.from_content(
@@ -341,6 +384,188 @@ def routing_minimality():
             return Score(value=0, explanation=error)
         extra = sorted(selected - expected)
         return Score(value=1 if not extra else 0, explanation=f"unnecessary={extra or None}")
+
+    return score
+
+
+def _parse_workflow_route(state: TaskState) -> tuple[dict[str, object] | None, str | None]:
+    try:
+        value = json.loads(state.output.completion)
+    except (AttributeError, json.JSONDecodeError):
+        return None, "router did not return JSON"
+    if not isinstance(value, dict) or not isinstance(value.get("workflow"), dict):
+        return None, "router omitted workflow composition"
+    workflow = value["workflow"]
+    required = {
+        "primary",
+        "mode",
+        "follow_ons",
+        "domains",
+        "modifiers",
+        "effects",
+        "constraints",
+    }
+    if set(workflow) != required:
+        return None, f"workflow fields mismatch: {sorted(set(workflow) ^ required)}"
+    if not isinstance(workflow["primary"], str) or not isinstance(workflow["mode"], str):
+        return None, "workflow primary/mode must be strings"
+    for field in ("follow_ons", "domains", "modifiers", "constraints"):
+        values = workflow[field]
+        if not isinstance(values, list) or not all(isinstance(item, str) for item in values):
+            return None, f"workflow {field} must be a string array"
+    unknown_domains = sorted(set(workflow["domains"]) - SKILL_NAMES)
+    if unknown_domains:
+        return None, f"workflow domains contain unknown skills: {unknown_domains}"
+    if any(item != "parallel" for item in workflow["modifiers"]):
+        return None, "workflow modifiers contain an unknown value"
+    effects = workflow["effects"]
+    if not isinstance(effects, dict) or set(effects) != {
+        "workspace",
+        "external",
+        "production",
+    } or not all(isinstance(value, str) for value in effects.values()):
+        return None, "workflow effects must name string workspace/external/production"
+    return workflow, None
+
+
+@solver
+def workflow_route_codex(model: str) -> Solver:
+    """Use coordinator/global instructions without injecting expected answers."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        prompt = (
+            "Classify this request using the supplied global instructions and the "
+            "follow-instructions coordinator. Return only JSON matching the supplied "
+            "schema. Populate its optional workflow object with the primary family, "
+            "separate mode, ordered follow-ons, peer domains, parallel modifier, "
+            "permitted effects, and material constraints. Do not perform the task.\n\n"
+            f"GLOBAL INSTRUCTIONS:\n{GLOBAL_INSTRUCTIONS.read_text()}\n\n"
+            f"FOLLOW-INSTRUCTIONS:\n{(SKILLS_ROOT / 'follow-instructions' / 'SKILL.md').read_text()}\n\n"
+            f"CATALOG TRIGGERS:\n{catalog_routing_index()}\n\n"
+            f"USER REQUEST:\n{state.input_text}"
+        )
+        completion, events = await run_codex(
+            prompt,
+            model=model,
+            with_skills=False,
+            sandbox_mode="read-only",
+            output_schema=WORKFLOW_ROUTE_SCHEMA,
+            timeout=300,
+        )
+        state.output = ModelOutput.from_content(
+            model=f"codex-subscription/{model}",
+            content=completion,
+        )
+        state.output.metadata = {
+            "codex_jsonl": events,
+            "routing_mode": "coordinator-discovery-diagnostic",
+        }
+        return state
+
+    return solve
+
+
+@scorer(metrics=[accuracy()])
+def workflow_composition():
+    """Score hidden route metadata, never an answer inserted into the prompt."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        del target
+        workflow, error = _parse_workflow_route(state)
+        if error or workflow is None:
+            return Score(value=0, explanation=error or "missing workflow")
+        metadata = state.metadata or {}
+        expected_routes = list(metadata.get("expected_workflows", []))
+        expected_primary, expected_mode = expected_routes[0].split("/", 1)
+        expected_follow_ons = expected_routes[1:]
+        expected_skills = set(metadata.get("expected_skills", []))
+        optional_skills = set(metadata.get("optional_skills", []))
+        # The PR/MR package owns the external lifecycle even when it is an
+        # optional readback companion to a review route. It is deliberately
+        # excluded from peer-domain scoring so an agent may select it for
+        # lifecycle context without pretending it is review expertise.
+        lifecycle_skills = {"pull-requests"}
+        expected_domains = sorted(
+            expected_skills - {"follow-instructions"} - lifecycle_skills
+        )
+        allowed_domains = set(expected_domains) | (
+            optional_skills - {"follow-instructions"} - lifecycle_skills
+        )
+        optional_domains = optional_skills - {"follow-instructions"} - lifecycle_skills
+        selected, route_error = selected_route(state)
+        allow_changes = bool(metadata.get("allow_changes", False))
+        if any(route == "issues/create" for route in expected_routes):
+            external = "issue-create"
+        elif any(route == "issues/update" for route in expected_routes):
+            external = "issue-update"
+        elif any(route == "pull-requests/create" for route in expected_routes):
+            external = "pr-create"
+        elif any(route == "pull-requests/communicate" for route in expected_routes):
+            external = "comment"
+        else:
+            external = "none"
+        expected_production = metadata.get(
+            "expected_production",
+            (
+                "write"
+                if allow_changes
+                and any(
+                    route in {
+                        "migrate-operate/migrate",
+                        "migrate-operate/release",
+                        "migrate-operate/incident",
+                    }
+                    for route in expected_routes
+                )
+                else "none"
+            ),
+        )
+        allowed_production = set(
+            metadata.get("allowed_production", [expected_production])
+        )
+        expected_effects = {
+            "workspace": "write" if allow_changes else "read",
+            "external": external,
+            "production": expected_production,
+        }
+        mismatches: list[str] = []
+        if route_error:
+            mismatches.append("skills-invalid")
+        elif (
+            expected_skills - selected
+            or selected - (expected_skills | optional_skills)
+        ):
+            mismatches.append("skills")
+        if workflow["primary"] != expected_primary or workflow["mode"] != expected_mode:
+            mismatches.append("primary/mode")
+        if workflow["follow_ons"] != expected_follow_ons:
+            mismatches.append("follow_ons")
+        selected_domains = set(workflow["domains"])
+        selected_domain_skills = selected - {"follow-instructions"} - lifecycle_skills
+        if (
+            set(expected_domains) - selected_domains
+            or selected_domains - allowed_domains
+            or selected_domains - selected_domain_skills
+            or (
+                optional_domains
+                and not (selected & optional_domains) <= selected_domains
+            )
+        ):
+            mismatches.append("domains")
+        if workflow["modifiers"] != list(metadata.get("expected_modifiers", [])):
+            mismatches.append("modifiers")
+        if workflow["effects"]["workspace"] != expected_effects["workspace"]:
+            mismatches.append("effects")
+        if workflow["effects"]["external"] != expected_effects["external"]:
+            mismatches.append("effects")
+        if workflow["effects"]["production"] not in allowed_production:
+            mismatches.append("effects")
+        return Score(
+            value=1 if not mismatches else 0,
+            explanation=f"mismatches={mismatches or None}",
+            metadata={"mismatches": mismatches},
+        )
 
     return score
 
@@ -509,6 +734,160 @@ def native_behavior_grade(model: str):
     return score
 
 
+FAKE_TRACKER_STATE = Path(
+    "/tmp/astatide-skills-fake-tracker-workflow-investigate-create-issue.json"
+)
+
+
+def _successful_codex_commands(state: TaskState) -> list[str]:
+    """Extract successful command invocations from native Codex JSONL events."""
+
+    raw = (state.output.metadata or {}).get("codex_jsonl", "")
+    if not isinstance(raw, str):
+        return []
+    commands: list[str] = []
+    for line in raw.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        item = event.get("item")
+        if not isinstance(item, dict) or item.get("type") != "command_execution":
+            continue
+        if item.get("status") != "completed" or item.get("exit_code") != 0:
+            continue
+        command = item.get("command")
+        if isinstance(command, str):
+            commands.append(command)
+    return commands
+
+
+def _fixture_observations_from_events(state: TaskState) -> list[str]:
+    """Derive only tool-backed fixture observations, never from final prose."""
+
+    commands = _successful_codex_commands(state)
+    source_readers = ("sed ", "cat ", "git show", "rg ", "grep ", "head ", "tail ", "nl ")
+    observations: list[str] = []
+    if any("lookup.py" in command and any(reader in command for reader in source_readers) for command in commands):
+        observations.append("owning-source-inspected")
+    if any("tracker.py create" in command for command in commands):
+        observations.append("issue-created")
+    if any("tracker.py get" in command for command in commands):
+        observations.append("issue-read-back")
+    return observations
+
+
+@solver
+def workflow_fixture_candidate() -> Solver:
+    """Exercise the supplied fake tracker without changing the repository."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        source = await sandbox().read_file("lookup.py")
+        if "def lookup" not in source:
+            raise RuntimeError("owning lookup source was not inspectable")
+        create = await sandbox().exec(
+            [
+                "python",
+                "tracker.py",
+                "create",
+                "--title",
+                "Tenant lookup can cross owner boundary",
+                "--body",
+                "Problem: lookup uses the requested identifier without checking its owner.\n"
+                "Scope: enforce the authenticated owner at lookup.\n"
+                "Acceptance: an owner can read its row and another owner is denied.",
+            ],
+            timeout=30,
+            timeout_retry=False,
+        )
+        if not create.success:
+            raise RuntimeError(f"fake issue create failed: {create.stderr.strip()}")
+        issue = json.loads(create.stdout)
+        readback = await sandbox().exec(
+            ["python", "tracker.py", "get", issue["id"]],
+            timeout=30,
+            timeout_retry=False,
+        )
+        if not readback.success:
+            raise RuntimeError(f"fake issue readback failed: {readback.stderr.strip()}")
+        state.store.set(
+            "workflow_fixture_observations",
+            ["owning-source-inspected", "issue-created", "issue-read-back"],
+        )
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content=(
+                "Inspected lookup.py, created fixture-1, and fetched it back. "
+                "No repository files were edited."
+            ),
+        )
+        return state
+
+    return solve
+
+
+@scorer(metrics=[accuracy()])
+def workflow_effects():
+    """Grade fake publication from fixture state and observed workspace effects."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        del target
+        if "issue-created" not in (state.metadata or {}).get("required_observations", []):
+            return Score.unscored(
+                explanation="no fake-tracker contract for this workflow case",
+                metadata={"status": "unmeasured"},
+            )
+        observations = state.store.get("workflow_fixture_observations", [])
+        if not observations:
+            observations = _fixture_observations_from_events(state)
+        required = {"owning-source-inspected", "issue-created", "issue-read-back"}
+        if not required <= set(observations):
+            return Score(value=0, explanation=f"observations={observations!r}")
+        try:
+            fixture_state = json.loads(FAKE_TRACKER_STATE.read_text())
+        except (FileNotFoundError, OSError, json.JSONDecodeError) as exc:
+            return Score(value=0, explanation=f"fake tracker state unavailable: {exc}")
+        actions = fixture_state.get("actions")
+        issues = fixture_state.get("issues")
+        if not isinstance(actions, list) or not isinstance(issues, list):
+            return Score(value=0, explanation="fake tracker state has invalid shape")
+        action_names = [item.get("action") for item in actions if isinstance(item, dict)]
+        if (
+            action_names.count("create") != 1
+            or action_names.count("get") < 1
+            or any(name not in {"create", "get"} for name in action_names)
+            or len(issues) != 1
+        ):
+            return Score(
+                value=0,
+                explanation=f"unexpected fake tracker actions/issues: {action_names!r}/{len(issues)}",
+            )
+        return Score(value=1, explanation="one fixture issue was created and read back")
+
+    return score
+
+
+@task
+def workflow_fixture_smoke() -> Task:
+    """Run a real no-model workflow publication/readback fixture."""
+
+    sample = workflows_dataset().samples[0]
+    return Task(
+        dataset=MemoryDataset(
+            samples=[sample],
+            name="workflow-fixture-smoke",
+            shuffled=False,
+        ),
+        solver=workflow_fixture_candidate(),
+        scorer=[workspace_policy(), workflow_effects()],
+        model="mockllm/model",
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
 @task
 def catalog(with_skills: bool = True, native_model: str = "gpt-5.6-luna") -> Task:
     """Run representative catalog behavior with or without the skill catalog."""
@@ -536,4 +915,42 @@ def routing(native_model: str = "gpt-5.6-luna") -> Task:
         scorer=[routing_coverage(), routing_minimality()],
         model="mockllm/model",
         sandbox="local",
+    )
+
+
+@task
+def workflow_routing(native_model: str = "gpt-5.6-luna") -> Task:
+    """Diagnose task/mode/domain/effect composition from normal instructions."""
+
+    return Task(
+        dataset=workflows_dataset(),
+        solver=workflow_route_codex(model=native_model),
+        scorer=[workflow_composition()],
+        model="mockllm/model",
+        sandbox="local",
+    )
+
+
+@task
+def workflows(
+    with_skills: bool = True,
+    native_model: str = "gpt-5.6-luna",
+) -> Task:
+    """Run integrated workflow cases with ordinary installed discovery."""
+
+    return Task(
+        dataset=workflows_dataset(),
+        solver=native_codex(
+            with_skills=with_skills,
+            model=native_model,
+            inject_skill=False,
+        ),
+        scorer=[
+            workspace_policy(),
+            workflow_effects(),
+            native_behavior_grade(model=native_model),
+        ],
+        model="mockllm/model",
+        sandbox="local",
+        score_on_error=True,
     )

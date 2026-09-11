@@ -96,8 +96,16 @@
           "items": {"type": "string"}
         }
       },
-      "required": ["primary", "mode", "follow_ons", "domains", "modifiers", "effects", "constraints"]
+      "required": [
+        "primary",
+        "mode",
+        "follow_ons",
+        "domains",
+        "modifiers",
+        "effects",
+        "constraints"
+      ]
     }
   },
-  "required": ["skills", "reason"]
+  "required": ["skills", "reason", "workflow"]
 }

@@ -15,6 +15,55 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 LINK = re.compile(r"\[[^]]*\]\(([^)]+)\)")
+PLAYBOOK_NAMES = {
+    "investigate.md",
+    "design.md",
+    "implement.md",
+    "performance.md",
+    "migrate-operate.md",
+    "review.md",
+    "issues.md",
+    "document-teach.md",
+    "custom.md",
+    "parallel.md",
+}
+PLAYBOOK_SECTIONS = (
+    "## When",
+    "## Inputs to establish",
+    "## Steps and decision points",
+    "## Failure and recovery",
+    "## Completion evidence",
+    "## Example",
+    "## Near-miss",
+)
+WORKFLOW_ROUTES = {
+    "investigate/read",
+    "design/plan",
+    "design/prototype",
+    "implement/bug",
+    "implement/feature",
+    "implement/refactor",
+    "performance/measure",
+    "performance/improve",
+    "migrate-operate/upgrade",
+    "migrate-operate/migrate",
+    "migrate-operate/release",
+    "migrate-operate/incident",
+    "review/review",
+    "review/rereview",
+    "issues/draft",
+    "issues/create",
+    "issues/update",
+    "issues/triage",
+    "pull-requests/draft",
+    "pull-requests/create",
+    "pull-requests/monitor",
+    "pull-requests/communicate",
+    "document-teach/document",
+    "document-teach/teach",
+    "workflow-improvement/improve",
+    "custom/compose",
+}
 
 
 def fail(message: str) -> None:
@@ -76,6 +125,20 @@ def main() -> None:
     for path in ROOT.glob("skills/**/*.md"):
         validate_links(path)
 
+    coordinator = SKILLS / "follow-instructions"
+    playbooks = {path.name for path in (coordinator / "playbooks").glob("*.md")}
+    if playbooks != PLAYBOOK_NAMES:
+        fail(
+            "follow-instructions playbooks must be exactly "
+            f"{sorted(PLAYBOOK_NAMES)}, found {sorted(playbooks)}"
+        )
+    for name in sorted(PLAYBOOK_NAMES):
+        path = coordinator / "playbooks" / name
+        text = path.read_text()
+        missing_sections = [section for section in PLAYBOOK_SECTIONS if section not in text]
+        if missing_sections:
+            fail(f"playbook {path.relative_to(ROOT)} missing sections: {missing_sections}")
+
     cases = json.loads((ROOT / "evals/cases/catalog.json").read_text())
     if not isinstance(cases, list) or not cases:
         fail("Inspect dataset must be a non-empty JSON array")
@@ -123,9 +186,73 @@ def main() -> None:
             fail(f"routing case {case_id} needs route_kind")
         routing_ids.add(case_id)
 
+    workflows_path = ROOT / "evals/cases/workflows.json"
+    workflow_cases = json.loads(workflows_path.read_text())
+    if not isinstance(workflow_cases, list) or not workflow_cases:
+        fail("workflow eval dataset must be a non-empty JSON array")
+    workflow_ids: set[str] = set()
+    for case in workflow_cases:
+        case_id = case.get("id") if isinstance(case, dict) else None
+        if not isinstance(case_id, str) or not NAME.fullmatch(case_id) or case_id in workflow_ids:
+            fail(f"invalid or duplicate workflow case id: {case_id!r}")
+        if not all(isinstance(case.get(key), str) and case[key].strip() for key in ("input", "target")):
+            fail(f"workflow case {case_id} needs input and target")
+        metadata = case.get("metadata")
+        if not isinstance(metadata, dict) or not isinstance(metadata.get("allow_changes"), bool):
+            fail(f"workflow case {case_id} needs explicit allow_changes")
+        expected_skills = metadata.get("expected_skills")
+        if not isinstance(expected_skills, list) or not all(
+            isinstance(skill, str) and skill in names for skill in expected_skills
+        ):
+            fail(f"workflow case {case_id} needs known expected_skills")
+        optional_skills = metadata.get("optional_skills", [])
+        if not isinstance(optional_skills, list) or not all(
+            isinstance(skill, str) and skill in names for skill in optional_skills
+        ):
+            fail(f"workflow case {case_id} has invalid optional_skills")
+        if set(expected_skills) & set(optional_skills):
+            fail(f"workflow case {case_id} repeats a required skill as optional")
+        expected_production = metadata.get("expected_production", "none")
+        if expected_production not in {"none", "read", "write"}:
+            fail(f"workflow case {case_id} has invalid expected_production")
+        allowed_production = metadata.get("allowed_production", [expected_production])
+        if not isinstance(allowed_production, list) or not allowed_production or not all(
+            value in {"none", "read", "write"} for value in allowed_production
+        ):
+            fail(f"workflow case {case_id} has invalid allowed_production")
+        if expected_production not in allowed_production:
+            fail(f"workflow case {case_id} expected_production is not allowed")
+        expected_workflows = metadata.get("expected_workflows")
+        if not isinstance(expected_workflows, list) or not expected_workflows or not all(
+            isinstance(route, str) and route in WORKFLOW_ROUTES
+            for route in expected_workflows
+        ):
+            fail(f"workflow case {case_id} needs known expected_workflows")
+        modifiers = metadata.get("expected_modifiers")
+        if not isinstance(modifiers, list) or not all(
+            modifier == "parallel" for modifier in modifiers
+        ):
+            fail(f"workflow case {case_id} has invalid expected_modifiers")
+        for field in ("forbidden_effects", "required_observations"):
+            values = metadata.get(field)
+            if not isinstance(values, list) or not values or not all(
+                isinstance(value, str) and value.strip() for value in values
+            ):
+                fail(f"workflow case {case_id} needs non-empty {field}")
+        files = case.get("files", {})
+        if not isinstance(files, dict) or not all(
+            isinstance(path, str) and path and isinstance(content, str)
+            for path, content in files.items()
+        ):
+            fail(f"workflow case {case_id} has invalid fixture files")
+        setup = case.get("setup")
+        if setup is not None and (not isinstance(setup, str) or not setup.strip()):
+            fail(f"workflow case {case_id} has invalid setup")
+        workflow_ids.add(case_id)
+
     print(
         f"validated {len(skill_files)} skills, {len(cases)} behavior cases, "
-        f"and {len(routing_cases)} routing negatives"
+        f"{len(routing_cases)} routing cases, and {len(workflow_cases)} workflow cases"
     )
 
 

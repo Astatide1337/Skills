@@ -48,6 +48,54 @@ present. Each selected skill directory is replaced as a complete copy.
 portable source for cross-repository working defaults. Installing it is always
 an explicit, user-controlled action and is separate from skill installation.
 
+## Task playbooks
+
+When a catalog skill applies, `follow-instructions` is the single entry point:
+it chooses one primary task process, attaches only the domain skills that own
+the decisions, records permitted effects separately, and loads supporting
+procedures from `skills/follow-instructions/playbooks/`. It is not used for a
+plain conceptual answer and does not grant merge or deployment authority.
+
+Examples:
+
+```text
+Fix the broken search filter and run its regression.
+→ implement/bug + systematic-debugging; workspace write; no PR requested.
+
+Investigate the tenant lookup failure and create one issue; do not edit code.
+→ investigate/read → issues/create; source inspection, one tracker write/readback,
+  and no workspace, PR, merge, or deployment effect.
+
+Design and execute a one-off offline reproduction package from these sanitized
+snapshots; do not contact production or create a permanent workflow.
+→ custom/compose; compose existing investigation/security/verification methods
+  into a temporary checked sequence and report any blocked input.
+```
+
+The first line is the requested outcome; it is not a new command language. The
+coordinator preserves literal prohibitions, uses `pull-requests` for explicit
+publication, and applies `production-safety`/`security-and-hardening` when
+those boundaries are in scope. Parallel work is an optional modifier and ends
+with an integrated check.
+
+The implemented package map is intentionally small:
+
+```text
+skills/follow-instructions/
+  SKILL.md                 coordinator and route table
+  playbooks/               investigate, design, implement, performance,
+                           migrate-operate, review, issues, document-teach,
+                           custom, and parallel procedures
+skills/<domain-skill>/SKILL.md
+global-instructions/AGENTS.md
+evals/cases/workflows.json  composition and execution fixtures
+```
+
+For the second example, the agent reads `lookup.py`, records the finding in the
+supplied local tracker with one `create`, fetches that issue with `get`, and
+stops before editing the repository or opening a PR. The fixture is only a
+deterministic evaluation boundary; it is not a live tracker integration.
+
 ## Validate and evaluate
 
 Run deterministic structure and catalog checks:
@@ -66,6 +114,18 @@ uv run inspect list tasks evals/skills.py
 
 Run live evaluations only deliberately: they use the locally authenticated
 Codex CLI and can execute model-generated code inside its workspace sandbox.
+
+The workflow path keeps the existing evaluator entry points. Verify discovery
+and run the deterministic fixture smoke with:
+
+```bash
+uv run inspect list tasks evals/skills.py
+uv run inspect eval evals/skills.py@workflow_fixture_smoke --max-samples 1
+```
+
+`workflow_fixture_smoke` uses a disposable fake tracker and is not a live
+GitHub/GitLab integration. Native comparisons are separate, finite, and must
+use the same model, tools, permissions, and budget for baseline and treatment.
 
 ## Safety and provenance
 

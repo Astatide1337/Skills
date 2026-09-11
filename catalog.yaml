@@ -13,7 +13,7 @@ profiles:
   workflow-automation: [create-workflow, hillclimb]
   catalog-admin: [skill-creator]
 skills:
-  - {profile: agent-workflows, trust: local-reviewed, exported_path: skills/follow-instructions/SKILL.md, source: {origin: local, adaptation: instruction-ledger control derived from an observed multi-skill production incident}}
+  - {profile: agent-workflows, trust: local-reviewed, exported_path: skills/follow-instructions/SKILL.md, source: {origin: local, adaptation: task/domain/authority coordinator and linked Markdown playbooks derived from an observed multi-skill production incident; no new runtime or agent framework}}
   - profile: web-engineering
     trust: local-reviewed
     exported_path: skills/web-interface/SKILL.md

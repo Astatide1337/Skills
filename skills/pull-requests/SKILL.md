@@ -13,7 +13,8 @@ Treat GitHub pull requests and GitLab merge requests as the same review artifact
 | --- | --- | --- |
 | Write, prepare, or draft a title, description, reply, or suggestion | Draft | No remote writes. |
 | File, create, or open a PR/MR, including "open a draft PR/MR" | Create | Push the reviewed current branch and create one PR/MR. |
-| Watch, babysit, monitor, or keep an eye on a PR/MR | Monitor | Read remote state; fix and push real in-scope defects or retry a justified flaky check. |
+| Check/watch/status a PR/MR | Monitor | Read remote state only; no code, push, or retry effect is implied. |
+| Monitor and fix/address named in-scope defects | Monitor-and-fix | Repair only the authorized scope, then verify and push when that lifecycle is authorized. |
 | Post, reply, comment, or suggest on a PR/MR | Communicate | Post that specific checked comment only. |
 | Merge, close, reopen, rebase, or deploy | Separate action | Require explicit authorization for that action. |
 
@@ -107,21 +108,24 @@ material review focus only.
 ## Monitor without scope creep
 
 At each snapshot, record the head SHA, required-check state, mergeability, and
-unresolved review items. On a later snapshot:
+unresolved review items. Plain status/watch mode is read-only. On a later
+snapshot:
 
 - Ignore a failed check tied only to an older SHA, but assess unresolved review
   feedback even when it was opened earlier.
 - Inspect the current source, diff, and logs before trusting a bot or reviewer
   finding. Classify it as real and in-scope, flaky/unrelated, stale, unclear,
   or scope-expanding.
-- Fix, verify, commit, and push a real in-scope defect. Retry a flaky check
-  only when the request and platform allow it. Never edit product code, tests,
-  CI, dependencies, or infrastructure merely to silence an unrelated failure.
+- In `monitor-and-fix` mode only, fix, verify, commit, and push a real
+  in-scope defect. Retry a flaky check only when the request and platform allow
+  it. Never edit product code, tests, CI, dependencies, or infrastructure
+  merely to silence an unrelated failure.
 - Do not turn a reviewer request into quiet scope creep. Ask whether it belongs
   in this PR/MR or follow-up work when it changes the review unit.
 
 Do not post or resolve a human review thread solely because monitor mode is
-active. Communicate mode is required for that visible action.
+active. Communicate mode is required for that visible action. A reviewer
+comment is evidence to assess, not authority to repair or publish.
 
 Stop when the current head is review-clean, required checks are green, and
 mergeability is known; when the PR/MR closes or is superseded; when a real

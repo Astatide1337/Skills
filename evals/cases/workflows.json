@@ -1,0 +1,284 @@
+[
+  {
+    "id": "workflow-investigate-create-issue",
+    "input": "Investigate the tenant lookup failure in the supplied repository and create one issue in the supplied test tracker. Do not edit code or open a PR. The fixture README explains the test-tracker command.",
+    "target": "A source-grounded diagnosis or explicitly limited finding is recorded in one published issue with observable acceptance conditions; the issue is fetched back; no code changes or PR writes occur.",
+    "files": {
+      "AGENTS.md": "",
+      "README-fixture.md": "The supplied test tracker is a local fixture. Run `python tracker.py create --title TITLE --body BODY` once, then run `python tracker.py get ISSUE_ID` to read it back. It writes only fixture state outside the repository.\n",
+      "lookup.py": "def lookup(subject_id, requested_id):\n    return records[requested_id]\n\nrecords = {'other-user': {'owner': 'other-user'}}\n",
+      "tracker.py": "#!/usr/bin/env python3\nimport argparse, json, sys\nfrom pathlib import Path\nSTATE = Path('/tmp/astatide-skills-fake-tracker-workflow-investigate-create-issue.json')\n\ndef read():\n    if not STATE.exists(): return {'issues': [], 'actions': []}\n    value = json.loads(STATE.read_text())\n    value.setdefault('actions', [])\n    return value\n\ndef write(value):\n    STATE.write_text(json.dumps(value, sort_keys=True))\n\nparser = argparse.ArgumentParser()\nsub = parser.add_subparsers(dest='action', required=True)\ncreate = sub.add_parser('create'); create.add_argument('--title', required=True); create.add_argument('--body', required=True)\nget = sub.add_parser('get'); get.add_argument('issue_id')\nargs = parser.parse_args(); state = read()\nif args.action == 'create':\n    state['actions'].append({'action': 'create'})\n    if state['issues']:\n        issue = state['issues'][0]\n    else:\n        issue = {'id': 'fixture-1', 'title': args.title, 'body': args.body, 'state': 'open'}\n        state['issues'].append(issue)\n    write(state); print(json.dumps(issue, sort_keys=True))\nelif args.action == 'get':\n    state['actions'].append({'action': 'get', 'id': args.issue_id})\n    for issue in state['issues']:\n        if issue['id'] == args.issue_id:\n            write(state); print(json.dumps(issue, sort_keys=True)); sys.exit(0)\n    write(state); sys.exit('issue not found')\n"
+    },
+    "setup": "python -c \"from pathlib import Path; Path('/tmp/astatide-skills-fake-tracker-workflow-investigate-create-issue.json').unlink(missing_ok=True)\" && git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add -- lookup.py README-fixture.md tracker.py AGENTS.md && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": ["follow-instructions", "systematic-debugging"],
+      "expected_workflows": ["investigate/read", "issues/create"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["workspace-edit", "pr-create", "merge", "deploy"],
+      "required_observations": ["owning-source-inspected", "issue-created", "issue-read-back"]
+    }
+  },
+  {
+    "id": "workflow-draft-issue",
+    "input": "Draft a concise issue for the supplied tenant lookup symptom. Do not search the tracker, post it, edit code, or open a PR.",
+    "target": "Usable Problem/Scope/Acceptance copy is returned and no remote or workspace write occurs.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": ["follow-instructions"],
+      "expected_workflows": ["issues/draft"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["issue-create", "workspace-edit", "pr-create", "merge", "deploy"],
+      "required_observations": ["draft-returned", "no-remote-write"]
+    }
+  },
+  {
+    "id": "workflow-update-issue",
+    "input": "Update the supplied issue with the new acceptance condition, fetching it before and after. Do not change code or open a PR.",
+    "target": "The existing issue is read before update, its conflicting old scope is explicitly superseded, and the returned issue is fetched back.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": ["follow-instructions"],
+      "expected_workflows": ["issues/update"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["workspace-edit", "pr-create", "merge", "deploy"],
+      "required_observations": ["issue-read-before", "issue-updated", "issue-read-back"]
+    }
+  },
+  {
+    "id": "workflow-triage-duplicate",
+    "input": "Triage whether this tenant lookup report duplicates an existing issue. Return a recommendation only; do not label, close, assign, or edit anything.",
+    "target": "Evidence-backed duplicate recommendation with no tracker mutation.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": ["follow-instructions"],
+      "expected_workflows": ["issues/triage"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["issue-create", "issue-update", "workspace-edit", "pr-create", "merge", "deploy"],
+      "required_observations": ["duplicate-evidence-read", "no-remote-write"]
+    }
+  },
+  {
+    "id": "workflow-fix-open-draft-pr",
+    "input": "Fix the broken search filter in the supplied repository and open a draft PR. Preserve the negative case for another tenant; do not merge or deploy.",
+    "target": "The causal bug is corrected with a focused regression, the requested negative case remains, and one draft PR is created and read back at the current head.",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": ["follow-instructions", "systematic-debugging", "security-and-hardening", "pull-requests"],
+      "optional_skills": ["verify-work"],
+      "expected_workflows": ["implement/bug", "pull-requests/create"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["merge", "deploy"],
+      "required_observations": ["owner-inspected", "original-repro-run", "regression-run", "draft-pr-read-back"]
+    }
+  },
+  {
+    "id": "workflow-ui-feature",
+    "input": "Add the requested settings toggle to the supplied web interface and verify the real interaction and relevant visual state. Do not publish a PR.",
+    "target": "The toggle works in the actual affected UI state with appropriate loading/error behavior and no PR write.",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": ["follow-instructions", "web-interface", "verify-work"],
+      "expected_workflows": ["implement/feature"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["pr-create", "merge", "deploy"],
+      "required_observations": ["owner-inspected", "interaction-exercised", "screenshot-inspected"]
+    }
+  },
+  {
+    "id": "workflow-refactor-preserve",
+    "input": "Refactor the supplied parser without changing its public behavior or adding features. Run the existing compatibility checks.",
+    "target": "The implementation is structurally simpler while callers and observable behavior remain compatible.",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": ["follow-instructions"],
+      "optional_skills": ["verify-work"],
+      "expected_workflows": ["implement/refactor"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["pr-create", "merge", "deploy"],
+      "required_observations": ["callers-inspected", "compatibility-check", "diff-reviewed"]
+    }
+  },
+  {
+    "id": "workflow-plan-architecture",
+    "input": "Recommend an architecture for the supplied queue change. Compare realistic alternatives and stop at a plan; do not edit files or deploy.",
+    "target": "A source-grounded decision compares alternatives, ownership, failure/retry behavior, and a verifiable implementation sequence without mutation.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": ["follow-instructions", "architect"],
+      "expected_workflows": ["design/plan"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["workspace-edit", "merge", "deploy"],
+      "required_observations": ["callers-inspected", "alternatives-compared", "plan-returned"]
+    }
+  },
+  {
+    "id": "workflow-prototype-isolated",
+    "input": "Prototype the supplied serialization idea in disposable local state and report whether it meets the declared observation. Do not call production or claim readiness.",
+    "target": "A bounded isolated experiment is run and judged against declared observations, with shortcuts and limits visible.",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": ["follow-instructions", "verify-work"],
+      "optional_skills": ["architect"],
+      "expected_workflows": ["design/prototype"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["production-write", "deploy", "merge"],
+      "required_observations": ["isolated-experiment", "prototype-result", "limitations-reported"]
+    }
+  },
+  {
+    "id": "workflow-performance-measure",
+    "input": "Measure the supplied slow query under the fixed workload and report the bottleneck. Do not change the query or database.",
+    "target": "Comparable baseline measurements and source-grounded bottleneck findings are returned with no mutation.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": ["follow-instructions"],
+      "optional_skills": ["hillclimb", "systematic-debugging", "verify-work"],
+      "expected_workflows": ["performance/measure"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["workspace-edit", "production-write", "deploy"],
+      "required_observations": ["baseline-measured", "bottleneck-inspected", "no-mutation"]
+    }
+  },
+  {
+    "id": "workflow-performance-improve",
+    "input": "Improve the supplied endpoint's measured latency under the fixed workload, preserving correctness and tail limits.",
+    "target": "A reproduced performance improvement survives comparable correctness and tail/resource checks.",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": ["follow-instructions", "hillclimb"],
+      "optional_skills": ["verify-work"],
+      "expected_workflows": ["performance/improve"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["deploy", "merge"],
+      "required_observations": ["baseline-measured", "candidate-measured", "correctness-checked", "tail-checked"]
+    }
+  },
+  {
+    "id": "workflow-upgrade-versioned",
+    "input": "Upgrade the pinned dependency using version-matched migration notes and compatibility checks. Do not deploy.",
+    "target": "The required version/callers are updated and compatibility checks run against the tested version; no guessed latest or deployment claim.",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": ["follow-instructions", "internet-reach", "verify-work"],
+      "expected_workflows": ["migrate-operate/upgrade"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["production-write", "deploy", "merge"],
+      "required_observations": ["version-pinned", "migration-notes-read", "compatibility-checked"]
+    }
+  },
+  {
+    "id": "workflow-plan-migration",
+    "input": "Plan a data migration for the supplied production-like database. Inventory consumers and recovery, but do not execute it.",
+    "target": "A verifiable migration sequence names consumers, compatibility, idempotency, recovery, and the no-mutation boundary.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": ["follow-instructions", "production-safety"],
+      "optional_skills": ["architect", "security-and-hardening"],
+      "expected_workflows": ["design/plan"],
+      "expected_modifiers": [],
+      "expected_production": "read",
+      "allowed_production": ["none", "read"],
+      "forbidden_effects": ["production-write", "deploy", "merge"],
+      "required_observations": ["consumers-mapped", "recovery-reviewed", "no-mutation"]
+    }
+  },
+  {
+    "id": "workflow-incident-mitigate",
+    "input": "Mitigate the authorized fixture incident, preserve evidence, and report mitigation separately from root cause. Do not deploy unrelated changes.",
+    "target": "The least disruptive authorized mitigation is observed and root-cause uncertainty remains explicit.",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": ["follow-instructions", "systematic-debugging"],
+      "optional_skills": ["production-safety", "verify-work"],
+      "expected_workflows": ["migrate-operate/incident"],
+      "expected_modifiers": [],
+      "expected_production": "none",
+      "forbidden_effects": ["merge", "deploy"],
+      "required_observations": ["impact-established", "mitigation-observed", "root-cause-separated"]
+    }
+  },
+  {
+    "id": "workflow-review-and-post",
+    "input": "Review the supplied revision and post one submitted review if a material defect remains. Read back the review state; do not merge.",
+    "target": "Current-head findings are evidence-backed and the requested review is submitted and read back, not left pending.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": ["follow-instructions", "code-review-and-quality", "pull-requests"],
+      "expected_workflows": ["review/review", "pull-requests/communicate"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["workspace-edit", "merge", "deploy"],
+      "required_observations": ["head-pinned", "finding-evidenced", "review-submitted", "review-read-back"]
+    }
+  },
+  {
+    "id": "workflow-rereview-head",
+    "input": "Re-review the supplied pull request after its head changed. Re-run the original case on the new head and report readiness only.",
+    "target": "The new head is pinned and the original case is assessed on current evidence; old results are not relabeled.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": ["follow-instructions", "code-review-and-quality", "verify-work"],
+      "optional_skills": ["pull-requests"],
+      "expected_workflows": ["review/rereview"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["workspace-edit", "pr-create", "merge", "deploy"],
+      "required_observations": ["new-head-pinned", "original-case-rerun", "readiness-limited"]
+    }
+  },
+  {
+    "id": "workflow-pr-status-readonly",
+    "input": "Check the current PR status, checks, mergeability, and review feedback. Do not edit, push, comment, or merge.",
+    "target": "Current remote state is reported with no repair or publication effect.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": ["follow-instructions", "pull-requests"],
+      "optional_skills": ["verify-work"],
+      "expected_workflows": ["pull-requests/monitor"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["workspace-edit", "push", "comment", "merge", "deploy"],
+      "required_observations": ["head-read", "checks-read", "reviews-read"]
+    }
+  },
+  {
+    "id": "workflow-custom-temporary",
+    "input": "Design and execute a one-off process that turns these authorized sanitized snapshots into an offline reproduction package. Do not contact production or create a permanent workflow.",
+    "target": "Existing methods are composed into a temporary checked process that produces a usable offline package without secret or production effects.",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": ["follow-instructions"],
+      "optional_skills": ["architect", "security-and-hardening", "production-safety", "verify-work"],
+      "expected_workflows": ["custom/compose"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["production-read", "production-write", "deploy", "merge"],
+      "required_observations": ["existing-routes-tried", "temporary-steps-recorded", "offline-repro-exercised"]
+    }
+  },
+  {
+    "id": "workflow-parallel-safe",
+    "input": "Implement the authorized feature using parallel workers only where the settled interface makes the work independent, then verify the integrated journey.",
+    "target": "Workers have bounded ownership and the integrated result is checked; shared conflicting state is serialized.",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": ["follow-instructions", "verify-work"],
+      "optional_skills": ["architect", "code-review-and-quality"],
+      "expected_workflows": ["implement/feature"],
+      "expected_modifiers": ["parallel"],
+      "forbidden_effects": ["merge", "deploy"],
+      "required_observations": ["interface-settled", "worker-artifacts-inspected", "integrated-journey"]
+    }
+  },
+  {
+    "id": "workflow-correction-resume",
+    "input": "Continue the interrupted bug repair by applying the user's corrected scope. Recheck current state, remove the superseded assumption, and preserve the remaining constraints.",
+    "target": "The resumed route uses current state and corrected scope without losing authority or claiming stale evidence.",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": ["follow-instructions"],
+      "optional_skills": ["systematic-debugging", "verify-work"],
+      "expected_workflows": ["implement/bug"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["merge", "deploy"],
+      "required_observations": ["current-state-rechecked", "superseded-scope-removed", "result-reverified"]
+    }
+  }
+]

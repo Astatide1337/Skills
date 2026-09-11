@@ -1,163 +1,193 @@
 ---
 name: follow-instructions
-description: Use whenever another catalog skill applies. Route skills; gate mutation, publication, and completion on evidence. Add security-and-hardening for secret-access changes. Not casual questions.
+description: Use when a task activates another catalog skill or needs a tool, edit, external write, or completion claim. Classify the outcome, playbook, domains, and authority before acting; do not use for casual direct answers.
 ---
 
 # Follow Instructions
 
-Turn selected instructions into enforced prerequisites. This skill coordinates
-domain skills; it never substitutes for them.
+Use this skill once as the task entry point. It selects a process, attaches
+domain knowledge, and limits effects; it does not replace the owner skills.
+Load the linked playbook and selected domain skills after classification. Do
+not invoke `follow-instructions` recursively from a leaf skill.
 
-## Bootstrap before acting
+For any request that needs a catalog workflow, include `follow-instructions` in
+the selected skill set before its domain packages. Direct conceptual answers
+remain the only bypass; selecting a domain package alone is not a substitute
+for the coordinator.
 
-Until bootstrap is complete, only read instruction sources and perform
-read-only discovery needed to locate them. Do not edit, run a mutation-capable
-command, create a branch or commit, publish, or claim a result.
+## First classify the request
 
-1. Identify the requested outcome, contemplated actions, affected boundaries,
-   and intended completion claim.
-2. Select every skill whose own trigger matches any of those dimensions. Treat
-   coverage as non-substitutable: production safety does not replace security
-   review of secret access; debugging does not replace review or publication;
-   PR/MR management does not prove the result it describes.
-   Any proposal to copy, mount, expose, relocate, or change a consumer of
-   secrets requires `security-and-hardening`, even when the same operation also
-   requires `production-safety`.
-3. Read every selected skill and each required reference completely.
-4. Extract only obligations that can change permission, prerequisite
-   inspection, required evidence, mutation scope, a stop condition, or a
-   truthful completion claim.
-5. Track each obligation as `pending`, `satisfied`, `not applicable`, or
-   `blocked`, with its source, timing, and evidence. Unknown is not
-   `not applicable`.
+Parse the requested observable outcome, literal constraints, non-goals, source
+or environment limits, requested artifact, and completion claim. Keep these
+four dimensions separate:
 
-## Require a pre-mutation checkpoint
+| Dimension | Record | Examples |
+| --- | --- | --- |
+| Outcome and mode | One primary process | `investigate/read`, `implement/bug`, `review/rereview` |
+| Domains | Peer expertise needed by the actual surface | `systematic-debugging`, `web-interface`, `security-and-hardening` |
+| Follow-ons | Distinct requested deliverables in order | `issues/create`, `pull-requests/create` |
+| Effects and authority | What may change, where, and why | workspace read; issue create; no PR/deploy |
 
-Before the first mutation or external write, record a compact checkpoint in a
-progress update or internal scratchpad. It must contain:
+Negative constraints win. A noun in the request does not grant access, a
+review comment does not grant repair authority, and `allow_changes` concerns
+workspace state only. Missing capability remains unavailable; it is not
+silently treated as “not applicable.”
 
-- selected skills and required references read;
-- exact target, environment, and authoritative source;
-- relevant knowns, unknowns, and assumptions;
-- the current causal or design hypothesis, at least one plausible alternative,
-  and the observed check that discriminates between them when causality matters;
-- affected owners, consumers, identities, writers or controllers, and
-  sensitive data;
-- the proposed change, rollback, and its complete effect path;
-- evidence required before publication and completion.
+## Choose the lightest sufficient route
 
-For a relevant multi-process or multi-container boundary, include:
+Select by the requested action and evidence, not by every subject mentioned.
+Use one primary process for one outcome; add a follow-on only for a separate
+deliverable. Add a `parallel` modifier only when independent work is useful
+and the delegation tool and ownership boundary are real.
 
-| Owner | Process | Input | Filesystem or API boundary | Sensitive data |
-|---|---|---|---|---|
+Keep the family and mode separate in a route record: `issues` + `draft`, not a
+slash-qualified primary. A draft is copy only: `draft a PR/MR` selects
+`pull-requests/draft`, while `open` or `create a draft PR/MR` selects
+`pull-requests/create`; the verb is decisive. **Never downgrade an explicit
+`open`, `create`, or `file` request to `pull-requests/draft` merely because the
+requested remote artifact is marked draft.** The installed `pull-requests` skill
+accompanies a PR/MR route; playbook names such as `issues` are not top-level
+skills unless an installed package owns them. Publication read-back belongs to
+its lifecycle route and does not automatically add `verify-work`; use that
+domain for a separately requested claim or current-behavior check. Never put
+`verify-work` in `follow_ons`; it is a domain entry. Keep `pull-requests` as the
+lifecycle owner, not a peer domain, and do not add `pull-requests/monitor` merely
+to read back a publication. Effects describe the requested operation, not this
+classification-only response: an explicit production-like target permits
+`production: read` for inspection even when mutation is prohibited; a fixture or
+synthetic target has `production: none`. A resumed or interrupted **repair** is
+still `implement/bug` with `workspace: write` when the corrected request retains
+the repair, not a read-only route. Do not infer production authority from a
+generic database, endpoint, or dependency mention: require an explicit live or
+production-like boundary. `domains` names exact installed catalog packages; do
+not invent labels such as `migration` or `backend` when no package owns that
+name. An authorized synthetic or fixture incident is not a production effect
+unless the request explicitly names a production-like target.
 
-Do not mutate while a required checkpoint field is blank or inferred. Keep the
-full ledger internal unless it blocks progress, instructions conflict, the user
-requests an audit, or a missed obligation requires disclosure.
+Use the canonical route modes exactly as written in the table (`read`, `plan`,
+`prototype`, `bug`, `feature`, `refactor`, `measure`, `improve`, `upgrade`,
+`migrate`, `release`, `incident`, `review`, `rereview`, `draft`, `create`,
+`monitor`, `communicate`, `document`, `teach`, `improve`, or `compose`). Do not
+replace a mode with a prose description. In particular, an unmatched but
+authorized one-off process is `custom/compose`, not a free-form custom mode.
 
-### Required sensitive-work handoff
+| Request shape | Primary route | Supporting playbook |
+| --- | --- | --- |
+| Read-only investigation, research, or explanation of an actual source | `investigate/read` | [investigate](playbooks/investigate.md) |
+| Architecture, plan, or authorized isolated prototype | `design/plan` or `design/prototype` | [design](playbooks/design.md) |
+| Fix a defect, add behavior, or preserve behavior while changing structure | `implement/bug`, `implement/feature`, or `implement/refactor` | [implement](playbooks/implement.md) |
+| Measure or improve a performance problem | `performance/measure` or `performance/improve` | [performance](playbooks/performance.md) |
+| Upgrade, migrate, release, or handle an incident | `migrate-operate/<mode>` | [migrate-operate](playbooks/migrate-operate.md) |
+| Review, audit, or re-review a revision | `review/review` or `review/rereview` | [review](playbooks/review.md) |
+| Establish whether a claim is true/current | existing `verify-work` | [verify-work](../verify-work/SKILL.md) |
+| Draft, create, update, or triage an issue | `issues/<mode>` | [issues](playbooks/issues.md) |
+| Draft, create, monitor, or communicate on a PR/MR | existing `pull-requests/<mode>` | [pull-requests](../pull-requests/SKILL.md) |
+| Explain source or produce documentation/teaching | `document-teach/document` or `document-teach/teach` | [document-teach](playbooks/document-teach.md) |
+| Improve a reusable skill or workflow | `workflow-improvement/improve` | [create-workflow](../create-workflow/SKILL.md), [skill-creator](../skill-creator/SKILL.md) |
+| Explicit bespoke task or no adequate composition | `custom/compose` | [custom](playbooks/custom.md) |
 
-If the task involves secrets, multiple processes or containers, or an external
-publication claim, the final response must contain these headings and concrete
-evidence, even when the change is withheld:
+Plan-only migration uses `design/plan` with the applicable production and
+security domains; it does not invent a `migrate-operate/plan` mode. A report or
+handoff is not by itself a `document-teach` follow-on. Follow-ons name only a
+distinct requested deliverable, and top-level `skills` contains installed
+packages rather than playbook family names.
 
-- `Alternatives tested:` each material hypothesis and the observation that
-  distinguished it;
-- `Boundary map:` one row per relevant owner or process, naming its input,
-  filesystem/API boundary, and sensitive-data access; and
-- `Effect and evidence:` the complete source-to-consumer path, checks run,
-  runtime/publication limits, and the narrow observable claim supported.
+Direct conceptual questions, pasted-code answers, and ordinary drafting that
+need no catalog workflow select no route. An unfamiliar language is still a
+known task when its process is clear. A custom route is a last resort, not a
+way around a failed safety or verification gate.
 
-Do not replace these with a sentence that merely says the boundary was
-reviewed. If a field is unknown, name the missing check instead of inferring it.
+## Compose domains without granting effects
 
-## Cross the gates in order
+Attach only the expertise that owns a material decision. Typical attachments:
 
-### 1. Inspection
+- causal bugs: [systematic-debugging](../systematic-debugging/SKILL.md);
+- non-trivial boundaries: [architect](../architect/SKILL.md);
+- quality or review: [code-review-and-quality](../code-review-and-quality/SKILL.md);
+- secrets, auth, untrusted data, or agent boundaries: [security-and-hardening](../security-and-hardening/SKILL.md);
+- production-like infrastructure, persistent data, or credentials: [production-safety](../production-safety/SKILL.md);
+- incident mitigation followed by cause investigation: [systematic-debugging](../systematic-debugging/SKILL.md);
+- source flow/history/teaching: `how`, `why`, or `teach` when separately requested;
+- UI and real interactions: [web-interface](../web-interface/SKILL.md);
+- external research: [internet-reach](../internet-reach/SKILL.md).
 
-Inspect the exact target, owning implementation, authoritative configuration,
-and every relevant process, filesystem, identity, controller, or API boundary.
-Separate observation from assumption. An error message proves a symptom, not
-its cause.
+Domain knowledge does not authorize an operation. Keep specialized sensitive
+procedures in their owner and preserve that owner's trigger. A production
+plan, review-only request, or draft publication stops at its requested
+boundary; merge and deploy remain separate explicit actions. The incident
+route's default sequence is stabilize, then investigate the cause, so attach
+`systematic-debugging` unless the request explicitly limits the work to
+mitigation-only reporting.
 
-### 2. Causality or design
+## Initialize once and keep an instruction ledger
 
-When the task changes behavior, compare plausible explanations or ownership
-layers and run the smallest check that distinguishes them. Connect the proposed
-change to the observed mechanism. Stop if the owning implementation or material
-runtime boundary remains uninspected.
+Before substantive action, read the global instructions, this skill, the
+selected playbook, selected domain skills, and required references. Record
+only obligations that can change permission, ordering, evidence, a stop
+condition, or a completion claim:
 
-### 3. Mutation
+`source · timing · pending/satisfied/not-applicable/blocked · concrete evidence`
 
-Confirm exact authorization, scope, affected consumers and sensitive data,
-competing writers or reconciliation where relevant, and rollback. Re-read the
-selected skills' mutation and stop conditions.
+Unknown is not “not applicable.” Reconcile the ledger when the user corrects
+scope, a revision changes, a delegated artifact returns, or a task resumes.
+Do not expose a full ledger for a trivial task unless an instruction blocks
+progress or the user requests an audit.
 
-Trace the effect path explicitly:
+The gates are ordered:
 
-`edited source or desired state -> build/render/reconciliation -> deployed consumer -> requested behavior`
+1. **Inspect:** identify the exact target, authoritative source, owner,
+   callers, state, identities, and relevant filesystem/API boundaries.
+2. **Causality/design:** state the current hypothesis or design choice, one
+   plausible alternative, and the smallest observation that distinguishes
+   them when behavior is unexplained. Do not patch an uninspected owner.
+3. **Mutate:** confirm scope and authorization, affected consumers/writers,
+   sensitive data, rollback, and the complete effect path before editing or
+   writing externally. Never broaden secret access to resolve uncertainty.
+4. **Publish:** inspect the final diff and current revision; run the relevant
+   correctness, architecture, security, operational, and attribution checks;
+   verify the remote artifact or submitted review after a write.
+5. **Complete:** name the requested observable result and claim only what
+   current evidence proves. Static structure or a green command is not runtime
+   behavior.
 
-Choose the narrowest authorized layer whose available path reaches the target.
-A source edit is not a fix for an existing artifact when an unavailable or
-unperformed build, publish, reconciliation, or rollout is still required. Do
-not broaden secret access to resolve path, mount, identity, or ownership
-uncertainty.
+For secrets, multiple processes, production-like state, or publication claims,
+the handoff must include `Alternatives tested:`, `Boundary map:`, and `Effect
+and evidence:` with unknowns named. Ordinary issue drafting or a direct answer
+does not require a deployment-boundary report.
 
-When a sensitive producer already exposes its owned directory to the intended
-consumer, configure the consumer to read the exact required file there. Do not
-copy or alias-mount the whole sensitive bundle under a legacy consumer path
-unless the consumer cannot be configured directly and the broader path exposure
-has been justified and verified. Prefer changing a configurable command or
-configuration pointer over duplicating producer-owned secret paths.
+## Handle correction, recovery, and parallel work
 
-For an orchestrated workload, decide explicitly whether the owning change is in
-the deployment's command/arguments, generated configuration, or image. If the
-current task has no authorized and available image build, publish, and rollout
-path, editing a Dockerfile or image entrypoint fails the effect-path gate. When
-the consumer accepts the needed path as a startup argument and the orchestrator
-supports a command or argument override, prefer that scoped desired-state
-change over rebuilding the image or remounting a producer-owned secret bundle.
+If an obligation was skipped, stop mutation, name the risk, inspect existing
+work for unsafe or misleading state, and revise or revert only within the
+authorized scope. Do not defend a result because later evidence partly agrees.
 
-### 4. Publication
+Use [parallel](playbooks/parallel.md) only as a modifier to a valid primary
+route. Establish shared interfaces and writers first; give each worker a
+bounded input, owned files/resources, invariants, effects, and return artifact.
+Inspect the actual returned diff or artifact and verify the integrated result.
+If delegation is unavailable or coordination costs more than it saves, run
+the same route sequentially without pretending parallelism occurred.
 
-Before committing, pushing, opening or updating a PR/MR, commenting, or
-deploying, inspect the complete final diff and satisfy every applicable
-correctness, architecture, security, operational, and authorization obligation.
-Ensure the description states the established mechanism and no unresolved
-assumption as fact. Structural validation proves only structure.
+## Route notation
 
-### 5. Completion
+Keep the compact task record useful:
 
-Name the requested observable result and require current evidence at that
-layer. State material unknowns and narrow the claim accordingly. A green build,
-valid manifest, successful command, or healthy controller does not substitute
-for runtime behavior.
+`Outcome / Route / Domains / Effects / Constraints / Done`
 
-For a completed sensitive multi-process change, report the competing
-explanations distinguished, the resulting owner/process/input/boundary/secret
-map, and the evidence that access did not broaden. Do not hide a missing gate
-behind a concise handoff.
+Example: `diagnose tenant lookup / investigate/read -> issues/create /
+systematic-debugging / workspace read + supplied tracker issue-create /
+no code edit, no PR / source finding, one issue fetched back, no unsupported
+claim`.
 
-Audit that report before the completion claim. If it omits the alternative
-hypothesis and discriminating result, the boundary map, the end-to-end effect
-path, or a material runtime limitation, the completion gate remains pending.
-Use this compact evidence shape so the obligations remain observable:
+Supporting procedures:
 
-- `Alternatives tested:` each material hypothesis and the observation that
-  distinguished it;
-- `Boundary map:` one row per relevant owner or process, naming input,
-  filesystem/API boundary, and sensitive data access; and
-- `Effect and evidence:` changed source or desired state through its consumer
-  and requested behavior, followed by static, runtime, and publication limits.
-
-Prefer an existing mechanical check when it directly tests an obligation. Do
-not invent automation merely to avoid a bounded judgment call.
-
-## Recover from a missed obligation
-
-If a prerequisite was skipped, stop further mutation, name the omission and
-risk, inspect whether existing work is unsafe or misleading, and disclose the
-mistake when it affected the work or claim. Revert, revise, or continue only
-within existing authorization. Add a deterministic check when it can reliably
-replace the failed judgment. Do not defend the result because later evidence
-partially supports it.
+- [investigate](playbooks/investigate.md)
+- [design](playbooks/design.md)
+- [implement](playbooks/implement.md)
+- [performance](playbooks/performance.md)
+- [migrate-operate](playbooks/migrate-operate.md)
+- [review](playbooks/review.md)
+- [issues](playbooks/issues.md)
+- [document-teach](playbooks/document-teach.md)
+- [custom](playbooks/custom.md)
+- [parallel](playbooks/parallel.md)
