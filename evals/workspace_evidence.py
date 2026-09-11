@@ -96,6 +96,9 @@ _SECRET_ASSIGNMENT = re.compile(
 _PEM_BLOCK = re.compile(
     r"(?s)-----BEGIN [^-]*PRIVATE KEY-----.*?-----END [^-]*PRIVATE KEY-----"
 )
+_INDEX_HEADER = re.compile(
+    rb"(?:^|\n)([0-7]{6} [0-9a-f]{40,64} [0-3])\t([^\0]*)\0"
+)
 
 
 @dataclass(frozen=True)
@@ -106,9 +109,9 @@ class Baseline:
     revision: str | None = None
     initial_paths: tuple[str, ...] = ()
     tracked_paths: tuple[str, ...] = ()
-    # (path, object ID, file mode, merge stage). Git's maintained listing
-    # intentionally omits the mutable stat-cache fields.
-    index_entries: tuple[tuple[str, str, int, int], ...] = ()
+    # (path, object ID, file mode, merge stage, semantic index flags). Git's
+    # maintained listing intentionally omits the mutable stat-cache fields.
+    index_entries: tuple[tuple[str, str, int, int, int], ...] = ()
     object_id_bytes: int = 20
     # (kind, device, inode, target-or-note); only a real local directory is
     # accepted so post-candidate Git plumbing cannot be redirected elsewhere.
@@ -789,12 +792,12 @@ def _read_index_entries(
     object_id_bytes: int,
     max_paths: int,
     max_bytes: int,
-) -> tuple[tuple[tuple[str, str, int, int], ...], str | None, bool]:
+) -> tuple[tuple[tuple[str, str, int, int, int], ...], str | None, bool]:
     """Read semantic index entries through Git's maintained interface."""
 
     result = _git(
         root,
-        ["ls-files", "--cached", "--stage", "-z"],
+        ["ls-files", "--cached", "--stage", "--debug", "-z"],
         output_limit=max_bytes,
     )
     error = _error(result)
@@ -803,17 +806,28 @@ def _read_index_entries(
     if "output truncated by evaluator" in _decode(result.stderr):
         return (), "Git index listing exceeded the bounded output limit", True
 
-    records: list[tuple[str, str, int, int]] = []
-    for raw_record in result.stdout.split(b"\0"):
-        if not raw_record:
-            continue
+    records: list[tuple[str, str, int, int, int]] = []
+    headers = list(_INDEX_HEADER.finditer(result.stdout))
+    if not headers:
+        return tuple(records), "incomplete Git index debug listing", False
+    for offset, header_match in enumerate(headers):
+        raw_record = header_match.group(1)
+        raw_path = header_match.group(2)
+        debug_end = headers[offset + 1].start() if offset + 1 < len(headers) else len(result.stdout)
+        debug = result.stdout[header_match.end() : debug_end]
         try:
-            header, raw_path = raw_record.split(b"\t", 1)
-            mode_text, oid, stage_text = header.decode("ascii").split()
+            mode_text, oid, stage_text = raw_record.decode("ascii").split()
             path = _decode(raw_path)
             mode = int(mode_text, 8)
             stage = int(stage_text, 10)
-        except (UnicodeDecodeError, ValueError) as exc:
+            debug_text = debug.decode("ascii")
+            flags_marker = "flags:"
+            flags_offset = debug_text.find(flags_marker)
+            if flags_offset < 0:
+                raise ValueError("missing semantic index flags")
+            flags_text = debug_text[flags_offset + len(flags_marker) :].splitlines()[0]
+            flags = int(flags_text.strip(), 10)
+        except (StopIteration, UnicodeDecodeError, ValueError) as exc:
             return tuple(records), f"invalid Git index listing record ({exc})", False
         if len(oid) != object_id_bytes * 2:
             return tuple(records), f"invalid Git object ID for {path!r}", False
@@ -821,7 +835,7 @@ def _read_index_entries(
             return tuple(records), f"invalid Git index path {path!r}", False
         if len(records) >= max_paths:
             return tuple(records), None, True
-        records.append((path, oid, mode, stage))
+        records.append((path, oid, mode, stage, flags))
     return tuple(records), None, False
 
 
@@ -932,6 +946,13 @@ def _path_boundary_records(
         if not validate_relative_path(relative):
             content.append(f"REQUIRED PATH {relative}: rejected (must be workspace-relative)")
             omissions.append(f"{relative}: path-boundary")
+            continue
+        parts = PurePosixPath(relative).parts
+        if parts and parts[0] == ".git":
+            content.append(
+                f"REQUIRED PATH {relative}: content omitted (Git metadata boundary)"
+            )
+            omissions.append(f"{relative}: git-boundary")
             continue
         current = root
         symlink = False
@@ -1248,7 +1269,7 @@ def collect_evidence(
         not git_boundary_error and not control_omissions and not control_truncated
     )
     final_revision: str | None = None
-    final_index_entries: tuple[tuple[str, str, int, int], ...] = ()
+    final_index_entries: tuple[tuple[str, str, int, int, int], ...] = ()
     if git_plumbing_available:
         final = _git(root, ["rev-parse", "HEAD"])
         final_error = _error(final)
@@ -1292,11 +1313,11 @@ def collect_evidence(
         path: value for path, value in current_control_map.items() if path != ".git/index"
     }
     def index_map(
-        entries: Sequence[tuple[str, str, int, int]],
-    ) -> dict[str, tuple[tuple[str, int, int], ...]]:
-        grouped: dict[str, list[tuple[str, int, int]]] = {}
-        for path, oid, mode, stage in entries:
-            grouped.setdefault(path, []).append((oid, mode, stage))
+        entries: Sequence[tuple[str, str, int, int, int]],
+    ) -> dict[str, tuple[tuple[str, int, int, int], ...]]:
+        grouped: dict[str, list[tuple[str, int, int, int]]] = {}
+        for path, oid, mode, stage, flags in entries:
+            grouped.setdefault(path, []).append((oid, mode, stage, flags))
         return {
             path: tuple(sorted(values))
             for path, values in grouped.items()

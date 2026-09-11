@@ -308,6 +308,16 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             _assert_path(self, missing, "missing/output.txt")
             self.assertNotIn("unchanged", _text(missing).lower())
 
+            metadata = collect_evidence(
+                repo,
+                baseline,
+                required_paths=(".git/config",),
+            )
+            _assert_unavailable(self, metadata)
+            _assert_outcome(self, metadata, "unavailable")
+            self.assertIn("git-boundary", _text(metadata).lower())
+            self.assertNotIn("[remote", _text(metadata).lower())
+
     def test_symlink_required_path_is_reported_without_following_content(self) -> None:
         with tempfile.TemporaryDirectory(prefix="workspace-evidence-symlink-") as raw:
             parent = Path(raw)
@@ -513,6 +523,13 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             self.assertIn("scratch/report.txt", _strings(_field(evidence, "current_untracked_paths")))
             self.assertEqual(_strings(_field(evidence, "untracked_paths")), [])
 
+            (repo / "scratch/report.txt").write_text("CHANGED_IGNORED\n", encoding="utf-8")
+            changed = collect_evidence(repo, baseline)
+            _assert_available(self, changed)
+            _assert_outcome(self, changed, "changed")
+            self.assertTrue(_field(changed, "has_changes"))
+            self.assertIn("scratch/report.txt", _strings(_field(changed, "untracked_paths")))
+
     def test_candidate_git_filters_are_never_executed_by_collection(self) -> None:
         with tempfile.TemporaryDirectory(prefix="workspace-evidence-filter-") as raw:
             repo = _new_repo(Path(raw) / "repo")
@@ -558,6 +575,18 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             _assert_available(self, evidence)
             _assert_marker(self, evidence)
             self.assertTrue(_field(evidence, "has_changes"))
+
+    def test_semantic_index_flag_changes_are_observable(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-index-flag-") as raw:
+            repo = _new_repo(Path(raw) / "repo")
+            baseline = capture_baseline(repo)
+            _git(repo, "update-index", "--skip-worktree", "--", "module.py")
+
+            evidence = collect_evidence(repo, baseline)
+            _assert_available(self, evidence)
+            self.assertTrue(_field(evidence, "index_changed"))
+            self.assertTrue(_field(evidence, "has_changes"))
+            self.assertIn("module.py", _strings(_field(evidence, "tracked_index_paths")))
 
     def test_mode_only_changes_are_observable(self) -> None:
         with tempfile.TemporaryDirectory(prefix="workspace-evidence-mode-") as raw:

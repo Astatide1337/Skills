@@ -170,15 +170,16 @@ def native_codex(with_skills: bool, model: str) -> Solver:
     """Execute a sample with the locally authenticated Codex CLI."""
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        baseline = state.store.get("workspace_baseline")
-        if not isinstance(baseline, Baseline) or not baseline.available:
+        stored_baseline = state.store.get("workspace_baseline")
+        baseline = _stored_baseline(stored_baseline)
+        if baseline is None or not baseline.available:
             state.output = ModelOutput.from_content(
                 model="runner/workspace-evidence",
                 content="Candidate skipped: workspace baseline unavailable.",
             )
             state.output.metadata = {
                 "workspace_baseline_status": (
-                    baseline.status if isinstance(baseline, Baseline) else "missing"
+                    baseline.status if baseline is not None else "invalid-or-missing"
                 ),
                 "candidate_skipped": True,
             }
@@ -394,6 +395,108 @@ def _unavailable_baseline(reason: str) -> Baseline:
     return Baseline(status="unavailable", reason=reason)
 
 
+def _stored_strings(value: dict[str, object], field: str) -> tuple[str, ...]:
+    raw = value.get(field, ())
+    if not isinstance(raw, (list, tuple)) or not all(
+        isinstance(item, str) for item in raw
+    ):
+        raise ValueError(f"{field} must be a string sequence")
+    return tuple(raw)
+
+
+def _stored_baseline(value: object) -> Baseline | None:
+    """Rehydrate exactly the Baseline contract across Inspect Store boundaries."""
+
+    if isinstance(value, Baseline):
+        return value
+    if not isinstance(value, dict):
+        return None
+    status = value.get("status")
+    revision = value.get("revision")
+    if not isinstance(status, str) or (
+        revision is not None and not isinstance(revision, str)
+    ):
+        return None
+    try:
+        raw_index = value.get("index_entries", ())
+        if not isinstance(raw_index, (list, tuple)):
+            return None
+        index_entries: list[tuple[str, str, int, int, int]] = []
+        for entry in raw_index:
+            if (
+                not isinstance(entry, (list, tuple))
+                or len(entry) != 5
+                or not isinstance(entry[0], str)
+                or not isinstance(entry[1], str)
+                or not all(isinstance(item, int) for item in entry[2:])
+            ):
+                return None
+            index_entries.append(tuple(entry))  # type: ignore[arg-type]
+
+        raw_boundary = value.get("git_boundary", ())
+        if (
+            not isinstance(raw_boundary, (list, tuple))
+            or len(raw_boundary) != 4
+            or not isinstance(raw_boundary[0], str)
+            or not isinstance(raw_boundary[1], int)
+            or not isinstance(raw_boundary[2], int)
+            or (raw_boundary[3] is not None and not isinstance(raw_boundary[3], str))
+        ):
+            return None
+        raw_snapshot = value.get("snapshot", ())
+        if not isinstance(raw_snapshot, (list, tuple)):
+            return None
+        snapshot: list[tuple[str, str, int | None, str | None, str | None]] = []
+        for entry in raw_snapshot:
+            if (
+                not isinstance(entry, (list, tuple))
+                or len(entry) != 5
+                or not isinstance(entry[0], str)
+                or not isinstance(entry[1], str)
+                or (entry[2] is not None and not isinstance(entry[2], int))
+                or (entry[3] is not None and not isinstance(entry[3], str))
+                or (entry[4] is not None and not isinstance(entry[4], str))
+            ):
+                return None
+            snapshot.append(tuple(entry))  # type: ignore[arg-type]
+        raw_control = value.get("git_control", ())
+        if not isinstance(raw_control, (list, tuple)):
+            return None
+        git_control: list[tuple[str, str, int | None, str | None]] = []
+        for entry in raw_control:
+            if (
+                not isinstance(entry, (list, tuple))
+                or len(entry) != 4
+                or not isinstance(entry[0], str)
+                or not isinstance(entry[1], str)
+                or (entry[2] is not None and not isinstance(entry[2], int))
+                or (entry[3] is not None and not isinstance(entry[3], str))
+            ):
+                return None
+            git_control.append(tuple(entry))  # type: ignore[arg-type]
+        object_id_bytes = value.get("object_id_bytes", 20)
+        if not isinstance(object_id_bytes, int):
+            return None
+        reason = value.get("reason")
+        if reason is not None and not isinstance(reason, str):
+            return None
+        return Baseline(
+            status=status,
+            revision=revision,
+            initial_paths=_stored_strings(value, "initial_paths"),
+            tracked_paths=_stored_strings(value, "tracked_paths"),
+            index_entries=tuple(index_entries),
+            object_id_bytes=object_id_bytes,
+            git_boundary=tuple(raw_boundary),  # type: ignore[arg-type]
+            snapshot=tuple(snapshot),
+            git_control=tuple(git_control),
+            snapshot_omissions=_stored_strings(value, "snapshot_omissions"),
+            reason=reason,
+        )
+    except (TypeError, ValueError):
+        return None
+
+
 def _unavailable_evidence(reason: str, *, baseline_revision: str | None = None) -> Evidence:
     return Evidence(
         status="unavailable",
@@ -410,6 +513,63 @@ def _baseline_text(baseline: Baseline) -> str:
 
 def _evidence_text(evidence: Evidence) -> str:
     return evidence.as_text()
+
+
+def _stored_evidence(value: object) -> Evidence | None:
+    """Rehydrate exactly the Evidence contract if Inspect serialized it."""
+
+    if isinstance(value, Evidence):
+        return value
+    if not isinstance(value, dict):
+        return None
+    status = value.get("status")
+    available = value.get("available")
+    if not isinstance(status, str) or not isinstance(available, bool):
+        return None
+    baseline_revision = value.get("baseline_revision")
+    final_revision = value.get("final_revision")
+    if any(
+        revision is not None and not isinstance(revision, str)
+        for revision in (baseline_revision, final_revision)
+    ):
+        return None
+    bool_fields = (
+        "truncated",
+        "index_changed",
+        "git_metadata_changed",
+        "has_changes",
+    )
+    if any(not isinstance(value.get(field), bool) for field in bool_fields):
+        return None
+    outcome = value.get("outcome")
+    reason = value.get("reason")
+    if not isinstance(outcome, str) or (reason is not None and not isinstance(reason, str)):
+        return None
+    try:
+        return Evidence(
+            status=status,
+            available=available,
+            baseline_revision=baseline_revision,
+            final_revision=final_revision,
+            tracked_worktree_paths=_stored_strings(value, "tracked_worktree_paths"),
+            tracked_index_paths=_stored_strings(value, "tracked_index_paths"),
+            tracked_paths=_stored_strings(value, "tracked_paths"),
+            committed_paths=_stored_strings(value, "committed_paths"),
+            baseline_untracked_paths=_stored_strings(value, "baseline_untracked_paths"),
+            current_untracked_paths=_stored_strings(value, "current_untracked_paths"),
+            untracked_paths=_stored_strings(value, "untracked_paths"),
+            required_paths=_stored_strings(value, "required_paths"),
+            content=_stored_strings(value, "content"),
+            omissions=_stored_strings(value, "omissions"),
+            truncated=value["truncated"],
+            index_changed=value["index_changed"],
+            git_metadata_changed=value["git_metadata_changed"],
+            has_changes=value["has_changes"],
+            outcome=outcome,
+            reason=reason,
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 async def _sandbox_workspace_path() -> tuple[Path | None, str | None]:
@@ -492,10 +652,16 @@ async def _workspace_evidence_value(state: TaskState) -> Evidence:
     """Capture evidence once, including when an earlier solver failed."""
 
     if "workspace_evidence" in state.store:
-        return state.store.get("workspace_evidence")
+        stored = _stored_evidence(state.store.get("workspace_evidence"))
+        if stored is not None:
+            state.store.set("workspace_evidence", stored)
+            return stored
+        evidence = _unavailable_evidence("stored workspace evidence is invalid")
+        state.store.set("workspace_evidence", evidence)
+        return evidence
 
-    baseline = state.store.get("workspace_baseline")
-    if not isinstance(baseline, Baseline):
+    baseline = _stored_baseline(state.store.get("workspace_baseline"))
+    if baseline is None:
         evidence = _unavailable_evidence("baseline missing or invalid")
         state.store.set("workspace_evidence", evidence)
         return evidence
@@ -534,13 +700,12 @@ def workspace_policy():
         metadata = state.metadata or {}
         evidence = await _workspace_evidence_value(state)
         if not evidence.available:
-            return Score(
-                value=0,
+            return Score.unscored(
                 explanation=(
                     "workspace instrumentation unavailable: "
                     f"{_evidence_text(evidence)}"
                 ),
-                metadata={"status": "unavailable"},
+                metadata={"status": "unavailable", "instrumentation_blocker": True},
             )
 
         if not metadata.get("allow_changes", False) and evidence.has_changes:
@@ -568,6 +733,12 @@ def skill_activation():
 
     async def score(state: TaskState, target: Target) -> Score:
         skill = (state.metadata or {}).get("skill")
+        baseline = _stored_baseline(state.store.get("workspace_baseline"))
+        if baseline is None or not baseline.available:
+            return Score.unscored(
+                explanation="candidate not launched because baseline instrumentation was unavailable",
+                metadata={"status": "unavailable", "instrumentation_blocker": True},
+            )
         output_metadata = getattr(state.output, "metadata", None) or {}
         injected = output_metadata.get("injected_skill")
         if injected == skill:
@@ -640,15 +811,18 @@ def native_behavior_grade(model: str):
     """Grade the final answer with an isolated native Codex invocation."""
 
     async def score(state: TaskState, target: Target) -> Score:
-        baseline = state.store.get("workspace_baseline")
-        if not isinstance(baseline, Baseline) or not baseline.available:
-            return Score(
-                value=0,
+        baseline = _stored_baseline(state.store.get("workspace_baseline"))
+        if baseline is None or not baseline.available:
+            return Score.unscored(
                 explanation=(
                     "workspace baseline unavailable; native candidate grading skipped: "
-                    f"{_baseline_text(baseline) if isinstance(baseline, Baseline) else 'missing'}"
+                    f"{_baseline_text(baseline) if baseline is not None else 'missing-or-invalid'}"
                 ),
-                metadata={"status": "unavailable", "grading_skipped": True},
+                metadata={
+                    "status": "unavailable",
+                    "grading_skipped": True,
+                    "instrumentation_blocker": True,
+                },
             )
         evidence = await workspace_evidence(state)
         prompt = (
@@ -771,12 +945,12 @@ def evidence_smoke_grade():
     async def score(state: TaskState, target: Target) -> Score:
         raw_evidence = await _workspace_evidence_value(state)
         if not raw_evidence.available:
-            return Score(
-                value=0,
+            return Score.unscored(
                 explanation=(
                     "workspace instrumentation unavailable: "
                     f"{_evidence_text(raw_evidence)}"
                 ),
+                metadata={"status": "unavailable", "instrumentation_blocker": True},
             )
         rendered = await workspace_evidence(state)
         if "AUDIT_CHANGED_MARKER" not in rendered:
@@ -795,8 +969,8 @@ def baseline_lifecycle_smoke_grade():
     async def score(state: TaskState, target: Target) -> Score:
         del target
         expected_available = bool((state.metadata or {}).get("expected_baseline_available"))
-        baseline = state.store.get("workspace_baseline")
-        actual_available = isinstance(baseline, Baseline) and baseline.available
+        baseline = _stored_baseline(state.store.get("workspace_baseline"))
+        actual_available = baseline is not None and baseline.available
         candidate_called = bool(state.store.get("candidate_called", False))
         if expected_available and actual_available and candidate_called:
             return Score(value=1, explanation="valid baseline ran the candidate")
