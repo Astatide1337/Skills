@@ -64,6 +64,12 @@ not invent labels such as `migration` or `backend` when no package owns that
 name. An authorized synthetic or fixture incident is not a production effect
 unless the request explicitly names a production-like target.
 
+Keep the route fields internally consistent: every name in `domains` must also
+appear in the selected catalog `skills` (and every selected non-coordinator,
+non-lifecycle domain must be named in `domains`). `follow-instructions` is the
+coordinator; `pull-requests` remains the lifecycle owner and is not a peer
+domain.
+
 Use the canonical route modes exactly as written in the table (`read`, `plan`,
 `prototype`, `bug`, `feature`, `refactor`, `measure`, `improve`, `upgrade`,
 `migrate`, `release`, `incident`, `review`, `rereview`, `draft`, `create`,
