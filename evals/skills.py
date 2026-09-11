@@ -521,9 +521,6 @@ def workflow_composition():
                 else "none"
             ),
         )
-        allowed_production = set(
-            metadata.get("allowed_production", [expected_production])
-        )
         expected_effects = {
             "workspace": "write" if allow_changes else "read",
             "external": external,
@@ -559,7 +556,7 @@ def workflow_composition():
             mismatches.append("effects")
         if workflow["effects"]["external"] != expected_effects["external"]:
             mismatches.append("effects")
-        if workflow["effects"]["production"] not in allowed_production:
+        if workflow["effects"]["production"] != expected_effects["production"]:
             mismatches.append("effects")
         return Score(
             value=1 if not mismatches else 0,

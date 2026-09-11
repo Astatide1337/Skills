@@ -215,13 +215,6 @@ def main() -> None:
         expected_production = metadata.get("expected_production", "none")
         if expected_production not in {"none", "read", "write"}:
             fail(f"workflow case {case_id} has invalid expected_production")
-        allowed_production = metadata.get("allowed_production", [expected_production])
-        if not isinstance(allowed_production, list) or not allowed_production or not all(
-            value in {"none", "read", "write"} for value in allowed_production
-        ):
-            fail(f"workflow case {case_id} has invalid allowed_production")
-        if expected_production not in allowed_production:
-            fail(f"workflow case {case_id} expected_production is not allowed")
         expected_workflows = metadata.get("expected_workflows")
         if not isinstance(expected_workflows, list) or not expected_workflows or not all(
             isinstance(route, str) and route in WORKFLOW_ROUTES
