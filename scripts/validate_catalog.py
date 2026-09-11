@@ -238,6 +238,19 @@ def main() -> None:
             for path, content in files.items()
         ):
             fail(f"workflow case {case_id} has invalid fixture files")
+        execution_mode = metadata.get("execution_mode")
+        if execution_mode not in {"routing-only", "execution-ready"}:
+            fail(
+                f"workflow case {case_id} needs execution_mode routing-only or execution-ready"
+            )
+        if execution_mode == "execution-ready" and not files:
+            fail(f"execution-ready workflow case {case_id} has no fixture inputs")
+        if execution_mode == "routing-only" and files:
+            fail(f"routing-only workflow case {case_id} supplies executable files")
+        contract = metadata.get("fixture_contract")
+        if contract is not None:
+            if execution_mode != "execution-ready" or not isinstance(contract, dict):
+                fail(f"workflow case {case_id} has an invalid fixture contract")
         setup = case.get("setup")
         if setup is not None and (not isinstance(setup, str) or not setup.strip()):
             fail(f"workflow case {case_id} has invalid setup")

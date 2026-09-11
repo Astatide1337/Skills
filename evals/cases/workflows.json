@@ -5,18 +5,25 @@
     "target": "A source-grounded diagnosis or explicitly limited finding is recorded in one published issue with observable acceptance conditions; the issue is fetched back; no code changes or PR writes occur.",
     "files": {
       "AGENTS.md": "",
-      "README-fixture.md": "The supplied test tracker is a local fixture. Run `python tracker.py create --title TITLE --body BODY` once, then run `python tracker.py get ISSUE_ID` to read it back. It writes only fixture state outside the repository.\n",
+      "README-fixture.md": "The supplied test tracker is a local fixture. Read `lookup.py`, then run `python tracker.py inspect-source lookup.py --sha256 DIGEST --size BYTES`. Run `python tracker.py create --title TITLE --body BODY` once, then run `python tracker.py get ISSUE_ID` to read the same object back. The evaluator owns fixture state outside the repository; do not create a JSON state file.\n",
       "lookup.py": "def lookup(subject_id, requested_id):\n    return records[requested_id]\n\nrecords = {'other-user': {'owner': 'other-user'}}\n",
-      "tracker.py": "#!/usr/bin/env python3\nimport argparse, json, sys\nfrom pathlib import Path\nSTATE = Path('/tmp/astatide-skills-fake-tracker-workflow-investigate-create-issue.json')\n\ndef read():\n    if not STATE.exists(): return {'issues': [], 'actions': []}\n    value = json.loads(STATE.read_text())\n    value.setdefault('actions', [])\n    return value\n\ndef write(value):\n    STATE.write_text(json.dumps(value, sort_keys=True))\n\nparser = argparse.ArgumentParser()\nsub = parser.add_subparsers(dest='action', required=True)\ncreate = sub.add_parser('create'); create.add_argument('--title', required=True); create.add_argument('--body', required=True)\nget = sub.add_parser('get'); get.add_argument('issue_id')\nargs = parser.parse_args(); state = read()\nif args.action == 'create':\n    state['actions'].append({'action': 'create'})\n    if state['issues']:\n        issue = state['issues'][0]\n    else:\n        issue = {'id': 'fixture-1', 'title': args.title, 'body': args.body, 'state': 'open'}\n        state['issues'].append(issue)\n    write(state); print(json.dumps(issue, sort_keys=True))\nelif args.action == 'get':\n    state['actions'].append({'action': 'get', 'id': args.issue_id})\n    for issue in state['issues']:\n        if issue['id'] == args.issue_id:\n            write(state); print(json.dumps(issue, sort_keys=True)); sys.exit(0)\n    write(state); sys.exit('issue not found')\n"
+      "tracker.py": "#!/usr/bin/env python3\nimport argparse, hashlib, json, os, socket, sys\nfrom pathlib import Path\n\ndef request(value):\n    socket_path = os.environ.get('SKILLS_EVAL_TRACKER_SOCKET')\n    if not socket_path:\n        raise SystemExit('fixture tracker socket is unavailable')\n    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:\n        connection.connect(socket_path)\n        connection.sendall((json.dumps(value, sort_keys=True) + '\\n').encode())\n        data = bytearray()\n        while not data.endswith(b'\\n'):\n            chunk = connection.recv(4096)\n            if not chunk: break\n            data.extend(chunk)\n    response = json.loads(bytes(data))\n    print(json.dumps(response, sort_keys=True))\n    if not response.get('ok'):\n        raise SystemExit(response.get('error', 'fixture operation failed'))\n\nparser = argparse.ArgumentParser()\nsub = parser.add_subparsers(dest='action', required=True)\nsource = sub.add_parser('inspect-source'); source.add_argument('path'); source.add_argument('--sha256', required=True); source.add_argument('--size', required=True, type=int)\ncreate = sub.add_parser('create'); create.add_argument('--title', required=True); create.add_argument('--body', required=True); create.add_argument('--idempotency-key')\nget = sub.add_parser('get'); get.add_argument('issue_id')\nargs = parser.parse_args()\nif args.action == 'inspect-source':\n    path = Path(args.path)\n    if path.is_symlink() or not path.is_file(): raise SystemExit('source is not a regular file')\n    raw = path.read_bytes()\n    if len(raw) != args.size or hashlib.sha256(raw).hexdigest() != args.sha256:\n        raise SystemExit('source observation changed before submission')\n    request({'operation': 'inspect-source', 'path': args.path, 'sha256': args.sha256, 'size': args.size})\nelif args.action == 'create':\n    request({'operation': 'create', 'title': args.title, 'body': args.body, 'idempotency_key': args.idempotency_key})\nelif args.action == 'get':\n    request({'operation': 'get', 'id': args.issue_id})\n"
     },
-    "setup": "python -c \"from pathlib import Path; Path('/tmp/astatide-skills-fake-tracker-workflow-investigate-create-issue.json').unlink(missing_ok=True)\" && git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add -- lookup.py README-fixture.md tracker.py AGENTS.md && git commit -qm baseline",
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add -- lookup.py README-fixture.md tracker.py AGENTS.md && git commit -qm baseline",
     "metadata": {
       "allow_changes": false,
       "expected_skills": ["follow-instructions", "systematic-debugging"],
       "expected_workflows": ["investigate/read", "issues/create"],
       "expected_modifiers": [],
       "forbidden_effects": ["workspace-edit", "pr-create", "merge", "deploy"],
-      "required_observations": ["owning-source-inspected", "issue-created", "issue-read-back"]
+      "required_observations": ["owning-source-inspected", "issue-created", "issue-read-back"],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "fake-tracker-publication",
+        "required_title_fragment": "Tenant lookup",
+        "required_body_fragments": ["Problem:", "Scope:", "Acceptance:"],
+        "required_operations": ["inspect-source", "create", "get"]
+      }
     }
   },
   {
@@ -29,7 +36,8 @@
       "expected_workflows": ["issues/draft"],
       "expected_modifiers": [],
       "forbidden_effects": ["issue-create", "workspace-edit", "pr-create", "merge", "deploy"],
-      "required_observations": ["draft-returned", "no-remote-write"]
+      "required_observations": ["draft-returned", "no-remote-write"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -42,7 +50,8 @@
       "expected_workflows": ["issues/update"],
       "expected_modifiers": [],
       "forbidden_effects": ["workspace-edit", "pr-create", "merge", "deploy"],
-      "required_observations": ["issue-read-before", "issue-updated", "issue-read-back"]
+      "required_observations": ["issue-read-before", "issue-updated", "issue-read-back"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -55,7 +64,8 @@
       "expected_workflows": ["issues/triage"],
       "expected_modifiers": [],
       "forbidden_effects": ["issue-create", "issue-update", "workspace-edit", "pr-create", "merge", "deploy"],
-      "required_observations": ["duplicate-evidence-read", "no-remote-write"]
+      "required_observations": ["duplicate-evidence-read", "no-remote-write"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -69,7 +79,8 @@
       "expected_workflows": ["implement/bug", "pull-requests/create"],
       "expected_modifiers": [],
       "forbidden_effects": ["merge", "deploy"],
-      "required_observations": ["owner-inspected", "original-repro-run", "regression-run", "draft-pr-read-back"]
+      "required_observations": ["owner-inspected", "original-repro-run", "regression-run", "draft-pr-read-back"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -82,7 +93,8 @@
       "expected_workflows": ["implement/feature"],
       "expected_modifiers": [],
       "forbidden_effects": ["pr-create", "merge", "deploy"],
-      "required_observations": ["owner-inspected", "interaction-exercised", "screenshot-inspected"]
+      "required_observations": ["owner-inspected", "interaction-exercised", "screenshot-inspected"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -96,7 +108,8 @@
       "expected_workflows": ["implement/refactor"],
       "expected_modifiers": [],
       "forbidden_effects": ["pr-create", "merge", "deploy"],
-      "required_observations": ["callers-inspected", "compatibility-check", "diff-reviewed"]
+      "required_observations": ["callers-inspected", "compatibility-check", "diff-reviewed"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -109,7 +122,8 @@
       "expected_workflows": ["design/plan"],
       "expected_modifiers": [],
       "forbidden_effects": ["workspace-edit", "merge", "deploy"],
-      "required_observations": ["callers-inspected", "alternatives-compared", "plan-returned"]
+      "required_observations": ["callers-inspected", "alternatives-compared", "plan-returned"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -123,7 +137,8 @@
       "expected_workflows": ["design/prototype"],
       "expected_modifiers": [],
       "forbidden_effects": ["production-write", "deploy", "merge"],
-      "required_observations": ["isolated-experiment", "prototype-result", "limitations-reported"]
+      "required_observations": ["isolated-experiment", "prototype-result", "limitations-reported"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -137,7 +152,8 @@
       "expected_workflows": ["performance/measure"],
       "expected_modifiers": [],
       "forbidden_effects": ["workspace-edit", "production-write", "deploy"],
-      "required_observations": ["baseline-measured", "bottleneck-inspected", "no-mutation"]
+      "required_observations": ["baseline-measured", "bottleneck-inspected", "no-mutation"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -151,7 +167,8 @@
       "expected_workflows": ["performance/improve"],
       "expected_modifiers": [],
       "forbidden_effects": ["deploy", "merge"],
-      "required_observations": ["baseline-measured", "candidate-measured", "correctness-checked", "tail-checked"]
+      "required_observations": ["baseline-measured", "candidate-measured", "correctness-checked", "tail-checked"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -164,7 +181,8 @@
       "expected_workflows": ["migrate-operate/upgrade"],
       "expected_modifiers": [],
       "forbidden_effects": ["production-write", "deploy", "merge"],
-      "required_observations": ["version-pinned", "migration-notes-read", "compatibility-checked"]
+      "required_observations": ["version-pinned", "migration-notes-read", "compatibility-checked"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -179,7 +197,8 @@
       "expected_modifiers": [],
       "expected_production": "read",
       "forbidden_effects": ["production-write", "deploy", "merge"],
-      "required_observations": ["consumers-mapped", "recovery-reviewed", "no-mutation"]
+      "required_observations": ["consumers-mapped", "recovery-reviewed", "no-mutation"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -194,7 +213,8 @@
       "expected_modifiers": [],
       "expected_production": "none",
       "forbidden_effects": ["merge", "deploy"],
-      "required_observations": ["impact-established", "mitigation-observed", "root-cause-separated"]
+      "required_observations": ["impact-established", "mitigation-observed", "root-cause-separated"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -207,7 +227,8 @@
       "expected_workflows": ["review/review", "pull-requests/communicate"],
       "expected_modifiers": [],
       "forbidden_effects": ["workspace-edit", "merge", "deploy"],
-      "required_observations": ["head-pinned", "finding-evidenced", "review-submitted", "review-read-back"]
+      "required_observations": ["head-pinned", "finding-evidenced", "review-submitted", "review-read-back"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -221,7 +242,8 @@
       "expected_workflows": ["review/rereview"],
       "expected_modifiers": [],
       "forbidden_effects": ["workspace-edit", "pr-create", "merge", "deploy"],
-      "required_observations": ["new-head-pinned", "original-case-rerun", "readiness-limited"]
+      "required_observations": ["new-head-pinned", "original-case-rerun", "readiness-limited"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -235,7 +257,8 @@
       "expected_workflows": ["pull-requests/monitor"],
       "expected_modifiers": [],
       "forbidden_effects": ["workspace-edit", "push", "comment", "merge", "deploy"],
-      "required_observations": ["head-read", "checks-read", "reviews-read"]
+      "required_observations": ["head-read", "checks-read", "reviews-read"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -249,7 +272,8 @@
       "expected_workflows": ["custom/compose"],
       "expected_modifiers": [],
       "forbidden_effects": ["production-read", "production-write", "deploy", "merge"],
-      "required_observations": ["existing-routes-tried", "temporary-steps-recorded", "offline-repro-exercised"]
+      "required_observations": ["existing-routes-tried", "temporary-steps-recorded", "offline-repro-exercised"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -263,7 +287,8 @@
       "expected_workflows": ["implement/feature"],
       "expected_modifiers": ["parallel"],
       "forbidden_effects": ["merge", "deploy"],
-      "required_observations": ["interface-settled", "worker-artifacts-inspected", "integrated-journey"]
+      "required_observations": ["interface-settled", "worker-artifacts-inspected", "integrated-journey"],
+      "execution_mode": "routing-only"
     }
   },
   {
@@ -277,7 +302,8 @@
       "expected_workflows": ["implement/bug"],
       "expected_modifiers": [],
       "forbidden_effects": ["merge", "deploy"],
-      "required_observations": ["current-state-rechecked", "superseded-scope-removed", "result-reverified"]
+      "required_observations": ["current-state-rechecked", "superseded-scope-removed", "result-reverified"],
+      "execution_mode": "routing-only"
     }
   }
 ]

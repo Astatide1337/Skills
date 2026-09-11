@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
+import importlib.util
 import json
 import re
+import sys
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path
 from uuid import uuid4
 
@@ -15,6 +19,26 @@ from inspect_ai.scorer import Score, Target, accuracy, mean, scorer
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.util import sandbox
 import yaml
+
+try:
+    from evals.fake_tracker import FakeTracker, validate_publication
+except ModuleNotFoundError as exc:
+    # Inspect loads this file directly, so the repository is not necessarily
+    # importable as an ``evals`` package.  Only fall back for that loader
+    # boundary; preserve unrelated import failures.
+    if exc.name not in {"evals", "evals.fake_tracker"}:
+        raise
+    _fixture_path = Path(__file__).with_name("fake_tracker.py")
+    _fixture_spec = importlib.util.spec_from_file_location(
+        "skills_fake_tracker", _fixture_path
+    )
+    if _fixture_spec is None or _fixture_spec.loader is None:
+        raise RuntimeError(f"unable to load fake tracker fixture: {_fixture_path}")
+    _fixture_module = importlib.util.module_from_spec(_fixture_spec)
+    sys.modules[_fixture_spec.name] = _fixture_module
+    _fixture_spec.loader.exec_module(_fixture_module)
+    FakeTracker = _fixture_module.FakeTracker
+    validate_publication = _fixture_module.validate_publication
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -101,6 +125,7 @@ async def run_codex(
     with_skills: bool,
     sandbox_mode: str,
     output_schema: Path | None = None,
+    extra_env: Mapping[str, str] | None = None,
     # Max-effort native cases can spend more than fifteen minutes in one
     # isolated command session (for example, a full artifact or deployment
     # investigation). Keep a finite bound while avoiding false evaluation
@@ -141,7 +166,11 @@ async def run_codex(
                 # Codex also discovers user-level skills under ~/.agents.
                 # Isolate HOME as well as CODEX_HOME so the baseline receives
                 # neither catalog nor unrelated personal skills.
-                env={"CODEX_HOME": str(codex_home), "HOME": str(codex_home)},
+                env={
+                    "CODEX_HOME": str(codex_home),
+                    "HOME": str(codex_home),
+                    **(dict(extra_env) if extra_env else {}),
+                },
                 timeout=timeout,
                 timeout_retry=False,
                 concurrency=True,
@@ -181,12 +210,26 @@ def native_codex(
                 f"<catalog_skill name=\"{skill}\">\n{instructions}\n</catalog_skill>\n\n"
                 f"{prompt}"
             )
-        completion, events = await run_codex(
-            prompt,
-            model=model,
-            with_skills=with_skills,
-            sandbox_mode="workspace-write",
-        )
+        contract = (state.metadata or {}).get("fixture_contract")
+        tracker: FakeTracker | None = None
+        if isinstance(contract, dict):
+            tracker = FakeTracker(state.sample_id, state.epoch)
+            tracker.start()
+        try:
+            completion, events = await run_codex(
+                prompt,
+                model=model,
+                with_skills=with_skills,
+                sandbox_mode="workspace-write",
+                extra_env=tracker.environment() if tracker is not None else None,
+            )
+        finally:
+            # Snapshot before closing/cleaning the fixture directory.  This is
+            # the only publication evidence consumed by the scorer; command
+            # names and final prose are deliberately not consulted.
+            if tracker is not None:
+                state.store.set("fixture_publication", tracker.snapshot())
+                tracker.close()
         state.output = ModelOutput.from_content(
             model=f"codex-subscription/{model}",
             content=completion,
@@ -196,6 +239,8 @@ def native_codex(
             state.output.metadata["injected_skill"] = skill
         elif with_skills:
             state.output.metadata["skill_discovery"] = "installed-catalog"
+        if tracker is not None:
+            state.output.metadata["fixture_source"] = "runner-owned-fake-tracker"
         return state
 
     return solve
@@ -256,22 +301,40 @@ def routing_dataset() -> MemoryDataset:
     return MemoryDataset(samples=samples, name="catalog-routing", shuffled=False)
 
 
-def workflows_dataset() -> MemoryDataset:
-    """Load workflow cases with the same global rules at each fixture root."""
+def workflows_dataset(
+    *,
+    execution_ready_only: bool = False,
+    global_instructions: Path = GLOBAL_INSTRUCTIONS,
+) -> MemoryDataset:
+    """Load routing cases or explicitly supplied execution fixtures.
+
+    A routing case is useful for classification but is not silently promoted
+    to an executable workspace.  The integrated task opts into the smaller
+    execution-ready subset; route diagnostics retain every case.
+    """
 
     dataset = json_dataset(str(WORKFLOW_CASES))
-    global_rules = GLOBAL_INSTRUCTIONS.read_text()
+    global_rules = global_instructions.read_text()
+    samples: list[Sample] = []
     for sample in dataset.samples:
+        metadata = dict(sample.metadata or {})
+        execution_mode = metadata.get("execution_mode")
+        if execution_mode not in {"routing-only", "execution-ready"}:
+            execution_mode = "execution-ready" if sample.files else "routing-only"
+        if execution_ready_only and execution_mode != "execution-ready":
+            continue
         files = dict(sample.files or {})
         files["AGENTS.md"] = global_rules
         sample.files = files
-        if not sample.setup:
+        if execution_mode == "routing-only" and not sample.setup:
             sample.setup = WORKFLOW_DEFAULT_SETUP
         sample.metadata = {
-            **(sample.metadata or {}),
+            **metadata,
             "execution_scope": "trusted-synthetic-local",
+            "execution_mode": execution_mode,
         }
-    return dataset
+        samples.append(sample)
+    return MemoryDataset(samples=samples, name=dataset.name, shuffled=False)
 
 
 @solver
@@ -731,94 +794,112 @@ def native_behavior_grade(model: str):
     return score
 
 
-FAKE_TRACKER_STATE = Path(
-    "/tmp/astatide-skills-fake-tracker-workflow-investigate-create-issue.json"
-)
+def _fixture_observations(snapshot: object) -> list[str]:
+    """Derive observations from authoritative fixture receipts only."""
 
-
-def _successful_codex_commands(state: TaskState) -> list[str]:
-    """Extract successful command invocations from native Codex JSONL events."""
-
-    raw = (state.output.metadata or {}).get("codex_jsonl", "")
-    if not isinstance(raw, str):
+    if not isinstance(snapshot, dict):
         return []
-    commands: list[str] = []
-    for line in raw.splitlines():
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        item = event.get("item")
-        if not isinstance(item, dict) or item.get("type") != "command_execution":
-            continue
-        if item.get("status") != "completed" or item.get("exit_code") != 0:
-            continue
-        command = item.get("command")
-        if isinstance(command, str):
-            commands.append(command)
-    return commands
-
-
-def _fixture_observations_from_events(state: TaskState) -> list[str]:
-    """Derive only tool-backed fixture observations, never from final prose."""
-
-    commands = _successful_codex_commands(state)
-    source_readers = ("sed ", "cat ", "git show", "rg ", "grep ", "head ", "tail ", "nl ")
+    receipts = snapshot.get("receipts")
+    if not isinstance(receipts, list):
+        return []
     observations: list[str] = []
-    if any("lookup.py" in command and any(reader in command for reader in source_readers) for command in commands):
+    successful = [
+        item
+        for item in receipts
+        if isinstance(item, dict) and item.get("ok") is True
+    ]
+    source = [item for item in successful if item.get("operation") == "inspect-source"]
+    if source:
         observations.append("owning-source-inspected")
-    if any("tracker.py create" in command for command in commands):
+    creates = [item for item in successful if item.get("operation") == "create"]
+    if creates:
         observations.append("issue-created")
-    if any("tracker.py get" in command for command in commands):
-        observations.append("issue-read-back")
+    if creates:
+        created = creates[0].get("response")
+        created_object = created.get("object") if isinstance(created, dict) else None
+        object_id = created_object.get("id") if isinstance(created_object, dict) else None
+        if isinstance(object_id, str):
+            for item in successful:
+                if item.get("operation") != "get":
+                    continue
+                response = item.get("response")
+                returned = response.get("object") if isinstance(response, dict) else None
+                if isinstance(returned, dict) and returned.get("id") == object_id:
+                    observations.append("issue-read-back")
+                    break
     return observations
 
 
 @solver
 def workflow_fixture_candidate() -> Solver:
-    """Exercise the supplied fake tracker without changing the repository."""
+    """Exercise the supplied runner-owned fake tracker without repository writes."""
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         del generate
-        source = await sandbox().read_file("lookup.py")
-        if "def lookup" not in source:
-            raise RuntimeError("owning lookup source was not inspectable")
-        create = await sandbox().exec(
-            [
-                "python",
-                "tracker.py",
-                "create",
-                "--title",
-                "Tenant lookup can cross owner boundary",
-                "--body",
-                "Problem: lookup uses the requested identifier without checking its owner.\n"
-                "Scope: enforce the authenticated owner at lookup.\n"
-                "Acceptance: an owner can read its row and another owner is denied.",
-            ],
-            timeout=30,
-            timeout_retry=False,
-        )
-        if not create.success:
-            raise RuntimeError(f"fake issue create failed: {create.stderr.strip()}")
-        issue = json.loads(create.stdout)
-        readback = await sandbox().exec(
-            ["python", "tracker.py", "get", issue["id"]],
-            timeout=30,
-            timeout_retry=False,
-        )
-        if not readback.success:
-            raise RuntimeError(f"fake issue readback failed: {readback.stderr.strip()}")
-        state.store.set(
-            "workflow_fixture_observations",
-            ["owning-source-inspected", "issue-created", "issue-read-back"],
-        )
-        state.output = ModelOutput.from_content(
-            model="stub/no-model",
-            content=(
-                "Inspected lookup.py, created fixture-1, and fetched it back. "
-                "No repository files were edited."
-            ),
-        )
+        tracker = FakeTracker(state.sample_id, state.epoch)
+        tracker.start()
+        environment = tracker.environment()
+        try:
+            source = await sandbox().read_file("lookup.py")
+            if "def lookup" not in source:
+                raise RuntimeError("owning lookup source was not inspectable")
+            source_bytes = source.encode()
+            source_digest = hashlib.sha256(source_bytes).hexdigest()
+            inspected = await sandbox().exec(
+                [
+                    "python",
+                    "tracker.py",
+                    "inspect-source",
+                    "lookup.py",
+                    "--sha256",
+                    source_digest,
+                    "--size",
+                    str(len(source_bytes)),
+                ],
+                env=environment,
+                timeout=30,
+                timeout_retry=False,
+            )
+            if not inspected.success:
+                raise RuntimeError(f"source inspection failed: {inspected.stderr.strip()}")
+            create = await sandbox().exec(
+                [
+                    "python",
+                    "tracker.py",
+                    "create",
+                    "--title",
+                    "Tenant lookup can cross owner boundary",
+                    "--body",
+                    "Problem: lookup uses the requested identifier without checking its owner.\n"
+                    "Scope: enforce the authenticated owner at lookup.\n"
+                    "Acceptance: an owner can read its row and another owner is denied.",
+                ],
+                env=environment,
+                timeout=30,
+                timeout_retry=False,
+            )
+            if not create.success:
+                raise RuntimeError(f"fake issue create failed: {create.stderr.strip()}")
+            issue = json.loads(create.stdout)
+            created_object = issue.get("object") if isinstance(issue, dict) else None
+            issue_id = created_object.get("id") if isinstance(created_object, dict) else None
+            if not isinstance(issue_id, str):
+                raise RuntimeError("fake issue create returned no object identity")
+            readback = await sandbox().exec(
+                ["python", "tracker.py", "get", issue_id],
+                env=environment,
+                timeout=30,
+                timeout_retry=False,
+            )
+            if not readback.success:
+                raise RuntimeError(f"fake issue readback failed: {readback.stderr.strip()}")
+            state.output = ModelOutput.from_content(
+                model="stub/no-model",
+                content="Fixture operations completed; inspect runner-owned receipts for publication evidence.",
+            )
+        finally:
+            state.store.set("fixture_publication", tracker.snapshot())
+            tracker.close()
         return state
 
     return solve
@@ -826,41 +907,53 @@ def workflow_fixture_candidate() -> Solver:
 
 @scorer(metrics=[accuracy()])
 def workflow_effects():
-    """Grade fake publication from fixture state and observed workspace effects."""
+    """Grade fake publication from runner-owned operation receipts."""
 
     async def score(state: TaskState, target: Target) -> Score:
         del target
-        if "issue-created" not in (state.metadata or {}).get("required_observations", []):
+        metadata = state.metadata or {}
+        contract = metadata.get("fixture_contract")
+        if not isinstance(contract, dict):
             return Score.unscored(
-                explanation="no fake-tracker contract for this workflow case",
-                metadata={"status": "unmeasured"},
+                explanation="workflow case is routing-only; publication is unmeasured",
+                metadata={"status": "unmeasured", "execution_mode": "routing-only"},
             )
-        observations = state.store.get("workflow_fixture_observations", [])
-        if not observations:
-            observations = _fixture_observations_from_events(state)
-        required = {"owning-source-inspected", "issue-created", "issue-read-back"}
-        if not required <= set(observations):
-            return Score(value=0, explanation=f"observations={observations!r}")
-        try:
-            fixture_state = json.loads(FAKE_TRACKER_STATE.read_text())
-        except (FileNotFoundError, OSError, json.JSONDecodeError) as exc:
-            return Score(value=0, explanation=f"fake tracker state unavailable: {exc}")
-        actions = fixture_state.get("actions")
-        issues = fixture_state.get("issues")
-        if not isinstance(actions, list) or not isinstance(issues, list):
-            return Score(value=0, explanation="fake tracker state has invalid shape")
-        action_names = [item.get("action") for item in actions if isinstance(item, dict)]
-        if (
-            action_names.count("create") != 1
-            or action_names.count("get") < 1
-            or any(name not in {"create", "get"} for name in action_names)
-            or len(issues) != 1
-        ):
+        snapshot = state.store.get("fixture_publication")
+        if not isinstance(snapshot, dict):
+            return Score(value=0, explanation="runner-owned fixture receipts are unavailable")
+        if snapshot.get("sample_id") != state.sample_id or snapshot.get("epoch") != state.epoch:
             return Score(
                 value=0,
-                explanation=f"unexpected fake tracker actions/issues: {action_names!r}/{len(issues)}",
+                explanation="fixture receipts belong to a different sample or epoch",
+                metadata={"status": "rejected"},
             )
-        return Score(value=1, explanation="one fixture issue was created and read back")
+        observations = _fixture_observations(snapshot)
+        required = set(metadata.get("required_observations", []))
+        missing = sorted(required - set(observations))
+        if missing:
+            return Score(
+                value=0,
+                explanation=f"missing runner-owned fixture observations: {missing}",
+                metadata={"observations": observations, "status": "rejected"},
+            )
+        valid, explanation = validate_publication(
+            snapshot,
+            required_title_fragment=str(contract.get("required_title_fragment", "")),
+            required_body_fragments=tuple(
+                item for item in contract.get("required_body_fragments", []) if isinstance(item, str)
+            ),
+            required_operations=tuple(
+                item for item in contract.get("required_operations", []) if isinstance(item, str)
+            ),
+            required_source_path=str(contract.get("required_source_path", "lookup.py")),
+            expected_sample_id=state.sample_id,
+            expected_epoch=state.epoch,
+        )
+        return Score(
+            value=1 if valid else 0,
+            explanation=explanation,
+            metadata={"observations": observations, "status": "accepted" if valid else "rejected"},
+        )
 
     return score
 
@@ -869,7 +962,7 @@ def workflow_effects():
 def workflow_fixture_smoke() -> Task:
     """Run a real no-model workflow publication/readback fixture."""
 
-    sample = workflows_dataset().samples[0]
+    sample = workflows_dataset(execution_ready_only=True).samples[0]
     return Task(
         dataset=MemoryDataset(
             samples=[sample],
@@ -920,7 +1013,7 @@ def workflow_routing(native_model: str = "gpt-5.6-luna") -> Task:
     """Diagnose task/mode/domain/effect composition from normal instructions."""
 
     return Task(
-        dataset=workflows_dataset(),
+        dataset=workflows_dataset(execution_ready_only=True),
         solver=workflow_route_codex(model=native_model),
         scorer=[workflow_composition()],
         model="mockllm/model",

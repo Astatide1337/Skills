@@ -9,6 +9,7 @@ from inspect_ai.model import ModelOutput
 from inspect_ai.solver import TaskState
 
 from evals import skills
+from evals.fake_tracker import validate_publication
 
 
 class WorkflowContractTests(unittest.TestCase):
@@ -27,11 +28,24 @@ class WorkflowContractTests(unittest.TestCase):
         sample = dataset.samples[0]
         self.assertIn("AGENTS.md", sample.files or {})
         self.assertEqual((sample.metadata or {}).get("execution_scope"), "trusted-synthetic-local")
+        self.assertEqual((sample.metadata or {}).get("execution_mode"), "execution-ready")
         self.assertEqual(
             (sample.metadata or {}).get("expected_workflows"),
             ["investigate/read", "issues/create"],
         )
         self.assertNotIn("expected_workflows", sample.input)
+
+        route_only = next(
+            sample
+            for sample in dataset.samples
+            if sample.id == "workflow-draft-issue"
+        )
+        self.assertEqual((route_only.metadata or {}).get("execution_mode"), "routing-only")
+        self.assertEqual(route_only.files, {"AGENTS.md": skills.GLOBAL_INSTRUCTIONS.read_text()})
+        self.assertEqual(
+            len(skills.workflows_dataset(execution_ready_only=True).samples),
+            1,
+        )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
         state = TaskState(
@@ -94,72 +108,129 @@ class WorkflowContractTests(unittest.TestCase):
             )
         )
 
-    def test_fixture_observations_use_successful_tool_events_not_final_prose(self) -> None:
-        state = TaskState(
-            model="mockllm/model",
-            sample_id="fixture",
-            epoch=1,
-            input="task",
-            messages=[],
-        )
-        state.output = ModelOutput.from_content(
-            model="stub/native",
-            content="I inspected lookup.py and created an issue.",
-        )
-        state.output.metadata = {
-            "codex_jsonl": "\n".join(
-                [
-                    json.dumps(
-                        {
-                            "type": "item.completed",
-                            "item": {
-                                "type": "command_execution",
-                                "command": "sed -n '1,40p' lookup.py",
-                                "exit_code": 0,
-                                "status": "completed",
-                            },
-                        }
-                    ),
-                    json.dumps(
-                        {
-                            "type": "item.completed",
-                            "item": {
-                                "type": "command_execution",
-                                "command": "python tracker.py create --title t --body b",
-                                "exit_code": 0,
-                                "status": "completed",
-                            },
-                        }
-                    ),
-                    json.dumps(
-                        {
-                            "type": "item.completed",
-                            "item": {
-                                "type": "command_execution",
-                                "command": "python tracker.py get fixture-1",
-                                "exit_code": 0,
-                                "status": "completed",
-                            },
-                        }
-                    ),
-                    json.dumps(
-                        {
-                            "type": "item.completed",
-                            "item": {
-                                "type": "command_execution",
-                                "command": "python tracker.py create --title failed --body failed",
-                                "exit_code": 1,
-                                "status": "completed",
-                            },
-                        }
-                    ),
-                ]
-            )
+    def test_publication_requires_runner_receipts_not_commands_or_final_claims(self) -> None:
+        required = {
+            "sample_id": "fixture",
+            "epoch": 1,
+            "receipts": [],
+            "objects": [],
         }
-        self.assertEqual(
-            skills._fixture_observations_from_events(state),
-            ["owning-source-inspected", "issue-created", "issue-read-back"],
+        self.assertEqual(skills._fixture_observations(required), [])
+        self.assertFalse(
+            validate_publication(
+                required,
+                required_title_fragment="Tenant lookup",
+                required_body_fragments=("Problem:",),
+            )[0]
         )
+
+    def test_publication_validates_order_identity_content_and_state(self) -> None:
+        created = {
+            "id": "fixture-sample-1-1",
+            "title": "Tenant lookup can cross owner boundary",
+            "body": "Problem: x\nScope: y\nAcceptance: z",
+            "state": "open",
+            "idempotency_key": None,
+        }
+        valid = {
+            "sample_id": "fixture",
+            "epoch": 1,
+            "receipts": [
+                {
+                    "sequence": 1,
+                    "operation": "inspect-source",
+                    "request": {"path": "lookup.py"},
+                    "ok": True,
+                    "response": {
+                        "ok": True,
+                        "path": "lookup.py",
+                        "sha256": "0" * 64,
+                        "size": 1,
+                    },
+                },
+                {
+                    "sequence": 2,
+                    "operation": "create",
+                    "request": {},
+                    "ok": True,
+                    "response": {"ok": True, "object": created},
+                },
+                {
+                    "sequence": 3,
+                    "operation": "get",
+                    "request": {"id": created["id"]},
+                    "ok": True,
+                    "response": {"ok": True, "object": created},
+                },
+            ],
+            "objects": [created],
+        }
+        self.assertTrue(
+            validate_publication(
+                valid,
+                required_title_fragment="Tenant lookup",
+                required_body_fragments=("Problem:", "Scope:", "Acceptance:"),
+            )[0]
+        )
+
+        for label, receipts in {
+            "wrong-id": [
+                valid["receipts"][0],
+                valid["receipts"][1],
+                {**valid["receipts"][2], "request": {"id": "other"}},
+            ],
+            "get-before-create": [
+                valid["receipts"][0],
+                {**valid["receipts"][2], "sequence": 2},
+                {**valid["receipts"][1], "sequence": 3},
+            ],
+            "pending-review": [
+                *valid["receipts"],
+                {
+                    "sequence": 4,
+                    "operation": "review",
+                    "request": {},
+                    "ok": False,
+                    "response": {"state": "pending"},
+                },
+            ],
+        }.items():
+            with self.subTest(control=label):
+                candidate = {**valid, "receipts": receipts}
+                self.assertFalse(
+                    validate_publication(
+                        candidate,
+                        required_title_fragment="Tenant lookup",
+                        required_body_fragments=("Problem:",),
+                    )[0]
+                )
+
+    def test_publication_rejects_forged_or_cross_sample_state(self) -> None:
+        created = {
+            "id": "fixture-other-1-1",
+            "title": "Tenant lookup",
+            "body": "Problem: x",
+            "state": "open",
+            "idempotency_key": None,
+        }
+        snapshot = {
+            "sample_id": "other",
+            "epoch": 1,
+            "receipts": [
+                {"sequence": 1, "operation": "inspect-source", "request": {"path": "lookup.py"}, "ok": True, "response": {"ok": True}},
+                {"sequence": 2, "operation": "create", "request": {}, "ok": True, "response": {"object": created}},
+                {"sequence": 3, "operation": "get", "request": {"id": created["id"]}, "ok": True, "response": {"object": created}},
+            ],
+            "objects": [created],
+        }
+        valid, reason = validate_publication(
+            snapshot,
+            required_title_fragment="Tenant lookup",
+            required_body_fragments=("Problem:",),
+            expected_sample_id="fixture",
+            expected_epoch=1,
+        )
+        self.assertFalse(valid, reason)
 
 
 if __name__ == "__main__":  # pragma: no cover
