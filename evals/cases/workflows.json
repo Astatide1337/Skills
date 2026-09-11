@@ -178,7 +178,6 @@
       "expected_workflows": ["design/plan"],
       "expected_modifiers": [],
       "expected_production": "read",
-      "allowed_production": ["none", "read"],
       "forbidden_effects": ["production-write", "deploy", "merge"],
       "required_observations": ["consumers-mapped", "recovery-reviewed", "no-mutation"]
     }
