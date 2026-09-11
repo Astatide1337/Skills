@@ -5,31 +5,29 @@ not copy the collector implementation: the production module is the system
 under test and must report unavailable evidence instead of treating a failed
 or incomplete observation as an unchanged workspace.
 
-The first implementation slice defines these two small entry points in
-``evals.workspace_evidence``::
+The evidence module exposes these two entry points:
 
     baseline = capture_baseline(workspace)
     evidence = collect_evidence(
         workspace, baseline, required_paths=(...), max_bytes=...
     )
 
-The result may be a dataclass or mapping, but it must expose the semantic
-fields asserted below (availability, baseline/final identity, tracked
+They return typed ``Baseline`` and ``Evidence`` records whose semantic fields
+are asserted below (availability, baseline/final identity, tracked
 worktree/index paths, recursive untracked paths, required-path evidence, and
 bounded/truncated status).
 """
 
 from __future__ import annotations
 
-import dataclasses
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
-from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable
 
 
 try:
@@ -130,133 +128,55 @@ def _setup_unusual_untracked(repo: Path) -> None:
     _write_marker(unusual)
 
 
-def _mapping(value: Any) -> Mapping[str, Any] | None:
-    if isinstance(value, Mapping):
-        return value
-    if dataclasses.is_dataclass(value) and not isinstance(value, type):
-        return dataclasses.asdict(value)
-    if hasattr(value, "__dict__"):
-        return vars(value)
-    return None
+def _field(value: object, name: str) -> object:
+    return getattr(value, name)
 
 
-_MISSING = object()
-
-
-def _field(value: Any, *names: str) -> Any:
-    mapping = _mapping(value)
-    if mapping is not None:
-        for name in names:
-            if name in mapping:
-                return mapping[name]
-    for name in names:
-        if hasattr(value, name):
-            return getattr(value, name)
-    return _MISSING
-
-
-def _strings(value: Any, seen: set[int] | None = None) -> list[str]:
-    """Flatten result metadata without requiring one serialization format."""
-
-    if seen is None:
-        seen = set()
-    if value is None or isinstance(value, bool):
-        return []
-    if isinstance(value, Path):
-        return [str(value)]
+def _strings(value: object) -> list[str]:
     if isinstance(value, str):
         return [value]
-    if isinstance(value, bytes):
-        return [value.decode("utf-8", errors="replace")]
-    marker = id(value)
-    if marker in seen:
-        return []
-    seen.add(marker)
-    mapping = _mapping(value)
-    if mapping is not None:
-        output: list[str] = []
-        for key, item in mapping.items():
-            output.extend(_strings(key, seen))
-            output.extend(_strings(item, seen))
-        return output
     if isinstance(value, (list, tuple, set, frozenset)):
-        output = []
-        for item in value:
-            output.extend(_strings(item, seen))
-        return output
-    if isinstance(value, BaseException):
-        return [value.__class__.__name__, str(value)]
+        return [str(item) for item in value]
     return [str(value)]
 
 
-def _text(value: Any) -> str:
-    return "\n".join(_strings(value))
+def _text(value: object) -> str:
+    return value.as_text() if hasattr(value, "as_text") else repr(value)
 
 
-def _status(value: Any) -> str | None:
-    raw = _field(value, "status", "state", "outcome", "availability")
-    if raw is _MISSING or raw is None:
-        return None
-    return str(raw).lower()
+def _assert_available(test: unittest.TestCase, value: object) -> None:
+    test.assertTrue(getattr(value, "available"), _text(value))
 
 
-def _assert_available(test: unittest.TestCase, value: Any) -> None:
-    status = _status(value)
-    if status is not None:
-        test.assertNotIn(status, {"unavailable", "blocked", "error", "failed"})
-        return
-    available = _field(value, "available", "is_available")
-    if available is not _MISSING:
-        test.assertTrue(available)
-        return
-    test.fail("workspace evidence must expose status or availability")
-
-
-def _assert_outcome(test: unittest.TestCase, value: Any, expected: str) -> None:
-    outcome = _field(value, "outcome")
-    test.assertEqual(outcome, expected, f"unexpected evidence outcome: {_text(value)!r}")
-
-
-def _assert_unavailable(test: unittest.TestCase, value: Any) -> None:
-    status = _status(value)
-    if status is not None:
-        test.assertIn(status, {"unavailable", "blocked", "error", "failed"})
-        return
-    available = _field(value, "available", "is_available")
-    if available is not _MISSING:
-        test.assertFalse(available)
-        return
-    unavailable = _field(value, "unavailable")
-    if unavailable is not _MISSING:
-        test.assertTrue(unavailable)
-        return
-    test.fail("failed evidence must be explicitly unavailable")
-
-
-def _assert_path(test: unittest.TestCase, value: Any, path: str) -> None:
-    test.assertTrue(
-        any(path in item for item in _strings(value)),
-        f"evidence did not preserve path {path!r}: {_text(value)!r}",
+def _assert_outcome(test: unittest.TestCase, value: object, expected: str) -> None:
+    test.assertEqual(
+        getattr(value, "outcome"), expected, f"unexpected evidence: {_text(value)!r}"
     )
 
 
-def _assert_marker(test: unittest.TestCase, value: Any) -> None:
+def _assert_unavailable(test: unittest.TestCase, value: object) -> None:
+    test.assertFalse(getattr(value, "available"), _text(value))
+
+
+def _assert_path(test: unittest.TestCase, value: object, path: str) -> None:
+    test.assertIn(path, _text(value), f"evidence did not preserve path {path!r}")
+
+
+def _assert_marker(test: unittest.TestCase, value: object) -> None:
     test.assertIn(MARKER, _text(value))
 
 
-def _category_paths(value: Any, category: str) -> list[str]:
-    if category == "worktree":
-        names = ("tracked_worktree_paths", "worktree_paths", "working_tree_paths")
-    elif category == "index":
-        names = ("tracked_index_paths", "index_paths", "cached_paths")
-    elif category == "untracked":
-        names = ("untracked_paths", "untracked")
-    else:  # pragma: no cover - test authoring guard
-        raise AssertionError(category)
-    value = _field(value, *names)
-    if value is _MISSING:
-        raise AssertionError(f"evidence missing {category} path field: {names}")
-    return _strings(value)
+def _category_paths(value: object, category: str) -> list[str]:
+    names = {
+        "worktree": "tracked_worktree_paths",
+        "index": "tracked_index_paths",
+        "untracked": "untracked_paths",
+    }
+    try:
+        name = names[category]
+    except KeyError as exc:  # pragma: no cover - test authoring guard
+        raise AssertionError(category) from exc
+    return _strings(_field(value, name))
 
 
 class WorkspaceEvidenceTests(unittest.TestCase):
@@ -343,6 +263,22 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             _assert_unavailable(self, evidence)
             _assert_outcome(self, evidence, "unavailable")
             self.assertNotIn("unchanged", _text(evidence).lower())
+
+    def test_corrupt_or_truncated_index_is_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-index-corrupt-") as raw:
+            repo = _new_repo(Path(raw) / "repo")
+            baseline = capture_baseline(repo)
+            index = repo / ".git" / "index"
+            original = index.read_bytes()
+            self.assertGreater(len(original), 12)
+            index.write_bytes(original[:12])
+
+            evidence = collect_evidence(repo, baseline)
+            _assert_unavailable(self, evidence)
+            _assert_outcome(self, evidence, "unavailable")
+            rendered = _text(evidence).lower()
+            self.assertIn("index", rendered)
+            self.assertNotIn("unchanged", rendered)
 
     def test_required_paths_are_relative_and_missing_paths_are_unavailable(self) -> None:
         with tempfile.TemporaryDirectory(prefix="workspace-evidence-boundary-") as raw:
@@ -433,7 +369,7 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             _git(repo_b, "add", "--", "module.py")
             _git(repo_b, "commit", "-qm", "foreign candidate")
             baseline = capture_baseline(repo_a)
-            self.assertEqual(_status(baseline), "available")
+            self.assertEqual(baseline.status, "available")
 
             original_git = repo_a / ".git"
             saved_git = repo_a / ".git.original"
@@ -446,6 +382,47 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             rendered = _text(evidence)
             self.assertNotIn("FOREIGN_REPOSITORY_PAYLOAD", rendered)
             self.assertIn(".git boundary", rendered.lower())
+
+    def test_object_fanout_directory_symlink_is_unavailable_without_foreign_content(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-object-dir-") as raw:
+            parent = Path(raw)
+            repo = _new_repo(parent / "repo")
+            foreign = _new_repo(parent / "foreign")
+            (foreign / "module.py").write_text("FOREIGN_OBJECT_PAYLOAD\n", encoding="utf-8")
+            oid = _git(foreign, "hash-object", "-w", "--", "module.py").stdout.decode().strip()
+            baseline = capture_baseline(repo)
+            _git(repo, "update-index", "--add", "--cacheinfo", f"100644,{oid},module.py")
+
+            fanout = repo / ".git" / "objects" / oid[:2]
+            if fanout.exists():
+                fanout.rename(repo / ".git" / "objects" / f"{oid[:2]}.saved")
+            fanout.symlink_to(foreign / ".git" / "objects" / oid[:2], target_is_directory=True)
+
+            evidence = collect_evidence(repo, baseline)
+            _assert_unavailable(self, evidence)
+            self.assertIn("unreadable", _text(evidence).lower())
+            self.assertNotIn("FOREIGN_OBJECT_PAYLOAD", _text(evidence))
+
+    def test_object_loose_file_symlink_is_unavailable_without_foreign_content(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-object-file-") as raw:
+            parent = Path(raw)
+            repo = _new_repo(parent / "repo")
+            foreign = _new_repo(parent / "foreign")
+            (foreign / "module.py").write_text("FOREIGN_LOOSE_OBJECT_PAYLOAD\n", encoding="utf-8")
+            oid = _git(foreign, "hash-object", "-w", "--", "module.py").stdout.decode().strip()
+            baseline = capture_baseline(repo)
+            _git(repo, "update-index", "--add", "--cacheinfo", f"100644,{oid},module.py")
+
+            fanout = repo / ".git" / "objects" / oid[:2]
+            fanout.mkdir(exist_ok=True)
+            (fanout / oid[2:]).symlink_to(
+                foreign / ".git" / "objects" / oid[:2] / oid[2:]
+            )
+
+            evidence = collect_evidence(repo, baseline)
+            _assert_unavailable(self, evidence)
+            self.assertIn("unreadable", _text(evidence).lower())
+            self.assertNotIn("FOREIGN_LOOSE_OBJECT_PAYLOAD", _text(evidence))
 
     def test_staged_and_worktree_versions_are_both_rendered(self) -> None:
         with tempfile.TemporaryDirectory(prefix="workspace-evidence-three-versions-") as raw:
@@ -503,6 +480,21 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             _assert_unavailable(self, sensitive_baseline)
             self.assertIn("sensitive content omitted", _text(sensitive_baseline).lower())
 
+    def test_tracked_git_prefixed_filenames_are_ordinary_workspace_content(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-git-prefix-") as raw:
+            repo = _new_repo(Path(raw) / "repo")
+            path = repo / ".git-blame-ignore-revs"
+            path.write_text("0123456789abcdef\n", encoding="utf-8")
+            _git(repo, "add", "--", path.name)
+            _git(repo, "commit", "-qm", "tracked git-prefixed file")
+
+            baseline = capture_baseline(repo)
+            _assert_available(self, baseline)
+            evidence = collect_evidence(repo, baseline)
+            _assert_available(self, evidence)
+            self.assertFalse(_field(evidence, "has_changes"))
+            self.assertNotIn("metadata alias", _text(evidence).lower())
+
     def test_preexisting_ignored_file_is_inventory_not_a_change(self) -> None:
         with tempfile.TemporaryDirectory(prefix="workspace-evidence-ignored-") as raw:
             repo = _new_repo(Path(raw) / "repo")
@@ -539,6 +531,22 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             evidence = collect_evidence(repo, baseline)
             self.assertFalse((repo / "filter-ran").exists())
             self.assertNotIn("FILTER_EXECUTED", _text(evidence))
+
+    def test_stat_cache_refresh_is_not_a_semantic_index_change(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-stat-cache-") as raw:
+            repo = _new_repo(Path(raw) / "repo")
+            baseline = capture_baseline(repo)
+            info = (repo / "module.py").stat()
+            os.utime(repo / "module.py", (info.st_atime + 10, info.st_mtime + 10))
+            _git(repo, "status", "--porcelain")
+
+            evidence = collect_evidence(repo, baseline)
+            _assert_available(self, evidence)
+            self.assertFalse(_field(evidence, "index_changed"))
+            self.assertFalse(_field(evidence, "git_metadata_changed"))
+            self.assertFalse(_field(evidence, "has_changes"))
+            _assert_outcome(self, evidence, "unchanged observed outcome")
+            self.assertEqual(_category_paths(evidence, "index"), [])
 
     def test_index_flags_cannot_hide_a_worktree_change(self) -> None:
         with tempfile.TemporaryDirectory(prefix="workspace-evidence-index-flags-") as raw:
@@ -624,6 +632,42 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             self.assertNotIn("TOP_SECRET_VALUE", rendered)
             self.assertNotIn("-----BEGIN PRIVATE KEY-----", rendered)
             self.assertIn("REDACTED", rendered)
+
+    def test_auxiliary_python_bytecode_does_not_invalidate_read_only_evidence(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-bytecode-") as raw:
+            repo = _new_repo(Path(raw) / "repo")
+            (repo / ".gitignore").write_text("__pycache__/\n", encoding="utf-8")
+            _git(repo, "add", "--", ".gitignore")
+            _git(repo, "commit", "-qm", "ignore interpreter cache")
+            baseline = capture_baseline(repo)
+
+            result = subprocess.run(
+                [sys.executable, "-c", "import module; assert module.VALUE == 'baseline'"],
+                cwd=repo,
+                env={**os.environ, "PYTHONPATH": str(repo)},
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr.decode())
+            self.assertTrue((repo / "__pycache__").is_dir())
+
+            evidence = collect_evidence(repo, baseline)
+            _assert_available(self, evidence)
+            self.assertFalse(_field(evidence, "has_changes"))
+            _assert_outcome(self, evidence, "unchanged observed outcome")
+            self.assertEqual(_strings(_field(evidence, "untracked_paths")), [])
+            self.assertIn("sha256=", _text(evidence))
+
+    def test_required_binary_artifact_remains_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-required-binary-") as raw:
+            repo = _new_repo(Path(raw) / "repo")
+            baseline = capture_baseline(repo)
+            (repo / "artifact.bin").write_bytes(b"\x00required\x00")
+
+            evidence = collect_evidence(repo, baseline, required_paths=("artifact.bin",))
+            _assert_unavailable(self, evidence)
+            self.assertIn("binary", _text(evidence).lower())
 
 
 if __name__ == "__main__":  # pragma: no cover

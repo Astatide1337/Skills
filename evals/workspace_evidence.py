@@ -16,13 +16,13 @@ import hashlib
 import os
 import re
 import selectors
+import shutil
 import stat
-import struct
 import subprocess
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any, Iterable, Sequence
+from typing import Iterable, Sequence
 
 
 DEFAULT_MAX_BYTES = 20_000
@@ -77,6 +77,18 @@ _SENSITIVE_DIRECTORY_NAMES = {
     "credentials",
     "private",
 }
+# Only well-known interpreter/test cache locations are auxiliary by default.
+# An arbitrary binary created by a candidate remains material unless the task
+# explicitly identifies it as a required artifact and the collector can read
+# it safely.
+_AUXILIARY_BINARY_DIRECTORIES = {
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".tox",
+    ".nox",
+}
 _SECRET_ASSIGNMENT = re.compile(
     r"(?im)^(\s*(?:[A-Z0-9_.-]*(?:secret|token|password|private[_ -]?key|api[_ -]?key)"
     r"[A-Z0-9_.-]*)\s*[:=]\s*)([^\s#]+)(.*)$"
@@ -94,7 +106,9 @@ class Baseline:
     revision: str | None = None
     initial_paths: tuple[str, ...] = ()
     tracked_paths: tuple[str, ...] = ()
-    index_entries: tuple[tuple[str, str], ...] = ()
+    # (path, object ID, file mode, merge stage). Git's maintained listing
+    # intentionally omits the mutable stat-cache fields.
+    index_entries: tuple[tuple[str, str, int, int], ...] = ()
     object_id_bytes: int = 20
     # (kind, device, inode, target-or-note); only a real local directory is
     # accepted so post-candidate Git plumbing cannot be redirected elsewhere.
@@ -162,20 +176,6 @@ class Evidence:
         return "\n".join(fields)
 
 
-def _git_env() -> dict[str, str]:
-    env = os.environ.copy()
-    env.update(
-        {
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_NO_REPLACE_OBJECTS": "1",
-            "GIT_OPTIONAL_LOCKS": "0",
-            "GIT_PAGER": "cat",
-        }
-    )
-    return env
-
-
 def _git(
     workspace: Path,
     args: Sequence[str],
@@ -185,10 +185,72 @@ def _git(
     """Run fixed Git argv with a finite timeout and bounded output."""
 
     command = ["git", *args]
+    bwrap = shutil.which("bwrap")
+    if bwrap is None:
+        return subprocess.CompletedProcess(
+            command,
+            125,
+            stdout=b"",
+            stderr=b"contained Git execution unavailable: bwrap is not installed",
+        )
+    contained_command = [
+        bwrap,
+        "--die-with-parent",
+        "--unshare-all",
+        "--ro-bind",
+        str(workspace),
+        "/workspace",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--ro-bind",
+        "/bin",
+        "/bin",
+        "--ro-bind",
+        "/lib",
+        "/lib",
+        "--ro-bind",
+        "/lib64",
+        "/lib64",
+        "--ro-bind",
+        "/etc",
+        "/etc",
+        "--proc",
+        "/proc",
+        "--dev",
+        "/dev",
+        "--tmpfs",
+        "/tmp",
+        "--clearenv",
+        "--setenv",
+        "HOME",
+        "/tmp",
+        "--setenv",
+        "PATH",
+        "/usr/bin:/bin",
+        "--setenv",
+        "GIT_CONFIG_NOSYSTEM",
+        "1",
+        "--setenv",
+        "GIT_CONFIG_GLOBAL",
+        "/dev/null",
+        "--setenv",
+        "GIT_NO_REPLACE_OBJECTS",
+        "1",
+        "--setenv",
+        "GIT_OPTIONAL_LOCKS",
+        "0",
+        "--setenv",
+        "GIT_PAGER",
+        "cat",
+        "--chdir",
+        "/workspace",
+        "git",
+        *args,
+    ]
     process = subprocess.Popen(
-        command,
-        cwd=workspace,
-        env=_git_env(),
+        contained_command,
+        env={"PATH": "/usr/bin:/bin"},
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -333,22 +395,20 @@ def _sensitive(path: str) -> bool:
         for component in PurePosixPath(path).parts[:-1]
     )
 
-
-def _git_metadata_alias(path: str) -> bool:
-    """Identify renamed top-level Git metadata without treating ``.github`` as one."""
-
-    parts = PurePosixPath(path).parts
-    if not parts:
-        return False
-    name = parts[0].lower()
-    return name.startswith(".git.") or name.startswith(".git-")
-
-
 def _redact_text(raw: str) -> str:
     """Redact common secret assignments before evidence reaches a grader."""
 
     raw = _PEM_BLOCK.sub("[REDACTED PRIVATE KEY]", raw)
     return _SECRET_ASSIGNMENT.sub(r"\1[REDACTED]\3", raw)
+
+
+def _is_auxiliary_binary(relative: str) -> bool:
+    """Recognize bounded runtime caches without making arbitrary binaries harmless."""
+
+    return any(
+        component in _AUXILIARY_BINARY_DIRECTORIES
+        for component in PurePosixPath(relative).parts
+    )
 
 
 def _safe_open(path: Path, root_dev: int) -> tuple[int, os.stat_result] | None:
@@ -395,8 +455,6 @@ def _read_bounded(
         return f"{label} PATH {relative}: rejected (must be workspace-relative)", False, "path-boundary"
     root = workspace.resolve()
     path = root / relative
-    if _git_metadata_alias(relative):
-        return f"{label} PATH {relative}: content omitted (Git metadata alias)", False, "git-boundary"
     try:
         path.relative_to(root)
         info = path.lstat()
@@ -456,6 +514,7 @@ def _snapshot_workspace(
     max_bytes: int = DEFAULT_SNAPSHOT_MAX_BYTES,
     max_paths: int = DEFAULT_MAX_PATHS,
     total_bytes: int = DEFAULT_SNAPSHOT_TOTAL_BYTES,
+    protected_git_identity: tuple[int, int] | None = None,
 ) -> tuple[tuple[tuple[str, str, int | None, str | None, str | None], ...], tuple[str, ...], bool]:
     """Snapshot visible workspace files without traversing ``.git`` or links."""
 
@@ -492,9 +551,18 @@ def _snapshot_workspace(
                 omissions.append(f"{relative}: stat failed ({exc})")
                 continue
             mode = info.st_mode
-            if not prefix and _git_metadata_alias(relative):
+            # A candidate may rename the runner-authorized .git directory and
+            # replace the root with another repository.  Protect the original
+            # object by identity, not by a filename prefix: tracked files such
+            # as .git-blame-ignore-revs are ordinary workspace artifacts.
+            if (
+                not prefix
+                and protected_git_identity is not None
+                and stat.S_ISDIR(mode)
+                and (int(info.st_dev), int(info.st_ino)) == protected_git_identity
+            ):
                 entries.append(_entry_tuple(relative, "git-alias", None, None, "metadata boundary"))
-                omissions.append(f"{relative}: Git metadata alias not traversed")
+                omissions.append(f"{relative}: original Git metadata boundary not traversed")
                 continue
             if stat.S_ISLNK(mode):
                 try:
@@ -597,7 +665,7 @@ def _capture_git_boundary(
 
 def _validate_git_boundary(
     root: Path,
-    expected: Sequence[Any],
+    expected: Sequence[str | int | None],
 ) -> str | None:
     """Reject a post-candidate metadata redirect before any Git command."""
 
@@ -624,12 +692,6 @@ def _validate_git_boundary(
             return f"Git metadata path {relative} crosses a filesystem mount"
         if relative in {".git/HEAD", ".git/index", ".git/config"} and not stat.S_ISREG(info.st_mode):
             return f"Git metadata path {relative} is not a regular file"
-    alternates = root / ".git" / "objects" / "info" / "alternates"
-    try:
-        if alternates.exists() or alternates.is_symlink():
-            return "Git object alternates are not an authorized evidence boundary"
-    except OSError as exc:
-        return f"Git object alternates could not be checked ({exc})"
     return None
 
 
@@ -639,96 +701,65 @@ def _control_snapshot(
     max_bytes: int = DEFAULT_SNAPSHOT_MAX_BYTES,
     max_paths: int = DEFAULT_MAX_PATHS,
 ) -> tuple[tuple[tuple[str, str, int | None, str | None], ...], tuple[str, ...], bool]:
-    """Hash Git control files without reading objects, logs, or attributes."""
+    """Record only fixed Git controls and maintained ref output.
 
-    git_path = root / ".git"
-    try:
-        info = git_path.lstat()
-    except OSError as exc:
-        return (), (f".git: unavailable ({exc})",), False
-    if stat.S_ISLNK(info.st_mode):
-        return ((".git", "symlink", None, os.readlink(git_path)),), (), False
-    if not stat.S_ISDIR(info.st_mode):
-        opened = _safe_open(git_path, root.stat().st_dev)
+    This is deliberately not a recursive ``.git`` scanner.  Object reads are
+    performed by the contained ``_git`` route; the evidence contract only
+    needs fixed control files plus Git's own ref listing to identify semantic
+    metadata changes.
+    """
+
+    entries: list[tuple[str, str, int | None, str | None]] = []
+    omissions: list[str] = []
+    root_dev = root.stat().st_dev
+    for relative in (".git/HEAD", ".git/config", ".git/index"):
+        path = root / relative
+        try:
+            info = path.lstat()
+        except OSError as exc:
+            omissions.append(f"{relative}: unavailable ({exc})")
+            continue
+        if stat.S_ISLNK(info.st_mode):
+            omissions.append(f"{relative}: symlink control boundary")
+            entries.append((relative, "symlink", None, "not followed"))
+            continue
+        if not stat.S_ISREG(info.st_mode) or info.st_dev != root_dev:
+            omissions.append(f"{relative}: control boundary is not a local regular file")
+            entries.append((relative, "file", info.st_size, "omitted"))
+            continue
+        opened = _safe_open(path, root_dev)
         if opened is None:
-            return ((".git", "other", None, "unsafe"),), (".git: unsafe gitfile",), False
+            omissions.append(f"{relative}: safe open failed")
+            entries.append((relative, "file", info.st_size, "omitted"))
+            continue
         descriptor, opened_info = opened
         try:
             digest = _digest_descriptor(descriptor, opened_info.st_size, max_bytes)
         finally:
             os.close(descriptor)
         if digest is None:
-            return ((".git", "file", opened_info.st_size, "omitted"),), (".git: gitfile omitted",), True
-        return ((".git", "file", opened_info.st_size, digest),), (), False
+            omissions.append(f"{relative}: control file exceeds snapshot limit")
+            digest = "omitted"
+        entries.append((relative, "file", opened_info.st_size, digest))
 
-    entries: list[tuple[str, str, int | None, str | None]] = []
-    omissions: list[str] = []
-    stack: list[tuple[Path, str]] = [(git_path, ".git")]
-    root_dev = root.stat().st_dev
-    while stack:
-        directory, prefix = stack.pop()
-        try:
-            children = sorted(os.scandir(directory), key=lambda item: item.name)
-        except OSError as exc:
-            omissions.append(f"{prefix}: directory enumeration failed ({exc})")
-            continue
-        for child in children:
-            relative = f"{prefix}/{child.name}"
-            # Object payloads and reflogs are not control inputs for the
-            # outcome, and may be large. Refs, HEAD, index, and config are.
-            if prefix == ".git" and child.name in {"objects", "logs"}:
-                try:
-                    boundary_info = child.stat(follow_symlinks=False)
-                except OSError as exc:
-                    omissions.append(f"{relative}: stat failed ({exc})")
-                    continue
-                if stat.S_ISLNK(boundary_info.st_mode):
-                    entries.append((relative, "symlink", None, os.readlink(child.path)))
-                    omissions.append(f"{relative}: symlink control boundary")
-                elif boundary_info.st_dev != root_dev:
-                    omissions.append(f"{relative}: mount boundary not traversed")
-                continue
-            if len(entries) >= max_paths:
-                omissions.append(f"Git control path limit exceeded ({max_paths})")
-                return tuple(entries), tuple(omissions), True
-            try:
-                info = child.stat(follow_symlinks=False)
-            except OSError as exc:
-                omissions.append(f"{relative}: stat failed ({exc})")
-                continue
-            mode = info.st_mode
-            if stat.S_ISLNK(mode):
-                try:
-                    target = os.readlink(child.path)
-                except OSError as exc:
-                    target = f"unreadable ({exc})"
-                entries.append((relative, "symlink", None, target))
-                omissions.append(f"{relative}: symlink control boundary")
-            elif stat.S_ISDIR(mode):
-                if info.st_dev != root_dev:
-                    omissions.append(f"{relative}: mount boundary not traversed")
-                else:
-                    stack.append((Path(child.path), relative))
-            elif stat.S_ISREG(mode):
-                opened = _safe_open(Path(child.path), root_dev)
-                if opened is None:
-                    entries.append((relative, "file", info.st_size, "omitted"))
-                    omissions.append(f"{relative}: unsafe or hardlinked control file")
-                    continue
-                descriptor, opened_info = opened
-                try:
-                    digest = _digest_descriptor(descriptor, opened_info.st_size, max_bytes)
-                finally:
-                    os.close(descriptor)
-                if digest is None:
-                    digest = "omitted"
-                    omissions.append(f"{relative}: control file exceeds snapshot limit")
-                entries.append((relative, "file", opened_info.st_size, digest))
-            else:
-                entries.append((relative, "other", None, "unsupported"))
-                omissions.append(f"{relative}: unsupported control file")
-    entries.sort(key=lambda item: item[0])
-    return tuple(entries), tuple(omissions), False
+    refs = _git(
+        root,
+        ["for-each-ref", "--format=%(refname) %(objectname)", "--sort=refname"],
+        output_limit=max_bytes,
+    )
+    refs_error = _error(refs)
+    if refs_error:
+        omissions.append(f"Git refs: {refs_error}")
+    else:
+        raw_refs = refs.stdout
+        if "output truncated by evaluator" in _decode(refs.stderr):
+            omissions.append("Git refs: output truncated")
+        elif len(raw_refs) > max_bytes:
+            omissions.append(f"Git refs: output exceeds snapshot limit {max_bytes}")
+        else:
+            entries.append((".git/refs", "git-output", len(raw_refs), hashlib.sha256(raw_refs).hexdigest()))
+
+    return tuple(sorted(entries)), tuple(omissions), bool(omissions)
 
 
 def _error(result: subprocess.CompletedProcess[bytes]) -> str | None:
@@ -752,94 +783,46 @@ def _git_paths(
     return paths, None, overflow
 
 
-def _read_limited(path: Path, root_dev: int, max_bytes: int) -> tuple[bytes, str | None]:
-    opened = _safe_open(path, root_dev)
-    if opened is None:
-        return b"", "file could not be safely opened"
-    descriptor, info = opened
-    try:
-        if info.st_size > max_bytes:
-            return b"", f"file exceeds limit {max_bytes}"
-        chunks: list[bytes] = []
-        remaining = max_bytes + 1
-        while remaining:
-            chunk = os.read(descriptor, min(1024 * 1024, remaining))
-            if not chunk:
-                break
-            chunks.append(chunk)
-            remaining -= len(chunk)
-        raw = b"".join(chunks)
-        if len(raw) > max_bytes:
-            return raw[: max_bytes + 1], f"file exceeds limit {max_bytes}"
-        return raw, None
-    except OSError as exc:
-        return b"", f"file could not be read ({exc})"
-    finally:
-        os.close(descriptor)
-
-
-def _parse_index(
-    raw: bytes,
-    *,
-    object_id_bytes: int,
-    max_paths: int,
-) -> tuple[tuple[tuple[str, str], ...], str | None, bool]:
-    """Parse v2/v3 index identities without asking Git to interpret the index."""
-
-    if len(raw) < 12 or raw[:4] != b"DIRC":
-        return (), "invalid Git index header", False
-    version, count = struct.unpack(">II", raw[4:12])
-    if version not in {2, 3}:
-        return (), f"unsupported Git index version {version}", False
-    offset = 12
-    records: list[tuple[str, str]] = []
-    overflow = False
-    for _ in range(count):
-        entry_start = offset
-        fixed = 62 + (object_id_bytes - 20)
-        if offset + fixed > len(raw):
-            return (), "truncated Git index entry", False
-        flags_offset = offset + 60 + (object_id_bytes - 20)
-        flags = struct.unpack(">H", raw[flags_offset : flags_offset + 2])[0]
-        offset += fixed
-        if flags & 0x4000:
-            if offset + 2 > len(raw):
-                return (), "truncated Git index extension flags", False
-            offset += 2
-        try:
-            path_end = raw.index(b"\0", offset)
-        except ValueError:
-            return (), "unterminated Git index path", False
-        path = _decode(raw[offset:path_end])
-        oid_start = entry_start + 40
-        oid = raw[oid_start : oid_start + object_id_bytes].hex()
-        offset = path_end + 1
-        while (offset - entry_start) % 8:
-            offset += 1
-        if not validate_relative_path(path):
-            return (), f"invalid Git index path {path!r}", False
-        if len(records) >= max_paths:
-            overflow = True
-            continue
-        records.append((path, oid))
-    return tuple(records), None, overflow
-
-
 def _read_index_entries(
     root: Path,
     *,
     object_id_bytes: int,
     max_paths: int,
     max_bytes: int,
-) -> tuple[tuple[tuple[str, str], ...], str | None, bool]:
-    raw, read_error = _read_limited(root / ".git" / "index", root.stat().st_dev, max_bytes)
-    if read_error:
-        return (), read_error, False
-    return _parse_index(
-        raw,
-        object_id_bytes=object_id_bytes,
-        max_paths=max_paths,
+) -> tuple[tuple[tuple[str, str, int, int], ...], str | None, bool]:
+    """Read semantic index entries through Git's maintained interface."""
+
+    result = _git(
+        root,
+        ["ls-files", "--cached", "--stage", "-z"],
+        output_limit=max_bytes,
     )
+    error = _error(result)
+    if error:
+        return (), error, False
+    if "output truncated by evaluator" in _decode(result.stderr):
+        return (), "Git index listing exceeded the bounded output limit", True
+
+    records: list[tuple[str, str, int, int]] = []
+    for raw_record in result.stdout.split(b"\0"):
+        if not raw_record:
+            continue
+        try:
+            header, raw_path = raw_record.split(b"\t", 1)
+            mode_text, oid, stage_text = header.decode("ascii").split()
+            path = _decode(raw_path)
+            mode = int(mode_text, 8)
+            stage = int(stage_text, 10)
+        except (UnicodeDecodeError, ValueError) as exc:
+            return tuple(records), f"invalid Git index listing record ({exc})", False
+        if len(oid) != object_id_bytes * 2:
+            return tuple(records), f"invalid Git object ID for {path!r}", False
+        if not validate_relative_path(path):
+            return tuple(records), f"invalid Git index path {path!r}", False
+        if len(records) >= max_paths:
+            return tuple(records), None, True
+        records.append((path, oid, mode, stage))
+    return tuple(records), None, False
 
 
 def _object_blob(
@@ -1116,42 +1099,23 @@ def capture_baseline(
 
 
 def _entry_map(
-    entries: Sequence[tuple[str, str, int | None, str | None, str | None]] | Sequence[Any],
-) -> dict[str, tuple[Any, ...]]:
-    result: dict[str, tuple[Any, ...]] = {}
+    entries: Sequence[tuple[str, str, int | None, str | None, str | None]],
+) -> dict[str, tuple[str, str, int | None, str | None, str | None]]:
+    result: dict[str, tuple[str, str, int | None, str | None, str | None]] = {}
     for entry in entries:
-        if isinstance(entry, dict):
-            path = str(entry.get("path", ""))
-            value = (
-                path,
-                entry.get("kind"),
-                entry.get("size"),
-                entry.get("digest"),
-                entry.get("target_or_note"),
-            )
-        else:
-            values = tuple(entry)
-            if not values:
-                continue
-            path = str(values[0])
-            value = values
-        if path:
-            result[path] = value
+        if entry[0]:
+            result[entry[0]] = entry
     return result
 
 
-def _control_map(entries: Sequence[Any]) -> dict[str, tuple[Any, ...]]:
-    result: dict[str, tuple[Any, ...]] = {}
+def _control_map(
+    entries: Sequence[tuple[str, str, int | None, str | None]],
+) -> dict[str, tuple[str, str, int | None, str | None]]:
+    result: dict[str, tuple[str, str, int | None, str | None]] = {}
     for entry in entries:
-        values = tuple(entry.values()) if isinstance(entry, dict) else tuple(entry)
-        if values:
-            result[str(values[0])] = values
+        if entry[0]:
+            result[entry[0]] = entry
     return result
-
-
-def _index_digest(control: dict[str, tuple[Any, ...]]) -> Any:
-    entry = control.get(".git/index")
-    return entry[3] if entry and len(entry) > 3 else None
 
 
 def _bound_content(
@@ -1204,17 +1168,21 @@ def collect_evidence(
         root,
         max_bytes=snapshot_limit,
         max_paths=max_paths,
-    )
-    current_control, control_omissions, control_truncated = _control_snapshot(
-        root,
-        max_bytes=snapshot_limit,
-        max_paths=max_paths,
+        protected_git_identity=(
+            (int(baseline.git_boundary[1]), int(baseline.git_boundary[2]))
+            if len(baseline.git_boundary) >= 3
+            else None
+        ),
     )
     required_content, required_omissions, required_truncated = _path_boundary_records(
         root, required, max_bytes
     )
 
     if not baseline.available:
+        # An unavailable starting state is not a candidate trial.  Do not run
+        # Git plumbing (including control/ref reads) against a possibly
+        # malformed or candidate-controlled metadata path merely to render an
+        # observation that cannot be scored.
         content: list[str] = []
         omissions = ["baseline"]
         current_map = _entry_map(current_snapshot)
@@ -1226,7 +1194,7 @@ def collect_evidence(
             if not readable:
                 omissions.append(f"{relative}: {reason}")
         content.extend(required_content)
-        omissions.extend((*snapshot_omissions, *control_omissions, *required_omissions))
+        omissions.extend((*snapshot_omissions, *required_omissions))
         bounded_content, content_truncated = _bound_content(content)
         if content_truncated:
             omissions.append("evidence content budget exceeded")
@@ -1241,17 +1209,37 @@ def collect_evidence(
             omissions=tuple(omissions),
             truncated=(
                 snapshot_truncated
-                or control_truncated
                 or required_truncated
                 or content_truncated
             ),
             reason=baseline.reason or "baseline unavailable",
+            outcome="unavailable",
         )
 
-    errors: list[str] = []
+    # Validate the complete authorized .git boundary before any operation that
+    # could dereference it.  In particular, do not let _control_snapshot or
+    # rev-parse inspect a redirected repository and only report the redirect
+    # afterwards.
     git_boundary_error = _validate_git_boundary(root, baseline.git_boundary)
     if git_boundary_error:
-        errors.append(git_boundary_error)
+        return Evidence(
+            status="unavailable",
+            available=False,
+            baseline_revision=baseline.revision,
+            required_paths=required,
+            content=tuple(required_content),
+            omissions=(git_boundary_error, *required_omissions, *snapshot_omissions),
+            truncated=(snapshot_truncated or required_truncated),
+            reason=git_boundary_error,
+            outcome="unavailable",
+        )
+
+    current_control, control_omissions, control_truncated = _control_snapshot(
+        root,
+        max_bytes=snapshot_limit,
+        max_paths=max_paths,
+    )
+    errors: list[str] = []
 
     # Control snapshots are runner-owned, non-following observations. If
     # their traversal is incomplete, stop before Git can interpret a
@@ -1260,7 +1248,7 @@ def collect_evidence(
         not git_boundary_error and not control_omissions and not control_truncated
     )
     final_revision: str | None = None
-    final_index_entries: tuple[tuple[str, str], ...] = ()
+    final_index_entries: tuple[tuple[str, str, int, int], ...] = ()
     if git_plumbing_available:
         final = _git(root, ["rev-parse", "HEAD"])
         final_error = _error(final)
@@ -1295,9 +1283,27 @@ def collect_evidence(
     worktree_paths = tuple(path for path in changed_paths if path in tracked_set)
     baseline_control = _control_map(baseline.git_control)
     current_control_map = _control_map(current_control)
-    git_metadata_changed = baseline_control != current_control_map
-    baseline_index_map = dict(baseline.index_entries)
-    final_index_map = dict(final_index_entries)
+    # The index file contains both semantic entries and Git's mutable stat
+    # cache.  Compare all other runner-owned control paths here; semantic index
+    # changes are determined from parsed entries below.
+    git_metadata_changed = {
+        path: value for path, value in baseline_control.items() if path != ".git/index"
+    } != {
+        path: value for path, value in current_control_map.items() if path != ".git/index"
+    }
+    def index_map(
+        entries: Sequence[tuple[str, str, int, int]],
+    ) -> dict[str, tuple[tuple[str, int, int], ...]]:
+        grouped: dict[str, list[tuple[str, int, int]]] = {}
+        for path, oid, mode, stage in entries:
+            grouped.setdefault(path, []).append((oid, mode, stage))
+        return {
+            path: tuple(sorted(values))
+            for path, values in grouped.items()
+        }
+
+    baseline_index_map = index_map(baseline.index_entries)
+    final_index_map = index_map(final_index_entries)
     index_paths = tuple(
         sorted(
             path
@@ -1305,10 +1311,7 @@ def collect_evidence(
             if baseline_index_map.get(path) != final_index_map.get(path)
         )
     )
-    index_changed = (
-        _index_digest(baseline_control) != _index_digest(current_control_map)
-        or bool(index_paths)
-    )
+    index_changed = bool(index_paths)
     head_changed = bool(final_revision and baseline.revision and final_revision != baseline.revision)
     committed_entries: tuple[tuple[str, str | None], ...] = ()
     if head_changed and git_plumbing_available and final_revision and baseline.revision:
@@ -1350,9 +1353,10 @@ def collect_evidence(
         )
     )
     tracked_paths = tuple(sorted(set(worktree_paths) | set(index_paths) | set(committed_paths)))
-    has_changes = bool(changed_paths or index_changed or head_changed or git_metadata_changed)
 
     content: list[str] = []
+    required_set = set(required)
+    auxiliary_binary_paths: set[str] = set()
     if changed_paths:
         content.append(
             "GIT DIFF AGAINST BASELINE (runner-owned filesystem snapshot):"
@@ -1362,12 +1366,32 @@ def collect_evidence(
             content.append(f"CHANGED PATH {relative}: missing from final workspace")
             continue
         rendered, readable, reason = _read_bounded(root, relative, max_bytes, label="CHANGED")
+        # Untracked binary runtime products (for example Python's ignored
+        # __pycache__ bytecode) are auxiliary unless the task explicitly asks
+        # for that path.  Keep a bounded identity record, but do not make a
+        # successful read-only candidate unavailable or dirty merely because
+        # its interpreter wrote a cache file.
+        if (
+            reason == "binary"
+            and relative not in tracked_set
+            and relative not in required_set
+            and _is_auxiliary_binary(relative)
+        ):
+            entry = current_map.get(relative)
+            if entry is not None and entry[1] == "file" and entry[3] is not None:
+                rendered = (
+                    f"CHANGED FILE {relative}: binary content omitted "
+                    f"(size={entry[2]}, sha256={entry[3]})"
+                )
+                readable = True
+                reason = None
+                auxiliary_binary_paths.add(relative)
         content.append(rendered)
         if not readable:
             errors.append(f"{relative}: {reason}")
             truncated = truncated or reason in {"truncated", "binary"}
     index_content_added = False
-    for relative, oid in final_index_entries:
+    for relative, oid, *_ in final_index_entries:
         if relative not in index_paths:
             continue
         if not index_content_added:
@@ -1404,13 +1428,22 @@ def collect_evidence(
     if git_metadata_changed:
         content.append("GIT CONTROL METADATA CHANGED: .git control snapshot differs")
     if index_changed:
-        content.append("GIT INDEX CHANGED: index digest differs from baseline")
+        content.append("GIT INDEX CHANGED: semantic index entries differ from baseline")
     if head_changed:
         content.append("GIT HEAD CHANGED: final revision differs from baseline")
 
     bounded_content, content_truncated = _bound_content(content)
     truncated = truncated or content_truncated
     unavailable = bool(errors) or truncated
+    untracked_paths = tuple(
+        path for path in untracked_paths if path not in auxiliary_binary_paths
+    )
+    semantic_changed_paths = tuple(
+        path for path in changed_paths if path not in auxiliary_binary_paths
+    )
+    has_changes = bool(
+        semantic_changed_paths or index_changed or head_changed or git_metadata_changed
+    )
     return Evidence(
         status="unavailable" if unavailable else "available",
         available=not unavailable,
@@ -1433,9 +1466,3 @@ def collect_evidence(
         outcome="unavailable" if unavailable else ("changed" if has_changes else "unchanged observed outcome"),
         reason="; ".join(errors) if errors else None,
     )
-
-
-def evidence_record(value: Baseline | Evidence) -> dict[str, Any]:
-    """Return a JSON-safe record for Inspect's state store."""
-
-    return asdict(value)

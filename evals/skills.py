@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
+import importlib.util
 import re
 import sys
 import tempfile
-from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
 from uuid import uuid4
 
 from inspect_ai import Task, task
@@ -20,8 +18,31 @@ from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.util import sandbox
 import yaml
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+try:
+    from evals.workspace_evidence import (
+        Baseline,
+        Evidence,
+        capture_baseline,
+        collect_evidence,
+    )
+except ModuleNotFoundError as exc:
+    if exc.name not in {"evals", "evals.workspace_evidence"}:
+        raise
+    module_path = REPO_ROOT / "evals" / "workspace_evidence.py"
+    spec = importlib.util.spec_from_file_location("skills_workspace_evidence", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"unable to load evidence helper: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    Baseline = module.Baseline
+    Evidence = module.Evidence
+    capture_baseline = module.capture_baseline
+    collect_evidence = module.collect_evidence
+
+
 SKILLS_ROOT = REPO_ROOT / "skills"
 CASES = Path(__file__).parent / "cases" / "catalog.json"
 ROUTING_CASES = Path(__file__).parent / "cases" / "routing.json"
@@ -149,6 +170,20 @@ def native_codex(with_skills: bool, model: str) -> Solver:
     """Execute a sample with the locally authenticated Codex CLI."""
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
+        baseline = state.store.get("workspace_baseline")
+        if not isinstance(baseline, Baseline) or not baseline.available:
+            state.output = ModelOutput.from_content(
+                model="runner/workspace-evidence",
+                content="Candidate skipped: workspace baseline unavailable.",
+            )
+            state.output.metadata = {
+                "workspace_baseline_status": (
+                    baseline.status if isinstance(baseline, Baseline) else "missing"
+                ),
+                "candidate_skipped": True,
+            }
+            state.completed = True
+            return state
         prompt = state.input_text
         if with_skills:
             skill = (state.metadata or {}).get("skill")
@@ -175,6 +210,12 @@ def native_codex(with_skills: bool, model: str) -> Solver:
         state.output.metadata = {"codex_jsonl": events}
         if with_skills:
             state.output.metadata["injected_skill"] = skill
+        scope = (state.metadata or {}).get("execution_scope")
+        if scope:
+            state.output.metadata["execution_scope"] = scope
+            state.output.metadata["containment"] = (
+                "unsupported outside trusted synthetic fixtures"
+            )
         return state
 
     return solve
@@ -349,187 +390,56 @@ def routing_minimality():
     return score
 
 
-_MISSING = object()
-_UNAVAILABLE_STATUSES = {"unavailable", "blocked", "error", "failed"}
+def _unavailable_baseline(reason: str) -> Baseline:
+    return Baseline(status="unavailable", reason=reason)
 
 
-def _workspace_evidence_api():
-    """Load the synchronous path-based evidence API only when a sample runs."""
-
-    try:
-        from evals.workspace_evidence import (
-            Baseline,
-            capture_baseline,
-            collect_evidence,
-            evidence_record,
-        )
-    except ModuleNotFoundError as exc:
-        # Inspect can load this task by path without adding the repository
-        # root to ``sys.path``. Resolve the sibling helper from the trusted
-        # repository path instead of relying on candidate-controlled imports.
-        if exc.name not in {"evals", "evals.workspace_evidence"}:
-            raise
-        module_name = "_skills_workspace_evidence"
-        module = sys.modules.get(module_name)
-        if module is None:
-            module_path = REPO_ROOT / "evals" / "workspace_evidence.py"
-            spec = importlib.util.spec_from_file_location(module_name, module_path)
-            if spec is None or spec.loader is None:
-                raise RuntimeError(f"unable to load evidence helper: {module_path}")
-            module = importlib.util.module_from_spec(spec)
-            sys.modules[module_name] = module
-            spec.loader.exec_module(module)
-        Baseline = module.Baseline
-        capture_baseline = module.capture_baseline
-        collect_evidence = module.collect_evidence
-        evidence_record = module.evidence_record
-
-    return Baseline, capture_baseline, collect_evidence, evidence_record
-
-
-def _workspace_result_field(value: Any, *names: str) -> Any:
-    """Read a semantic field from either a mapping or a result dataclass."""
-
-    if isinstance(value, Mapping):
-        for name in names:
-            if name in value:
-                return value[name]
-    for name in names:
-        if hasattr(value, name):
-            return getattr(value, name)
-    return _MISSING
-
-
-def _workspace_result_text(value: Any) -> str:
-    """Render helper evidence without discarding structured path metadata."""
-
-    if isinstance(value, str):
-        return value
-
-    def serialise(item: Any) -> Any:
-        if isinstance(item, Path):
-            return str(item)
-        if hasattr(item, "__dict__"):
-            return vars(item)
-        return str(item)
-
-    try:
-        return json.dumps(value, ensure_ascii=False, default=serialise, sort_keys=True)
-    except (TypeError, ValueError):
-        return repr(value)
-
-
-def _workspace_result_status(value: Any) -> str | None:
-    status = _workspace_result_field(value, "status", "state", "outcome", "availability")
-    if status is _MISSING or status is None:
-        return None
-    return str(status).lower().rsplit(".", 1)[-1]
-
-
-def _workspace_result_available(value: Any) -> bool:
-    """Require explicit helper availability; unknown results are not success."""
-
-    if isinstance(value, bool):
-        return value
-    status = _workspace_result_status(value)
-    if status is not None:
-        if status in _UNAVAILABLE_STATUSES:
-            return False
-        if status in {"available", "ok", "success", "complete", "clean"}:
-            return True
-        return False
-    available = _workspace_result_field(value, "available", "is_available")
-    if available is not _MISSING:
-        return bool(available)
-    unavailable = _workspace_result_field(value, "unavailable")
-    if unavailable is not _MISSING:
-        return not bool(unavailable)
-    return False
-
-
-def _workspace_result_changed(value: Any) -> bool:
-    """Determine dirtiness without flattening worktree, index, or HEAD changes."""
-
-    head_changed = _workspace_result_field(value, "head_changed", "revision_changed")
-    if head_changed is not _MISSING and bool(head_changed):
-        return True
-
-    baseline_head = _workspace_result_field(
-        value,
-        "baseline_head",
-        "baseline_revision",
-        "initial_head",
-        "initial_revision",
+def _unavailable_evidence(reason: str, *, baseline_revision: str | None = None) -> Evidence:
+    return Evidence(
+        status="unavailable",
+        available=False,
+        baseline_revision=baseline_revision,
+        reason=reason,
+        outcome="unavailable",
     )
-    final_head = _workspace_result_field(
-        value,
-        "final_head",
-        "final_revision",
-        "current_head",
-        "current_revision",
-    )
-    if (
-        baseline_head is not _MISSING
-        and final_head is not _MISSING
-        and baseline_head != final_head
-    ):
-        return True
-
-    # The runner-owned collector exposes a baseline-relative contract. Prefer
-    # it over inventory fields such as ``current_untracked_paths`` so a
-    # pre-existing ignored file is not mistaken for a candidate mutation.
-    explicit_changes = _workspace_result_field(value, "has_changes")
-    if explicit_changes is not _MISSING:
-        if isinstance(explicit_changes, str):
-            return explicit_changes.strip().lower() in {"1", "true", "yes", "changed"}
-        return bool(explicit_changes)
-
-    path_fields = (
-        "tracked_worktree_paths",
-        "worktree_paths",
-        "working_tree_paths",
-        "tracked_index_paths",
-        "tracked_paths",
-        "index_paths",
-        "cached_paths",
-        "untracked_paths",
-        "committed_paths",
-        "changed_paths",
-        "changes",
-        "index_changed",
-        "git_metadata_changed",
-    )
-    for name in path_fields:
-        paths = _workspace_result_field(value, name)
-        if paths is _MISSING or paths is None:
-            continue
-        if isinstance(paths, bool):
-            if paths:
-                return True
-        elif isinstance(paths, str):
-            if paths.strip():
-                return True
-        else:
-            try:
-                if len(paths):
-                    return True
-            except TypeError:
-                if paths:
-                    return True
-    return False
 
 
-def _workspace_unavailable(reason: str) -> dict[str, str]:
-    """Represent instrumentation failure separately from candidate failure."""
+def _baseline_text(baseline: Baseline) -> str:
+    return f"STATUS: {baseline.status}\nREASON: {baseline.reason or 'none'}"
 
-    return {"status": "unavailable", "reason": reason}
+
+def _evidence_text(evidence: Evidence) -> str:
+    return evidence.as_text()
 
 
 async def _sandbox_workspace_path() -> tuple[Path | None, str | None]:
-    """Resolve the local Inspect sandbox root for the path-based evidence API."""
+    """Resolve the local Inspect root used by trusted synthetic fixtures.
+
+    The collector's synchronous path API cannot address a remote/container
+    filesystem from the runner process. Refuse that unsupported arrangement
+    instead of treating a container's ``pwd`` as a host path. The local route
+    is limited to disposable synthetic cases; it is not hostile-code
+    containment.
+    """
+
+    environment = sandbox()
+    try:
+        connection = await environment.connection()
+    except NotImplementedError:
+        # Inspect's local provider has no connection endpoint. It is the only
+        # supported path-collector route for these trusted fixtures.
+        connection = None
+    except Exception as exc:
+        return None, f"unable to inspect sandbox boundary: {exc}"
+    if connection is not None:
+        return (
+            None,
+            "workspace evidence path collector does not support remote/container "
+            f"sandbox '{connection.type}'; live containment is unsupported",
+        )
 
     try:
-        result = await sandbox().exec(
+        result = await environment.exec(
             ["pwd"],
             timeout=30,
             timeout_retry=False,
@@ -547,28 +457,6 @@ async def _sandbox_workspace_path() -> tuple[Path | None, str | None]:
     return path, None
 
 
-def _workspace_record(value: Any, evidence_record: Any) -> Any:
-    """Use the helper's JSON-safe record for Inspect's state store."""
-
-    try:
-        return evidence_record(value)
-    except (AttributeError, TypeError, ValueError):
-        if isinstance(value, Mapping):
-            return dict(value)
-        return value
-
-
-def _workspace_baseline_object(value: Any, baseline_type: Any) -> Any:
-    """Rehydrate a stored baseline record for the helper's typed API."""
-
-    if isinstance(value, Mapping):
-        try:
-            return baseline_type(**dict(value))
-        except (TypeError, ValueError):
-            return value
-    return value
-
-
 @solver
 def capture_workspace_baseline() -> Solver:
     """Capture runner-owned Git state after ``Sample.setup`` and before a solver."""
@@ -576,57 +464,64 @@ def capture_workspace_baseline() -> Solver:
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         workspace, error = await _sandbox_workspace_path()
         if error is not None or workspace is None:
-            baseline: Any = _workspace_unavailable(error or "workspace unavailable")
+            baseline = _unavailable_baseline(error or "workspace unavailable")
         else:
             try:
-                _, capture_baseline, _, evidence_record = _workspace_evidence_api()
                 captured = capture_baseline(workspace)
-                if captured is None:
-                    baseline = _workspace_unavailable("baseline helper returned no result")
-                else:
-                    baseline = _workspace_record(captured, evidence_record)
+                baseline = captured
             except Exception as exc:
-                baseline = _workspace_unavailable(f"baseline capture failed: {exc}")
+                baseline = _unavailable_baseline(f"baseline capture failed: {exc}")
         state.store.set("workspace_baseline", baseline)
+        if not baseline.available:
+            # Inspect preserves ``completed`` across the solver pipeline.  Set
+            # it at the instrumentation boundary so a dirty or unavailable
+            # baseline cannot launch a candidate and then be graded as if the
+            # observation were valid.
+            state.output = ModelOutput.from_content(
+                model="runner/workspace-evidence",
+                content="Candidate skipped: workspace baseline unavailable.",
+            )
+            state.output.metadata = {"candidate_skipped": True}
+            state.completed = True
         return state
 
     return solve
 
 
-async def _workspace_evidence_value(state: TaskState) -> Any:
+async def _workspace_evidence_value(state: TaskState) -> Evidence:
     """Capture evidence once, including when an earlier solver failed."""
 
     if "workspace_evidence" in state.store:
         return state.store.get("workspace_evidence")
 
     baseline = state.store.get("workspace_baseline")
+    if not isinstance(baseline, Baseline):
+        evidence = _unavailable_evidence("baseline missing or invalid")
+        state.store.set("workspace_evidence", evidence)
+        return evidence
     workspace, error = await _sandbox_workspace_path()
     if error is not None or workspace is None:
-        evidence = _workspace_unavailable(error or "workspace unavailable")
+        evidence = _unavailable_evidence(
+            error or "workspace unavailable",
+            baseline_revision=baseline.revision,
+        )
     else:
         metadata = state.metadata or {}
         required_paths = tuple(
             str(path) for path in metadata.get("required_files", [])
         )
         try:
-            baseline_type, _, collect_evidence, evidence_record = _workspace_evidence_api()
-            collected = collect_evidence(
+            evidence = collect_evidence(
                 workspace,
-                _workspace_baseline_object(
-                    baseline or _workspace_unavailable("baseline missing"),
-                    baseline_type,
-                ),
+                baseline,
                 required_paths=required_paths,
                 max_bytes=60000,
             )
-            if collected is None:
-                evidence = _workspace_unavailable(
-                    "evidence helper returned no result"
-                )
-            else:
-                evidence = _workspace_record(collected, evidence_record)
         except Exception as exc:
-            evidence = _workspace_unavailable(f"evidence collection failed: {exc}")
+            evidence = _unavailable_evidence(
+                f"evidence collection failed: {exc}",
+                baseline_revision=baseline.revision,
+            )
     state.store.set("workspace_evidence", evidence)
     return evidence
 
@@ -638,22 +533,22 @@ def workspace_policy():
     async def score(state: TaskState, target: Target) -> Score:
         metadata = state.metadata or {}
         evidence = await _workspace_evidence_value(state)
-        if not _workspace_result_available(evidence):
+        if not evidence.available:
             return Score(
                 value=0,
                 explanation=(
                     "workspace instrumentation unavailable: "
-                    f"{_workspace_result_text(evidence)}"
+                    f"{_evidence_text(evidence)}"
                 ),
                 metadata={"status": "unavailable"},
             )
 
-        if not metadata.get("allow_changes", False) and _workspace_result_changed(evidence):
+        if not metadata.get("allow_changes", False) and evidence.has_changes:
             return Score(
                 value=0,
                 explanation=(
                     "read-only case changed workspace: "
-                    f"{_workspace_result_text(evidence)}"
+                    f"{_evidence_text(evidence)}"
                 ),
                 metadata={"status": "rejected"},
             )
@@ -686,7 +581,7 @@ async def workspace_evidence(state: TaskState) -> str:
     """Collect bounded code and artifact evidence for the behavior grader."""
 
     sections: list[str] = [
-        "RUNNER WORKSPACE EVIDENCE:\n" + _workspace_result_text(
+        "RUNNER WORKSPACE EVIDENCE:\n" + _evidence_text(
             await _workspace_evidence_value(state)
         )
     ]
@@ -745,6 +640,16 @@ def native_behavior_grade(model: str):
     """Grade the final answer with an isolated native Codex invocation."""
 
     async def score(state: TaskState, target: Target) -> Score:
+        baseline = state.store.get("workspace_baseline")
+        if not isinstance(baseline, Baseline) or not baseline.available:
+            return Score(
+                value=0,
+                explanation=(
+                    "workspace baseline unavailable; native candidate grading skipped: "
+                    f"{_baseline_text(baseline) if isinstance(baseline, Baseline) else 'missing'}"
+                ),
+                metadata={"status": "unavailable", "grading_skipped": True},
+            )
         evidence = await workspace_evidence(state)
         prompt = (
             "You are grading one agent-skill evaluation on a 0-4 quality scale. "
@@ -803,6 +708,22 @@ def evidence_smoke_candidate() -> Solver:
 
 
 @solver
+def baseline_lifecycle_smoke_candidate() -> Solver:
+    """Mark candidate entry so setup-level baseline termination is observable."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        state.store.set("candidate_called", True)
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="deterministic baseline lifecycle candidate",
+        )
+        return state
+
+    return solve
+
+
+@solver
 def workspace_policy_smoke_candidate() -> Solver:
     """Leave a pre-existing ignored artifact untouched for policy scoring."""
 
@@ -817,28 +738,124 @@ def workspace_policy_smoke_candidate() -> Solver:
     return solve
 
 
+@solver
+def workspace_stat_cache_smoke_candidate() -> Solver:
+    """Exercise Git's harmless stat-cache refresh without changing content."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        result = await sandbox().exec(
+            [
+                "sh",
+                "-c",
+                "touch -d '@1' module.py && git status --porcelain",
+            ],
+            timeout=30,
+            timeout_retry=False,
+        )
+        if not result.success:
+            raise RuntimeError(f"stat-cache smoke command failed: {result.stderr.strip()}")
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="deterministic stat-cache refresh candidate",
+        )
+        return state
+
+    return solve
+
+
 @scorer(metrics=[accuracy()])
 def evidence_smoke_grade():
     """Prove evidence survives a failed candidate before sandbox teardown."""
 
     async def score(state: TaskState, target: Target) -> Score:
         raw_evidence = await _workspace_evidence_value(state)
-        if not _workspace_result_available(raw_evidence):
+        if not raw_evidence.available:
             return Score(
                 value=0,
                 explanation=(
                     "workspace instrumentation unavailable: "
-                    f"{_workspace_result_text(raw_evidence)}"
+                    f"{_evidence_text(raw_evidence)}"
                 ),
             )
         rendered = await workspace_evidence(state)
         if "AUDIT_CHANGED_MARKER" not in rendered:
             return Score(value=0, explanation="candidate marker missing from evidence")
-        if not _workspace_result_changed(raw_evidence):
+        if not raw_evidence.has_changes:
             return Score(value=0, explanation="candidate change missing from evidence")
         return Score(value=1, explanation="captured candidate evidence after failure")
 
     return score
+
+
+@scorer(metrics=[accuracy()])
+def baseline_lifecycle_smoke_grade():
+    """Require invalid baselines to skip the candidate and valid ones to run."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        del target
+        expected_available = bool((state.metadata or {}).get("expected_baseline_available"))
+        baseline = state.store.get("workspace_baseline")
+        actual_available = isinstance(baseline, Baseline) and baseline.available
+        candidate_called = bool(state.store.get("candidate_called", False))
+        if expected_available and actual_available and candidate_called:
+            return Score(value=1, explanation="valid baseline ran the candidate")
+        if not expected_available and not actual_available and not candidate_called:
+            return Score(value=1, explanation="unavailable baseline skipped the candidate")
+        return Score(
+            value=0,
+            explanation=(
+                "baseline lifecycle mismatch: "
+                f"expected_available={expected_available}, "
+                f"actual_available={actual_available}, "
+                f"candidate_called={candidate_called}"
+            ),
+        )
+
+    return score
+
+
+@task
+def workspace_baseline_lifecycle_smoke() -> Task:
+    """Exercise real Inspect setup/solver termination with no model calls."""
+
+    samples = [
+        Sample(
+            input="Do not run a candidate when the baseline is invalid.",
+            target="The invalid-baseline candidate is skipped.",
+            id="baseline-unavailable",
+            metadata={"expected_baseline_available": False},
+            setup="git init -q",
+        ),
+        Sample(
+            input="Run the candidate when the baseline is valid.",
+            target="The valid-baseline candidate runs exactly once.",
+            id="baseline-available",
+            metadata={"expected_baseline_available": True},
+            setup=(
+                "git init -q && "
+                "git config user.email eval@example.invalid && "
+                "git config user.name Eval && "
+                "printf 'VALUE = \\\"baseline\\\"\\n' > module.py && "
+                "git add -- module.py && "
+                "git commit -qm baseline"
+            ),
+        ),
+    ]
+    return Task(
+        dataset=MemoryDataset(
+            samples=samples,
+            name="workspace-baseline-lifecycle-smoke",
+            shuffled=False,
+        ),
+        setup=capture_workspace_baseline(),
+        solver=baseline_lifecycle_smoke_candidate(),
+        scorer=[baseline_lifecycle_smoke_grade()],
+        model="mockllm/model",
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
 
 
 @task
@@ -913,11 +930,54 @@ def workspace_policy_smoke() -> Task:
 
 
 @task
+def workspace_stat_cache_smoke() -> Task:
+    """Prove the scorer accepts a cache refresh as an unchanged trial."""
+
+    sample = Sample(
+        input="Run a harmless Git status inspection without changing source content.",
+        target="A stat-cache refresh is not treated as a semantic workspace change.",
+        id="workspace-stat-cache-smoke",
+        metadata={"allow_changes": False},
+        setup=(
+            "git init -q && "
+            "git config user.email eval@example.invalid && "
+            "git config user.name Eval && "
+            "printf 'VALUE = \"baseline\"\\n' > module.py && "
+            "git add -- module.py && "
+            "git commit -qm baseline"
+        ),
+    )
+    return Task(
+        dataset=MemoryDataset(
+            samples=[sample],
+            name="workspace-stat-cache-smoke",
+            shuffled=False,
+        ),
+        setup=capture_workspace_baseline(),
+        solver=workspace_stat_cache_smoke_candidate(),
+        scorer=[workspace_policy()],
+        model="mockllm/model",
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
 def catalog(with_skills: bool = True, native_model: str = "gpt-5.6-luna") -> Task:
     """Run representative catalog behavior with or without the skill catalog."""
 
+    dataset = json_dataset(str(CASES))
+    for sample in dataset.samples:
+        sample.metadata = {
+            **(sample.metadata or {}),
+            # The local path collector is not a hostile-code boundary. These
+            # fixtures contain only disposable dummy files and no credentials;
+            # remote/container runs are reported unsupported above.
+            "execution_scope": "trusted-synthetic-local",
+        }
     return Task(
-        dataset=json_dataset(str(CASES)),
+        dataset=dataset,
         setup=capture_workspace_baseline(),
         solver=native_codex(with_skills=with_skills, model=native_model),
         scorer=(
