@@ -475,6 +475,15 @@ def _workspace_result_changed(value: Any) -> bool:
     ):
         return True
 
+    # The runner-owned collector exposes a baseline-relative contract. Prefer
+    # it over inventory fields such as ``current_untracked_paths`` so a
+    # pre-existing ignored file is not mistaken for a candidate mutation.
+    explicit_changes = _workspace_result_field(value, "has_changes")
+    if explicit_changes is not _MISSING:
+        if isinstance(explicit_changes, str):
+            return explicit_changes.strip().lower() in {"1", "true", "yes", "changed"}
+        return bool(explicit_changes)
+
     path_fields = (
         "tracked_worktree_paths",
         "worktree_paths",
@@ -489,7 +498,6 @@ def _workspace_result_changed(value: Any) -> bool:
         "changes",
         "index_changed",
         "git_metadata_changed",
-        "has_changes",
     )
     for name in path_fields:
         paths = _workspace_result_field(value, name)
@@ -794,6 +802,21 @@ def evidence_smoke_candidate() -> Solver:
     return solve
 
 
+@solver
+def workspace_policy_smoke_candidate() -> Solver:
+    """Leave a pre-existing ignored artifact untouched for policy scoring."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="deterministic read-only policy smoke candidate",
+        )
+        return state
+
+    return solve
+
+
 @scorer(metrics=[accuracy()])
 def evidence_smoke_grade():
     """Prove evidence survives a failed candidate before sandbox teardown."""
@@ -845,6 +868,43 @@ def evidence_smoke() -> Task:
         setup=capture_workspace_baseline(),
         solver=evidence_smoke_candidate(),
         scorer=[workspace_policy(), evidence_smoke_grade()],
+        model="mockllm/model",
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
+def workspace_policy_smoke() -> Task:
+    """Exercise read-only scoring with a baseline ignored artifact."""
+
+    sample = Sample(
+        input="Inspect the workspace without changing it.",
+        target="The pre-existing ignored artifact is not reported as a candidate change.",
+        id="workspace-policy-smoke",
+        metadata={"allow_changes": False},
+        setup=(
+            "git init -q && "
+            "git config user.email eval@example.invalid && "
+            "git config user.name Eval && "
+            "printf 'VALUE = \"baseline\"\\n' > module.py && "
+            "printf 'scratch/\\n' > .gitignore && "
+            "mkdir -p scratch && "
+            "printf 'PREEXISTING_IGNORED\\n' > scratch/report.txt && "
+            "git add -- module.py .gitignore && "
+            "git commit -qm baseline"
+        ),
+    )
+    return Task(
+        dataset=MemoryDataset(
+            samples=[sample],
+            name="workspace-policy-smoke",
+            shuffled=False,
+        ),
+        setup=capture_workspace_baseline(),
+        solver=workspace_policy_smoke_candidate(),
+        scorer=[workspace_policy()],
         model="mockllm/model",
         sandbox="local",
         fail_on_error=False,

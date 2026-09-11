@@ -212,6 +212,11 @@ def _assert_available(test: unittest.TestCase, value: Any) -> None:
     test.fail("workspace evidence must expose status or availability")
 
 
+def _assert_outcome(test: unittest.TestCase, value: Any, expected: str) -> None:
+    outcome = _field(value, "outcome")
+    test.assertEqual(outcome, expected, f"unexpected evidence outcome: {_text(value)!r}")
+
+
 def _assert_unavailable(test: unittest.TestCase, value: Any) -> None:
     status = _status(value)
     if status is not None:
@@ -256,31 +261,35 @@ def _category_paths(value: Any, category: str) -> list[str]:
 
 class WorkspaceEvidenceTests(unittest.TestCase):
     def test_nine_audited_fixtures(self) -> None:
-        fixtures: tuple[tuple[str, Callable[[Path], None], tuple[str, ...], str | None], ...] = (
-            ("clean", _setup_clean, (), None),
-            ("unstaged", _setup_unstaged, (), "module.py"),
-            ("staged", _setup_staged, (), "module.py"),
-            ("untracked_root", _setup_untracked_root, (), "new.py"),
-            ("untracked_nested", _setup_untracked_nested, (), "new_feature/main.py"),
+        fixtures: tuple[
+            tuple[str, Callable[[Path], None], tuple[str, ...], str | None, str], ...
+        ] = (
+            ("clean", _setup_clean, (), None, "unchanged observed outcome"),
+            ("unstaged", _setup_unstaged, (), "module.py", "changed"),
+            ("staged", _setup_staged, (), "module.py", "changed"),
+            ("untracked_root", _setup_untracked_root, (), "new.py", "changed"),
+            ("untracked_nested", _setup_untracked_nested, (), "new_feature/main.py", "changed"),
             (
                 "required_nested",
                 _setup_untracked_nested,
                 ("new_feature/main.py",),
                 "new_feature/main.py",
+                "changed",
             ),
-            ("committed", _setup_committed, (), "module.py"),
-            ("index_only", _setup_index_only, (), "module.py"),
+            ("committed", _setup_committed, (), "module.py", "changed"),
+            ("index_only", _setup_index_only, (), "module.py", "changed"),
             (
                 "untracked_unusual_name",
                 _setup_unusual_untracked,
                 (),
                 'space "quote"\nline.py',
+                "changed",
             ),
         )
 
         with tempfile.TemporaryDirectory(prefix="workspace-evidence-fixtures-") as raw:
             parent = Path(raw)
-            for name, setup, required, expected_path in fixtures:
+            for name, setup, required, expected_path, expected_outcome in fixtures:
                 with self.subTest(fixture=name):
                     repo = _new_repo(parent / name)
                     baseline = capture_baseline(repo)
@@ -292,6 +301,7 @@ class WorkspaceEvidenceTests(unittest.TestCase):
                         required_paths=required,
                     )
                     _assert_available(self, evidence)
+                    _assert_outcome(self, evidence, expected_outcome)
                     if expected_path is None:
                         self.assertNotIn(MARKER, _text(evidence))
                     else:
@@ -323,13 +333,15 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             parent = Path(raw)
             missing = parent / "not-a-git-repository"
             missing.mkdir()
-            _assert_unavailable(self, capture_baseline(missing))
+            missing_baseline = capture_baseline(missing)
+            _assert_unavailable(self, missing_baseline)
 
             repo = _new_repo(parent / "valid")
             baseline = capture_baseline(repo)
             shutil.rmtree(repo / ".git")
             evidence = collect_evidence(repo, baseline)
             _assert_unavailable(self, evidence)
+            _assert_outcome(self, evidence, "unavailable")
             self.assertNotIn("unchanged", _text(evidence).lower())
 
     def test_required_paths_are_relative_and_missing_paths_are_unavailable(self) -> None:
@@ -346,6 +358,7 @@ class WorkspaceEvidenceTests(unittest.TestCase):
                 required_paths=("../outside.txt",),
             )
             _assert_unavailable(self, traversal)
+            _assert_outcome(self, traversal, "unavailable")
             self.assertNotIn("OUTSIDE_SECRET", _text(traversal))
             _assert_path(self, traversal, "../outside.txt")
 
@@ -355,6 +368,7 @@ class WorkspaceEvidenceTests(unittest.TestCase):
                 required_paths=("missing/output.txt",),
             )
             _assert_unavailable(self, missing)
+            _assert_outcome(self, missing, "unavailable")
             _assert_path(self, missing, "missing/output.txt")
             self.assertNotIn("unchanged", _text(missing).lower())
 
@@ -383,6 +397,7 @@ class WorkspaceEvidenceTests(unittest.TestCase):
 
             evidence = collect_evidence(repo, baseline, max_bytes=64)
             _assert_unavailable(self, evidence)
+            _assert_outcome(self, evidence, "unavailable")
             _assert_path(self, evidence, "large.txt")
             rendered = _text(evidence).lower()
             self.assertTrue(
@@ -408,6 +423,103 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             _assert_available(self, evidence_b)
             self.assertNotIn(MARKER, _text(evidence_b))
             self.assertNotIn("new.py", _text(evidence_b))
+
+    def test_redirected_git_boundary_is_unavailable_without_foreign_content(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-git-boundary-") as raw:
+            parent = Path(raw)
+            repo_a = _new_repo(parent / "repo-a")
+            repo_b = _new_repo(parent / "repo-b")
+            (repo_b / "module.py").write_text("FOREIGN_REPOSITORY_PAYLOAD\n", encoding="utf-8")
+            _git(repo_b, "add", "--", "module.py")
+            _git(repo_b, "commit", "-qm", "foreign candidate")
+            baseline = capture_baseline(repo_a)
+            self.assertEqual(_status(baseline), "available")
+
+            original_git = repo_a / ".git"
+            saved_git = repo_a / ".git.original"
+            original_git.rename(saved_git)
+            original_git.symlink_to(repo_b / ".git", target_is_directory=True)
+
+            evidence = collect_evidence(repo_a, baseline)
+            _assert_unavailable(self, evidence)
+            _assert_outcome(self, evidence, "unavailable")
+            rendered = _text(evidence)
+            self.assertNotIn("FOREIGN_REPOSITORY_PAYLOAD", rendered)
+            self.assertIn(".git boundary", rendered.lower())
+
+    def test_staged_and_worktree_versions_are_both_rendered(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-three-versions-") as raw:
+            repo = _new_repo(Path(raw) / "repo")
+            baseline = capture_baseline(repo)
+            (repo / "module.py").write_text("STAGED_ONLY_PAYLOAD\n", encoding="utf-8")
+            _git(repo, "add", "--", "module.py")
+            (repo / "module.py").write_text("WORKTREE_ONLY_PAYLOAD\n", encoding="utf-8")
+
+            evidence = collect_evidence(repo, baseline)
+            _assert_available(self, evidence)
+            _assert_outcome(self, evidence, "changed")
+            rendered = _text(evidence)
+            self.assertIn("STAGED_ONLY_PAYLOAD", rendered)
+            self.assertIn("WORKTREE_ONLY_PAYLOAD", rendered)
+            self.assertIn("GIT INDEX DIFF", rendered)
+            self.assertIn("GIT DIFF AGAINST BASELINE", rendered)
+
+    def test_committed_payload_is_rendered_when_final_index_restores_baseline(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-committed-") as raw:
+            repo = _new_repo(Path(raw) / "repo")
+            baseline = capture_baseline(repo)
+            (repo / "module.py").write_text("COMMITTED_ONLY_PAYLOAD\n", encoding="utf-8")
+            _git(repo, "add", "--", "module.py")
+            _git(repo, "commit", "-qm", "candidate commit")
+            _git(repo, "restore", f"--source={baseline.revision}", "--staged", "--", "module.py")
+            (repo / "module.py").write_bytes(BASELINE)
+
+            evidence = collect_evidence(repo, baseline)
+            _assert_available(self, evidence)
+            _assert_outcome(self, evidence, "changed")
+            self.assertIn("module.py", _strings(_field(evidence, "committed_paths")))
+            rendered = _text(evidence)
+            self.assertIn("COMMITTED_ONLY_PAYLOAD", rendered)
+            self.assertIn("GIT COMMITTED DIFF", rendered)
+
+    def test_harmless_source_names_do_not_block_baseline(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-safe-names-") as raw:
+            parent = Path(raw)
+            repo = _new_repo(parent / "safe")
+            (repo / "tokenizer.py").write_text("def tokenize(value): return value\n", encoding="utf-8")
+            (repo / "src").mkdir()
+            (repo / "src/reset_password.py").write_text("def reset_password(): pass\n", encoding="utf-8")
+            (repo / ".env.example").write_text("TOKEN=replace-me\n", encoding="utf-8")
+            _git(repo, "add", "--", "tokenizer.py", "src/reset_password.py", ".env.example")
+            _git(repo, "commit", "-qm", "safe source names")
+            baseline = capture_baseline(repo)
+            _assert_available(self, baseline)
+
+            sensitive_repo = _new_repo(parent / "sensitive")
+            (sensitive_repo / "credentials.json").write_text("dummy\n", encoding="utf-8")
+            _git(sensitive_repo, "add", "--", "credentials.json")
+            _git(sensitive_repo, "commit", "-qm", "sensitive fixture")
+            sensitive_baseline = capture_baseline(sensitive_repo)
+            _assert_unavailable(self, sensitive_baseline)
+            self.assertIn("sensitive content omitted", _text(sensitive_baseline).lower())
+
+    def test_preexisting_ignored_file_is_inventory_not_a_change(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-ignored-") as raw:
+            repo = _new_repo(Path(raw) / "repo")
+            (repo / ".gitignore").write_text("scratch/\n", encoding="utf-8")
+            (repo / "scratch").mkdir()
+            (repo / "scratch/report.txt").write_text("PREEXISTING_IGNORED\n", encoding="utf-8")
+            _git(repo, "add", "--", ".gitignore")
+            _git(repo, "commit", "-qm", "ignored fixture")
+            baseline = capture_baseline(repo)
+
+            evidence = collect_evidence(repo, baseline)
+            _assert_available(self, evidence)
+            _assert_outcome(self, evidence, "unchanged observed outcome")
+            self.assertFalse(_field(evidence, "has_changes"))
+            self.assertIn("scratch/report.txt", _strings(_field(evidence, "baseline_untracked_paths")))
+            self.assertIn("scratch/report.txt", _strings(_field(evidence, "current_untracked_paths")))
+            self.assertEqual(_strings(_field(evidence, "untracked_paths")), [])
 
     def test_candidate_git_filters_are_never_executed_by_collection(self) -> None:
         with tempfile.TemporaryDirectory(prefix="workspace-evidence-filter-") as raw:
@@ -478,6 +590,7 @@ class WorkspaceEvidenceTests(unittest.TestCase):
                 _write_marker(repo / f"new-{index:03d}.py")
             evidence = collect_evidence(repo, baseline, max_paths=100)
             _assert_unavailable(self, evidence)
+            _assert_outcome(self, evidence, "unavailable")
             rendered = _text(evidence).lower()
             self.assertIn("path limit", rendered)
             self.assertTrue(_field(evidence, "truncated"))
@@ -492,6 +605,7 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             os.link(outside, repo / "alias.txt")
             evidence = collect_evidence(repo, baseline)
             _assert_unavailable(self, evidence)
+            _assert_outcome(self, evidence, "unavailable")
             rendered = _text(evidence).lower()
             self.assertIn("hardlink", rendered)
             self.assertNotIn("hardlink_secret_content", rendered)
