@@ -67,6 +67,16 @@ uv run inspect list tasks evals/skills.py
 Run live evaluations only deliberately: they use the locally authenticated
 Codex CLI and can execute model-generated code inside its workspace sandbox.
 
+Workspace evidence has one supported execution prerequisite: Bubblewrap
+(`bwrap`) with user and mount namespaces enabled. The runner preflights the
+namespace and only binds the disposable workspace read-only together with
+`/usr`, `/bin`, `/lib`, `/lib64`, `/etc`, `/proc`, `/dev`, and a temporary
+`/tmp`. There is no unsafe host fallback. The collector's local filesystem
+path is limited to trusted synthetic fixtures; remote, live, and adversarial
+candidate execution is explicitly unsupported and must be reported as such.
+Successful contained Git commands do not imply that arbitrary Python reads or
+native-agent execution are contained.
+
 ## Safety and provenance
 
 - Installer work is local filesystem copying only.

@@ -24,6 +24,7 @@ try:
     from evals.workspace_evidence import (
         Baseline,
         Evidence,
+        bwrap_preflight,
         capture_baseline,
         collect_evidence,
     )
@@ -39,6 +40,7 @@ except ModuleNotFoundError as exc:
     spec.loader.exec_module(module)
     Baseline = module.Baseline
     Evidence = module.Evidence
+    bwrap_preflight = module.bwrap_preflight
     capture_baseline = module.capture_baseline
     collect_evidence = module.collect_evidence
 
@@ -120,6 +122,11 @@ async def run_codex(
 ) -> tuple[str, str]:
     """Run signed-in Codex in the current Inspect local sandbox workspace."""
 
+    preflight_error = bwrap_preflight()
+    if preflight_error:
+        raise RuntimeError(
+            f"native Codex launch blocked by execution prerequisite: {preflight_error}"
+        )
     with isolated_codex_home(with_skills) as codex_home:
         output_file = f"/tmp/codex-eval-{uuid4().hex}.txt"
         command = [

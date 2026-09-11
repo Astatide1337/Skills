@@ -31,7 +31,11 @@ from typing import Callable
 
 
 try:
-    from evals.workspace_evidence import capture_baseline, collect_evidence
+    from evals.workspace_evidence import (
+        _read_index_entries,
+        capture_baseline,
+        collect_evidence,
+    )
 except (ImportError, AttributeError) as exc:  # pragma: no cover - contract guard
     raise ImportError(
         "Increment A requires evals.workspace_evidence.capture_baseline and "
@@ -180,6 +184,66 @@ def _category_paths(value: object, category: str) -> list[str]:
 
 
 class WorkspaceEvidenceTests(unittest.TestCase):
+    def test_empty_index_listing_is_valid_including_missing_index_for_empty_commit(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-empty-index-") as raw:
+            parent = Path(raw)
+            repo = _new_repo(parent / "deleted")
+            baseline = capture_baseline(repo)
+            _assert_available(self, baseline)
+            _git(repo, "rm", "-q", "--", "module.py")
+
+            entries, error, overflow = _read_index_entries(
+                repo,
+                object_id_bytes=baseline.object_id_bytes,
+                max_paths=100,
+                max_bytes=100_000,
+            )
+            self.assertEqual(entries, ())
+            self.assertIsNone(error)
+            self.assertFalse(overflow)
+            evidence = collect_evidence(repo, baseline)
+            _assert_available(self, evidence)
+            _assert_outcome(self, evidence, "changed")
+            _assert_path(self, evidence, "module.py")
+
+            empty = parent / "empty"
+            empty.mkdir()
+            _git(empty, "init", "-q")
+            _git(empty, "commit", "--allow-empty", "-qm", "empty baseline")
+            index = empty / ".git" / "index"
+            index.unlink()
+            empty_baseline = capture_baseline(empty)
+            _assert_available(self, empty_baseline)
+            empty_evidence = collect_evidence(empty, empty_baseline)
+            _assert_available(self, empty_evidence)
+            _assert_outcome(self, empty_evidence, "unchanged observed outcome")
+
+    def test_machine_index_fields_and_tags_preserve_modes_stages_and_semantic_flags(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="workspace-evidence-index-fields-") as raw:
+            repo = _new_repo(Path(raw) / "repo")
+            baseline = capture_baseline(repo)
+            self.assertEqual(len(baseline.index_entries), 1)
+            path, object_id, mode, stage, flags = baseline.index_entries[0]
+            self.assertEqual(path, "module.py")
+            self.assertEqual(len(object_id), baseline.object_id_bytes * 2)
+            self.assertEqual(mode, 0o100644)
+            self.assertEqual(stage, 0)
+            self.assertEqual(flags, 0)
+
+            _git(repo, "update-index", "--assume-unchanged", "--", "module.py")
+            _git(repo, "update-index", "--skip-worktree", "--", "module.py")
+            entries, error, overflow = _read_index_entries(
+                repo,
+                object_id_bytes=baseline.object_id_bytes,
+                max_paths=100,
+                max_bytes=100_000,
+            )
+            self.assertIsNone(error)
+            self.assertFalse(overflow)
+            self.assertEqual(entries[0][0], "module.py")
+            self.assertEqual(entries[0][3], 0)
+            self.assertEqual(entries[0][4], 0xC000)
+
     def test_nine_audited_fixtures(self) -> None:
         fixtures: tuple[
             tuple[str, Callable[[Path], None], tuple[str, ...], str | None, str], ...

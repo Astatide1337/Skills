@@ -30,6 +30,7 @@ DEFAULT_MAX_PATHS = 10_000
 DEFAULT_SNAPSHOT_MAX_BYTES = 4 * 1024 * 1024
 DEFAULT_SNAPSHOT_TOTAL_BYTES = 64 * 1024 * 1024
 DEFAULT_EVIDENCE_MAX_BYTES = 512 * 1024
+_BWRAP_REQUIRED_MOUNTS = ("/usr", "/bin", "/lib", "/lib64", "/etc")
 # Protect names that are themselves credential containers, not every source
 # filename that happens to mention a security concept.  Content-level
 # redaction remains the fallback for ordinary source and report files.
@@ -96,9 +97,96 @@ _SECRET_ASSIGNMENT = re.compile(
 _PEM_BLOCK = re.compile(
     r"(?s)-----BEGIN [^-]*PRIVATE KEY-----.*?-----END [^-]*PRIVATE KEY-----"
 )
-_INDEX_HEADER = re.compile(
-    rb"(?:^|\n)([0-7]{6} [0-9a-f]{40,64} [0-3])\t([^\0]*)\0"
-)
+# ``git ls-files -v --stage -z`` exposes the semantic index fields and the
+# documented status tag without the mutable, human-oriented ``--debug``
+# stat-cache dump.  Keep the two flags that affect our comparison in the
+# same representation used by Git's index, but derive them from the tags
+# rather than parsing the binary index or guessing a numeric base.
+_INDEX_ASSUME_UNCHANGED = 0x8000
+_INDEX_SKIP_WORKTREE = 0x4000
+_INDEX_TAG_FLAGS = {
+    "H": 0,
+    "h": _INDEX_ASSUME_UNCHANGED,
+    "S": _INDEX_SKIP_WORKTREE,
+    "s": _INDEX_ASSUME_UNCHANGED | _INDEX_SKIP_WORKTREE,
+    # An unmerged cached entry is valid and its stage field is authoritative.
+    "U": 0,
+}
+
+
+def bwrap_preflight(workspace: Path | str | None = None) -> str | None:
+    """Check the supported Bubblewrap namespace before an execution.
+
+    A ``None`` return means the namespace probe succeeded.  This is a
+    prerequisite for runner-owned Git commands; it is not a claim that the
+    Inspect local sandbox contains Python reads or native Codex execution.
+    Those live/adversarial arrangements remain explicitly unsupported.
+    """
+
+    bwrap = shutil.which("bwrap")
+    if bwrap is None:
+        return "Bubblewrap is required but not installed"
+    for mount in _BWRAP_REQUIRED_MOUNTS:
+        if not Path(mount).exists():
+            return f"Bubblewrap prerequisite mount is unavailable: {mount}"
+
+    command = [
+        bwrap,
+        "--die-with-parent",
+        "--unshare-all",
+    ]
+    if workspace is not None:
+        root = Path(workspace).resolve()
+        if not root.is_dir():
+            return f"workspace is not a directory for Bubblewrap preflight: {root}"
+        command.extend(["--ro-bind", str(root), "/workspace"])
+    command.extend(
+        [
+            "--ro-bind",
+            "/usr",
+            "/usr",
+            "--ro-bind",
+            "/bin",
+            "/bin",
+            "--ro-bind",
+            "/lib",
+            "/lib",
+            "--ro-bind",
+            "/lib64",
+            "/lib64",
+            "--ro-bind",
+            "/etc",
+            "/etc",
+            "--proc",
+            "/proc",
+            "--dev",
+            "/dev",
+            "--tmpfs",
+            "/tmp",
+            "--clearenv",
+            "--setenv",
+            "PATH",
+            "/usr/bin:/bin",
+        ]
+    )
+    if workspace is not None:
+        command.extend(["--chdir", "/workspace"])
+    command.append("/bin/true")
+    try:
+        result = subprocess.run(
+            command,
+            env={"PATH": "/usr/bin:/bin"},
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return f"Bubblewrap namespace preflight failed: {exc}"
+    if result.returncode:
+        detail = _decode(result.stderr).strip() or "no diagnostic"
+        return f"Bubblewrap namespace preflight failed (exit {result.returncode}): {detail}"
+    return None
 
 
 @dataclass(frozen=True)
@@ -669,6 +757,8 @@ def _capture_git_boundary(
 def _validate_git_boundary(
     root: Path,
     expected: Sequence[str | int | None],
+    *,
+    allow_missing_index: bool = False,
 ) -> str | None:
     """Reject a post-candidate metadata redirect before any Git command."""
 
@@ -697,6 +787,8 @@ def _validate_git_boundary(
             info = path.lstat()
         except OSError as exc:
             if relative == ".git/objects/info/alternates" and isinstance(exc, FileNotFoundError):
+                continue
+            if relative == ".git/index" and allow_missing_index and isinstance(exc, FileNotFoundError):
                 continue
             return f"Git metadata path {relative} unavailable ({exc})"
         if stat.S_ISLNK(info.st_mode):
@@ -784,6 +876,7 @@ def _control_snapshot(
     *,
     max_bytes: int = DEFAULT_SNAPSHOT_MAX_BYTES,
     max_paths: int = DEFAULT_MAX_PATHS,
+    allow_missing_index: bool = False,
 ) -> tuple[tuple[tuple[str, str, int | None, str | None], ...], tuple[str, ...], bool]:
     """Record only fixed Git controls and maintained ref output.
 
@@ -801,6 +894,12 @@ def _control_snapshot(
         try:
             info = path.lstat()
         except OSError as exc:
+            if relative == ".git/index" and allow_missing_index and isinstance(exc, FileNotFoundError):
+                # An empty initial commit is allowed to have no index file.
+                # Preserve that fact as an explicit control entry so a later
+                # candidate-created index is still observable.
+                entries.append((relative, "missing", None, None))
+                continue
             omissions.append(f"{relative}: unavailable ({exc})")
             continue
         if stat.S_ISLNK(info.st_mode):
@@ -874,11 +973,17 @@ def _read_index_entries(
     max_paths: int,
     max_bytes: int,
 ) -> tuple[tuple[tuple[str, str, int, int, int], ...], str | None, bool]:
-    """Read semantic index entries through Git's maintained interface."""
+    """Read semantic index entries through Git's maintained interface.
+
+    ``--stage`` supplies mode/object/stage fields and ``-v`` supplies the
+    documented assume-unchanged/skip-worktree tags.  A successful zero-byte
+    response is a valid empty index, including an empty initial commit whose
+    index file is absent.  Any non-empty malformed record remains unavailable.
+    """
 
     result = _git(
         root,
-        ["ls-files", "--cached", "--stage", "--debug", "-z"],
+        ["ls-files", "--cached", "--stage", "-v", "--full-name", "-z"],
         output_limit=max_bytes,
     )
     error = _error(result)
@@ -888,27 +993,28 @@ def _read_index_entries(
         return (), "Git index listing exceeded the bounded output limit", True
 
     records: list[tuple[str, str, int, int, int]] = []
-    headers = list(_INDEX_HEADER.finditer(result.stdout))
-    if not headers:
-        return tuple(records), "incomplete Git index debug listing", False
-    for offset, header_match in enumerate(headers):
-        raw_record = header_match.group(1)
-        raw_path = header_match.group(2)
-        debug_end = headers[offset + 1].start() if offset + 1 < len(headers) else len(result.stdout)
-        debug = result.stdout[header_match.end() : debug_end]
+    if not result.stdout:
+        return (), None, False
+    chunks = result.stdout.split(b"\0")
+    if chunks[-1] != b"":
+        return (), "incomplete Git index listing record", False
+    for chunk in chunks[:-1]:
+        if not chunk:
+            return (), "invalid empty Git index listing record", False
         try:
-            mode_text, oid, stage_text = raw_record.decode("ascii").split()
+            raw_header, raw_path = chunk.split(b"\t", 1)
+            header = raw_header.decode("ascii").split()
+            if len(header) != 4:
+                raise ValueError("expected status, mode, object ID, and stage fields")
+            tag, mode_text, oid, stage_text = header
+            try:
+                flags = _INDEX_TAG_FLAGS[tag]
+            except KeyError as exc:
+                raise ValueError(f"unsupported Git index status tag {tag!r}") from exc
             path = _decode(raw_path)
             mode = int(mode_text, 8)
             stage = int(stage_text, 10)
-            debug_text = debug.decode("ascii")
-            flags_marker = "flags:"
-            flags_offset = debug_text.find(flags_marker)
-            if flags_offset < 0:
-                raise ValueError("missing semantic index flags")
-            flags_text = debug_text[flags_offset + len(flags_marker) :].splitlines()[0]
-            flags = int(flags_text.strip(), 10)
-        except (StopIteration, UnicodeDecodeError, ValueError) as exc:
+        except (UnicodeDecodeError, ValueError) as exc:
             return tuple(records), f"invalid Git index listing record ({exc})", False
         if len(oid) != object_id_bytes * 2:
             return tuple(records), f"invalid Git object ID for {path!r}", False
@@ -1092,6 +1198,9 @@ def capture_baseline(
     """Capture a clean disposable starting revision and filesystem snapshot."""
 
     root = Path(workspace).resolve()
+    preflight_error = bwrap_preflight(root)
+    if preflight_error:
+        return Baseline(status="unavailable", reason=preflight_error)
     git_boundary, boundary_error = _capture_git_boundary(root)
     if boundary_error:
         return Baseline(status="unavailable", reason=boundary_error)
@@ -1180,6 +1289,7 @@ def capture_baseline(
         root,
         max_bytes=snapshot_max_bytes,
         max_paths=max_paths,
+        allow_missing_index=not tracked_paths and not index_entries,
     )
     omissions = (*snapshot_omissions, *control_omissions)
     if omissions or snapshot_truncated or control_truncated:
@@ -1329,7 +1439,19 @@ def collect_evidence(
     # could dereference it.  In particular, do not let _control_snapshot or
     # rev-parse inspect a redirected repository and only report the redirect
     # afterwards.
-    git_boundary_error = _validate_git_boundary(root, baseline.git_boundary)
+    baseline_control = _control_map(baseline.git_control)
+    baseline_index_control = baseline_control.get(".git/index")
+    empty_initial_repository = (
+        not baseline.tracked_paths
+        and not baseline.index_entries
+        and baseline_index_control is not None
+        and baseline_index_control[1] == "missing"
+    )
+    git_boundary_error = _validate_git_boundary(
+        root,
+        baseline.git_boundary,
+        allow_missing_index=empty_initial_repository,
+    )
     if git_boundary_error:
         return Evidence(
             status="unavailable",
@@ -1347,6 +1469,7 @@ def collect_evidence(
         root,
         max_bytes=snapshot_limit,
         max_paths=max_paths,
+        allow_missing_index=empty_initial_repository,
     )
     errors: list[str] = []
 
@@ -1390,7 +1513,6 @@ def collect_evidence(
     )
     tracked_set = set(baseline.tracked_paths)
     worktree_paths = tuple(path for path in changed_paths if path in tracked_set)
-    baseline_control = _control_map(baseline.git_control)
     current_control_map = _control_map(current_control)
     # The index file contains both semantic entries and Git's mutable stat
     # cache.  Compare all other runner-owned control paths here; semantic index
