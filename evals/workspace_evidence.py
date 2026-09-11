@@ -683,18 +683,99 @@ def _validate_git_boundary(
     # Git can redirect object lookup through an internal symlink or an
     # ``objects/info/alternates`` file without changing the .git inode. Reject
     # those alternate metadata roots before invoking post-candidate plumbing.
-    for relative in (".git/objects", ".git/refs", ".git/HEAD", ".git/index", ".git/config"):
+    for relative in (
+        ".git/objects",
+        ".git/objects/info",
+        ".git/objects/info/alternates",
+        ".git/refs",
+        ".git/HEAD",
+        ".git/index",
+        ".git/config",
+    ):
         path = root / relative
         try:
             info = path.lstat()
         except OSError as exc:
+            if relative == ".git/objects/info/alternates" and isinstance(exc, FileNotFoundError):
+                continue
             return f"Git metadata path {relative} unavailable ({exc})"
         if stat.S_ISLNK(info.st_mode):
             return f"Git metadata path {relative} is a symlink"
         if info.st_dev != root_dev:
             return f"Git metadata path {relative} crosses a filesystem mount"
+        if relative == ".git/objects/info/alternates":
+            return "Git object alternates are not an authorized evidence boundary"
         if relative in {".git/HEAD", ".git/index", ".git/config"} and not stat.S_ISREG(info.st_mode):
             return f"Git metadata path {relative} is not a regular file"
+    return None
+
+
+def _validate_object_path(root: Path, oid: str) -> str | None:
+    """Reject redirects on the concrete Git object path before ``cat-file``."""
+
+    if not re.fullmatch(r"[0-9a-f]{40,64}", oid):
+        return f"invalid Git object ID {oid!r}"
+    root_dev = root.stat().st_dev
+    objects = root / ".git" / "objects"
+    try:
+        objects_info = objects.lstat()
+    except OSError as exc:
+        return f"Git object store unavailable ({exc})"
+    if stat.S_ISLNK(objects_info.st_mode) or objects_info.st_dev != root_dev:
+        return "Git object store crosses a filesystem boundary"
+
+    fanout = objects / oid[:2]
+    try:
+        fanout_info = fanout.lstat()
+    except FileNotFoundError:
+        fanout_info = None
+    except OSError as exc:
+        return f"Git object fan-out could not be checked ({exc})"
+    if fanout_info is not None:
+        if stat.S_ISLNK(fanout_info.st_mode):
+            return f"Git object fan-out {oid[:2]} is a symlink"
+        if not stat.S_ISDIR(fanout_info.st_mode) or fanout_info.st_dev != root_dev:
+            return f"Git object fan-out {oid[:2]} crosses a filesystem boundary"
+        loose = fanout / oid[2:]
+        try:
+            loose_info = loose.lstat()
+        except FileNotFoundError:
+            loose_info = None
+        except OSError as exc:
+            return f"Git loose object could not be checked ({exc})"
+        if loose_info is not None:
+            if stat.S_ISLNK(loose_info.st_mode):
+                return f"Git loose object {oid} is a symlink"
+            if not stat.S_ISREG(loose_info.st_mode) or loose_info.st_dev != root_dev:
+                return f"Git loose object {oid} crosses a filesystem boundary"
+
+    pack_dir = objects / "pack"
+    try:
+        pack_info = pack_dir.lstat()
+    except FileNotFoundError:
+        pack_info = None
+    except OSError as exc:
+        return f"Git pack directory could not be checked ({exc})"
+    if pack_info is not None:
+        if stat.S_ISLNK(pack_info.st_mode) or not stat.S_ISDIR(pack_info.st_mode):
+            return "Git pack directory is not a local directory"
+        if pack_info.st_dev != root_dev:
+            return "Git pack directory crosses a filesystem boundary"
+        try:
+            pack_files = list(os.scandir(pack_dir))
+        except OSError as exc:
+            return f"Git pack directory enumeration failed ({exc})"
+        if len(pack_files) > DEFAULT_MAX_PATHS:
+            return "Git pack directory exceeds the bounded path limit"
+        for child in pack_files:
+            try:
+                child_info = child.stat(follow_symlinks=False)
+            except OSError as exc:
+                return f"Git pack entry {child.name} could not be checked ({exc})"
+            if stat.S_ISLNK(child_info.st_mode):
+                return f"Git pack entry {child.name} is a symlink"
+            if child_info.st_dev != root_dev:
+                return f"Git pack entry {child.name} crosses a filesystem boundary"
     return None
 
 
@@ -852,6 +933,13 @@ def _object_blob(
     if not validate_relative_path(relative) or _sensitive(relative):
         reason = "path-boundary" if not validate_relative_path(relative) else "sensitive-omitted"
         return f"{label} FILE {relative}: content omitted ({reason})", False, reason
+    object_boundary_error = _validate_object_path(root, oid)
+    if object_boundary_error:
+        return (
+            f"{label} FILE {relative}: unreadable ({object_boundary_error})",
+            False,
+            "unreadable",
+        )
     result = _git(root, ["cat-file", "blob", oid], output_limit=max_bytes)
     error = _error(result)
     if error:
