@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
+import sys
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from inspect_ai import Task, task
@@ -345,30 +349,312 @@ def routing_minimality():
     return score
 
 
+_MISSING = object()
+_UNAVAILABLE_STATUSES = {"unavailable", "blocked", "error", "failed"}
+
+
+def _workspace_evidence_api():
+    """Load the synchronous path-based evidence API only when a sample runs."""
+
+    try:
+        from evals.workspace_evidence import (
+            Baseline,
+            capture_baseline,
+            collect_evidence,
+            evidence_record,
+        )
+    except ModuleNotFoundError as exc:
+        # Inspect can load this task by path without adding the repository
+        # root to ``sys.path``. Resolve the sibling helper from the trusted
+        # repository path instead of relying on candidate-controlled imports.
+        if exc.name not in {"evals", "evals.workspace_evidence"}:
+            raise
+        module_name = "_skills_workspace_evidence"
+        module = sys.modules.get(module_name)
+        if module is None:
+            module_path = REPO_ROOT / "evals" / "workspace_evidence.py"
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            if spec is None or spec.loader is None:
+                raise RuntimeError(f"unable to load evidence helper: {module_path}")
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = module
+            spec.loader.exec_module(module)
+        Baseline = module.Baseline
+        capture_baseline = module.capture_baseline
+        collect_evidence = module.collect_evidence
+        evidence_record = module.evidence_record
+
+    return Baseline, capture_baseline, collect_evidence, evidence_record
+
+
+def _workspace_result_field(value: Any, *names: str) -> Any:
+    """Read a semantic field from either a mapping or a result dataclass."""
+
+    if isinstance(value, Mapping):
+        for name in names:
+            if name in value:
+                return value[name]
+    for name in names:
+        if hasattr(value, name):
+            return getattr(value, name)
+    return _MISSING
+
+
+def _workspace_result_text(value: Any) -> str:
+    """Render helper evidence without discarding structured path metadata."""
+
+    if isinstance(value, str):
+        return value
+
+    def serialise(item: Any) -> Any:
+        if isinstance(item, Path):
+            return str(item)
+        if hasattr(item, "__dict__"):
+            return vars(item)
+        return str(item)
+
+    try:
+        return json.dumps(value, ensure_ascii=False, default=serialise, sort_keys=True)
+    except (TypeError, ValueError):
+        return repr(value)
+
+
+def _workspace_result_status(value: Any) -> str | None:
+    status = _workspace_result_field(value, "status", "state", "outcome", "availability")
+    if status is _MISSING or status is None:
+        return None
+    return str(status).lower().rsplit(".", 1)[-1]
+
+
+def _workspace_result_available(value: Any) -> bool:
+    """Require explicit helper availability; unknown results are not success."""
+
+    if isinstance(value, bool):
+        return value
+    status = _workspace_result_status(value)
+    if status is not None:
+        if status in _UNAVAILABLE_STATUSES:
+            return False
+        if status in {"available", "ok", "success", "complete", "clean"}:
+            return True
+        return False
+    available = _workspace_result_field(value, "available", "is_available")
+    if available is not _MISSING:
+        return bool(available)
+    unavailable = _workspace_result_field(value, "unavailable")
+    if unavailable is not _MISSING:
+        return not bool(unavailable)
+    return False
+
+
+def _workspace_result_changed(value: Any) -> bool:
+    """Determine dirtiness without flattening worktree, index, or HEAD changes."""
+
+    head_changed = _workspace_result_field(value, "head_changed", "revision_changed")
+    if head_changed is not _MISSING and bool(head_changed):
+        return True
+
+    baseline_head = _workspace_result_field(
+        value,
+        "baseline_head",
+        "baseline_revision",
+        "initial_head",
+        "initial_revision",
+    )
+    final_head = _workspace_result_field(
+        value,
+        "final_head",
+        "final_revision",
+        "current_head",
+        "current_revision",
+    )
+    if (
+        baseline_head is not _MISSING
+        and final_head is not _MISSING
+        and baseline_head != final_head
+    ):
+        return True
+
+    path_fields = (
+        "tracked_worktree_paths",
+        "worktree_paths",
+        "working_tree_paths",
+        "tracked_index_paths",
+        "tracked_paths",
+        "index_paths",
+        "cached_paths",
+        "untracked_paths",
+        "committed_paths",
+        "changed_paths",
+        "changes",
+        "index_changed",
+        "git_metadata_changed",
+        "has_changes",
+    )
+    for name in path_fields:
+        paths = _workspace_result_field(value, name)
+        if paths is _MISSING or paths is None:
+            continue
+        if isinstance(paths, bool):
+            if paths:
+                return True
+        elif isinstance(paths, str):
+            if paths.strip():
+                return True
+        else:
+            try:
+                if len(paths):
+                    return True
+            except TypeError:
+                if paths:
+                    return True
+    return False
+
+
+def _workspace_unavailable(reason: str) -> dict[str, str]:
+    """Represent instrumentation failure separately from candidate failure."""
+
+    return {"status": "unavailable", "reason": reason}
+
+
+async def _sandbox_workspace_path() -> tuple[Path | None, str | None]:
+    """Resolve the local Inspect sandbox root for the path-based evidence API."""
+
+    try:
+        result = await sandbox().exec(
+            ["pwd"],
+            timeout=30,
+            timeout_retry=False,
+        )
+    except Exception as exc:
+        return None, f"unable to resolve sandbox workspace: {exc}"
+    if not result.success:
+        return None, f"unable to resolve sandbox workspace: {result.stderr.strip()}"
+    lines = result.stdout.strip().splitlines()
+    if not lines:
+        return None, "sandbox returned no workspace path"
+    path = Path(lines[-1])
+    if not path.is_absolute() or not path.is_dir():
+        return None, f"sandbox workspace path is not a readable directory: {path}"
+    return path, None
+
+
+def _workspace_record(value: Any, evidence_record: Any) -> Any:
+    """Use the helper's JSON-safe record for Inspect's state store."""
+
+    try:
+        return evidence_record(value)
+    except (AttributeError, TypeError, ValueError):
+        if isinstance(value, Mapping):
+            return dict(value)
+        return value
+
+
+def _workspace_baseline_object(value: Any, baseline_type: Any) -> Any:
+    """Rehydrate a stored baseline record for the helper's typed API."""
+
+    if isinstance(value, Mapping):
+        try:
+            return baseline_type(**dict(value))
+        except (TypeError, ValueError):
+            return value
+    return value
+
+
+@solver
+def capture_workspace_baseline() -> Solver:
+    """Capture runner-owned Git state after ``Sample.setup`` and before a solver."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        workspace, error = await _sandbox_workspace_path()
+        if error is not None or workspace is None:
+            baseline: Any = _workspace_unavailable(error or "workspace unavailable")
+        else:
+            try:
+                _, capture_baseline, _, evidence_record = _workspace_evidence_api()
+                captured = capture_baseline(workspace)
+                if captured is None:
+                    baseline = _workspace_unavailable("baseline helper returned no result")
+                else:
+                    baseline = _workspace_record(captured, evidence_record)
+            except Exception as exc:
+                baseline = _workspace_unavailable(f"baseline capture failed: {exc}")
+        state.store.set("workspace_baseline", baseline)
+        return state
+
+    return solve
+
+
+async def _workspace_evidence_value(state: TaskState) -> Any:
+    """Capture evidence once, including when an earlier solver failed."""
+
+    if "workspace_evidence" in state.store:
+        return state.store.get("workspace_evidence")
+
+    baseline = state.store.get("workspace_baseline")
+    workspace, error = await _sandbox_workspace_path()
+    if error is not None or workspace is None:
+        evidence = _workspace_unavailable(error or "workspace unavailable")
+    else:
+        metadata = state.metadata or {}
+        required_paths = tuple(
+            str(path) for path in metadata.get("required_files", [])
+        )
+        try:
+            baseline_type, _, collect_evidence, evidence_record = _workspace_evidence_api()
+            collected = collect_evidence(
+                workspace,
+                _workspace_baseline_object(
+                    baseline or _workspace_unavailable("baseline missing"),
+                    baseline_type,
+                ),
+                required_paths=required_paths,
+                max_bytes=60000,
+            )
+            if collected is None:
+                evidence = _workspace_unavailable(
+                    "evidence helper returned no result"
+                )
+            else:
+                evidence = _workspace_record(collected, evidence_record)
+        except Exception as exc:
+            evidence = _workspace_unavailable(f"evidence collection failed: {exc}")
+    state.store.set("workspace_evidence", evidence)
+    return evidence
+
+
 @scorer(metrics=[accuracy()])
 def workspace_policy():
-    """Check read-only cases and required output files in the task sandbox."""
+    """Check workspace changes and required outputs against runner evidence."""
 
     async def score(state: TaskState, target: Target) -> Score:
         metadata = state.metadata or {}
-        status = await sandbox().exec(["git", "status", "--porcelain"])
-        if not status.success:
-            return Score(value=0, explanation=f"git status failed: {status.stderr}")
+        evidence = await _workspace_evidence_value(state)
+        if not _workspace_result_available(evidence):
+            return Score(
+                value=0,
+                explanation=(
+                    "workspace instrumentation unavailable: "
+                    f"{_workspace_result_text(evidence)}"
+                ),
+                metadata={"status": "unavailable"},
+            )
 
-        changes = [line for line in status.stdout.splitlines() if line.strip()]
-        if not metadata.get("allow_changes", False) and changes:
-            return Score(value=0, explanation=f"read-only case changed workspace: {changes}")
+        if not metadata.get("allow_changes", False) and _workspace_result_changed(evidence):
+            return Score(
+                value=0,
+                explanation=(
+                    "read-only case changed workspace: "
+                    f"{_workspace_result_text(evidence)}"
+                ),
+                metadata={"status": "rejected"},
+            )
 
-        missing: list[str] = []
-        for path in metadata.get("required_files", []):
-            try:
-                await sandbox().read_file(path)
-            except FileNotFoundError:
-                missing.append(path)
-        if missing:
-            return Score(value=0, explanation=f"required files missing: {missing}")
-
-        return Score(value=1, explanation="workspace policy satisfied")
+        return Score(
+            value=1,
+            explanation="workspace policy satisfied",
+            metadata={"status": "accepted"},
+        )
 
     return score
 
@@ -379,7 +665,8 @@ def skill_activation():
 
     async def score(state: TaskState, target: Target) -> Score:
         skill = (state.metadata or {}).get("skill")
-        injected = (state.output.metadata or {}).get("injected_skill")
+        output_metadata = getattr(state.output, "metadata", None) or {}
+        injected = output_metadata.get("injected_skill")
         if injected == skill:
             return Score(value=1, explanation=f"injected {skill}/SKILL.md")
         return Score(value=0, explanation=f"did not inject {skill}/SKILL.md")
@@ -390,34 +677,16 @@ def skill_activation():
 async def workspace_evidence(state: TaskState) -> str:
     """Collect bounded code and artifact evidence for the behavior grader."""
 
-    sections: list[str] = []
-    diff = await sandbox().exec(["git", "diff", "--no-ext-diff", "--unified=3"])
-    if diff.success and diff.stdout.strip():
-        sections.append(f"GIT DIFF:\n{diff.stdout[:30000]}")
-    status = await sandbox().exec(["git", "status", "--porcelain"])
-    if status.success:
-        untracked = [
-            line[3:]
-            for line in status.stdout.splitlines()
-            if line.startswith("?? ") and " -> " not in line
-        ]
-        for path in untracked[:10]:
-            try:
-                content = await sandbox().read_file(path)
-            except (FileNotFoundError, IsADirectoryError, UnicodeDecodeError):
-                continue
-            sections.append(f"UNTRACKED FILE {path}:\n{content[:20000]}")
-    for path in (state.metadata or {}).get("required_files", []):
-        try:
-            content = await sandbox().read_file(path)
-        except FileNotFoundError:
-            sections.append(f"REQUIRED FILE {path}: MISSING")
-        else:
-            sections.append(f"REQUIRED FILE {path}:\n{content[:20000]}")
+    sections: list[str] = [
+        "RUNNER WORKSPACE EVIDENCE:\n" + _workspace_result_text(
+            await _workspace_evidence_value(state)
+        )
+    ]
     execution_records: list[str] = []
     tool_records: list[str] = []
-    events = (state.output.metadata or {}).get("codex_jsonl", "")
-    for line in events.splitlines():
+    output_metadata = getattr(state.output, "metadata", None) or {}
+    events = output_metadata.get("codex_jsonl", "")
+    for line in events.splitlines() if isinstance(events, str) else []:
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
@@ -480,7 +749,8 @@ def native_behavior_grade(model: str):
             "the requested JSON object.\n\n"
             f"TASK:\n{state.input_text}\n\n"
             f"TARGET:\n{target.text}\n\n"
-            f"CANDIDATE RESPONSE:\n{state.output.completion}\n\n"
+            "CANDIDATE RESPONSE:\n"
+            f"{getattr(state.output, 'completion', '') or '[candidate output unavailable]'}\n\n"
             f"WORKSPACE EVIDENCE:\n{evidence}"
         )
         completion, _ = await run_codex(
@@ -509,12 +779,86 @@ def native_behavior_grade(model: str):
     return score
 
 
+@solver
+def evidence_smoke_candidate() -> Solver:
+    """Make a deterministic workspace change without invoking a model."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        await sandbox().write_file("module.py", "AUDIT_CHANGED_MARKER\n")
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="deterministic evidence smoke candidate",
+        )
+        raise RuntimeError("intentional candidate failure for evidence smoke")
+
+    return solve
+
+
+@scorer(metrics=[accuracy()])
+def evidence_smoke_grade():
+    """Prove evidence survives a failed candidate before sandbox teardown."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        raw_evidence = await _workspace_evidence_value(state)
+        if not _workspace_result_available(raw_evidence):
+            return Score(
+                value=0,
+                explanation=(
+                    "workspace instrumentation unavailable: "
+                    f"{_workspace_result_text(raw_evidence)}"
+                ),
+            )
+        rendered = await workspace_evidence(state)
+        if "AUDIT_CHANGED_MARKER" not in rendered:
+            return Score(value=0, explanation="candidate marker missing from evidence")
+        if not _workspace_result_changed(raw_evidence):
+            return Score(value=0, explanation="candidate change missing from evidence")
+        return Score(value=1, explanation="captured candidate evidence after failure")
+
+    return score
+
+
+@task
+def evidence_smoke() -> Task:
+    """Exercise the real Inspect lifecycle with a deterministic no-model solver."""
+
+    sample = Sample(
+        input="Record the post-failure workspace evidence.",
+        target="The candidate change is observable after the candidate fails.",
+        id="evidence-smoke",
+        metadata={"allow_changes": True},
+        setup=(
+            "git init -q && "
+            "git config user.email eval@example.invalid && "
+            "git config user.name Eval && "
+            "printf 'VALUE = \"baseline\"\\n' > module.py && "
+            "git add -- module.py && "
+            "git commit -qm baseline"
+        ),
+    )
+    return Task(
+        dataset=MemoryDataset(
+            samples=[sample],
+            name="evidence-smoke",
+            shuffled=False,
+        ),
+        setup=capture_workspace_baseline(),
+        solver=evidence_smoke_candidate(),
+        scorer=[workspace_policy(), evidence_smoke_grade()],
+        model="mockllm/model",
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
 @task
 def catalog(with_skills: bool = True, native_model: str = "gpt-5.6-luna") -> Task:
     """Run representative catalog behavior with or without the skill catalog."""
 
     return Task(
         dataset=json_dataset(str(CASES)),
+        setup=capture_workspace_baseline(),
         solver=native_codex(with_skills=with_skills, model=native_model),
         scorer=(
             [workspace_policy(), skill_activation(), native_behavior_grade(model=native_model)]
@@ -523,6 +867,7 @@ def catalog(with_skills: bool = True, native_model: str = "gpt-5.6-luna") -> Tas
         ),
         model="mockllm/model",
         sandbox="local",
+        score_on_error=True,
     )
 
 
