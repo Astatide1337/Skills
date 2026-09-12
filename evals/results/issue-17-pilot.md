@@ -10,7 +10,7 @@ model transcripts, credentials, tracker objects, or binary Inspect logs.
 - PR19 workflow implementation commit: `128864f94bc6d796fb5e6261558743175c0154ba`
   (historical implementation commit; the follow-up is recorded below)
 - PR19 acceptance-control follow-up: `8237822c0de356f9c7597da331db1edc9fffce4f`
-  (current branch head for this follow-up)
+  (source correction; the final branch head includes this report)
 - evaluator: Inspect `0.3.259`, local sandbox, runner-owned contract diagnostics
   and one native local-repair task
 - native model configuration when applicable: `gpt-5.6-luna`, reasoning effort
