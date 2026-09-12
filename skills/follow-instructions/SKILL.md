@@ -57,6 +57,8 @@ Attach expertise only for a material decision:
 - secrets, identity, or untrusted data: [security-and-hardening](../security-and-hardening/SKILL.md);
 - production-like state or credentials: [production-safety](../production-safety/SKILL.md);
 - real UI interaction: [web-interface](../web-interface/SKILL.md);
+- generated-code cleanup: [deslop](../deslop/SKILL.md); prose rewrites:
+  [unslop](../unslop/SKILL.md);
 - source flow/history/teaching: `how`, `why`, or `teach` when requested;
 - external primary-source research: [internet-reach](../internet-reach/SKILL.md).
 

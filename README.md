@@ -101,6 +101,7 @@ skills/follow-instructions/
                            migrate-operate, review, issues, document-teach,
                            custom, and parallel procedures
 skills/<domain-skill>/SKILL.md
+skills/deslop/SKILL.md          code-diff cleanup; use unslop for prose
 global-instructions/AGENTS.md
 evals/cases/workflows.json  optional composition and execution diagnostics
 evals/workspace_evidence.py runner-owned Git baseline/evidence contract
@@ -146,6 +147,14 @@ runner-owned contract with a disposable fixture. They are contract diagnostics,
 not live GitHub/GitLab integration, and must not be reported as product, agent,
 or publication verification. Native comparisons are separate, finite, and must
 use the same model, tools, permissions, and budget for baseline and treatment.
+
+The fake tracker is intentionally limited to those optional publication-contract
+diagnostics. It stays under `evals/`, is not installed with the skills, and is
+not needed for ordinary diagnosis, implementation, review, or issue drafting.
+Its runner-owned receipts test ordering, identity, source-read observation, and
+idempotent recovery; they are fixture evidence, not proof of a live tracker or
+agent behavior. Removing it would remove that contract's negative controls rather
+than simplify the daily package.
 
 Workspace evidence and native execution require Bubblewrap (`bwrap`) with user
 and mount namespaces enabled. The preflight checks the disposable workspace

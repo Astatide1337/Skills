@@ -131,6 +131,17 @@
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
   },
   {
+    "id": "deslop-generated-code-cleanup",
+    "input": "Clean the supplied branch before review. Inspect the diff against the accepted base and remove generated code slop without changing behavior, public interfaces, security checks, or unrelated files. Run the focused test if the supplied repository has one; do not publish.",
+    "target": "Inspect the complete supplied diff and local conventions, then make only focused cleanup: remove the redundant narration and the catch-and-rethrow wrapper in src/lookup.py while preserving the None behavior, the store boundary, and the public function signature. Do not remove meaningful validation or error handling, rewrite the test, touch unrelated files, add dependencies, or claim checks that did not run. Run the supplied focused test when possible and report the final diff and actual checks concisely.",
+    "files": {
+      "src/lookup.py": "def lookup(store, key):\n    # This function is responsible for looking up one record in the supplied store.\n    try:\n        value = store.get(key)\n    except Exception:\n        raise\n    if value is None:\n        return None\n    return value\n",
+      "tests/test_lookup.py": "from src.lookup import lookup\n\nclass Store:\n    def get(self, key):\n        return {'key': key}\n\nassert lookup(Store(), 'alpha') == {'key': 'alpha'}\nassert lookup(Store(), 'missing') is not None\n"
+    },
+    "metadata": {"allow_changes": true, "required_files": ["src/lookup.py"], "skill": "deslop"},
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
+  },
+  {
     "id": "why-legacy-timeout",
     "input": "Investigate why the retry timeout in client.py is exactly 47 seconds. Use the supplied current file, git-history.txt, and migration-note.md. Do not edit. Separate documented rationale, inference, contradiction, and what remains unknown.",
     "target": "Connect the 47-second constant to the historical upstream 50-second proxy limit and three-second cleanup margin using adjacent citations to supplied evidence. Surface rather than suppress the later contradictory migration note: it suggests the original proxy constraint may be gone but does not prove every path migrated. Distinguish direct history, supported lineage, inference about the current constraint, and unknowns; report searched scope and null gaps. Identify the exact current configuration, route coverage, timeout telemetry, and cancellation or cleanup evidence needed before changing it.",
