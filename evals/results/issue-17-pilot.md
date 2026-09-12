@@ -7,7 +7,8 @@ model transcripts, credentials, tracker objects, or binary Inspect logs.
 
 - shared base: `3ad2f8c24ce9e3d65128d45f87b4e294610b4d12`
 - PR18 evidence head used: `d74071b87b55c7c3ceac88d983d86ad704740ed8`
-- PR19 workflow head after this unit: `712687e925e99541f4b2bfede8de5e4447528d1e`
+- PR19 workflow implementation stack tested at: `32921ad40a740d361e3d3219b3fd410b9164c75b`
+  (the final branch head is read back in the review handoff)
 - evaluator: Inspect `0.3.259`, local sandbox, runner-owned contract tasks
   (no model call)
 - native model configuration when applicable: `gpt-5.6-luna`, reasoning effort
