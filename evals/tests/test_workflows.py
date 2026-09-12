@@ -49,7 +49,7 @@ class WorkflowContractTests(unittest.TestCase):
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
         state = TaskState(
-            model="mockllm/model",
+            model="gpt-5.6-luna",
             sample_id="route",
             epoch=1,
             input="task",

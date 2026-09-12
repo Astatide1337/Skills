@@ -14,7 +14,7 @@ from evals.workspace_evidence import Baseline
 class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_native_candidate_is_not_launched_when_baseline_is_missing(self) -> None:
         state = TaskState(
-            model="mockllm/model",
+            model="gpt-5.6-luna",
             sample_id="missing-baseline",
             epoch=1,
             input="candidate prompt",
@@ -32,7 +32,7 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_native_candidate_is_not_launched_for_unavailable_baseline(self) -> None:
         state = TaskState(
-            model="mockllm/model",
+            model="gpt-5.6-luna",
             sample_id="invalid-baseline",
             epoch=1,
             input="candidate prompt",
@@ -51,7 +51,7 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_native_candidate_launches_for_available_baseline(self) -> None:
         state = TaskState(
-            model="mockllm/model",
+            model="gpt-5.6-luna",
             sample_id="valid-baseline",
             epoch=1,
             input="candidate prompt",
@@ -72,7 +72,7 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_native_candidate_rehydrates_serialized_baseline_contract(self) -> None:
         state = TaskState(
-            model="mockllm/model",
+            model="gpt-5.6-luna",
             sample_id="serialized-baseline",
             epoch=1,
             input="candidate prompt",

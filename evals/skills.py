@@ -1590,7 +1590,7 @@ def baseline_lifecycle_smoke_grade():
 
 @task
 def workflow_fixture_smoke() -> Task:
-    """Run a real no-model workflow publication/readback fixture."""
+    """Run the runner-owned publication contract, not a product integration."""
 
     sample = workflows_dataset(execution_ready_only=True).samples[0]
     return Task(
@@ -1602,7 +1602,6 @@ def workflow_fixture_smoke() -> Task:
         solver=workflow_fixture_candidate(),
         scorer=[workspace_policy(), workflow_effects()],
         setup=capture_workspace_baseline(),
-        model="mockllm/model",
         sandbox="local",
         fail_on_error=False,
         score_on_error=True,
@@ -1645,7 +1644,6 @@ def workspace_baseline_lifecycle_smoke() -> Task:
         setup=capture_workspace_baseline(),
         solver=baseline_lifecycle_smoke_candidate(),
         scorer=[baseline_lifecycle_smoke_grade()],
-        model="mockllm/model",
         sandbox="local",
         fail_on_error=False,
         score_on_error=True,
@@ -1654,14 +1652,13 @@ def workspace_baseline_lifecycle_smoke() -> Task:
 
 @task
 def workflow_fixture_pilot() -> Task:
-    """Exercise every explicitly supplied no-model workflow fixture."""
+    """Exercise every supplied evaluator contract fixture without a model call."""
 
     return Task(
         dataset=workflows_dataset(execution_ready_only=True),
         setup=capture_workspace_baseline(),
         solver=workflow_fixture_candidate(),
         scorer=[workspace_policy(), workflow_effects()],
-        model="mockllm/model",
         sandbox="local",
         fail_on_error=False,
         score_on_error=True,
@@ -1670,7 +1667,7 @@ def workflow_fixture_pilot() -> Task:
 
 @task
 def evidence_smoke() -> Task:
-    """Exercise the real Inspect lifecycle with a deterministic no-model solver."""
+    """Exercise the Inspect lifecycle with a deterministic contract solver."""
 
     sample = Sample(
         input="Record the post-failure workspace evidence.",
@@ -1695,7 +1692,6 @@ def evidence_smoke() -> Task:
         setup=capture_workspace_baseline(),
         solver=evidence_smoke_candidate(),
         scorer=[workspace_policy(), evidence_smoke_grade()],
-        model="mockllm/model",
         sandbox="local",
         fail_on_error=False,
         score_on_error=True,
@@ -1732,7 +1728,6 @@ def workspace_policy_smoke() -> Task:
         setup=capture_workspace_baseline(),
         solver=workspace_policy_smoke_candidate(),
         scorer=[workspace_policy()],
-        model="mockllm/model",
         sandbox="local",
         fail_on_error=False,
         score_on_error=True,
@@ -1766,7 +1761,6 @@ def workspace_stat_cache_smoke() -> Task:
         setup=capture_workspace_baseline(),
         solver=workspace_stat_cache_smoke_candidate(),
         scorer=[workspace_policy()],
-        model="mockllm/model",
         sandbox="local",
         fail_on_error=False,
         score_on_error=True,
@@ -1795,7 +1789,6 @@ def catalog(with_skills: bool = True, native_model: str = "gpt-5.6-luna") -> Tas
             if with_skills
             else [workspace_policy(), native_behavior_grade(model=native_model)]
         ),
-        model="mockllm/model",
         sandbox="local",
         score_on_error=True,
     )
@@ -1809,7 +1802,6 @@ def routing(native_model: str = "gpt-5.6-luna") -> Task:
         dataset=routing_dataset(),
         solver=route_codex(model=native_model),
         scorer=[routing_coverage(), routing_minimality()],
-        model="mockllm/model",
         sandbox="local",
     )
 
@@ -1822,7 +1814,6 @@ def workflow_routing(native_model: str = "gpt-5.6-luna") -> Task:
         dataset=workflows_dataset(),
         solver=workflow_route_codex(model=native_model),
         scorer=[workflow_composition()],
-        model="mockllm/model",
         sandbox="local",
     )
 
@@ -1889,7 +1880,6 @@ def workflows(
             workflow_effects(),
             native_behavior_grade(model=native_model),
         ],
-        model="mockllm/model",
         sandbox="local",
         score_on_error=True,
     )

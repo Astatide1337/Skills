@@ -97,7 +97,8 @@ evals/results/               sanitized review-unit summaries
 For the second example, the agent reads `lookup.py`, records the finding in the
 supplied local tracker with one `create`, fetches that issue with `get`, and
 stops before editing the repository or opening a PR. The fixture is only a
-deterministic evaluation boundary; it is not a live tracker integration.
+deterministic evaluator-contract boundary; it is not a live tracker
+integration, and its results are never product or agent verification.
 
 ## Validate and evaluate
 
@@ -126,8 +127,10 @@ uv run inspect list tasks evals/skills.py
 uv run inspect eval evals/skills.py@workflow_fixture_smoke --max-samples 1
 ```
 
-`workflow_fixture_smoke` uses a disposable fake tracker and is not a live
-GitHub/GitLab integration. Native comparisons are separate, finite, and must
+`workflow_fixture_smoke` and `workflow_fixture_pilot` exercise the evaluator's
+runner-owned contract with a disposable fixture. They are not live
+GitHub/GitLab integration and must not be reported as product, agent, or
+publication verification. Native comparisons are separate, finite, and must
 use the same model, tools, permissions, and budget for baseline and treatment.
 
 Workspace evidence and native execution require Bubblewrap (`bwrap`) with user
@@ -164,6 +167,26 @@ uv run inspect eval evals/skills.py@workflows \
 
 The pilot summary records exact revisions, case IDs, repetitions, and limits;
 generated binary `.eval` logs are ignored and are not review evidence.
+
+### Real repository demonstration
+
+For a non-fixture demonstration, use an explicitly authorized public checkout
+and its own native commands. In the Issue #17 review unit, the real
+`pallets/markupsafe` checkout was pinned to `b2e4d9c7687be25695fffbe93a37622302b24fb1`:
+
+```bash
+git clone --depth 1 https://github.com/pallets/markupsafe.git /tmp/markupsafe-demo
+uv run --project /tmp/markupsafe-demo pytest -q
+uv run --project /tmp/markupsafe-demo ruff check
+uv run --project /tmp/markupsafe-demo mypy
+git -C /tmp/markupsafe-demo diff --exit-code
+```
+
+Those commands exercise the repository's actual source and tests. A real
+checkout/test result establishes only that repository behavior; it does not
+establish live GitHub publication, deployment, browser behavior, or a better
+agent workflow. Do not substitute the disposable fixture or a no-model run for
+that evidence.
 
 ## Safety and provenance
 
