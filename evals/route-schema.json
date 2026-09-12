@@ -25,7 +25,8 @@
             "pull-requests",
             "document-teach",
             "workflow-improvement",
-            "custom"
+            "custom",
+            "verify-work"
           ]
         },
         "mode": {"type": "string"},
@@ -59,7 +60,8 @@
               "document-teach/document",
               "document-teach/teach",
               "workflow-improvement/improve",
-              "custom/compose"
+              "custom/compose",
+              "verify-work/verify"
             ]
           }
         },

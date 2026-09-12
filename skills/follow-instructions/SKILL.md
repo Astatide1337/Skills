@@ -73,7 +73,7 @@ domain.
 Use the canonical route modes exactly as written in the table (`read`, `plan`,
 `prototype`, `bug`, `feature`, `refactor`, `measure`, `improve`, `upgrade`,
 `migrate`, `release`, `incident`, `review`, `rereview`, `draft`, `create`,
-`monitor`, `communicate`, `document`, `teach`, `improve`, or `compose`). Do not
+`monitor`, `communicate`, `verify`, `document`, `teach`, `improve`, or `compose`). Do not
 replace a mode with a prose description. In particular, an unmatched but
 authorized one-off process is `custom/compose`, not a free-form custom mode.
 
@@ -85,7 +85,7 @@ authorized one-off process is `custom/compose`, not a free-form custom mode.
 | Measure or improve a performance problem | `performance/measure` or `performance/improve` | [performance](playbooks/performance.md) |
 | Upgrade, migrate, release, or handle an incident | `migrate-operate/<mode>` | [migrate-operate](playbooks/migrate-operate.md) |
 | Review, audit, or re-review a revision | `review/review` or `review/rereview` | [review](playbooks/review.md) |
-| Establish whether a claim is true/current | existing `verify-work` | [verify-work](../verify-work/SKILL.md) |
+| Establish whether a claim is true/current | `verify-work/verify` | [verify-work](../verify-work/SKILL.md) |
 | Draft, create, update, or triage an issue | `issues/<mode>` | [issues](playbooks/issues.md) |
 | Draft, create, monitor, or communicate on a PR/MR | existing `pull-requests/<mode>` | [pull-requests](../pull-requests/SKILL.md) |
 | Explain source or produce documentation/teaching | `document-teach/document` or `document-teach/teach` | [document-teach](playbooks/document-teach.md) |

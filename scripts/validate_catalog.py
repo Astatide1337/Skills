@@ -63,6 +63,7 @@ WORKFLOW_ROUTES = {
     "document-teach/teach",
     "workflow-improvement/improve",
     "custom/compose",
+    "verify-work/verify",
 }
 
 
@@ -251,6 +252,26 @@ def main() -> None:
         if contract is not None:
             if execution_mode != "execution-ready" or not isinstance(contract, dict):
                 fail(f"workflow case {case_id} has an invalid fixture contract")
+            kind = contract.get("kind")
+            if kind not in {"fake-tracker-publication", "response-contract", "workspace-test", "workspace-artifact"}:
+                fail(f"workflow case {case_id} has an unknown fixture contract kind")
+            if kind == "fake-tracker-publication":
+                if not isinstance(contract.get("required_operations"), list) or not contract["required_operations"]:
+                    fail(f"workflow case {case_id} publication contract needs required_operations")
+            elif kind == "response-contract":
+                values = contract.get("required_content")
+                if not isinstance(values, list) or not values or not all(isinstance(value, str) and value for value in values):
+                    fail(f"workflow case {case_id} response contract needs required_content")
+            else:
+                if not all(isinstance(contract.get(field), str) and contract[field] for field in ("write_path", "write_content")):
+                    fail(f"workflow case {case_id} workspace contract needs bounded output")
+                paths = contract.get("required_paths")
+                if not isinstance(paths, list) or not paths or not all(isinstance(path, str) and path for path in paths):
+                    fail(f"workflow case {case_id} workspace contract needs required_paths")
+                if kind == "workspace-test":
+                    command = contract.get("test_command")
+                    if not isinstance(command, list) or not command or not all(isinstance(item, str) and item for item in command):
+                        fail(f"workflow case {case_id} workspace-test contract needs test_command")
         setup = case.get("setup")
         if setup is not None and (not isinstance(setup, str) or not setup.strip()):
             fail(f"workflow case {case_id} has invalid setup")

@@ -9,7 +9,7 @@ from inspect_ai.model import ModelOutput
 from inspect_ai.solver import TaskState
 
 from evals import skills
-from evals.fake_tracker import validate_publication
+from evals.fake_tracker import FakeTracker, validate_publication
 
 
 class WorkflowContractTests(unittest.TestCase):
@@ -38,13 +38,13 @@ class WorkflowContractTests(unittest.TestCase):
         route_only = next(
             sample
             for sample in dataset.samples
-            if sample.id == "workflow-draft-issue"
+            if sample.id == "workflow-update-issue"
         )
         self.assertEqual((route_only.metadata or {}).get("execution_mode"), "routing-only")
         self.assertEqual(route_only.files, {"AGENTS.md": skills.GLOBAL_INSTRUCTIONS.read_text()})
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            1,
+            6,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -107,6 +107,39 @@ class WorkflowContractTests(unittest.TestCase):
                 for sample in dataset.samples
             )
         )
+
+    def test_execution_ready_pilot_is_balanced_and_contract_bound(self) -> None:
+        dataset = skills.workflows_dataset(execution_ready_only=True)
+        cases = {sample.id: sample for sample in dataset.samples}
+        self.assertEqual(
+            set(cases),
+            {
+                "workflow-investigate-create-issue",
+                "workflow-draft-issue",
+                "workflow-fix-open-draft-pr",
+                "workflow-custom-temporary",
+                "workflow-parallel-safe",
+                "workflow-correction-resume",
+            },
+        )
+        for sample in cases.values():
+            metadata = sample.metadata or {}
+            self.assertEqual(metadata.get("execution_mode"), "execution-ready")
+            self.assertIsInstance(metadata.get("fixture_contract"), dict)
+            self.assertTrue(sample.files)
+
+    def test_standalone_verification_has_a_coherent_route(self) -> None:
+        schema = json.loads(skills.WORKFLOW_ROUTE_SCHEMA.read_text())
+        primary = schema["properties"]["workflow"]["properties"]["primary"]["enum"]
+        follow_ons = schema["properties"]["workflow"]["properties"]["follow_ons"]["items"]["enum"]
+        self.assertIn("verify-work", primary)
+        self.assertIn("verify-work/verify", follow_ons)
+
+    def test_comparison_arms_require_explicit_baseline_and_catalog_mode(self) -> None:
+        with self.assertRaises(ValueError):
+            skills.workflows(arm="baseline")
+        with self.assertRaises(ValueError):
+            skills.workflows(with_skills=True, arm="no-catalog-diagnostic")
 
     def test_publication_requires_runner_receipts_not_commands_or_final_claims(self) -> None:
         required = {
@@ -231,6 +264,56 @@ class WorkflowContractTests(unittest.TestCase):
             expected_epoch=1,
         )
         self.assertFalse(valid, reason)
+
+    def test_fake_tracker_records_real_ordered_operations_and_rejects_ambiguous_create(self) -> None:
+        tracker = FakeTracker("sample-a", 2)
+        tracker.start()
+        try:
+            self.assertTrue(
+                tracker._dispatch(
+                    {
+                        "operation": "inspect-source",
+                        "path": "lookup.py",
+                        "sha256": "0" * 64,
+                        "size": 1,
+                    }
+                )["ok"]
+            )
+            created = tracker._dispatch(
+                {
+                    "operation": "create",
+                    "title": "Tenant lookup",
+                    "body": "Problem: x\nScope: y\nAcceptance: z",
+                }
+            )
+            self.assertTrue(created["ok"])
+            object_id = created["object"]["id"]
+            readback = tracker._dispatch({"operation": "get", "id": object_id})
+            self.assertTrue(readback["ok"])
+            valid_snapshot = tracker.snapshot()
+            duplicate = tracker._dispatch(
+                {
+                    "operation": "create",
+                    "title": "Tenant lookup duplicate",
+                    "body": "Problem: duplicate",
+                }
+            )
+            self.assertFalse(duplicate["ok"])
+            snapshot = tracker.snapshot()
+        finally:
+            tracker.close()
+        valid, reason = validate_publication(
+            valid_snapshot,
+            required_title_fragment="Tenant lookup",
+            required_body_fragments=("Problem:", "Scope:", "Acceptance:"),
+            expected_sample_id="sample-a",
+            expected_epoch=2,
+        )
+        self.assertTrue(valid, reason)
+        self.assertEqual(len(snapshot["objects"]), 1)
+        self.assertEqual([item["operation"] for item in snapshot["receipts"]], [
+            "inspect-source", "create", "get", "create"
+        ])
 
 
 if __name__ == "__main__":  # pragma: no cover

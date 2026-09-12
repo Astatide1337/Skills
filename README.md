@@ -89,6 +89,9 @@ skills/follow-instructions/
 skills/<domain-skill>/SKILL.md
 global-instructions/AGENTS.md
 evals/cases/workflows.json  composition and execution fixtures
+evals/workspace_evidence.py runner-owned Git baseline/evidence contract
+evals/fake_tracker.py       isolated publication fixture
+evals/results/               sanitized review-unit summaries
 ```
 
 For the second example, the agent reads `lookup.py`, records the finding in the
@@ -126,6 +129,41 @@ uv run inspect eval evals/skills.py@workflow_fixture_smoke --max-samples 1
 `workflow_fixture_smoke` uses a disposable fake tracker and is not a live
 GitHub/GitLab integration. Native comparisons are separate, finite, and must
 use the same model, tools, permissions, and budget for baseline and treatment.
+
+Workspace evidence and native execution require Bubblewrap (`bwrap`) with user
+and mount namespaces enabled. The preflight checks the disposable workspace
+and the read-only `/usr`, `/bin`, `/lib`, `/lib64`, `/etc`, `/proc`, `/dev`, and
+temporary `/tmp` mounts. There is no unsafe host fallback. The local collector
+supports trusted synthetic fixtures only; remote, live, and adversarial
+execution remain unsupported. Contained Git subprocesses do not contain every
+Python read or native-agent operation.
+
+The workflow dataset labels cases as `execution-ready` or `routing-only`.
+Only the six supplied execution-ready cases run in `workflows` and the pilot;
+the other fourteen are classification cases and are reported as behaviorally
+unmeasured. Run the deterministic pilot with:
+
+```bash
+uv run inspect eval evals/skills.py@workflow_fixture_pilot --max-samples 6
+```
+
+For a fair native comparison, select both catalog arms explicitly. The baseline
+must point at the last accepted checkout and its matching global instructions;
+the no-catalog control is an optional diagnostic, not the baseline:
+
+```bash
+uv run inspect eval evals/skills.py@workflows \
+  -T arm=candidate \
+  -T candidate_skills_root=/path/to/candidate/skills \
+  -T candidate_global_instructions=/path/to/candidate/global-instructions/AGENTS.md
+uv run inspect eval evals/skills.py@workflows \
+  -T arm=baseline \
+  -T baseline_skills_root=/path/to/accepted/skills \
+  -T baseline_global_instructions=/path/to/accepted/global-instructions/AGENTS.md
+```
+
+The pilot summary records exact revisions, case IDs, repetitions, and limits;
+generated binary `.eval` logs are ignored and are not review evidence.
 
 ## Safety and provenance
 

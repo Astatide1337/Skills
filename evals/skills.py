@@ -7,6 +7,7 @@ import importlib.util
 import json
 import re
 import sys
+import subprocess
 import tempfile
 from collections.abc import Mapping
 from pathlib import Path
@@ -86,7 +87,11 @@ ROUTING_EXPECTED_OVERRIDES: dict[str, list[str]] = {
 }
 
 
-def isolated_codex_home(with_skills: bool) -> tempfile.TemporaryDirectory[str]:
+def isolated_codex_home(
+    with_skills: bool,
+    *,
+    skills_root: Path | None = None,
+) -> tempfile.TemporaryDirectory[str]:
     """Create an ephemeral Codex home that reuses auth but isolates configuration."""
 
     # Codex may create helper binaries next to its ephemeral home.  Keep the
@@ -102,11 +107,12 @@ def isolated_codex_home(with_skills: bool) -> tempfile.TemporaryDirectory[str]:
         raise RuntimeError("native Codex auth is unavailable; run `codex login`")
     (home / "auth.json").symlink_to(AUTH_FILE)
     if with_skills:
+        selected_skills_root = skills_root or SKILLS_ROOT
         skills = home / "skills"
         skills.mkdir()
         system_skills = skills / ".system"
         system_skills.mkdir()
-        for skill in sorted(SKILLS_ROOT.iterdir()):
+        for skill in sorted(selected_skills_root.iterdir()):
             if (skill / "SKILL.md").is_file():
                 (skills / skill.name).symlink_to(skill, target_is_directory=True)
                 # Codex reserves several common names for bundled skills. Point
@@ -126,6 +132,7 @@ async def run_codex(
     sandbox_mode: str,
     output_schema: Path | None = None,
     extra_env: Mapping[str, str] | None = None,
+    skills_root: Path | None = None,
     # Max-effort native cases can spend more than fifteen minutes in one
     # isolated command session (for example, a full artifact or deployment
     # investigation). Keep a finite bound while avoiding false evaluation
@@ -134,7 +141,7 @@ async def run_codex(
 ) -> tuple[str, str]:
     """Run signed-in Codex in the current Inspect local sandbox workspace."""
 
-    with isolated_codex_home(with_skills) as codex_home:
+    with isolated_codex_home(with_skills, skills_root=skills_root) as codex_home:
         output_file = f"/tmp/codex-eval-{uuid4().hex}.txt"
         command = [
             "codex",
@@ -193,14 +200,22 @@ def native_codex(
     model: str,
     *,
     inject_skill: bool = True,
+    skills_root: Path | str | None = None,
+    global_instructions: Path | str | None = None,
 ) -> Solver:
     """Execute a sample with the locally authenticated Codex CLI."""
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
+        selected_skills_root = Path(skills_root) if skills_root is not None else SKILLS_ROOT
+        selected_global = (
+            Path(global_instructions)
+            if global_instructions is not None
+            else GLOBAL_INSTRUCTIONS
+        )
         prompt = state.input_text
         if with_skills and inject_skill:
             skill = (state.metadata or {}).get("skill")
-            skill_path = SKILLS_ROOT / skill / "SKILL.md"
+            skill_path = selected_skills_root / skill / "SKILL.md"
             instructions = skill_path.read_text()
             prompt = (
                 "Follow the applicable catalog skill below for this task. Its instructions "
@@ -212,7 +227,7 @@ def native_codex(
             )
         contract = (state.metadata or {}).get("fixture_contract")
         tracker: FakeTracker | None = None
-        if isinstance(contract, dict):
+        if isinstance(contract, dict) and contract.get("kind") == "fake-tracker-publication":
             tracker = FakeTracker(state.sample_id, state.epoch)
             tracker.start()
         try:
@@ -222,6 +237,7 @@ def native_codex(
                 with_skills=with_skills,
                 sandbox_mode="workspace-write",
                 extra_env=tracker.environment() if tracker is not None else None,
+                skills_root=selected_skills_root,
             )
         finally:
             # Snapshot before closing/cleaning the fixture directory.  This is
@@ -241,16 +257,20 @@ def native_codex(
             state.output.metadata["skill_discovery"] = "installed-catalog"
         if tracker is not None:
             state.output.metadata["fixture_source"] = "runner-owned-fake-tracker"
+        state.output.metadata["skills_root"] = str(selected_skills_root)
+        state.output.metadata["skills_revision"] = _revision_identity(selected_skills_root)
+        state.output.metadata["global_instructions"] = str(selected_global)
+        state.output.metadata["global_identity"] = _global_identity(selected_global)
         return state
 
     return solve
 
 
-def catalog_routing_index() -> str:
+def catalog_routing_index(skills_root: Path = SKILLS_ROOT) -> str:
     """Return only compact trigger metadata, not full skill instructions."""
 
     rows: list[str] = []
-    for skill_path in sorted(SKILLS_ROOT.iterdir()):
+    for skill_path in sorted(skills_root.iterdir()):
         skill_file = skill_path / "SKILL.md"
         if not skill_file.is_file():
             continue
@@ -335,6 +355,32 @@ def workflows_dataset(
         }
         samples.append(sample)
     return MemoryDataset(samples=samples, name=dataset.name, shuffled=False)
+
+
+def _revision_identity(path: Path) -> str:
+    """Return an immutable source identity for comparison metadata."""
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(path), "rev-parse", "HEAD"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return f"unresolved:{path}"
+    if result.returncode:
+        return f"unresolved:{path}"
+    return result.stdout.strip()
+
+
+def _global_identity(path: Path) -> str:
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return f"unresolved:{path}"
 
 
 @solver
@@ -492,20 +538,27 @@ def _parse_workflow_route(state: TaskState) -> tuple[dict[str, object] | None, s
 
 
 @solver
-def workflow_route_codex(model: str) -> Solver:
+def workflow_route_codex(
+    model: str,
+    *,
+    skills_root: Path | str = SKILLS_ROOT,
+    global_instructions: Path | str = GLOBAL_INSTRUCTIONS,
+) -> Solver:
     """Use coordinator/global instructions without injecting expected answers."""
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         del generate
+        selected_skills_root = Path(skills_root)
+        selected_global = Path(global_instructions)
         prompt = (
             "Classify this request using the supplied global instructions and the "
             "follow-instructions coordinator. Return only JSON matching the supplied "
             "schema. Populate its optional workflow object with the primary family, "
             "separate mode, ordered follow-ons, peer domains, parallel modifier, "
             "permitted effects, and material constraints. Do not perform the task.\n\n"
-            f"GLOBAL INSTRUCTIONS:\n{GLOBAL_INSTRUCTIONS.read_text()}\n\n"
-            f"FOLLOW-INSTRUCTIONS:\n{(SKILLS_ROOT / 'follow-instructions' / 'SKILL.md').read_text()}\n\n"
-            f"CATALOG TRIGGERS:\n{catalog_routing_index()}\n\n"
+            f"GLOBAL INSTRUCTIONS:\n{selected_global.read_text()}\n\n"
+            f"FOLLOW-INSTRUCTIONS:\n{(selected_skills_root / 'follow-instructions' / 'SKILL.md').read_text()}\n\n"
+            f"CATALOG TRIGGERS:\n{catalog_routing_index(selected_skills_root)}\n\n"
             f"USER REQUEST:\n{state.input_text}"
         )
         completion, events = await run_codex(
@@ -523,6 +576,10 @@ def workflow_route_codex(model: str) -> Solver:
         state.output.metadata = {
             "codex_jsonl": events,
             "routing_mode": "coordinator-discovery-diagnostic",
+            "skills_root": str(selected_skills_root),
+            "skills_revision": _revision_identity(selected_skills_root),
+            "global_instructions": str(selected_global),
+            "global_identity": _global_identity(selected_global),
         }
         return state
 
@@ -832,75 +889,83 @@ def _fixture_observations(snapshot: object) -> list[str]:
 
 @solver
 def workflow_fixture_candidate() -> Solver:
-    """Exercise the supplied runner-owned fake tracker without repository writes."""
+    """Run the small explicit execution fixtures without invoking a model."""
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         del generate
-        tracker = FakeTracker(state.sample_id, state.epoch)
-        tracker.start()
-        environment = tracker.environment()
-        try:
-            source = await sandbox().read_file("lookup.py")
-            if "def lookup" not in source:
-                raise RuntimeError("owning lookup source was not inspectable")
-            source_bytes = source.encode()
-            source_digest = hashlib.sha256(source_bytes).hexdigest()
-            inspected = await sandbox().exec(
-                [
-                    "python",
-                    "tracker.py",
-                    "inspect-source",
-                    "lookup.py",
-                    "--sha256",
-                    source_digest,
-                    "--size",
-                    str(len(source_bytes)),
-                ],
-                env=environment,
-                timeout=30,
-                timeout_retry=False,
-            )
-            if not inspected.success:
-                raise RuntimeError(f"source inspection failed: {inspected.stderr.strip()}")
-            create = await sandbox().exec(
-                [
-                    "python",
-                    "tracker.py",
-                    "create",
-                    "--title",
-                    "Tenant lookup can cross owner boundary",
-                    "--body",
-                    "Problem: lookup uses the requested identifier without checking its owner.\n"
-                    "Scope: enforce the authenticated owner at lookup.\n"
-                    "Acceptance: an owner can read its row and another owner is denied.",
-                ],
-                env=environment,
-                timeout=30,
-                timeout_retry=False,
-            )
-            if not create.success:
-                raise RuntimeError(f"fake issue create failed: {create.stderr.strip()}")
-            issue = json.loads(create.stdout)
-            created_object = issue.get("object") if isinstance(issue, dict) else None
-            issue_id = created_object.get("id") if isinstance(created_object, dict) else None
-            if not isinstance(issue_id, str):
-                raise RuntimeError("fake issue create returned no object identity")
-            readback = await sandbox().exec(
-                ["python", "tracker.py", "get", issue_id],
-                env=environment,
-                timeout=30,
-                timeout_retry=False,
-            )
-            if not readback.success:
-                raise RuntimeError(f"fake issue readback failed: {readback.stderr.strip()}")
-            state.output = ModelOutput.from_content(
-                model="stub/no-model",
-                content="Fixture operations completed; inspect runner-owned receipts for publication evidence.",
-            )
-        finally:
-            state.store.set("fixture_publication", tracker.snapshot())
-            tracker.close()
-        return state
+        contract = (state.metadata or {}).get("fixture_contract")
+        if not isinstance(contract, dict):
+            raise RuntimeError("execution fixture is missing its contract")
+        kind = contract.get("kind")
+        if kind == "fake-tracker-publication":
+            tracker = FakeTracker(state.sample_id, state.epoch)
+            tracker.start()
+            environment = tracker.environment()
+            client = str(contract.get("client", "tracker.py"))
+            source_path = str(contract.get("required_source_path", "lookup.py"))
+            title = str(contract.get("title", "Tenant lookup can cross owner boundary"))
+            body = str(contract.get("body", "Problem: lookup uses the requested identifier without checking its owner.\nScope: enforce the authenticated owner at lookup.\nAcceptance: an owner can read its row and another owner is denied."))
+            try:
+                source = await sandbox().read_file(source_path)
+                source_bytes = source.encode()
+                source_digest = hashlib.sha256(source_bytes).hexdigest()
+                inspected = await sandbox().exec(
+                    ["python", client, "inspect-source", source_path, "--sha256", source_digest, "--size", str(len(source_bytes))],
+                    env=environment,
+                    timeout=30,
+                    timeout_retry=False,
+                )
+                if not inspected.success:
+                    raise RuntimeError(f"source inspection failed: {inspected.stderr.strip()}")
+                create = await sandbox().exec(
+                    ["python", client, "create", "--title", title, "--body", body],
+                    env=environment,
+                    timeout=30,
+                    timeout_retry=False,
+                )
+                if not create.success:
+                    raise RuntimeError(f"fake publication create failed: {create.stderr.strip()}")
+                issue = json.loads(create.stdout)
+                created_object = issue.get("object") if isinstance(issue, dict) else None
+                issue_id = created_object.get("id") if isinstance(created_object, dict) else None
+                if not isinstance(issue_id, str):
+                    raise RuntimeError("fake publication create returned no object identity")
+                readback = await sandbox().exec(
+                    ["python", client, "get", issue_id],
+                    env=environment,
+                    timeout=30,
+                    timeout_retry=False,
+                )
+                if not readback.success:
+                    raise RuntimeError(f"fake publication readback failed: {readback.stderr.strip()}")
+                state.output = ModelOutput.from_content(model="stub/no-model", content="Fixture operations completed; inspect runner-owned receipts for publication evidence.")
+            finally:
+                state.store.set("fixture_publication", tracker.snapshot())
+                tracker.close()
+            return state
+        if kind == "response-contract":
+            response = contract.get("response")
+            if not isinstance(response, str):
+                raise RuntimeError("response fixture has no response")
+            state.output = ModelOutput.from_content(model="stub/no-model", content=response)
+            return state
+        if kind in {"workspace-test", "workspace-artifact"}:
+            path = contract.get("write_path")
+            content = contract.get("write_content")
+            if not isinstance(path, str) or not isinstance(content, str):
+                raise RuntimeError("workspace fixture has no bounded output")
+            await sandbox().write_file(path, content)
+            if kind == "workspace-test":
+                command = contract.get("test_command")
+                if not isinstance(command, list) or not all(isinstance(item, str) for item in command):
+                    raise RuntimeError("workspace-test fixture has no test command")
+                result = await sandbox().exec(command, timeout=30, timeout_retry=False)
+                state.store.set("fixture_workspace_result", {"success": result.success, "stdout": result.stdout[-4000:], "stderr": result.stderr[-4000:]})
+                if not result.success:
+                    raise RuntimeError(f"workspace fixture check failed: {result.stderr.strip()}")
+            state.output = ModelOutput.from_content(model="stub/no-model", content="Explicit execution fixture completed.")
+            return state
+        raise RuntimeError(f"unsupported execution fixture kind: {kind!r}")
 
     return solve
 
@@ -918,6 +983,54 @@ def workflow_effects():
                 explanation="workflow case is routing-only; publication is unmeasured",
                 metadata={"status": "unmeasured", "execution_mode": "routing-only"},
             )
+        kind = contract.get("kind")
+        if kind == "response-contract":
+            completion = getattr(state.output, "completion", "") or ""
+            required_content = contract.get("required_content", [])
+            forbidden_content = contract.get("forbidden_content", [])
+            if not isinstance(required_content, list) or not all(
+                isinstance(item, str) and item in completion for item in required_content
+            ):
+                return Score(value=0, explanation="response fixture is missing required copy")
+            if isinstance(forbidden_content, list) and any(
+                isinstance(item, str) and item in completion for item in forbidden_content
+            ):
+                return Score(value=0, explanation="response fixture contains forbidden effect")
+            return Score(value=1, explanation="response contract satisfied")
+        if kind in {"workspace-test", "workspace-artifact"}:
+            required_paths = contract.get("required_paths", [])
+            if not isinstance(required_paths, list) or not all(isinstance(item, str) for item in required_paths):
+                return Score(value=0, explanation="workspace fixture has no required paths")
+            missing: list[str] = []
+            for path in required_paths:
+                try:
+                    await sandbox().read_file(path)
+                except (FileNotFoundError, IsADirectoryError):
+                    missing.append(path)
+            if missing:
+                return Score(value=0, explanation=f"workspace fixture paths missing: {missing}")
+            required_content = contract.get("required_content", {})
+            if not isinstance(required_content, dict):
+                return Score(value=0, explanation="workspace fixture content contract is invalid")
+            for path, fragment in required_content.items():
+                if not isinstance(path, str) or not isinstance(fragment, str):
+                    return Score(value=0, explanation="workspace fixture content contract is invalid")
+                try:
+                    content = await sandbox().read_file(path)
+                except (FileNotFoundError, IsADirectoryError):
+                    return Score(value=0, explanation=f"workspace fixture output missing: {path}")
+                if fragment not in content:
+                    return Score(value=0, explanation=f"workspace fixture output is incorrect: {path}")
+            if kind == "workspace-test":
+                command = contract.get("test_command")
+                if not isinstance(command, list) or not all(isinstance(item, str) for item in command):
+                    return Score(value=0, explanation="workspace-test fixture has no test command")
+                result = await sandbox().exec(command, timeout=30, timeout_retry=False)
+                if not result.success:
+                    return Score(value=0, explanation=f"workspace fixture check failed: {result.stderr.strip()}")
+            return Score(value=1, explanation="workspace fixture outcome verified")
+        if kind != "fake-tracker-publication":
+            return Score(value=0, explanation=f"unsupported fixture contract kind: {kind!r}")
         snapshot = state.store.get("fixture_publication")
         if not isinstance(snapshot, dict):
             return Score(value=0, explanation="runner-owned fixture receipts are unavailable")
@@ -936,6 +1049,20 @@ def workflow_effects():
                 explanation=f"missing runner-owned fixture observations: {missing}",
                 metadata={"observations": observations, "status": "rejected"},
             )
+        forbidden_effects = metadata.get("forbidden_effects", [])
+        if isinstance(forbidden_effects, list) and "issue-create" in forbidden_effects:
+            receipts = snapshot.get("receipts")
+            if isinstance(receipts, list) and any(
+                isinstance(item, dict)
+                and item.get("operation") == "create"
+                and item.get("ok") is True
+                for item in receipts
+            ):
+                return Score(
+                    value=0,
+                    explanation="authoritative tracker observed a forbidden issue create",
+                    metadata={"observations": observations, "status": "rejected"},
+                )
         valid, explanation = validate_publication(
             snapshot,
             required_title_fragment=str(contract.get("required_title_fragment", "")),
@@ -979,11 +1106,28 @@ def workflow_fixture_smoke() -> Task:
 
 
 @task
+def workflow_fixture_pilot() -> Task:
+    """Exercise every explicitly supplied no-model workflow fixture."""
+
+    return Task(
+        dataset=workflows_dataset(execution_ready_only=True),
+        setup=capture_workspace_baseline(),
+        solver=workflow_fixture_candidate(),
+        scorer=[workspace_policy(), workflow_effects()],
+        model="mockllm/model",
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
 def catalog(with_skills: bool = True, native_model: str = "gpt-5.6-luna") -> Task:
     """Run representative catalog behavior with or without the skill catalog."""
 
     return Task(
         dataset=json_dataset(str(CASES)),
+        setup=capture_workspace_baseline(),
         solver=native_codex(with_skills=with_skills, model=native_model),
         scorer=(
             [workspace_policy(), skill_activation(), native_behavior_grade(model=native_model)]
@@ -1013,7 +1157,7 @@ def workflow_routing(native_model: str = "gpt-5.6-luna") -> Task:
     """Diagnose task/mode/domain/effect composition from normal instructions."""
 
     return Task(
-        dataset=workflows_dataset(execution_ready_only=True),
+        dataset=workflows_dataset(),
         solver=workflow_route_codex(model=native_model),
         scorer=[workflow_composition()],
         model="mockllm/model",
@@ -1025,15 +1169,58 @@ def workflow_routing(native_model: str = "gpt-5.6-luna") -> Task:
 def workflows(
     with_skills: bool = True,
     native_model: str = "gpt-5.6-luna",
+    arm: str = "candidate",
+    candidate_skills_root: str = str(SKILLS_ROOT),
+    candidate_global_instructions: str = str(GLOBAL_INSTRUCTIONS),
+    baseline_skills_root: str | None = None,
+    baseline_global_instructions: str | None = None,
 ) -> Task:
-    """Run integrated workflow cases with ordinary installed discovery."""
+    """Run execution-ready workflows for an explicitly named comparison arm.
+
+    ``candidate`` and ``baseline`` are both catalog arms.  The no-catalog arm
+    is available only as an explicitly labeled diagnostic, never as the
+    default baseline.  Baseline paths and instructions are required rather
+    than silently borrowed from the candidate.
+    """
+
+    if arm not in {"candidate", "baseline", "no-catalog-diagnostic"}:
+        raise ValueError("arm must be candidate, baseline, or no-catalog-diagnostic")
+    if arm == "no-catalog-diagnostic" and with_skills:
+        raise ValueError("no-catalog-diagnostic requires with_skills=False")
+    if arm == "baseline":
+        if not baseline_skills_root or not baseline_global_instructions:
+            raise ValueError(
+                "baseline comparison requires explicit baseline_skills_root and "
+                "baseline_global_instructions"
+            )
+        selected_root = Path(baseline_skills_root)
+        selected_global = Path(baseline_global_instructions)
+    else:
+        selected_root = Path(candidate_skills_root)
+        selected_global = Path(candidate_global_instructions)
+    dataset = workflows_dataset(
+        execution_ready_only=True,
+        global_instructions=selected_global,
+    )
+    for sample in dataset.samples:
+        sample.metadata = {
+            **(sample.metadata or {}),
+            "comparison_arm": arm,
+            "comparison_skills_root": str(selected_root),
+            "comparison_skills_revision": _revision_identity(selected_root),
+            "comparison_global_instructions": str(selected_global),
+            "comparison_global_identity": _global_identity(selected_global),
+        }
 
     return Task(
-        dataset=workflows_dataset(),
+        dataset=dataset,
+        setup=capture_workspace_baseline(),
         solver=native_codex(
             with_skills=with_skills,
             model=native_model,
             inject_skill=False,
+            skills_root=selected_root,
+            global_instructions=selected_global,
         ),
         scorer=[
             workspace_policy(),
