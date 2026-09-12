@@ -128,9 +128,9 @@ uv run inspect eval evals/skills.py@workflow_fixture_smoke --max-samples 1
 ```
 
 `workflow_fixture_smoke` and `workflow_fixture_pilot` exercise the evaluator's
-runner-owned contract with a disposable fixture. They are not live
-GitHub/GitLab integration and must not be reported as product, agent, or
-publication verification. Native comparisons are separate, finite, and must
+runner-owned contract with a disposable fixture. They are contract diagnostics,
+not live GitHub/GitLab integration, and must not be reported as product, agent,
+or publication verification. Native comparisons are separate, finite, and must
 use the same model, tools, permissions, and budget for baseline and treatment.
 
 Workspace evidence and native execution require Bubblewrap (`bwrap`) with user
@@ -142,13 +142,22 @@ execution remain unsupported. Contained Git subprocesses do not contain every
 Python read or native-agent operation.
 
 The workflow dataset labels cases as `execution-ready` or `routing-only`.
-Only the six supplied execution-ready cases run in `workflows` and the pilot;
-the other fourteen are classification cases and are reported as behaviorally
-unmeasured. Run the deterministic pilot with:
+Seven supplied execution-ready cases are available: six contract diagnostics
+whose native external effects are intentionally blocked, plus one local-only
+repair with a real workspace/test outcome. The other fourteen are
+classification cases and are reported as behaviorally unmeasured. Run the
+deterministic contract pilot with:
 
 ```bash
-uv run inspect eval evals/skills.py@workflow_fixture_pilot --max-samples 6
+uv run inspect eval evals/skills.py@workflow_fixture_pilot --max-samples 7
 ```
+
+The native `workflows` task runs a pre-launch boundary gate. A case is
+unscored/blocked when a required effect is outside the runner's observed
+boundary; missing observations are never treated as success. The supported
+native pilot case is `workflow-native-local-repair`, which checks the actual
+edited checkout and runs its supplied regression test. It does not establish
+live tracker, pull-request, deployment, browser, or adversarial behavior.
 
 For a fair native comparison, select both catalog arms explicitly. The baseline
 must point at the last accepted checkout and its matching global instructions;
