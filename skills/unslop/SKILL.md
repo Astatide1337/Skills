@@ -7,6 +7,16 @@ description: Rewrite padded or formulaic prose into a natural, specific voice wh
 
 Remove generated-looking language without removing the writer.
 
+## Writing standards
+
+Use [plain-language and STE guidance](references/plain-language-and-ste.md)
+when the audience or document type makes a writing standard relevant. Use
+ISO 24495-1-aligned plain language for general prose. Use ASD-STE100-informed
+rules only for technical procedures, maintenance, safety, or
+translation-sensitive documentation. This reference supports judgment; it
+does not replace the existing rewrite procedure or claim formal compliance
+with either standard.
+
 ## 1. Lock what must survive
 
 Inventory the source's atomic facts, decisions, instructions, citations,
@@ -77,6 +87,13 @@ Check the revision in this order:
    remaining substantive patterns rather than chasing isolated words.
 5. **Naturalness:** read it as a whole. Restore useful transitions or cadence
    if removal made it sterile or abrupt.
+
+## Handoff voice
+
+When the text is a progress or completion handoff, lead with the result and
+evidence. Mention an unperformed action only when it changes the user's next
+decision; state that limitation once, then offer the next useful step. Do not
+turn authorization boundaries into repeated "I have not ..." disclaimers.
 
 Return the revision in the exact requested destination and format. Add a note
 only when ambiguity, conflicting constraints, or a meaning-changing cut needs
