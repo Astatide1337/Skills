@@ -86,6 +86,16 @@ an environment mismatch. `npm run build` reached Prisma generation but could
 not fetch the three Google Fonts in this network-restricted environment. These
 are explicit limitations, not quality claims.
 
+Exact application commands and outcomes:
+
+| Command | Outcome |
+|---|---|
+| `npm run verify` | passed (lint, typecheck, frontend invariants, formatting) |
+| `npm test` | 152 passed, 13 skipped; 45 files passed, 3 skipped |
+| `INTEGRATION_TESTS=1 ./node_modules/.bin/vitest run lib/jobmark/interactions.integration.test.ts` | blocked before test bodies: `DATABASE_URL` missing |
+| `npx playwright test e2e/jobmark.spec.ts --project=chromium --grep 'publishes the current Terms|renders the public landing'` | blocked before a page: application startup environment validation failed |
+| `npm run build` | blocked fetching Google Fonts after Prisma generation |
+
 ## Native comparison pilot
 
 The supported native case is deliberately narrower than the original
