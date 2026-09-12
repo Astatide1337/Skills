@@ -8,7 +8,7 @@ model transcripts, credentials, tracker objects, or binary Inspect logs.
 - shared base: `3ad2f8c24ce9e3d65128d45f87b4e294610b4d12`
 - PR18 evidence head used: `d74071b87b55c7c3ceac88d983d86ad704740ed8`
 - PR19 reviewed source head before this v1 finish: `21f0caf28cda0580003ba03c517dda0208ac93e0`
-- PR19 final v1 candidate commit: `39571d1fd57a408a3b1a9943de0eb20507655d93` (local before publication)
+- PR19 v1 implementation commit: `4f056e85085369f646e64674987482cfc99098f2`
 - acceptance-order source correction retained from `8237822c0de356f9c7597da331db1edc9fffce4f`
 - evaluator: Inspect `0.3.259`, local sandbox, runner-owned contract diagnostics
   and one native local-repair task
