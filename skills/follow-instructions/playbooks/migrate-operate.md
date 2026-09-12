@@ -58,4 +58,5 @@ tested version; do not deploy without a separate release request.
 ## Near-miss
 
 “Plan a production migration; do not execute it” inventories consumers and
-recovery steps but does not run `kubectl`, mutate data, or claim a rollout.
+recovery steps and may use authorized read-only inspection, but does not run
+mutating commands such as `kubectl apply`, mutate data, or claim a rollout.

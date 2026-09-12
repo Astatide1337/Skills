@@ -243,6 +243,57 @@ class WorkflowContractTests(unittest.TestCase):
             ["python", "supplemental.py"],
         )
 
+    def test_final_artifact_control_passes_before_and_fails_after_restore(self) -> None:
+        task = skills.workflow_failed_outcome_smoke()
+        sample = next(
+            sample
+            for sample in task.dataset
+            if sample.id == "workflow-acceptance-final-artifact"
+        )
+        contract = (sample.metadata or {}).get("fixture_contract")
+        self.assertIsInstance(contract, dict)
+        acceptance_command, error = skills._runner_acceptance_command(contract)
+        self.assertIsNone(error)
+        self.assertIsNotNone(acceptance_command)
+        correct_bug = (
+            "def search(actor, record):\n"
+            "    if record.get('tenant') != actor:\n"
+            "        raise PermissionError('tenant mismatch')\n"
+            "    return record\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            (workspace / "bug.py").write_text(correct_bug)
+            (workspace / "test_bug.py").write_text(sample.files["test_bug.py"])
+            (workspace / "supplemental.py").write_text(sample.files["supplemental.py"])
+
+            before = subprocess.run(
+                acceptance_command or [],
+                cwd=workspace,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(before.returncode, 0, before.stderr)
+
+            supplemental = subprocess.run(
+                ["python", "-S", "-B", "supplemental.py"],
+                cwd=workspace,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(supplemental.returncode, 0, supplemental.stderr)
+
+            after = subprocess.run(
+                acceptance_command or [],
+                cwd=workspace,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(after.returncode, 0)
+
     def test_standalone_verification_has_a_coherent_route(self) -> None:
         schema = json.loads(skills.WORKFLOW_ROUTE_SCHEMA.read_text())
         primary = schema["properties"]["workflow"]["properties"]["primary"]["enum"]

@@ -37,8 +37,10 @@ skill into an explicit destination:
 ./scripts/install.sh --all --target ~/.claude/skills
 ```
 
-The older `~/.codex/skills` path remains usable when supplied explicitly. The
-installer never overwrites it unless you name it.
+The older `~/.codex/skills` path is supported both as an explicit target and as
+an automatic fallback described below. Installation replaces each selected
+same-name package, including local customizations; use `--target` to choose the
+destination explicitly.
 
 Install selected skills instead:
 

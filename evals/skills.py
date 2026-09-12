@@ -1595,7 +1595,10 @@ def workflow_failed_outcome_candidate() -> Solver:
         )
         await sandbox().write_file(
             "bug.py",
-            correct if sample_id == "workflow-acceptance-correct" else broken,
+            correct
+            if sample_id
+            in {"workflow-acceptance-correct", "workflow-acceptance-final-artifact"}
+            else broken,
         )
         if sample_id == "workflow-acceptance-replaced-test":
             await sandbox().write_file("test_bug.py", "print('ok')\n")
