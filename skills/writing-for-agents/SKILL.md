@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: Write or revise AGENTS.md, SKILL.md, prompts, runbooks, or task specs for reliable agent execution. Not unprompted documentation.
+description: Write or revise agent-facing instructions, prompts, and runbooks.
 ---
 
 # Writing for Agents

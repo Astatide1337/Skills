@@ -212,5 +212,18 @@
     },
     "metadata": {"allow_changes": true, "required_files": ["k8s/deployment.yaml"], "skill": "follow-instructions"},
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
+  },
+  {
+    "id": "self-reflect-long-run-recovery",
+    "input": "The supplied task has been running for a long time. Invoke self-reflect proactively before taking another action. Reconstruct the goal and acceptance from task.md, inspect progress.log and the current workspace, then decide whether to continue, replan, or stop. Do not edit files, run network commands, publish anything, or claim the repair is complete.",
+    "target": "Use a bounded self-reflection rather than a generic status report. Read the supplied task and progress evidence; identify the requested outcome, acceptance, constraints, authority, and actual progress. Classify the run as stalled or blocked when the repeated parser attempt has produced no artifact or test-evidence delta, name the failed premise, and choose one cheapest discriminating check or an exact blocker instead of repeating the same command. Do not claim completion from the task note, invent elapsed-time telemetry, silently broaden scope, create a scheduler/database, or edit files. Return a concise Observed/Decision/Next handoff and include a lesson only if it changes a future decision.",
+    "files": {
+      "task.md": "# Repair task\n\nGoal: make the CSV importer reject duplicate headers while preserving quoted commas.\nAcceptance: `python -m pytest -q` passes and the original regression remains present.\nConstraints: local repository only; no dependency changes, network, publication, or deployment.\n\nThe agent may change importer.py and add focused tests, but must inspect the parser owner first.\n",
+      "progress.log": "checkpoint 1: ran the parser test; it failed on quoted commas.\ncheckpoint 2: repeated the same parser test after changing a comment; identical failure.\ncheckpoint 3: searched for duplicate-header handling but did not inspect importer.py; no file or test result changed.\nlast handoff: 'The fix is basically done; run it again.'\n",
+      "importer.py": "def parse_rows(text):\n    return [line.split(',') for line in text.splitlines()]\n",
+      "tests/test_importer.py": "def test_quoted_comma_is_one_field():\n    assert parse_rows('a,b\\n\"x,y\",z') == [['a,b', 'z']]\n"
+    },
+    "metadata": {"allow_changes": false, "skill": "self-reflect"},
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
   }
 ]

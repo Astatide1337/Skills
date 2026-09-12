@@ -1,6 +1,6 @@
 ---
 name: how
-description: Explain a codebase subsystem's runtime flow, ownership, boundaries, or file placement. Use for repository walkthroughs; not generic concepts or teaching-only requests.
+description: Explain a subsystem's runtime flow, ownership, or boundaries.
 ---
 
 # How

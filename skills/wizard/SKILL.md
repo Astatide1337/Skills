@@ -1,6 +1,6 @@
 ---
 name: wizard
-description: Design or implement a user-run setup wizard for configuration, credentials, or onboarding. Keep browser, secrets, and account changes under user control.
+description: Design or implement a user-run setup wizard for configuration or onboarding.
 ---
 
 # Wizard

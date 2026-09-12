@@ -1,6 +1,6 @@
 ---
 name: deslop
-description: Remove AI-generated code slop from a diff while preserving behavior and local conventions.
+description: Clean AI-generated code clutter from a diff without changing behavior.
 ---
 
 # Deslop

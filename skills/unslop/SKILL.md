@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Rewrite padded or formulaic prose into a natural, specific voice while preserving facts, quotes, meaning, and context.
+description: Rewrite AI-sounding prose into a natural voice without losing meaning.
 ---
 
 # Unslop

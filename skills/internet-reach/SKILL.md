@@ -1,6 +1,6 @@
 ---
 name: internet-reach
-description: Use when asked to search/read web sources, including Reddit, YouTube, Instagram, LinkedIn, GitHub, or RSS. Return direct links; use isolated Zen for rendered/sign-in pages. Not project browsing.
+description: Search and read requested public web sources with direct links.
 ---
 
 # Internet reach

@@ -1,6 +1,6 @@
 ---
 name: pull-requests
-description: Manage a GitHub PR or GitLab MR by drafting, opening, monitoring, communicating, or handing off. Not standalone code review or deployment.
+description: Manage a GitHub PR or GitLab MR from draft through handoff.
 ---
 
 # Pull requests

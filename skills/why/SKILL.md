@@ -1,6 +1,6 @@
 ---
 name: why
-description: Investigate why code or architecture exists using history and external evidence. Not for ordinary how/what explanations.
+description: Investigate the design rationale and history behind code or architecture.
 ---
 
 # Why

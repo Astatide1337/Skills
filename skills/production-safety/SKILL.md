@@ -1,6 +1,6 @@
 ---
 name: production-safety
-description: Safely inspect or change production-like systems, infrastructure, credentials, persistent data, delivery, or external services. Read first; verify scope, authorization, recovery, and rollback.
+description: Safely inspect or change production-like systems, data, credentials, or delivery.
 ---
 
 # Production Safety

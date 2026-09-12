@@ -1,6 +1,6 @@
 ---
 name: follow-instructions
-description: Use when a task activates another catalog skill or needs a tool, edit, external write, or completion claim. Choose the smallest applicable process and verify the requested result.
+description: Route substantive work through the applicable skills and evidence gates.
 ---
 
 # Follow instructions
@@ -48,6 +48,10 @@ Use `verify-work/verify` as a primary route when the requested result is to
 establish whether a claim is true. It is a domain package, not an issue or PR
 follow-on. Use [parallel](playbooks/parallel.md) only as a modifier when
 independent work, bounded ownership, and a real delegation tool exist.
+
+Use [self-reflect](../self-reflect/SKILL.md) as a modifier when work is stuck,
+prolonged, or settling. It reassesses the current route from evidence; it does
+not replace the task playbook or grant another effect.
 
 Attach expertise only for a material decision:
 
