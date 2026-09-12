@@ -5,11 +5,16 @@ specific repository instructions win.
 
 ## Skill compliance
 
-- Whenever one or more other catalog skills apply, use `follow-instructions`
-  before substantive task action. After reading every selected skill and its
-  required references, maintain its instruction ledger through completion. Do
-  not mutate state, publish, or claim completion while a relevant obligation
-  remains unresolved.
+- Whenever one or more other catalog skills apply, initialize
+  `follow-instructions` once before loading the selected domain skills. It
+  classifies the requested outcome/process, domain expertise, follow-on
+  deliverables, and permitted effects, then composes only the required
+  procedures. Do not use it for ordinary direct-answer tasks or invoke it
+  recursively from a leaf skill. After reading every selected skill and its
+  required references, keep a proportionate task record for obligations that
+  can change action, ordering, permission, a stop condition, or a completion
+  claim. Do not mutate state, publish, or claim completion while a relevant
+  obligation remains unresolved.
 
 ## Work from evidence
 
@@ -49,6 +54,11 @@ does not authorize edits, a documentation pass, a commit, or a new PR.
 - Make claims match observed evidence. State what is proven, what remains
   unknown, and the narrowest justified conclusion when a meaningful check
   remains unavailable.
+- When secrets, multi-process or production-like state, or a consequential
+  external write is in scope, report the boundary, alternatives, and effect
+  only to the detail that changes the decision. Ordinary publication, issue
+  drafting, and direct answers stay concise while retaining material limits;
+  they do not require a fixed reporting template.
 - Use targeted checks for the changed surface. Do not run broad suites merely
   for ceremony, and do not report a check that was not run.
 - Keep updates direct: outcome, material changes, evidence, and any real

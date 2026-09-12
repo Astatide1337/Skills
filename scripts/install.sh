@@ -14,10 +14,10 @@ Options:
   --target PATH    Directory that directly contains installed skill folders.
   -h, --help       Show this help.
 
-Without --target, the installer checks ~/.codex, ~/.config/opencode,
-~/.claude, and the current project's .agents directory in that order. Pass
---target when more than one harness is present or when installing into a
-different project.
+Without --target, the installer checks the current project's .agents directory,
+then ~/.agents (Codex's primary user location), ~/.codex (legacy Codex),
+~/.config/opencode, and ~/.claude. Pass --target when more than one harness is
+present or when installing into a different project.
 EOF
 }
 
@@ -68,14 +68,16 @@ if "$list_only"; then
 fi
 
 if [[ -z "$target" ]]; then
-  if [[ -d "${HOME:-}/.codex" ]]; then
+  if [[ -d "$repo_root/.agents" ]]; then
+    target="$repo_root/.agents/skills"
+  elif [[ -d "${HOME:-}/.agents" ]]; then
+    target="${HOME}/.agents/skills"
+  elif [[ -d "${HOME:-}/.codex" ]]; then
     target="${HOME}/.codex/skills"
   elif [[ -d "${HOME:-}/.config/opencode" ]]; then
     target="${HOME}/.config/opencode/skills"
   elif [[ -d "${HOME:-}/.claude" ]]; then
     target="${HOME}/.claude/skills"
-  elif [[ -d "$repo_root/.agents" ]]; then
-    target="$repo_root/.agents/skills"
   else
     printf '%s\n' 'Cannot detect a harness target; pass --target explicitly.' >&2
     exit 2

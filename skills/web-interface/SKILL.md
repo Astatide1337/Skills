@@ -1,6 +1,6 @@
 ---
 name: web-interface
-description: Design, implement, prototype, optimize, or review user-facing web UI/components, including layout, accessibility, interaction, responsiveness, and visual QA. Not backend-only.
+description: Design, build, or review a user-facing web interface.
 ---
 
 # Web Interface

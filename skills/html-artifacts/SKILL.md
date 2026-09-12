@@ -1,6 +1,6 @@
 ---
 name: html-artifacts
-description: Create or revise a self-contained HTML artifact when layout, interaction, diagrams, presentation, or export materially helps. Not ordinary prose or maintained app UI.
+description: Create or revise self-contained HTML when layout or interaction matters.
 ---
 
 # HTML Artifacts

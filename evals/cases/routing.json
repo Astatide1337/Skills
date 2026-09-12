@@ -28,5 +28,20 @@
     "id": "route-no-skill-pasted-code-question",
     "input": "What does this expression return for x = 3? Answer from the pasted code only; do not debug or change a repository: `x * 2`.",
     "metadata": {"expected_skills": [], "route_kind": "negative"}
+  },
+  {
+    "id": "route-self-reflect-stalled",
+    "input": "The agent has tried the same repair twice, the test result is unchanged, and it is about to try the same command again. Invoke a bounded self-reflection before proceeding; inspect the evidence, choose one discriminating next move, and do not claim success.",
+    "metadata": {"expected_skills": ["follow-instructions", "self-reflect"], "route_kind": "positive"}
+  },
+  {
+    "id": "route-self-reflect-settling",
+    "input": "The implementation is finished and the thread is settling. Before the handoff, reassess the actual diff and checks, state the narrowest supported result, and record a durable lesson only if it changes a future decision. This is a reflective handoff, not a separate verification request.",
+    "metadata": {"expected_skills": ["follow-instructions", "self-reflect"], "route_kind": "positive"}
+  },
+  {
+    "id": "route-self-reflect-near-miss",
+    "input": "Implement this one-line typo correction in the named file and run its existing focused check. This is a clear, bounded task with no repeated failure or long-running work; do not add a reflection ritual.",
+    "metadata": {"expected_skills": [], "route_kind": "negative"}
   }
 ]
