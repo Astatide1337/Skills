@@ -60,8 +60,7 @@
               "document-teach/document",
               "document-teach/teach",
               "workflow-improvement/improve",
-              "custom/compose",
-              "verify-work/verify"
+              "custom/compose"
             ]
           }
         },

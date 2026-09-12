@@ -133,7 +133,7 @@ class WorkflowContractTests(unittest.TestCase):
         primary = schema["properties"]["workflow"]["properties"]["primary"]["enum"]
         follow_ons = schema["properties"]["workflow"]["properties"]["follow_ons"]["items"]["enum"]
         self.assertIn("verify-work", primary)
-        self.assertIn("verify-work/verify", follow_ons)
+        self.assertNotIn("verify-work/verify", follow_ons)
 
     def test_comparison_arms_require_explicit_baseline_and_catalog_mode(self) -> None:
         with self.assertRaises(ValueError):

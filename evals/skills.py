@@ -43,6 +43,32 @@ except ModuleNotFoundError as exc:
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+try:
+    from evals.workspace_evidence import (
+        Baseline,
+        Evidence,
+        bwrap_preflight,
+        capture_baseline,
+        collect_evidence,
+    )
+except ModuleNotFoundError as exc:
+    if exc.name not in {"evals", "evals.workspace_evidence"}:
+        raise
+    module_path = REPO_ROOT / "evals" / "workspace_evidence.py"
+    spec = importlib.util.spec_from_file_location("skills_workspace_evidence", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"unable to load evidence helper: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    Baseline = module.Baseline
+    Evidence = module.Evidence
+    bwrap_preflight = module.bwrap_preflight
+    capture_baseline = module.capture_baseline
+    collect_evidence = module.collect_evidence
+
+
 SKILLS_ROOT = REPO_ROOT / "skills"
 CASES = Path(__file__).parent / "cases" / "catalog.json"
 ROUTING_CASES = Path(__file__).parent / "cases" / "routing.json"
@@ -141,6 +167,11 @@ async def run_codex(
 ) -> tuple[str, str]:
     """Run signed-in Codex in the current Inspect local sandbox workspace."""
 
+    preflight_error = bwrap_preflight()
+    if preflight_error:
+        raise RuntimeError(
+            f"native Codex launch blocked by execution prerequisite: {preflight_error}"
+        )
     with isolated_codex_home(with_skills, skills_root=skills_root) as codex_home:
         output_file = f"/tmp/codex-eval-{uuid4().hex}.txt"
         command = [
@@ -212,6 +243,21 @@ def native_codex(
             if global_instructions is not None
             else GLOBAL_INSTRUCTIONS
         )
+        stored_baseline = state.store.get("workspace_baseline")
+        baseline = _stored_baseline(stored_baseline)
+        if baseline is None or not baseline.available:
+            state.output = ModelOutput.from_content(
+                model="runner/workspace-evidence",
+                content="Candidate skipped: workspace baseline unavailable.",
+            )
+            state.output.metadata = {
+                "workspace_baseline_status": (
+                    baseline.status if baseline is not None else "invalid-or-missing"
+                ),
+                "candidate_skipped": True,
+            }
+            state.completed = True
+            return state
         prompt = state.input_text
         if with_skills and inject_skill:
             skill = (state.metadata or {}).get("skill")
@@ -261,6 +307,12 @@ def native_codex(
         state.output.metadata["skills_revision"] = _revision_identity(selected_skills_root)
         state.output.metadata["global_instructions"] = str(selected_global)
         state.output.metadata["global_identity"] = _global_identity(selected_global)
+        scope = (state.metadata or {}).get("execution_scope")
+        if scope:
+            state.output.metadata["execution_scope"] = scope
+            state.output.metadata["containment"] = (
+                "unsupported outside trusted synthetic fixtures"
+            )
         return state
 
     return solve
@@ -586,6 +638,263 @@ def workflow_route_codex(
     return solve
 
 
+def _unavailable_baseline(reason: str) -> Baseline:
+    return Baseline(status="unavailable", reason=reason)
+
+
+def _stored_strings(value: dict[str, object], field: str) -> tuple[str, ...]:
+    raw = value.get(field, ())
+    if not isinstance(raw, (list, tuple)) or not all(
+        isinstance(item, str) for item in raw
+    ):
+        raise ValueError(f"{field} must be a string sequence")
+    return tuple(raw)
+
+
+def _stored_baseline(value: object) -> Baseline | None:
+    """Rehydrate exactly the Baseline contract across Inspect Store boundaries."""
+
+    if isinstance(value, Baseline):
+        return value
+    if not isinstance(value, dict):
+        return None
+    status = value.get("status")
+    revision = value.get("revision")
+    if not isinstance(status, str) or (
+        revision is not None and not isinstance(revision, str)
+    ):
+        return None
+    try:
+        raw_index = value.get("index_entries", ())
+        if not isinstance(raw_index, (list, tuple)):
+            return None
+        index_entries: list[tuple[str, str, int, int, int]] = []
+        for entry in raw_index:
+            if (
+                not isinstance(entry, (list, tuple))
+                or len(entry) != 5
+                or not isinstance(entry[0], str)
+                or not isinstance(entry[1], str)
+                or not all(isinstance(item, int) for item in entry[2:])
+            ):
+                return None
+            index_entries.append(tuple(entry))  # type: ignore[arg-type]
+
+        raw_boundary = value.get("git_boundary", ())
+        if (
+            not isinstance(raw_boundary, (list, tuple))
+            or len(raw_boundary) != 4
+            or not isinstance(raw_boundary[0], str)
+            or not isinstance(raw_boundary[1], int)
+            or not isinstance(raw_boundary[2], int)
+            or (raw_boundary[3] is not None and not isinstance(raw_boundary[3], str))
+        ):
+            return None
+        raw_snapshot = value.get("snapshot", ())
+        if not isinstance(raw_snapshot, (list, tuple)):
+            return None
+        snapshot: list[tuple[str, str, int | None, str | None, str | None]] = []
+        for entry in raw_snapshot:
+            if (
+                not isinstance(entry, (list, tuple))
+                or len(entry) != 5
+                or not isinstance(entry[0], str)
+                or not isinstance(entry[1], str)
+                or (entry[2] is not None and not isinstance(entry[2], int))
+                or (entry[3] is not None and not isinstance(entry[3], str))
+                or (entry[4] is not None and not isinstance(entry[4], str))
+            ):
+                return None
+            snapshot.append(tuple(entry))  # type: ignore[arg-type]
+        raw_control = value.get("git_control", ())
+        if not isinstance(raw_control, (list, tuple)):
+            return None
+        git_control: list[tuple[str, str, int | None, str | None]] = []
+        for entry in raw_control:
+            if (
+                not isinstance(entry, (list, tuple))
+                or len(entry) != 4
+                or not isinstance(entry[0], str)
+                or not isinstance(entry[1], str)
+                or (entry[2] is not None and not isinstance(entry[2], int))
+                or (entry[3] is not None and not isinstance(entry[3], str))
+            ):
+                return None
+            git_control.append(tuple(entry))  # type: ignore[arg-type]
+        object_id_bytes = value.get("object_id_bytes", 20)
+        if not isinstance(object_id_bytes, int):
+            return None
+        reason = value.get("reason")
+        if reason is not None and not isinstance(reason, str):
+            return None
+        return Baseline(
+            status=status,
+            revision=revision,
+            initial_paths=_stored_strings(value, "initial_paths"),
+            tracked_paths=_stored_strings(value, "tracked_paths"),
+            index_entries=tuple(index_entries),
+            object_id_bytes=object_id_bytes,
+            git_boundary=tuple(raw_boundary),  # type: ignore[arg-type]
+            snapshot=tuple(snapshot),
+            git_control=tuple(git_control),
+            snapshot_omissions=_stored_strings(value, "snapshot_omissions"),
+            reason=reason,
+        )
+    except (TypeError, ValueError):
+        return None
+
+
+def _unavailable_evidence(reason: str, *, baseline_revision: str | None = None) -> Evidence:
+    return Evidence(
+        status="unavailable",
+        available=False,
+        baseline_revision=baseline_revision,
+        reason=reason,
+        outcome="unavailable",
+    )
+
+
+def _baseline_text(baseline: Baseline) -> str:
+    return f"STATUS: {baseline.status}\nREASON: {baseline.reason or 'none'}"
+
+
+def _evidence_text(evidence: Evidence) -> str:
+    return evidence.as_text()
+
+
+def _stored_evidence(value: object) -> Evidence | None:
+    """Rehydrate exactly the Evidence contract if Inspect serialized it."""
+
+    if isinstance(value, Evidence):
+        return value
+    if not isinstance(value, dict):
+        return None
+    status = value.get("status")
+    available = value.get("available")
+    if not isinstance(status, str) or not isinstance(available, bool):
+        return None
+    baseline_revision = value.get("baseline_revision")
+    final_revision = value.get("final_revision")
+    if any(
+        revision is not None and not isinstance(revision, str)
+        for revision in (baseline_revision, final_revision)
+    ):
+        return None
+    bool_fields = (
+        "truncated",
+        "index_changed",
+        "git_metadata_changed",
+        "has_changes",
+    )
+    if any(not isinstance(value.get(field), bool) for field in bool_fields):
+        return None
+    outcome = value.get("outcome")
+    reason = value.get("reason")
+    if not isinstance(outcome, str) or (reason is not None and not isinstance(reason, str)):
+        return None
+    try:
+        return Evidence(
+            status=status,
+            available=available,
+            baseline_revision=baseline_revision,
+            final_revision=final_revision,
+            tracked_worktree_paths=_stored_strings(value, "tracked_worktree_paths"),
+            tracked_index_paths=_stored_strings(value, "tracked_index_paths"),
+            tracked_paths=_stored_strings(value, "tracked_paths"),
+            committed_paths=_stored_strings(value, "committed_paths"),
+            baseline_untracked_paths=_stored_strings(value, "baseline_untracked_paths"),
+            current_untracked_paths=_stored_strings(value, "current_untracked_paths"),
+            untracked_paths=_stored_strings(value, "untracked_paths"),
+            required_paths=_stored_strings(value, "required_paths"),
+            content=_stored_strings(value, "content"),
+            omissions=_stored_strings(value, "omissions"),
+            truncated=value["truncated"],
+            index_changed=value["index_changed"],
+            git_metadata_changed=value["git_metadata_changed"],
+            has_changes=value["has_changes"],
+            outcome=outcome,
+            reason=reason,
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+async def _sandbox_workspace_path() -> tuple[Path | None, str | None]:
+    """Resolve the local Inspect root used by trusted synthetic fixtures.
+
+    The collector's synchronous path API cannot address a remote/container
+    filesystem from the runner process. Refuse that unsupported arrangement
+    instead of treating a container's ``pwd`` as a host path. The local route
+    is limited to disposable synthetic cases; it is not hostile-code
+    containment.
+    """
+
+    environment = sandbox()
+    try:
+        connection = await environment.connection()
+    except NotImplementedError:
+        # Inspect's local provider has no connection endpoint. It is the only
+        # supported path-collector route for these trusted fixtures.
+        connection = None
+    except Exception as exc:
+        return None, f"unable to inspect sandbox boundary: {exc}"
+    if connection is not None:
+        return (
+            None,
+            "workspace evidence path collector does not support remote/container "
+            f"sandbox '{connection.type}'; live containment is unsupported",
+        )
+
+    try:
+        result = await environment.exec(
+            ["pwd"],
+            timeout=30,
+            timeout_retry=False,
+        )
+    except Exception as exc:
+        return None, f"unable to resolve sandbox workspace: {exc}"
+    if not result.success:
+        return None, f"unable to resolve sandbox workspace: {result.stderr.strip()}"
+    lines = result.stdout.strip().splitlines()
+    if not lines:
+        return None, "sandbox returned no workspace path"
+    path = Path(lines[-1])
+    if not path.is_absolute() or not path.is_dir():
+        return None, f"sandbox workspace path is not a readable directory: {path}"
+    return path, None
+
+
+@solver
+def capture_workspace_baseline() -> Solver:
+    """Capture runner-owned Git state after ``Sample.setup`` and before a solver."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        workspace, error = await _sandbox_workspace_path()
+        if error is not None or workspace is None:
+            baseline = _unavailable_baseline(error or "workspace unavailable")
+        else:
+            try:
+                captured = capture_baseline(workspace)
+                baseline = captured
+            except Exception as exc:
+                baseline = _unavailable_baseline(f"baseline capture failed: {exc}")
+        state.store.set("workspace_baseline", baseline)
+        if not baseline.available:
+            # Inspect preserves ``completed`` across the solver pipeline.  Set
+            # it at the instrumentation boundary so a dirty or unavailable
+            # baseline cannot launch a candidate and then be graded as if the
+            # observation were valid.
+            state.output = ModelOutput.from_content(
+                model="runner/workspace-evidence",
+                content="Candidate skipped: workspace baseline unavailable.",
+            )
+            state.output.metadata = {"candidate_skipped": True}
+            state.completed = True
+        return state
+
+    return solve
+
+
 @scorer(metrics=[accuracy()])
 def workflow_composition():
     """Score hidden route metadata, never an answer inserted into the prompt."""
@@ -686,31 +995,81 @@ def workflow_composition():
 
     return score
 
+async def _workspace_evidence_value(state: TaskState) -> Evidence:
+    """Capture evidence once, including when an earlier solver failed."""
+
+    if "workspace_evidence" in state.store:
+        stored = _stored_evidence(state.store.get("workspace_evidence"))
+        if stored is not None:
+            state.store.set("workspace_evidence", stored)
+            return stored
+        evidence = _unavailable_evidence("stored workspace evidence is invalid")
+        state.store.set("workspace_evidence", evidence)
+        return evidence
+
+    baseline = _stored_baseline(state.store.get("workspace_baseline"))
+    if baseline is None:
+        evidence = _unavailable_evidence("baseline missing or invalid")
+        state.store.set("workspace_evidence", evidence)
+        return evidence
+    workspace, error = await _sandbox_workspace_path()
+    if error is not None or workspace is None:
+        evidence = _unavailable_evidence(
+            error or "workspace unavailable",
+            baseline_revision=baseline.revision,
+        )
+    else:
+        metadata = state.metadata or {}
+        required_paths = tuple(
+            str(path) for path in metadata.get("required_files", [])
+        )
+        try:
+            evidence = collect_evidence(
+                workspace,
+                baseline,
+                required_paths=required_paths,
+                max_bytes=60000,
+            )
+        except Exception as exc:
+            evidence = _unavailable_evidence(
+                f"evidence collection failed: {exc}",
+                baseline_revision=baseline.revision,
+            )
+    state.store.set("workspace_evidence", evidence)
+    return evidence
+
 
 @scorer(metrics=[accuracy()])
 def workspace_policy():
-    """Check read-only cases and required output files in the task sandbox."""
+    """Check workspace changes and required outputs against runner evidence."""
 
     async def score(state: TaskState, target: Target) -> Score:
         metadata = state.metadata or {}
-        status = await sandbox().exec(["git", "status", "--porcelain"])
-        if not status.success:
-            return Score(value=0, explanation=f"git status failed: {status.stderr}")
+        evidence = await _workspace_evidence_value(state)
+        if not evidence.available:
+            return Score.unscored(
+                explanation=(
+                    "workspace instrumentation unavailable: "
+                    f"{_evidence_text(evidence)}"
+                ),
+                metadata={"status": "unavailable", "instrumentation_blocker": True},
+            )
 
-        changes = [line for line in status.stdout.splitlines() if line.strip()]
-        if not metadata.get("allow_changes", False) and changes:
-            return Score(value=0, explanation=f"read-only case changed workspace: {changes}")
+        if not metadata.get("allow_changes", False) and evidence.has_changes:
+            return Score(
+                value=0,
+                explanation=(
+                    "read-only case changed workspace: "
+                    f"{_evidence_text(evidence)}"
+                ),
+                metadata={"status": "rejected"},
+            )
 
-        missing: list[str] = []
-        for path in metadata.get("required_files", []):
-            try:
-                await sandbox().read_file(path)
-            except FileNotFoundError:
-                missing.append(path)
-        if missing:
-            return Score(value=0, explanation=f"required files missing: {missing}")
-
-        return Score(value=1, explanation="workspace policy satisfied")
+        return Score(
+            value=1,
+            explanation="workspace policy satisfied",
+            metadata={"status": "accepted"},
+        )
 
     return score
 
@@ -721,7 +1080,14 @@ def skill_activation():
 
     async def score(state: TaskState, target: Target) -> Score:
         skill = (state.metadata or {}).get("skill")
-        injected = (state.output.metadata or {}).get("injected_skill")
+        baseline = _stored_baseline(state.store.get("workspace_baseline"))
+        if baseline is None or not baseline.available:
+            return Score.unscored(
+                explanation="candidate not launched because baseline instrumentation was unavailable",
+                metadata={"status": "unavailable", "instrumentation_blocker": True},
+            )
+        output_metadata = getattr(state.output, "metadata", None) or {}
+        injected = output_metadata.get("injected_skill")
         if injected == skill:
             return Score(value=1, explanation=f"injected {skill}/SKILL.md")
         return Score(value=0, explanation=f"did not inject {skill}/SKILL.md")
@@ -732,34 +1098,16 @@ def skill_activation():
 async def workspace_evidence(state: TaskState) -> str:
     """Collect bounded code and artifact evidence for the behavior grader."""
 
-    sections: list[str] = []
-    diff = await sandbox().exec(["git", "diff", "--no-ext-diff", "--unified=3"])
-    if diff.success and diff.stdout.strip():
-        sections.append(f"GIT DIFF:\n{diff.stdout[:30000]}")
-    status = await sandbox().exec(["git", "status", "--porcelain"])
-    if status.success:
-        untracked = [
-            line[3:]
-            for line in status.stdout.splitlines()
-            if line.startswith("?? ") and " -> " not in line
-        ]
-        for path in untracked[:10]:
-            try:
-                content = await sandbox().read_file(path)
-            except (FileNotFoundError, IsADirectoryError, UnicodeDecodeError):
-                continue
-            sections.append(f"UNTRACKED FILE {path}:\n{content[:20000]}")
-    for path in (state.metadata or {}).get("required_files", []):
-        try:
-            content = await sandbox().read_file(path)
-        except FileNotFoundError:
-            sections.append(f"REQUIRED FILE {path}: MISSING")
-        else:
-            sections.append(f"REQUIRED FILE {path}:\n{content[:20000]}")
+    sections: list[str] = [
+        "RUNNER WORKSPACE EVIDENCE:\n" + _evidence_text(
+            await _workspace_evidence_value(state)
+        )
+    ]
     execution_records: list[str] = []
     tool_records: list[str] = []
-    events = (state.output.metadata or {}).get("codex_jsonl", "")
-    for line in events.splitlines():
+    output_metadata = getattr(state.output, "metadata", None) or {}
+    events = output_metadata.get("codex_jsonl", "")
+    for line in events.splitlines() if isinstance(events, str) else []:
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
@@ -810,6 +1158,19 @@ def native_behavior_grade(model: str):
     """Grade the final answer with an isolated native Codex invocation."""
 
     async def score(state: TaskState, target: Target) -> Score:
+        baseline = _stored_baseline(state.store.get("workspace_baseline"))
+        if baseline is None or not baseline.available:
+            return Score.unscored(
+                explanation=(
+                    "workspace baseline unavailable; native candidate grading skipped: "
+                    f"{_baseline_text(baseline) if baseline is not None else 'missing-or-invalid'}"
+                ),
+                metadata={
+                    "status": "unavailable",
+                    "grading_skipped": True,
+                    "instrumentation_blocker": True,
+                },
+            )
         evidence = await workspace_evidence(state)
         prompt = (
             "You are grading one agent-skill evaluation on a 0-4 quality scale. "
@@ -822,7 +1183,8 @@ def native_behavior_grade(model: str):
             "the requested JSON object.\n\n"
             f"TASK:\n{state.input_text}\n\n"
             f"TARGET:\n{target.text}\n\n"
-            f"CANDIDATE RESPONSE:\n{state.output.completion}\n\n"
+            "CANDIDATE RESPONSE:\n"
+            f"{getattr(state.output, 'completion', '') or '[candidate output unavailable]'}\n\n"
             f"WORKSPACE EVIDENCE:\n{evidence}"
         )
         completion, _ = await run_codex(
@@ -970,6 +1332,78 @@ def workflow_fixture_candidate() -> Solver:
     return solve
 
 
+@solver
+def evidence_smoke_candidate() -> Solver:
+    """Make a deterministic workspace change without invoking a model."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        await sandbox().write_file("module.py", "AUDIT_CHANGED_MARKER\n")
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="deterministic evidence smoke candidate",
+        )
+        raise RuntimeError("intentional candidate failure for evidence smoke")
+
+    return solve
+
+
+@solver
+def baseline_lifecycle_smoke_candidate() -> Solver:
+    """Mark candidate entry so setup-level baseline termination is observable."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        state.store.set("candidate_called", True)
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="deterministic baseline lifecycle candidate",
+        )
+        return state
+
+    return solve
+
+
+@solver
+def workspace_policy_smoke_candidate() -> Solver:
+    """Leave a pre-existing ignored artifact untouched for policy scoring."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="deterministic read-only policy smoke candidate",
+        )
+        return state
+
+    return solve
+
+
+@solver
+def workspace_stat_cache_smoke_candidate() -> Solver:
+    """Exercise Git's harmless stat-cache refresh without changing content."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        result = await sandbox().exec(
+            [
+                "sh",
+                "-c",
+                "touch -d '@1' module.py && git status --porcelain",
+            ],
+            timeout=30,
+            timeout_retry=False,
+        )
+        if not result.success:
+            raise RuntimeError(f"stat-cache smoke command failed: {result.stderr.strip()}")
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="deterministic stat-cache refresh candidate",
+        )
+        return state
+
+    return solve
+
+
 @scorer(metrics=[accuracy()])
 def workflow_effects():
     """Grade fake publication from runner-owned operation receipts."""
@@ -984,6 +1418,25 @@ def workflow_effects():
                 metadata={"status": "unmeasured", "execution_mode": "routing-only"},
             )
         kind = contract.get("kind")
+        # The deterministic fixture runner owns every operation in its small
+        # contract.  A native candidate may have attempted effects that this
+        # scorer cannot observe (for example deployment or a real tracker
+        # write), so do not let a successful-looking response or workspace
+        # artifact stand in for those mandatory boundaries.
+        output_model = getattr(state.output, "model", "")
+        forbidden_effects = metadata.get("forbidden_effects", [])
+        if output_model != "stub/no-model" and isinstance(forbidden_effects, list) and forbidden_effects:
+            return Score(
+                value=0,
+                explanation=(
+                    "native workflow has mandatory forbidden effects outside the "
+                    "observed fixture boundary"
+                ),
+                metadata={
+                    "status": "unmeasured",
+                    "unobserved_forbidden_effects": list(forbidden_effects),
+                },
+            )
         if kind == "response-contract":
             completion = getattr(state.output, "completion", "") or ""
             required_content = contract.get("required_content", [])
@@ -1049,7 +1502,6 @@ def workflow_effects():
                 explanation=f"missing runner-owned fixture observations: {missing}",
                 metadata={"observations": observations, "status": "rejected"},
             )
-        forbidden_effects = metadata.get("forbidden_effects", [])
         if isinstance(forbidden_effects, list) and "issue-create" in forbidden_effects:
             receipts = snapshot.get("receipts")
             if isinstance(receipts, list) and any(
@@ -1085,6 +1537,57 @@ def workflow_effects():
     return score
 
 
+@scorer(metrics=[accuracy()])
+def evidence_smoke_grade():
+    """Prove evidence survives a failed candidate before sandbox teardown."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        raw_evidence = await _workspace_evidence_value(state)
+        if not raw_evidence.available:
+            return Score.unscored(
+                explanation=(
+                    "workspace instrumentation unavailable: "
+                    f"{_evidence_text(raw_evidence)}"
+                ),
+                metadata={"status": "unavailable", "instrumentation_blocker": True},
+            )
+        rendered = await workspace_evidence(state)
+        if "AUDIT_CHANGED_MARKER" not in rendered:
+            return Score(value=0, explanation="candidate marker missing from evidence")
+        if not raw_evidence.has_changes:
+            return Score(value=0, explanation="candidate change missing from evidence")
+        return Score(value=1, explanation="captured candidate evidence after failure")
+
+    return score
+
+
+@scorer(metrics=[accuracy()])
+def baseline_lifecycle_smoke_grade():
+    """Require invalid baselines to skip the candidate and valid ones to run."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        del target
+        expected_available = bool((state.metadata or {}).get("expected_baseline_available"))
+        baseline = _stored_baseline(state.store.get("workspace_baseline"))
+        actual_available = baseline is not None and baseline.available
+        candidate_called = bool(state.store.get("candidate_called", False))
+        if expected_available and actual_available and candidate_called:
+            return Score(value=1, explanation="valid baseline ran the candidate")
+        if not expected_available and not actual_available and not candidate_called:
+            return Score(value=1, explanation="unavailable baseline skipped the candidate")
+        return Score(
+            value=0,
+            explanation=(
+                "baseline lifecycle mismatch: "
+                f"expected_available={expected_available}, "
+                f"actual_available={actual_available}, "
+                f"candidate_called={candidate_called}"
+            ),
+        )
+
+    return score
+
+
 @task
 def workflow_fixture_smoke() -> Task:
     """Run a real no-model workflow publication/readback fixture."""
@@ -1098,6 +1601,50 @@ def workflow_fixture_smoke() -> Task:
         ),
         solver=workflow_fixture_candidate(),
         scorer=[workspace_policy(), workflow_effects()],
+        setup=capture_workspace_baseline(),
+        model="mockllm/model",
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
+def workspace_baseline_lifecycle_smoke() -> Task:
+    """Exercise real Inspect setup/solver termination with no model calls."""
+
+    samples = [
+        Sample(
+            input="Do not run a candidate when the baseline is invalid.",
+            target="The invalid-baseline candidate is skipped.",
+            id="baseline-unavailable",
+            metadata={"expected_baseline_available": False},
+            setup="git init -q",
+        ),
+        Sample(
+            input="Run the candidate when the baseline is valid.",
+            target="The valid-baseline candidate runs exactly once.",
+            id="baseline-available",
+            metadata={"expected_baseline_available": True},
+            setup=(
+                "git init -q && "
+                "git config user.email eval@example.invalid && "
+                "git config user.name Eval && "
+                "printf 'VALUE = \\\"baseline\\\"\\n' > module.py && "
+                "git add -- module.py && "
+                "git commit -qm baseline"
+            ),
+        ),
+    ]
+    return Task(
+        dataset=MemoryDataset(
+            samples=samples,
+            name="workspace-baseline-lifecycle-smoke",
+            shuffled=False,
+        ),
+        setup=capture_workspace_baseline(),
+        solver=baseline_lifecycle_smoke_candidate(),
+        scorer=[baseline_lifecycle_smoke_grade()],
         model="mockllm/model",
         sandbox="local",
         fail_on_error=False,
@@ -1122,11 +1669,125 @@ def workflow_fixture_pilot() -> Task:
 
 
 @task
+def evidence_smoke() -> Task:
+    """Exercise the real Inspect lifecycle with a deterministic no-model solver."""
+
+    sample = Sample(
+        input="Record the post-failure workspace evidence.",
+        target="The candidate change is observable after the candidate fails.",
+        id="evidence-smoke",
+        metadata={"allow_changes": True},
+        setup=(
+            "git init -q && "
+            "git config user.email eval@example.invalid && "
+            "git config user.name Eval && "
+            "printf 'VALUE = \"baseline\"\\n' > module.py && "
+            "git add -- module.py && "
+            "git commit -qm baseline"
+        ),
+    )
+    return Task(
+        dataset=MemoryDataset(
+            samples=[sample],
+            name="evidence-smoke",
+            shuffled=False,
+        ),
+        setup=capture_workspace_baseline(),
+        solver=evidence_smoke_candidate(),
+        scorer=[workspace_policy(), evidence_smoke_grade()],
+        model="mockllm/model",
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
+def workspace_policy_smoke() -> Task:
+    """Exercise read-only scoring with a baseline ignored artifact."""
+
+    sample = Sample(
+        input="Inspect the workspace without changing it.",
+        target="The pre-existing ignored artifact is not reported as a candidate change.",
+        id="workspace-policy-smoke",
+        metadata={"allow_changes": False},
+        setup=(
+            "git init -q && "
+            "git config user.email eval@example.invalid && "
+            "git config user.name Eval && "
+            "printf 'VALUE = \"baseline\"\\n' > module.py && "
+            "printf 'scratch/\\n' > .gitignore && "
+            "mkdir -p scratch && "
+            "printf 'PREEXISTING_IGNORED\\n' > scratch/report.txt && "
+            "git add -- module.py .gitignore && "
+            "git commit -qm baseline"
+        ),
+    )
+    return Task(
+        dataset=MemoryDataset(
+            samples=[sample],
+            name="workspace-policy-smoke",
+            shuffled=False,
+        ),
+        setup=capture_workspace_baseline(),
+        solver=workspace_policy_smoke_candidate(),
+        scorer=[workspace_policy()],
+        model="mockllm/model",
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
+def workspace_stat_cache_smoke() -> Task:
+    """Prove the scorer accepts a cache refresh as an unchanged trial."""
+
+    sample = Sample(
+        input="Run a harmless Git status inspection without changing source content.",
+        target="A stat-cache refresh is not treated as a semantic workspace change.",
+        id="workspace-stat-cache-smoke",
+        metadata={"allow_changes": False},
+        setup=(
+            "git init -q && "
+            "git config user.email eval@example.invalid && "
+            "git config user.name Eval && "
+            "printf 'VALUE = \"baseline\"\\n' > module.py && "
+            "git add -- module.py && "
+            "git commit -qm baseline"
+        ),
+    )
+    return Task(
+        dataset=MemoryDataset(
+            samples=[sample],
+            name="workspace-stat-cache-smoke",
+            shuffled=False,
+        ),
+        setup=capture_workspace_baseline(),
+        solver=workspace_stat_cache_smoke_candidate(),
+        scorer=[workspace_policy()],
+        model="mockllm/model",
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
 def catalog(with_skills: bool = True, native_model: str = "gpt-5.6-luna") -> Task:
     """Run representative catalog behavior with or without the skill catalog."""
 
+    dataset = json_dataset(str(CASES))
+    for sample in dataset.samples:
+        sample.metadata = {
+            **(sample.metadata or {}),
+            # The local path collector is not a hostile-code boundary. These
+            # fixtures contain only disposable dummy files and no credentials;
+            # remote/container runs are reported unsupported above.
+            "execution_scope": "trusted-synthetic-local",
+        }
     return Task(
-        dataset=json_dataset(str(CASES)),
+        dataset=dataset,
         setup=capture_workspace_baseline(),
         solver=native_codex(with_skills=with_skills, model=native_model),
         scorer=(
@@ -1136,6 +1797,7 @@ def catalog(with_skills: bool = True, native_model: str = "gpt-5.6-luna") -> Tas
         ),
         model="mockllm/model",
         sandbox="local",
+        score_on_error=True,
     )
 
 
