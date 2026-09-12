@@ -8,6 +8,7 @@ publication scorer by printing a command or editing a JSON state file.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import socket
 import tempfile
@@ -16,12 +17,24 @@ from pathlib import Path
 from typing import Any
 
 
+MAX_SOURCE_BYTES = 60_000
+
+
 class FakeTracker:
     """One isolated tracker instance for one evaluation sample/epoch."""
 
-    def __init__(self, sample_id: str, epoch: int) -> None:
+    def __init__(
+        self,
+        sample_id: str,
+        epoch: int,
+        *,
+        workspace: Path | str | None = None,
+        required_source_path: str = "lookup.py",
+    ) -> None:
         self.sample_id = sample_id
         self.epoch = epoch
+        self._workspace = Path(workspace).resolve() if workspace is not None else None
+        self._required_source_path = _validated_source_path(required_source_path)
         self._directory = tempfile.TemporaryDirectory(
             prefix=f"skills-eval-tracker-{_safe_component(sample_id)}-"
         )
@@ -79,7 +92,7 @@ class FakeTracker:
         if not isinstance(operation, str):
             return {"ok": False, "error": "operation is required"}
         if operation == "inspect-source":
-            response = _source_receipt(payload)
+            response = self._source_receipt(payload)
             return self._record(operation, payload, response)
         if operation == "create":
             response = self._create(payload)
@@ -120,6 +133,14 @@ class FakeTracker:
                 return {"ok": False, "error": "idempotency_key must be a string"}
             for object_value in self._objects.values():
                 if key and object_value.get("idempotency_key") == key:
+                    if (
+                        object_value.get("title") != title
+                        or object_value.get("body") != body
+                    ):
+                        return {
+                            "ok": False,
+                            "error": "idempotency key conflicts with the original payload",
+                        }
                     return {"ok": True, "object": object_value, "replayed": True}
             if self._objects:
                 return {"ok": False, "error": "ambiguous create: object already exists"}
@@ -134,6 +155,13 @@ class FakeTracker:
             }
             self._objects[object_id] = object_value
             return {"ok": True, "object": object_value, "replayed": False}
+
+    def _source_receipt(self, request: dict[str, Any]) -> dict[str, Any]:
+        return _source_receipt(
+            request,
+            workspace=self._workspace,
+            required_source_path=self._required_source_path,
+        )
 
     def _get(self, request: dict[str, Any]) -> dict[str, Any]:
         object_id = request.get("id")
@@ -171,20 +199,68 @@ def _read_line(connection: socket.socket) -> dict[str, Any] | None:
     return value if isinstance(value, dict) else None
 
 
-def _source_receipt(request: dict[str, Any]) -> dict[str, Any]:
+def _is_safe_relative_path(path: str) -> bool:
+    candidate = Path(path)
+    return bool(path) and not candidate.is_absolute() and ".." not in candidate.parts
+
+
+def _source_receipt(
+    request: dict[str, Any],
+    *,
+    workspace: Path | None = None,
+    required_source_path: str = "lookup.py",
+) -> dict[str, Any]:
+    """Read one fixed fixture source file in the evaluator-owned process."""
+
     path = request.get("path")
-    digest = request.get("sha256")
-    size = request.get("size")
-    if not isinstance(path, str) or not path or Path(path).is_absolute() or ".." in Path(path).parts:
-        return {"ok": False, "error": "source path must be relative"}
-    if not isinstance(digest, str) or len(digest) != 64:
-        return {"ok": False, "error": "source digest is required"}
-    if not isinstance(size, int) or size < 0:
-        return {"ok": False, "error": "source size is required"}
-    # The client performs the actual read in the disposable fixture.  The
-    # receipt records the bounded result; the scorer requires this receipt and
-    # never infers inspection from command names or final prose.
-    return {"ok": True, "path": path, "sha256": digest, "size": size}
+    if not isinstance(path, str) or not path:
+        return {"ok": False, "error": "source path is required"}
+    if not _is_safe_relative_path(path) or path != required_source_path:
+        return {"ok": False, "error": "source path is not an allowed fixture input"}
+    # A caller-provided digest or size is not an observation. Reject the old
+    # self-attested protocol instead of silently accepting it.
+    if "sha256" in request or "size" in request:
+        return {
+            "ok": False,
+            "error": "source digest and size are produced by the fixture",
+        }
+    if workspace is None:
+        return {
+            "ok": False,
+            "error": "fixture-owned source workspace is unavailable",
+        }
+    try:
+        root = workspace
+        if not root.is_dir() or root.is_symlink():
+            return {"ok": False, "error": "source workspace is not a regular directory"}
+        source = root / required_source_path
+        resolved = source.resolve(strict=True)
+        resolved.relative_to(root)
+        if source.is_symlink() or not source.is_file():
+            return {"ok": False, "error": "source is not a regular fixture file"}
+        raw = source.read_bytes()
+    except (OSError, RuntimeError, ValueError):
+        return {"ok": False, "error": "source fixture could not be read"}
+    if len(raw) > MAX_SOURCE_BYTES:
+        return {"ok": False, "error": "source fixture exceeds bounded read limit"}
+    try:
+        content = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return {"ok": False, "error": "source fixture is not UTF-8 text"}
+    return {
+        "ok": True,
+        "source": "fixture-owned-read",
+        "path": required_source_path,
+        "content": content,
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "size": len(raw),
+    }
+
+
+def _validated_source_path(path: str) -> str:
+    if not isinstance(path, str) or not _is_safe_relative_path(path):
+        raise ValueError("source path must be a safe relative fixture path")
+    return path
 
 
 def validate_publication(
@@ -197,7 +273,7 @@ def validate_publication(
     expected_sample_id: str | None = None,
     expected_epoch: int | None = None,
 ) -> tuple[bool, str]:
-    """Validate one real create and a later same-object successful readback."""
+    """Validate one intended object and a later same-object readback."""
 
     if not isinstance(snapshot, dict):
         return False, "fixture publication snapshot is missing"
@@ -221,9 +297,11 @@ def validate_publication(
         or not isinstance(item.get("request"), dict)
         or not isinstance(item.get("response"), dict)
         or not isinstance(item.get("ok"), bool)
+        or not isinstance(item["response"].get("ok"), bool)
+        or item["ok"] != item["response"]["ok"]
         for item in valid_receipts
     ):
-        return False, "fixture publication receipt has invalid fields"
+        return False, "fixture publication receipt has inconsistent result fields"
     sequences = [item["sequence"] for item in valid_receipts]
     if sequences != list(range(1, len(sequences) + 1)):
         return False, "fixture publication receipt order is invalid"
@@ -242,22 +320,61 @@ def validate_publication(
         item for item in valid_receipts
         if item.get("operation") == "inspect-source"
     ]
-    if len(creates) != 1 or not creates[0].get("ok"):
+    successful_creates = [item for item in creates if item.get("ok") is True]
+    if not successful_creates:
         return False, "publication requires one successful create"
+    create = successful_creates[0]
+    create_response = create.get("response")
+    if not isinstance(create_response, dict) or create_response.get("replayed") is not False:
+        return False, "publication requires an authoritative initial create"
+    if len(successful_creates) > 1:
+        initial_request = create.get("request")
+        initial_object = create_response.get("object")
+        if not isinstance(initial_request, dict) or not isinstance(initial_object, dict):
+            return False, "initial create receipt is incomplete"
+        initial_key = initial_request.get("idempotency_key")
+        for replay in successful_creates[1:]:
+            replay_request = replay.get("request")
+            replay_response = replay.get("response")
+            if (
+                not isinstance(replay_request, dict)
+                or not isinstance(replay_response, dict)
+                or replay_response.get("replayed") is not True
+                or not isinstance(initial_key, str)
+                or not initial_key
+                or replay_request.get("idempotency_key") != initial_key
+                or replay_request.get("title") != initial_request.get("title")
+                or replay_request.get("body") != initial_request.get("body")
+                or replay_response.get("object") != initial_object
+            ):
+                return False, "publication contains a conflicting or non-idempotent create"
     if not source_reads or any(not item.get("ok") for item in source_reads):
         return False, "publication requires a successful source-inspection receipt"
     if any(item["request"].get("path") != required_source_path for item in source_reads):
         return False, "source-inspection receipt targeted the wrong path"
     if any(
+        "sha256" in item["request"] or "size" in item["request"]
+        for item in source_reads
+    ):
+        return False, "source-inspection receipt used self-attested digest or size"
+    if any(
         item["response"].get("path") != required_source_path
+        or item["response"].get("source") != "fixture-owned-read"
+        or not isinstance(item["response"].get("content"), str)
         or not isinstance(item["response"].get("sha256"), str)
         or len(item["response"].get("sha256", "")) != 64
         or not isinstance(item["response"].get("size"), int)
         or item["response"].get("size") < 0
+        or item["response"].get("size") > MAX_SOURCE_BYTES
+        or item["response"].get("size") != len(item["response"].get("content", "").encode())
+        or item["response"].get("sha256")
+        != hashlib.sha256(item["response"].get("content", "").encode()).hexdigest()
         for item in source_reads
     ):
         return False, "source-inspection receipt lacks a bounded observation"
-    create = creates[0]
+    create_sequence = create.get("sequence")
+    if any(item.get("sequence", 0) >= create_sequence for item in source_reads):
+        return False, "source inspection must precede publication"
     create_response = create.get("response")
     if not isinstance(create_response, dict) or not isinstance(create_response.get("object"), dict):
         return False, "create receipt lacks an authoritative object"
@@ -277,7 +394,8 @@ def validate_publication(
         return False, "publication requires a later get"
     if any(not item.get("ok") for item in gets):
         return False, "publication contains a failed get"
-    if any(item.get("sequence", 0) <= create.get("sequence", 0) for item in gets):
+    latest_create_sequence = max(item.get("sequence", 0) for item in successful_creates)
+    if any(item.get("sequence", 0) <= latest_create_sequence for item in gets):
         return False, "get-before-create cannot satisfy publication"
     same_object = False
     for item in gets:

@@ -258,6 +258,25 @@ def native_codex(
             }
             state.completed = True
             return state
+        contract = (state.metadata or {}).get("fixture_contract")
+        support = state.store.get("workflow_support")
+        if isinstance(contract, dict):
+            if not isinstance(support, dict) or support.get("status") != "supported":
+                reason = (
+                    support.get("reason", "workflow boundary is unsupported")
+                    if isinstance(support, dict)
+                    else "workflow support gate did not produce a supported result"
+                )
+                state.output = ModelOutput.from_content(
+                    model="runner/workflow-boundary",
+                    content=f"Candidate blocked before native launch: {reason}",
+                )
+                state.output.metadata = {
+                    "workflow_support_status": "blocked",
+                    "candidate_skipped": True,
+                }
+                state.completed = True
+                return state
         prompt = state.input_text
         if with_skills and inject_skill:
             skill = (state.metadata or {}).get("skill")
@@ -271,10 +290,29 @@ def native_codex(
                 f"<catalog_skill name=\"{skill}\">\n{instructions}\n</catalog_skill>\n\n"
                 f"{prompt}"
             )
-        contract = (state.metadata or {}).get("fixture_contract")
         tracker: FakeTracker | None = None
         if isinstance(contract, dict) and contract.get("kind") == "fake-tracker-publication":
-            tracker = FakeTracker(state.sample_id, state.epoch)
+            workspace, workspace_error = await _sandbox_workspace_path()
+            if workspace_error is not None or workspace is None:
+                state.output = ModelOutput.from_content(
+                    model="runner/workflow-boundary",
+                    content=(
+                        "Candidate blocked before native launch: "
+                        f"{workspace_error or 'fixture workspace is unavailable'}"
+                    ),
+                )
+                state.output.metadata = {
+                    "workflow_support_status": "blocked",
+                    "candidate_skipped": True,
+                }
+                state.completed = True
+                return state
+            tracker = FakeTracker(
+                state.sample_id,
+                state.epoch,
+                workspace=workspace,
+                required_source_path=str(contract.get("required_source_path", "lookup.py")),
+            )
             tracker.start()
         try:
             completion, events = await run_codex(
@@ -297,6 +335,9 @@ def native_codex(
             content=completion,
         )
         state.output.metadata = {"codex_jsonl": events}
+        native_usage = _codex_usage(events)
+        if native_usage is not None:
+            state.output.metadata["native_usage"] = native_usage
         if with_skills and inject_skill:
             state.output.metadata["injected_skill"] = skill
         elif with_skills:
@@ -433,6 +474,30 @@ def _global_identity(path: Path) -> str:
         return hashlib.sha256(path.read_bytes()).hexdigest()
     except OSError:
         return f"unresolved:{path}"
+
+
+def _codex_usage(events: str) -> dict[str, int] | None:
+    """Extract the native CLI's own usage record when it emits one."""
+
+    if not isinstance(events, str):
+        return None
+    usage: object = None
+    for line in events.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "turn.completed":
+            usage = event.get("usage")
+    if not isinstance(usage, dict):
+        return None
+    fields = {
+        key: value
+        for key, value in usage.items()
+        if key in {"input_tokens", "cached_input_tokens", "cache_write_input_tokens", "output_tokens", "reasoning_output_tokens"}
+        and isinstance(value, int)
+    }
+    return fields or None
 
 
 @solver
@@ -864,6 +929,107 @@ async def _sandbox_workspace_path() -> tuple[Path | None, str | None]:
     return path, None
 
 
+def _workflow_observed_effects(kind: str) -> set[str]:
+    """Return only effects backed by an actual runner-owned observation."""
+
+    if kind == "response-contract":
+        return {"response"}
+    if kind == "fake-tracker-publication":
+        return {"source-read", "issue-create", "issue-readback"}
+    if kind in {"workspace-test", "workspace-artifact"}:
+        return {"workspace-delete", "workspace-edit", "workspace-read", "test-run"}
+    return set()
+
+
+async def _workflow_support_status(state: TaskState) -> dict[str, object]:
+    """Check the exact native boundary before allowing a model to run."""
+
+    metadata = state.metadata or {}
+    contract = metadata.get("fixture_contract")
+    if not isinstance(contract, dict):
+        return {
+            "status": "unmeasured",
+            "reason": "workflow has no executable fixture contract",
+            "capabilities": [],
+        }
+    kind = contract.get("kind")
+    if not isinstance(kind, str):
+        return {
+            "status": "blocked",
+            "reason": "workflow fixture contract has no kind",
+            "capabilities": [],
+        }
+    workspace, workspace_error = await _sandbox_workspace_path()
+    if workspace_error is not None or workspace is None:
+        return {
+            "status": "blocked",
+            "reason": workspace_error or "fixture workspace is unavailable",
+            "capabilities": sorted(_workflow_observed_effects(kind)),
+        }
+    boundary_error = bwrap_preflight(workspace)
+    if boundary_error:
+        return {
+            "status": "blocked",
+            "reason": boundary_error,
+            "capabilities": sorted(_workflow_observed_effects(kind)),
+        }
+    observed = _workflow_observed_effects(kind)
+    forbidden = metadata.get("forbidden_effects", [])
+    if not isinstance(forbidden, list) or not all(isinstance(item, str) for item in forbidden):
+        return {
+            "status": "blocked",
+            "reason": "workflow forbidden-effects contract is invalid",
+            "capabilities": sorted(observed),
+        }
+    unsupported = sorted(set(forbidden) - observed)
+    if unsupported:
+        return {
+            "status": "blocked",
+            "reason": (
+                "native candidate requires effects outside the supported observed "
+                f"boundary: {unsupported}"
+            ),
+            "capabilities": sorted(observed),
+            "unobserved_forbidden_effects": unsupported,
+        }
+    return {
+        "status": "supported",
+        "reason": "native workspace boundary and required effects are observed",
+        "capabilities": sorted(observed),
+    }
+
+
+@solver
+def workflow_support_gate() -> Solver:
+    """Reject unobservable native workflows before any model execution."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        baseline = _stored_baseline(state.store.get("workspace_baseline"))
+        if baseline is None or not baseline.available:
+            return state
+        support = await _workflow_support_status(state)
+        state.store.set("workflow_support", support)
+        if support.get("status") != "supported":
+            state.output = ModelOutput.from_content(
+                model="runner/workflow-boundary",
+                content=(
+                    "Candidate blocked before native launch: "
+                    f"{support.get('reason', 'unsupported workflow boundary')}"
+                ),
+            )
+            state.output.metadata = {
+                "workflow_support_status": str(support.get("status", "blocked")),
+                "candidate_skipped": True,
+            }
+            # Inspect retains completion through the solver pipeline, so this
+            # prevents a later native solver from running after the gate fails.
+            state.completed = True
+        return state
+
+    return solve
+
+
 @solver
 def capture_workspace_baseline() -> Solver:
     """Capture runner-owned Git state after ``Sample.setup`` and before a solver."""
@@ -1045,6 +1211,21 @@ def workspace_policy():
 
     async def score(state: TaskState, target: Target) -> Score:
         metadata = state.metadata or {}
+        support = state.store.get("workflow_support")
+        if isinstance(support, dict) and support.get("status") != "supported":
+            blocked_effects = support.get("unobserved_forbidden_effects", [])
+            if not isinstance(blocked_effects, list):
+                blocked_effects = []
+            return Score.unscored(
+                explanation=str(
+                    support.get("reason", "workflow boundary is unsupported")
+                ),
+                metadata={
+                    "status": str(support.get("status", "blocked")),
+                    "unobserved_forbidden_effects": blocked_effects,
+                    "acceptance_blocked": True,
+                },
+            )
         evidence = await _workspace_evidence_value(state)
         if not evidence.available:
             return Score.unscored(
@@ -1171,6 +1352,22 @@ def native_behavior_grade(model: str):
                     "instrumentation_blocker": True,
                 },
             )
+        support = state.store.get("workflow_support")
+        if isinstance(support, dict) and support.get("status") != "supported":
+            blocked_effects = support.get("unobserved_forbidden_effects", [])
+            if not isinstance(blocked_effects, list):
+                blocked_effects = []
+            return Score.unscored(
+                explanation=str(
+                    support.get("reason", "native workflow boundary is unsupported")
+                ),
+                metadata={
+                    "status": str(support.get("status", "blocked")),
+                    "grading_skipped": True,
+                    "unobserved_forbidden_effects": blocked_effects,
+                    "acceptance_blocked": True,
+                },
+            )
         evidence = await workspace_evidence(state)
         prompt = (
             "You are grading one agent-skill evaluation on a 0-4 quality scale. "
@@ -1187,7 +1384,7 @@ def native_behavior_grade(model: str):
             f"{getattr(state.output, 'completion', '') or '[candidate output unavailable]'}\n\n"
             f"WORKSPACE EVIDENCE:\n{evidence}"
         )
-        completion, _ = await run_codex(
+        completion, grader_events = await run_codex(
             prompt,
             model=model,
             with_skills=False,
@@ -1208,7 +1405,12 @@ def native_behavior_grade(model: str):
         explanation = grade.get("explanation")
         if not isinstance(explanation, str):
             explanation = "grader omitted a textual explanation"
-        return Score(value=value, explanation=explanation)
+        grader_usage = _codex_usage(grader_events)
+        return Score(
+            value=value,
+            explanation=explanation,
+            metadata={"grader_usage": grader_usage} if grader_usage is not None else None,
+        )
 
     return score
 
@@ -1227,10 +1429,29 @@ def _fixture_observations(snapshot: object) -> list[str]:
         for item in receipts
         if isinstance(item, dict) and item.get("ok") is True
     ]
-    source = [item for item in successful if item.get("operation") == "inspect-source"]
+    source = [
+        item
+        for item in successful
+        if item.get("operation") == "inspect-source"
+        and isinstance(item.get("response"), dict)
+        and item["response"].get("source") == "fixture-owned-read"
+        and isinstance(item["response"].get("content"), str)
+        and isinstance(item["response"].get("sha256"), str)
+        and isinstance(item["response"].get("size"), int)
+        and item["response"].get("size") == len(item["response"]["content"].encode())
+        and item["response"].get("sha256")
+        == hashlib.sha256(item["response"]["content"].encode()).hexdigest()
+    ]
     if source:
         observations.append("owning-source-inspected")
-    creates = [item for item in successful if item.get("operation") == "create"]
+    creates = [
+        item
+        for item in successful
+        if item.get("operation") == "create"
+        and isinstance(item.get("response"), dict)
+        and isinstance(item["response"].get("object"), dict)
+        and isinstance(item["response"]["object"].get("id"), str)
+    ]
     if creates:
         observations.append("issue-created")
     if creates:
@@ -1260,19 +1481,25 @@ def workflow_fixture_candidate() -> Solver:
             raise RuntimeError("execution fixture is missing its contract")
         kind = contract.get("kind")
         if kind == "fake-tracker-publication":
-            tracker = FakeTracker(state.sample_id, state.epoch)
+            workspace, workspace_error = await _sandbox_workspace_path()
+            if workspace_error is not None or workspace is None:
+                raise RuntimeError(
+                    workspace_error or "fixture workspace is unavailable"
+                )
+            tracker = FakeTracker(
+                state.sample_id,
+                state.epoch,
+                workspace=workspace,
+                required_source_path=str(contract.get("required_source_path", "lookup.py")),
+            )
             tracker.start()
             environment = tracker.environment()
             client = str(contract.get("client", "tracker.py"))
-            source_path = str(contract.get("required_source_path", "lookup.py"))
             title = str(contract.get("title", "Tenant lookup can cross owner boundary"))
             body = str(contract.get("body", "Problem: lookup uses the requested identifier without checking its owner.\nScope: enforce the authenticated owner at lookup.\nAcceptance: an owner can read its row and another owner is denied."))
             try:
-                source = await sandbox().read_file(source_path)
-                source_bytes = source.encode()
-                source_digest = hashlib.sha256(source_bytes).hexdigest()
                 inspected = await sandbox().exec(
-                    ["python", client, "inspect-source", source_path, "--sha256", source_digest, "--size", str(len(source_bytes))],
+                    ["python", client, "inspect-source", str(contract.get("required_source_path", "lookup.py"))],
                     env=environment,
                     timeout=30,
                     timeout_retry=False,
@@ -1328,6 +1555,22 @@ def workflow_fixture_candidate() -> Solver:
             state.output = ModelOutput.from_content(model="stub/no-model", content="Explicit execution fixture completed.")
             return state
         raise RuntimeError(f"unsupported execution fixture kind: {kind!r}")
+
+    return solve
+
+
+@solver
+def workflow_failed_outcome_candidate() -> Solver:
+    """Leave a real local fixture in its failing state for scorer controls."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        await sandbox().write_file("bug.py", "def search(actor, record):\n    return record\n")
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="intentional failed-outcome control",
+        )
+        return state
 
     return solve
 
@@ -1418,23 +1661,41 @@ def workflow_effects():
                 metadata={"status": "unmeasured", "execution_mode": "routing-only"},
             )
         kind = contract.get("kind")
-        # The deterministic fixture runner owns every operation in its small
-        # contract.  A native candidate may have attempted effects that this
-        # scorer cannot observe (for example deployment or a real tracker
-        # write), so do not let a successful-looking response or workspace
-        # artifact stand in for those mandatory boundaries.
-        output_model = getattr(state.output, "model", "")
         forbidden_effects = metadata.get("forbidden_effects", [])
-        if output_model != "stub/no-model" and isinstance(forbidden_effects, list) and forbidden_effects:
-            return Score(
-                value=0,
-                explanation=(
-                    "native workflow has mandatory forbidden effects outside the "
-                    "observed fixture boundary"
+        support = state.store.get("workflow_support")
+        if isinstance(support, dict) and support.get("status") != "supported":
+            blocked_effects = support.get("unobserved_forbidden_effects", [])
+            if not isinstance(blocked_effects, list):
+                blocked_effects = []
+            return Score.unscored(
+                explanation=str(
+                    support.get("reason", "native workflow boundary is unsupported")
                 ),
                 metadata={
-                    "status": "unmeasured",
+                    "status": str(support.get("status", "blocked")),
+                    "unobserved_forbidden_effects": blocked_effects,
+                    "acceptance_blocked": True,
+                },
+            )
+        # A direct scorer invocation without the setup gate must remain
+        # conservative for native output.  Deterministic contract solvers use
+        # the explicit stub marker and remain available for fixture diagnostics.
+        output_model = getattr(state.output, "model", "")
+        if (
+            support is None
+            and output_model != "stub/no-model"
+            and isinstance(forbidden_effects, list)
+            and forbidden_effects
+        ):
+            return Score.unscored(
+                explanation=(
+                    "native workflow has mandatory effects outside an observed "
+                    "fixture boundary"
+                ),
+                metadata={
+                    "status": "blocked",
                     "unobserved_forbidden_effects": list(forbidden_effects),
+                    "acceptance_blocked": True,
                 },
             )
         if kind == "response-contract":
@@ -1451,6 +1712,18 @@ def workflow_effects():
                 return Score(value=0, explanation="response fixture contains forbidden effect")
             return Score(value=1, explanation="response contract satisfied")
         if kind in {"workspace-test", "workspace-artifact"}:
+            if "workspace-delete" in forbidden_effects:
+                evidence = await _workspace_evidence_value(state)
+                if any(
+                    "missing from final workspace" in line
+                    or "deleted in final revision" in line
+                    for line in evidence.content
+                ):
+                    return Score(
+                        value=0,
+                        explanation="workspace fixture deleted a baseline path",
+                        metadata={"status": "rejected", "forbidden_effect": "workspace-delete"},
+                    )
             required_paths = contract.get("required_paths", [])
             if not isinstance(required_paths, list) or not all(isinstance(item, str) for item in required_paths):
                 return Score(value=0, explanation="workspace fixture has no required paths")
@@ -1602,6 +1875,60 @@ def workflow_fixture_smoke() -> Task:
         solver=workflow_fixture_candidate(),
         scorer=[workspace_policy(), workflow_effects()],
         setup=capture_workspace_baseline(),
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
+def workflow_failed_outcome_smoke() -> Task:
+    """Ensure a supported workspace contract rejects an incorrect outcome."""
+
+    sample = Sample(
+        input="Leave the supplied tenant filter unrepaired for a scorer failure control.",
+        target="The incorrect local outcome is rejected.",
+        id="workflow-failed-outcome-smoke",
+        files={
+            "bug.py": "def search(actor, record):\n    return record\n",
+            "test_bug.py": (
+                "from bug import search\n\n"
+                "assert search('tenant-a', {'tenant': 'tenant-a'})['tenant'] == 'tenant-a'\n"
+                "try:\n"
+                "    search('tenant-a', {'tenant': 'tenant-b'})\n"
+                "except PermissionError:\n"
+                "    pass\n"
+                "else:\n"
+                "    raise AssertionError('cross-tenant result was returned')\n"
+            ),
+        },
+        metadata={
+            "allow_changes": True,
+            "forbidden_effects": ["workspace-delete"],
+            "fixture_contract": {
+                "kind": "workspace-test",
+                "write_path": "bug.py",
+                "test_command": ["python", "test_bug.py"],
+                "required_paths": ["bug.py", "test_bug.py"],
+                "required_content": {"bug.py": "PermissionError"},
+            },
+            "execution_mode": "execution-ready",
+        },
+        setup=(
+            "git init -q && git config user.email eval@example.invalid && "
+            "git config user.name Eval && git add -- bug.py test_bug.py && "
+            "git commit -qm baseline"
+        ),
+    )
+    return Task(
+        dataset=MemoryDataset(
+            samples=[sample],
+            name="workflow-failed-outcome-smoke",
+            shuffled=False,
+        ),
+        setup=[capture_workspace_baseline(), workflow_support_gate()],
+        solver=workflow_failed_outcome_candidate(),
+        scorer=[workspace_policy(), workflow_effects()],
         sandbox="local",
         fail_on_error=False,
         score_on_error=True,
@@ -1867,7 +2194,7 @@ def workflows(
 
     return Task(
         dataset=dataset,
-        setup=capture_workspace_baseline(),
+        setup=[capture_workspace_baseline(), workflow_support_gate()],
         solver=native_codex(
             with_skills=with_skills,
             model=native_model,

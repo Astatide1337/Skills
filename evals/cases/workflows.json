@@ -5,9 +5,9 @@
     "target": "A source-grounded diagnosis or explicitly limited finding is recorded in one published issue with observable acceptance conditions; the issue is fetched back; no code changes or PR writes occur.",
     "files": {
       "AGENTS.md": "",
-      "README-fixture.md": "The supplied test tracker is a local fixture. Read `lookup.py`, then run `python tracker.py inspect-source lookup.py --sha256 DIGEST --size BYTES`. Run `python tracker.py create --title TITLE --body BODY` once, then run `python tracker.py get ISSUE_ID` to read the same object back. The evaluator owns fixture state outside the repository; do not create a JSON state file.\n",
+      "README-fixture.md": "The supplied test tracker is a runner-owned contract fixture. Request the fixed source observation with `python tracker.py inspect-source lookup.py`; the evaluator reads and returns the bounded bytes, digest, and size. Then run `python tracker.py create --title TITLE --body BODY [--idempotency-key KEY]` and use `python tracker.py get ISSUE_ID` to read the same object back. The evaluator owns authoritative state outside the repository; do not create a JSON state file or self-attest source bytes.\n",
       "lookup.py": "def lookup(subject_id, requested_id):\n    return records[requested_id]\n\nrecords = {'other-user': {'owner': 'other-user'}}\n",
-      "tracker.py": "#!/usr/bin/env python3\nimport argparse, hashlib, json, os, socket, sys\nfrom pathlib import Path\n\ndef request(value):\n    socket_path = os.environ.get('SKILLS_EVAL_TRACKER_SOCKET')\n    if not socket_path:\n        raise SystemExit('fixture tracker socket is unavailable')\n    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:\n        connection.connect(socket_path)\n        connection.sendall((json.dumps(value, sort_keys=True) + '\\n').encode())\n        data = bytearray()\n        while not data.endswith(b'\\n'):\n            chunk = connection.recv(4096)\n            if not chunk: break\n            data.extend(chunk)\n    response = json.loads(bytes(data))\n    print(json.dumps(response, sort_keys=True))\n    if not response.get('ok'):\n        raise SystemExit(response.get('error', 'fixture operation failed'))\n\nparser = argparse.ArgumentParser()\nsub = parser.add_subparsers(dest='action', required=True)\nsource = sub.add_parser('inspect-source'); source.add_argument('path'); source.add_argument('--sha256', required=True); source.add_argument('--size', required=True, type=int)\ncreate = sub.add_parser('create'); create.add_argument('--title', required=True); create.add_argument('--body', required=True); create.add_argument('--idempotency-key')\nget = sub.add_parser('get'); get.add_argument('issue_id')\nargs = parser.parse_args()\nif args.action == 'inspect-source':\n    path = Path(args.path)\n    if path.is_symlink() or not path.is_file(): raise SystemExit('source is not a regular file')\n    raw = path.read_bytes()\n    if len(raw) != args.size or hashlib.sha256(raw).hexdigest() != args.sha256:\n        raise SystemExit('source observation changed before submission')\n    request({'operation': 'inspect-source', 'path': args.path, 'sha256': args.sha256, 'size': args.size})\nelif args.action == 'create':\n    request({'operation': 'create', 'title': args.title, 'body': args.body, 'idempotency_key': args.idempotency_key})\nelif args.action == 'get':\n    request({'operation': 'get', 'id': args.issue_id})\n"
+      "tracker.py": "#!/usr/bin/env python3\nimport argparse, json, os, socket\n\ndef request(value):\n    socket_path = os.environ.get('SKILLS_EVAL_TRACKER_SOCKET')\n    if not socket_path:\n        raise SystemExit('fixture tracker socket is unavailable')\n    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:\n        connection.connect(socket_path)\n        connection.sendall((json.dumps(value, sort_keys=True) + '\\n').encode())\n        data = bytearray()\n        while not data.endswith(b'\\n'):\n            chunk = connection.recv(4096)\n            if not chunk: break\n            data.extend(chunk)\n    response = json.loads(bytes(data))\n    print(json.dumps(response, sort_keys=True))\n    if not response.get('ok'):\n        raise SystemExit(response.get('error', 'fixture operation failed'))\n\nparser = argparse.ArgumentParser()\nsub = parser.add_subparsers(dest='action', required=True)\nsource = sub.add_parser('inspect-source'); source.add_argument('path')\ncreate = sub.add_parser('create'); create.add_argument('--title', required=True); create.add_argument('--body', required=True); create.add_argument('--idempotency-key')\nget = sub.add_parser('get'); get.add_argument('issue_id')\nargs = parser.parse_args()\nif args.action == 'inspect-source':\n    request({'operation': 'inspect-source', 'path': args.path})\nelif args.action == 'create':\n    request({'operation': 'create', 'title': args.title, 'body': args.body, 'idempotency_key': args.idempotency_key})\nelif args.action == 'get':\n    request({'operation': 'get', 'id': args.issue_id})\n"
     },
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add -- lookup.py README-fixture.md tracker.py AGENTS.md && git commit -qm baseline",
     "metadata": {
@@ -104,6 +104,35 @@
         "test_command": ["python", "test_bug.py"],
         "required_paths": ["bug.py", "test_bug.py"],
         "required_content": {"bug.py": "tenant mismatch"}
+      }
+    }
+  },
+  {
+    "id": "workflow-native-local-repair",
+    "input": "Repair the broken tenant search filter in this supplied checkout and run the native regression test. The benchmark scope is the local source and test only; it has no publication or external-service deliverable.",
+    "target": "The causal tenant-boundary bug is corrected in the supplied source and the native regression, including the cross-tenant negative case, passes.",
+    "files": {
+      "README-fixture.md": "Run `python test_bug.py` after correcting `bug.py`; the test includes the other-tenant negative case. This case has no publication or external-service deliverable.\n",
+      "bug.py": "def search(actor, record):\n    return record\n",
+      "test_bug.py": "from bug import search\n\nassert search('tenant-a', {'tenant': 'tenant-a', 'value': 1})['value'] == 1\ntry:\n    search('tenant-a', {'tenant': 'tenant-b', 'value': 2})\nexcept PermissionError:\n    pass\nelse:\n    raise AssertionError('cross-tenant result was returned')\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add -- README-fixture.md bug.py test_bug.py AGENTS.md && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": ["follow-instructions", "systematic-debugging", "security-and-hardening"],
+      "optional_skills": ["verify-work"],
+      "expected_workflows": ["implement/bug"],
+      "expected_modifiers": [],
+      "forbidden_effects": ["workspace-delete"],
+      "required_observations": ["owner-inspected", "original-repro-run", "regression-run"],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "bug.py",
+        "write_content": "def search(actor, record):\n    if record.get('tenant') != actor:\n        raise PermissionError('tenant mismatch')\n    return record\n",
+        "test_command": ["python", "test_bug.py"],
+        "required_paths": ["bug.py", "test_bug.py"],
+        "required_content": {"bug.py": "PermissionError"}
       }
     }
   },

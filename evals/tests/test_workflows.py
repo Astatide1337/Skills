@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import socket
+import tempfile
 import unittest
+from pathlib import Path
 
 from inspect_ai.model import ModelOutput
 from inspect_ai.solver import TaskState
@@ -13,6 +17,18 @@ from evals.fake_tracker import FakeTracker, validate_publication
 
 
 class WorkflowContractTests(unittest.TestCase):
+    @staticmethod
+    def _source_response(content: str = "def lookup():\n    return None\n") -> dict[str, object]:
+        raw = content.encode()
+        return {
+            "ok": True,
+            "source": "fixture-owned-read",
+            "path": "lookup.py",
+            "content": content,
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "size": len(raw),
+        }
+
     def test_legacy_and_extended_schemas_preserve_provider_compatibility(self) -> None:
         legacy = json.loads(skills.LEGACY_ROUTE_SCHEMA.read_text())
         extended = json.loads(skills.ROUTE_SCHEMA.read_text())
@@ -44,7 +60,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.files, {"AGENTS.md": skills.GLOBAL_INSTRUCTIONS.read_text()})
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            6,
+            7,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -117,6 +133,7 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-investigate-create-issue",
                 "workflow-draft-issue",
                 "workflow-fix-open-draft-pr",
+                "workflow-native-local-repair",
                 "workflow-custom-temporary",
                 "workflow-parallel-safe",
                 "workflow-correction-resume",
@@ -163,7 +180,7 @@ class WorkflowContractTests(unittest.TestCase):
             "title": "Tenant lookup can cross owner boundary",
             "body": "Problem: x\nScope: y\nAcceptance: z",
             "state": "open",
-            "idempotency_key": None,
+            "idempotency_key": "fixture-key",
         }
         valid = {
             "sample_id": "fixture",
@@ -174,19 +191,18 @@ class WorkflowContractTests(unittest.TestCase):
                     "operation": "inspect-source",
                     "request": {"path": "lookup.py"},
                     "ok": True,
-                    "response": {
-                        "ok": True,
-                        "path": "lookup.py",
-                        "sha256": "0" * 64,
-                        "size": 1,
-                    },
+                    "response": self._source_response(),
                 },
                 {
                     "sequence": 2,
                     "operation": "create",
-                    "request": {},
+                    "request": {
+                        "title": "Tenant lookup can cross owner boundary",
+                        "body": "Problem: x\nScope: y\nAcceptance: z",
+                        "idempotency_key": "fixture-key",
+                    },
                     "ok": True,
-                    "response": {"ok": True, "object": created},
+                    "response": {"ok": True, "object": created, "replayed": False},
                 },
                 {
                     "sequence": 3,
@@ -244,14 +260,14 @@ class WorkflowContractTests(unittest.TestCase):
             "title": "Tenant lookup",
             "body": "Problem: x",
             "state": "open",
-            "idempotency_key": None,
+            "idempotency_key": "fixture-key",
         }
         snapshot = {
             "sample_id": "other",
             "epoch": 1,
             "receipts": [
-                {"sequence": 1, "operation": "inspect-source", "request": {"path": "lookup.py"}, "ok": True, "response": {"ok": True}},
-                {"sequence": 2, "operation": "create", "request": {}, "ok": True, "response": {"object": created}},
+                {"sequence": 1, "operation": "inspect-source", "request": {"path": "lookup.py"}, "ok": True, "response": self._source_response()},
+                {"sequence": 2, "operation": "create", "request": {"title": "Tenant lookup", "body": "Problem: x", "idempotency_key": "fixture-key"}, "ok": True, "response": {"object": created, "replayed": False}},
                 {"sequence": 3, "operation": "get", "request": {"id": created["id"]}, "ok": True, "response": {"object": created}},
             ],
             "objects": [created],
@@ -266,42 +282,51 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertFalse(valid, reason)
 
     def test_fake_tracker_records_real_ordered_operations_and_rejects_ambiguous_create(self) -> None:
-        tracker = FakeTracker("sample-a", 2)
-        tracker.start()
-        try:
-            self.assertTrue(
-                tracker._dispatch(
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            (workspace / "lookup.py").write_text("def lookup():\n    return None\n")
+            tracker = FakeTracker("sample-a", 2, workspace=workspace)
+            tracker.start()
+            try:
+                self.assertTrue(
+                    tracker._dispatch(
+                        {"operation": "inspect-source", "path": "lookup.py"}
+                    )["ok"]
+                )
+                created = tracker._dispatch(
                     {
-                        "operation": "inspect-source",
-                        "path": "lookup.py",
-                        "sha256": "0" * 64,
-                        "size": 1,
+                        "operation": "create",
+                        "title": "Tenant lookup",
+                        "body": "Problem: x\nScope: y\nAcceptance: z",
+                        "idempotency_key": "sample-a-key",
                     }
-                )["ok"]
-            )
-            created = tracker._dispatch(
-                {
-                    "operation": "create",
-                    "title": "Tenant lookup",
-                    "body": "Problem: x\nScope: y\nAcceptance: z",
-                }
-            )
-            self.assertTrue(created["ok"])
-            object_id = created["object"]["id"]
-            readback = tracker._dispatch({"operation": "get", "id": object_id})
-            self.assertTrue(readback["ok"])
-            valid_snapshot = tracker.snapshot()
-            duplicate = tracker._dispatch(
-                {
-                    "operation": "create",
-                    "title": "Tenant lookup duplicate",
-                    "body": "Problem: duplicate",
-                }
-            )
-            self.assertFalse(duplicate["ok"])
-            snapshot = tracker.snapshot()
-        finally:
-            tracker.close()
+                )
+                self.assertTrue(created["ok"])
+                object_id = created["object"]["id"]
+                replay = tracker._dispatch(
+                    {
+                        "operation": "create",
+                        "title": "Tenant lookup",
+                        "body": "Problem: x\nScope: y\nAcceptance: z",
+                        "idempotency_key": "sample-a-key",
+                    }
+                )
+                self.assertTrue(replay["ok"])
+                self.assertTrue(replay["replayed"])
+                readback = tracker._dispatch({"operation": "get", "id": object_id})
+                self.assertTrue(readback["ok"])
+                valid_snapshot = tracker.snapshot()
+                duplicate = tracker._dispatch(
+                    {
+                        "operation": "create",
+                        "title": "Tenant lookup duplicate",
+                        "body": "Problem: duplicate",
+                    }
+                )
+                self.assertFalse(duplicate["ok"])
+                snapshot = tracker.snapshot()
+            finally:
+                tracker.close()
         valid, reason = validate_publication(
             valid_snapshot,
             required_title_fragment="Tenant lookup",
@@ -311,9 +336,145 @@ class WorkflowContractTests(unittest.TestCase):
         )
         self.assertTrue(valid, reason)
         self.assertEqual(len(snapshot["objects"]), 1)
-        self.assertEqual([item["operation"] for item in snapshot["receipts"]], [
-            "inspect-source", "create", "get", "create"
-        ])
+        self.assertEqual(
+            [item["operation"] for item in snapshot["receipts"]],
+            ["inspect-source", "create", "create", "get", "create"],
+        )
+
+    def test_source_receipt_is_runner_owned_and_ordered(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            (workspace / "lookup.py").write_text("SOURCE = 'observed'\n")
+            tracker = FakeTracker("socket-sample", 3, workspace=workspace)
+            tracker.start()
+            try:
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+                    connection.connect(tracker.socket_path)
+                    connection.sendall(
+                        (json.dumps(
+                            {
+                                "operation": "inspect-source",
+                                "path": "lookup.py",
+                                "sha256": "0" * 64,
+                                "size": 0,
+                            }
+                        ) + "\n").encode()
+                    )
+                    response = json.loads(connection.recv(4096))
+                self.assertFalse(response["ok"])
+                legitimate = tracker._dispatch(
+                    {"operation": "inspect-source", "path": "lookup.py"}
+                )
+                self.assertEqual(legitimate["content"], "SOURCE = 'observed'\n")
+                self.assertEqual(
+                    legitimate["sha256"],
+                    hashlib.sha256(b"SOURCE = 'observed'\n").hexdigest(),
+                )
+            finally:
+                tracker.close()
+
+    def test_publication_rejects_fabricated_source_and_late_inspection(self) -> None:
+        created = {
+            "id": "fixture-sample-1-1",
+            "title": "Tenant lookup",
+            "body": "Problem: x",
+            "state": "open",
+            "idempotency_key": "key",
+        }
+        source = self._source_response()
+        valid_receipts = [
+            {"sequence": 1, "operation": "inspect-source", "request": {"path": "lookup.py"}, "ok": True, "response": source},
+            {"sequence": 2, "operation": "create", "request": {"title": "Tenant lookup", "body": "Problem: x", "idempotency_key": "key"}, "ok": True, "response": {"ok": True, "object": created, "replayed": False}},
+            {"sequence": 3, "operation": "get", "request": {"id": created["id"]}, "ok": True, "response": {"ok": True, "object": created}},
+        ]
+        snapshot = {"sample_id": "fixture", "epoch": 1, "receipts": valid_receipts, "objects": [created]}
+        forged = json.loads(json.dumps(snapshot))
+        forged["receipts"][0]["response"]["content"] = "forged"
+        self.assertFalse(
+            validate_publication(
+                forged,
+                required_title_fragment="Tenant lookup",
+                required_body_fragments=("Problem:",),
+            )[0]
+        )
+        late = json.loads(json.dumps(snapshot))
+        late["receipts"] = [
+            valid_receipts[1],
+            valid_receipts[0],
+            valid_receipts[2],
+        ]
+        for sequence, receipt in enumerate(late["receipts"], start=1):
+            receipt["sequence"] = sequence
+        self.assertFalse(
+            validate_publication(
+                late,
+                required_title_fragment="Tenant lookup",
+                required_body_fragments=("Problem:",),
+            )[0]
+        )
+
+    def test_idempotent_replay_is_one_object_and_conflicts_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as left_dir, tempfile.TemporaryDirectory() as right_dir:
+            left = Path(left_dir)
+            right = Path(right_dir)
+            (left / "lookup.py").write_text("LEFT = True\n")
+            (right / "lookup.py").write_text("RIGHT = True\n")
+            first = FakeTracker("same-sample", 1, workspace=left)
+            second = FakeTracker("same-sample", 2, workspace=right)
+            first.start()
+            second.start()
+            try:
+                for tracker in (first, second):
+                    self.assertTrue(
+                        tracker._dispatch(
+                            {"operation": "inspect-source", "path": "lookup.py"}
+                        )["ok"]
+                    )
+                initial = first._dispatch(
+                    {
+                        "operation": "create",
+                        "title": "Tenant lookup",
+                        "body": "Problem: x",
+                        "idempotency_key": "retry-key",
+                    }
+                )
+                self.assertTrue(initial["ok"])
+                replay = first._dispatch(
+                    {
+                        "operation": "create",
+                        "title": "Tenant lookup",
+                        "body": "Problem: x",
+                        "idempotency_key": "retry-key",
+                    }
+                )
+                self.assertTrue(replay["ok"])
+                self.assertTrue(replay["replayed"])
+                conflict = first._dispatch(
+                    {
+                        "operation": "create",
+                        "title": "Changed title",
+                        "body": "Problem: x",
+                        "idempotency_key": "retry-key",
+                    }
+                )
+                self.assertFalse(conflict["ok"])
+                self.assertEqual(len(first.snapshot()["objects"]), 1)
+                second_initial = second._dispatch(
+                    {
+                        "operation": "create",
+                        "title": "Tenant lookup",
+                        "body": "Problem: x",
+                        "idempotency_key": "retry-key",
+                    }
+                )
+                self.assertTrue(second_initial["ok"])
+                self.assertEqual(len(second.snapshot()["objects"]), 1)
+                self.assertNotEqual(
+                    initial["object"]["id"], second_initial["object"]["id"]
+                )
+            finally:
+                first.close()
+                second.close()
 
 
 if __name__ == "__main__":  # pragma: no cover
