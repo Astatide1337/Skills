@@ -93,7 +93,8 @@ The implemented package map is intentionally small:
 ```text
 skills/follow-instructions/
   SKILL.md                 entry point, route table, and evidence gates
-  references/principles.md compact decision rules
+  references/principles.md principle index and pstack mapping
+  references/principles/   detailed, selectively loaded decision rules
   references/case-studies.md selectively loaded public contrasts
   examples/jobmark-pagination.md source-grounded worked example
   playbooks/               investigate, design, implement, performance,

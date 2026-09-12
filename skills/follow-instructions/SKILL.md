@@ -62,9 +62,10 @@ Attach expertise only for a material decision:
 
 ## Apply principles when their trigger is present
 
-Read the concise rules in [principles](references/principles.md) and load the
-existing owner skill for the triggered decision. The principle changes a
-choice; it is not a completion-report checklist.
+Read the index in [principles](references/principles.md), then load only the
+linked detailed principle reference(s) whose trigger is present. Load the
+existing owner skill for the decision as well. A principle changes a choice;
+it is not a completion-report checklist.
 
 | Trigger | Decision rule | Owner |
 | --- | --- | --- |

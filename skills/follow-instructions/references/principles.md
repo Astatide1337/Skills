@@ -1,118 +1,84 @@
 # Engineering principles
 
-This is a compact adaptation of the decision-oriented principles in Cursor's
-pstack `poteto-mode`, pinned to commit
+This file is the index for the local decision principles. It is intentionally
+small enough to scan. Read the linked detail only when its trigger is present;
+do not load every principle for every task. The detail files are references of
+the existing `follow-instructions` skill, not additional installed skills.
+
+The structure is a local adaptation of Cursor's pstack. The upstream guide
+describes 23 separate, trigger-specific principles. We read those files at
+upstream commit [`889ec4b6`](https://github.com/cursor/plugins/tree/889ec4b68fa5aab0e867dad71ec3fdf386ae48f3/pstack/skills)
+and retain the catalog's earlier provenance pin
 [`60c641e4`](https://github.com/cursor/plugins/tree/60c641e4fad674784b30abcf9f8915dea39df38d/pstack).
-The summaries below are local guidance, not a wholesale copy of pstack's
-model, tools, or autonomy rules. Load a rule when its trigger is present.
+This package combines overlapping ideas instead of copying pstack's text,
+Cursor-only tools, model choices, or autonomy rules.
 
-## Solve the requested outcome
+## How to apply a principle
 
-- **Trigger:** The request is broad, or a new dependency or service is being
-  considered.
-- **Decision rule:** Define the observable result and literal non-goals. Inspect
-  existing capabilities before adding moving parts.
-- **Example:** A pagination omission earns a focused domain correction, not a
-  second persistence subsystem.
-- **Limit:** Identify real dependencies and do not pretend a coupled system is
-  isolated.
-- **Owners:** `create-workflow`, `architect`.
+1. Identify the trigger in the index.
+2. Read the one or two linked detail files that own the decision.
+3. Apply the decision rule to the actual repository, user, or system state.
+4. Record the changed decision and its evidence when the work is nontrivial.
 
-## Establish state and ownership first
+A principle name without a changed decision is not evidence of application.
+Existing owner skills remain authoritative for implementation details, security,
+operations, testing, and publication.
 
-- **Trigger:** Shared behavior, a new interface, or state crossing a process or
-  module boundary is changing.
-- **Decision rule:** Find the authoritative state, callers, lifetime, writers,
-  and contract before editing the owner.
-- **Example:** Fix the pagination function used by the MCP handler instead of
-  adding a transport-only workaround.
-- **Limit:** A clear local correction does not need competing architecture
-  documents or new types everywhere.
-- **Owners:** `architect`, `how`, `production-safety` when operational state is
-  involved.
+## The local set
 
-## Prefer the simplest sufficient design
+| Local principle | Detailed reference | Pstack ideas combined | Existing owners |
+| --- | --- | --- | --- |
+| Solve the requested outcome | [outcome and scope](principles/outcome-and-scope.md) | Outcome-Oriented Execution, Laziness Protocol, Subtract Before You Add | `create-workflow`, `architect` |
+| Establish state and ownership first | [ownership and domain](principles/ownership-and-domain.md) | Foundational Thinking, Model the Domain, Boundary Discipline, Type System Discipline | `architect`, `how`, `security-and-hardening` |
+| Prefer the simplest sufficient design | [simplicity and reader load](principles/simplicity-and-reader-load.md) | Minimize Reader Load, Laziness Protocol | `create-workflow`, `code-review-and-quality` |
+| Investigate causes and test behavior | [cause and behavior](principles/cause-and-behavior.md) | Fix Root Causes, Prove It Works, Test Behavior Not Implementation | `systematic-debugging`, `verify-work` |
+| Scale process to consequence and uncertainty | [safe evolution](principles/safe-evolution.md) | Make Operations Idempotent, Migrate Callers Then Delete Legacy APIs, Separate Before Serializing Shared State | `production-safety`, `security-and-hardening`, `pull-requests` |
+| Optimize user and maintainer experience | [experience and communication](principles/experience-and-communication.md) | Experience First | `web-interface`, `teach`, `document-teach` |
+| Separate independent work before parallelizing | [leverage and verifiable units](principles/leverage-and-verifiable-units.md) | Build the Lever, Sequence Verifiable Units, Guard the Context Window, Encode Lessons in Structure | `parallel`, `create-workflow`, `teach` |
+| Question a repeatedly failing approach | [challenge and adapt](principles/challenge-and-adapt.md) | Attack the Premise, Redesign From First Principles, Exhaust the Design Space | `grilling`, `architect` |
+| Make claims match evidence and authority | [authority and claims](principles/authority-and-claims.md) | Prove It Works, Never Block on the Human, Encode Lessons in Structure | `verify-work`, `pull-requests`, `production-safety` |
 
-- **Trigger:** An abstraction, adapter, helper, dependency, or cleanup is
-  tempting.
-- **Decision rule:** Reuse an existing interface and remove unnecessary layers
-  before adding one. Keep responsibility with its current owner.
-- **Example:** Reuse the project's database client and test runner rather than
-  writing a generic pagination library.
-- **Limit:** Fewer lines are not better when they hide ownership, weaken
-  correctness, or make the next change harder.
-- **Owners:** `create-workflow`, `code-review-and-quality`.
+## The principal-engineer lens
 
-## Investigate causes and test behavior
+This is an engineering operating method, not a career ladder. It supports
+principal-level habits by making these decisions explicit:
 
-- **Trigger:** A bug, regression, unexplained result, or conflicting report is
-  present.
-- **Decision rule:** Preserve a reproducer, state competing explanations when
-  uncertainty is material, and run the smallest check that distinguishes them.
-  Keep source facts separate from inference.
-- **Example:** Run the original pagination traversal and inspect the cursor
-  owner before changing the query.
-- **Limit:** A missing baseline stays an explicit limitation; it never justifies
-  invented before-and-after evidence.
-- **Owners:** `systematic-debugging`, `verify-work`.
+- turn ambiguous goals into observable outcomes and small deliverables;
+- understand domain ownership, interfaces, and long-term change cost;
+- choose trade-offs using user impact, reliability, security, and evidence;
+- create leverage through reusable checks, clear boundaries, and teaching;
+- coordinate independent work without surrendering ownership;
+- leave the repository easier for the next engineer to understand and change.
 
-## Optimize user and maintainer experience
+It cannot supply product strategy, organizational alignment, staffing choices,
+or human mentorship. Those remain decisions for the responsible engineer and
+stakeholders. A small repository should not inherit enterprise ceremony merely
+to resemble a principal-engineer framework.
 
-- **Trigger:** Scope, interface, error handling, documentation, or a UI state
-  affects someone using or maintaining the result.
-- **Decision rule:** Choose a small coherent journey that a maintainer can trace,
-  and exercise relevant loading, empty, error, keyboard, or accessibility states
-  when they exist.
-- **Example:** A form error points to the actual invalid field and moves focus
-  there, rather than merely changing its color.
-- **Limit:** A backend-only change does not require a browser session, and a
-  polished screenshot does not prove runtime behavior.
-- **Owners:** `web-interface`, `verify-work`, `teach`.
+## External calibrators
 
-## Scale process to consequence and uncertainty
+These sources calibrate the local lens; they are not additional required
+reading. They reinforce a few durable ideas that also appear in the detailed
+references:
 
-- **Trigger:** The task touches sensitive data, production-like state, external
-  writes, multiple writers, or an unresolved design fork.
-- **Decision rule:** Add only the inspection, rollback, review, recovery plan,
-  and evidence needed for that consequence. Keep ordinary tasks direct.
-- **Example:** An authorized `kubectl get` can inspect state without authorizing
-  `kubectl apply`; a migration needs a rollback before mutation.
-- **Limit:** Risk does not justify a mandatory report template or repeated
-  permission question for every ordinary issue.
-- **Owners:** `production-safety`, `security-and-hardening`, `pull-requests`.
+- [GitLab's principal-engineer framework](https://handbook.gitlab.com/handbook/engineering/careers/matrix/development/dev/principal/)
+  describes organization-scale technical leadership, ambiguity reduction,
+  trade-off evaluation, deep technical work, and teaching. The local limit is
+  deliberate: a skill can guide engineering decisions, but it cannot create
+  organizational alignment or mentorship.
+- [Google's code-review standard](https://google.github.io/eng-practices/review/reviewer/standard.html)
+  balances progress with code health and asks reviewers to use technical facts
+  rather than preference. [Its small-change guidance](https://google.github.io/eng-practices/review/developer/small-cls.html)
+  supports the local preference for reviewable, reversible units.
+- [Google SRE's simplicity guidance](https://sre.google/sre-book/simplicity/)
+  treats simplicity as a reliability prerequisite. The local adaptation asks
+  what complexity buys the current outcome; it does not copy SRE operations
+  ceremony into ordinary edits.
+- [DORA's continuous-delivery guidance](https://dora.dev/capabilities/continuous-delivery/)
+  measures delivery and reliability outcomes at system level. The local
+  workflow uses the same caution about observable outcomes, without turning a
+  small supervised task into a universal benchmark.
 
-## Separate independent work before parallelizing
-
-- **Trigger:** Delegation or parallel work is proposed.
-- **Decision rule:** Settle shared interfaces and split writers first. Give each
-  worker a bounded outcome, source, authority, and evidence requirement, then
-  inspect and integrate the returned artifact.
-- **Example:** One worker owns the API contract and another owns a disjoint UI
-  state only after the contract is fixed.
-- **Limit:** No second agent is required for a small serial change, and green
-  worker results are not integration proof.
-- **Owners:** `parallel` playbook.
-
-## Question a repeatedly failing approach
-
-- **Trigger:** Related repairs keep producing new repairs or the same gate keeps
-  failing.
-- **Decision rule:** Identify the shared premise, test it against current
-  evidence, and narrow or replace the approach before adding machinery.
-- **Example:** If evaluator hardening consumes every milestone without improving
-  an actual workflow, pause expansion and run one supervised repository task.
-- **Limit:** Do not evade an unmet requirement by redefining success, and do not
-  change global instructions during an unrelated application task.
-- **Owners:** `grilling`, `create-workflow`.
-
-## Make claims match evidence and authority
-
-- **Trigger:** A task is about to be called complete or a draft/write/merge/
-  deployment boundary is crossed.
-- **Decision rule:** Verify the actual artifact and requested layer. Distinguish
-  fixing, drafting, creating, publishing, merging, and deploying.
-- **Example:** A green build supports a build claim; a browser or API journey is
-  needed for a user-visible behavior claim.
-- **Limit:** Do not infer comprehension, production health, or superiority from
-  a proxy check or one successful run.
-- **Owners:** `verify-work`, `pull-requests`, `production-safety`.
+These are standards and observations, not proof that this package improves
+agent performance. The evidence for this package remains the source-grounded
+walkthroughs, actual project checks, and clearly labeled limitations.
