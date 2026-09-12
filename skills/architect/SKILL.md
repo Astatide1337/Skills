@@ -1,6 +1,6 @@
 ---
 name: architect
-description: Plan non-trivial code boundaries before implementation when types, ownership, data flow, or interfaces are unclear. Routine critique belongs here; explicit pressure-tests use grilling.
+description: Plan unclear code boundaries before a non-trivial implementation.
 ---
 
 # Architect

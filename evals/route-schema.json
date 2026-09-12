@@ -7,7 +7,98 @@
       "type": "array",
       "items": {"type": "string"}
     },
-    "reason": {"type": "string"}
+    "reason": {"type": "string"},
+    "workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "primary": {
+          "type": "string",
+          "enum": [
+            "investigate",
+            "design",
+            "implement",
+            "performance",
+            "migrate-operate",
+            "review",
+            "issues",
+            "pull-requests",
+            "document-teach",
+            "workflow-improvement",
+            "custom",
+            "verify-work"
+          ]
+        },
+        "mode": {"type": "string"},
+        "follow_ons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "investigate/read",
+              "design/plan",
+              "design/prototype",
+              "implement/bug",
+              "implement/feature",
+              "implement/refactor",
+              "performance/measure",
+              "performance/improve",
+              "migrate-operate/upgrade",
+              "migrate-operate/migrate",
+              "migrate-operate/release",
+              "migrate-operate/incident",
+              "review/review",
+              "review/rereview",
+              "issues/draft",
+              "issues/create",
+              "issues/update",
+              "issues/triage",
+              "pull-requests/draft",
+              "pull-requests/create",
+              "pull-requests/monitor",
+              "pull-requests/communicate",
+              "document-teach/document",
+              "document-teach/teach",
+              "workflow-improvement/improve",
+              "custom/compose"
+            ]
+          }
+        },
+        "domains": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "modifiers": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["parallel"]}
+        },
+        "effects": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workspace": {"type": "string", "enum": ["read", "write"]},
+            "external": {
+              "type": "string",
+              "enum": [
+                "none",
+                "issue-create",
+                "issue-update",
+                "pr-create",
+                "comment",
+                "push"
+              ]
+            },
+            "production": {"type": "string", "enum": ["none", "read", "write"]}
+          },
+          "required": ["workspace", "external", "production"]
+        },
+        "constraints": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "required": ["primary", "mode", "follow_ons", "domains", "modifiers", "effects", "constraints"]
+    }
   },
   "required": ["skills", "reason"]
 }

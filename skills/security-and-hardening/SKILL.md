@@ -1,6 +1,6 @@
 ---
 name: security-and-hardening
-description: Audit or harden application and infrastructure security across auth, tenant boundaries, secrets, dependencies, CI, containers, and agent features.
+description: Audit or harden security boundaries in applications and infrastructure.
 ---
 
 # Security and Hardening

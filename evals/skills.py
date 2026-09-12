@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
+import importlib.util
 import json
 import re
+import sys
+import subprocess
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path
 from uuid import uuid4
 
@@ -16,15 +21,70 @@ from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.util import sandbox
 import yaml
 
+try:
+    from evals.fake_tracker import FakeTracker, validate_publication
+except ModuleNotFoundError as exc:
+    # Inspect loads this file directly, so the repository is not necessarily
+    # importable as an ``evals`` package.  Only fall back for that loader
+    # boundary; preserve unrelated import failures.
+    if exc.name not in {"evals", "evals.fake_tracker"}:
+        raise
+    _fixture_path = Path(__file__).with_name("fake_tracker.py")
+    _fixture_spec = importlib.util.spec_from_file_location(
+        "skills_fake_tracker", _fixture_path
+    )
+    if _fixture_spec is None or _fixture_spec.loader is None:
+        raise RuntimeError(f"unable to load fake tracker fixture: {_fixture_path}")
+    _fixture_module = importlib.util.module_from_spec(_fixture_spec)
+    sys.modules[_fixture_spec.name] = _fixture_module
+    _fixture_spec.loader.exec_module(_fixture_module)
+    FakeTracker = _fixture_module.FakeTracker
+    validate_publication = _fixture_module.validate_publication
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+try:
+    from evals.workspace_evidence import (
+        Baseline,
+        Evidence,
+        bwrap_preflight,
+        capture_baseline,
+        collect_evidence,
+    )
+except ModuleNotFoundError as exc:
+    if exc.name not in {"evals", "evals.workspace_evidence"}:
+        raise
+    module_path = REPO_ROOT / "evals" / "workspace_evidence.py"
+    spec = importlib.util.spec_from_file_location("skills_workspace_evidence", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"unable to load evidence helper: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    Baseline = module.Baseline
+    Evidence = module.Evidence
+    bwrap_preflight = module.bwrap_preflight
+    capture_baseline = module.capture_baseline
+    collect_evidence = module.collect_evidence
+
+
 SKILLS_ROOT = REPO_ROOT / "skills"
 CASES = Path(__file__).parent / "cases" / "catalog.json"
 ROUTING_CASES = Path(__file__).parent / "cases" / "routing.json"
+WORKFLOW_CASES = Path(__file__).parent / "cases" / "workflows.json"
 GLOBAL_INSTRUCTIONS = REPO_ROOT / "global-instructions" / "AGENTS.md"
 GRADE_SCHEMA = Path(__file__).parent / "grade-schema.json"
 ROUTE_SCHEMA = Path(__file__).parent / "route-schema.json"
+LEGACY_ROUTE_SCHEMA = Path(__file__).parent / "legacy-route-schema.json"
+WORKFLOW_ROUTE_SCHEMA = Path(__file__).parent / "workflow-route-schema.json"
 AUTH_FILE = Path.home() / ".codex" / "auth.json"
+WORKFLOW_DEFAULT_SETUP = (
+    "git init -q && git config user.email eval@example.invalid && "
+    "git config user.name Eval && git add . && "
+    "git commit --allow-empty -qm baseline"
+)
+MAX_ACCEPTANCE_TEST_BYTES = 60_000
 SKILL_NAMES = {
     path.name
     for path in SKILLS_ROOT.iterdir()
@@ -54,21 +114,32 @@ ROUTING_EXPECTED_OVERRIDES: dict[str, list[str]] = {
 }
 
 
-def isolated_codex_home(with_skills: bool) -> tempfile.TemporaryDirectory[str]:
+def isolated_codex_home(
+    with_skills: bool,
+    *,
+    skills_root: Path | None = None,
+) -> tempfile.TemporaryDirectory[str]:
     """Create an ephemeral Codex home that reuses auth but isolates configuration."""
 
-    directory = tempfile.TemporaryDirectory(prefix="skills-eval-codex-")
+    # Codex may create helper binaries next to its ephemeral home.  Keep the
+    # isolated home out of /tmp (which the CLI deliberately refuses for PATH
+    # aliases) while still cleaning it up after each sample.
+    directory = tempfile.TemporaryDirectory(
+        prefix="skills-eval-codex-",
+        dir=str(Path.home() / ".cache"),
+    )
     home = Path(directory.name)
     if not AUTH_FILE.is_file():
         directory.cleanup()
         raise RuntimeError("native Codex auth is unavailable; run `codex login`")
     (home / "auth.json").symlink_to(AUTH_FILE)
     if with_skills:
+        selected_skills_root = skills_root or SKILLS_ROOT
         skills = home / "skills"
         skills.mkdir()
         system_skills = skills / ".system"
         system_skills.mkdir()
-        for skill in sorted(SKILLS_ROOT.iterdir()):
+        for skill in sorted(selected_skills_root.iterdir()):
             if (skill / "SKILL.md").is_file():
                 (skills / skill.name).symlink_to(skill, target_is_directory=True)
                 # Codex reserves several common names for bundled skills. Point
@@ -87,6 +158,8 @@ async def run_codex(
     with_skills: bool,
     sandbox_mode: str,
     output_schema: Path | None = None,
+    extra_env: Mapping[str, str] | None = None,
+    skills_root: Path | None = None,
     # Max-effort native cases can spend more than fifteen minutes in one
     # isolated command session (for example, a full artifact or deployment
     # investigation). Keep a finite bound while avoiding false evaluation
@@ -95,7 +168,12 @@ async def run_codex(
 ) -> tuple[str, str]:
     """Run signed-in Codex in the current Inspect local sandbox workspace."""
 
-    with isolated_codex_home(with_skills) as codex_home:
+    preflight_error = bwrap_preflight()
+    if preflight_error:
+        raise RuntimeError(
+            f"native Codex launch blocked by execution prerequisite: {preflight_error}"
+        )
+    with isolated_codex_home(with_skills, skills_root=skills_root) as codex_home:
         output_file = f"/tmp/codex-eval-{uuid4().hex}.txt"
         command = [
             "codex",
@@ -127,13 +205,21 @@ async def run_codex(
                 # Codex also discovers user-level skills under ~/.agents.
                 # Isolate HOME as well as CODEX_HOME so the baseline receives
                 # neither catalog nor unrelated personal skills.
-                env={"CODEX_HOME": str(codex_home), "HOME": str(codex_home)},
+                env={
+                    "CODEX_HOME": str(codex_home),
+                    "HOME": str(codex_home),
+                    **(dict(extra_env) if extra_env else {}),
+                },
                 timeout=timeout,
                 timeout_retry=False,
                 concurrency=True,
             )
             if not result.success:
-                raise RuntimeError(f"native Codex failed: {result.stderr.strip()}")
+                raise RuntimeError(
+                    "native Codex failed: "
+                    f"exit={result.returncode}; stderr={result.stderr.strip()}; "
+                    f"stdout={result.stdout[-4000:]}"
+                )
             completion = await sandbox().read_file(output_file)
             return completion.strip(), result.stdout
         finally:
@@ -141,14 +227,61 @@ async def run_codex(
 
 
 @solver
-def native_codex(with_skills: bool, model: str) -> Solver:
+def native_codex(
+    with_skills: bool,
+    model: str,
+    *,
+    inject_skill: bool = True,
+    skills_root: Path | str | None = None,
+    global_instructions: Path | str | None = None,
+) -> Solver:
     """Execute a sample with the locally authenticated Codex CLI."""
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
+        selected_skills_root = Path(skills_root) if skills_root is not None else SKILLS_ROOT
+        selected_global = (
+            Path(global_instructions)
+            if global_instructions is not None
+            else GLOBAL_INSTRUCTIONS
+        )
+        stored_baseline = state.store.get("workspace_baseline")
+        baseline = _stored_baseline(stored_baseline)
+        if baseline is None or not baseline.available:
+            state.output = ModelOutput.from_content(
+                model="runner/workspace-evidence",
+                content="Candidate skipped: workspace baseline unavailable.",
+            )
+            state.output.metadata = {
+                "workspace_baseline_status": (
+                    baseline.status if baseline is not None else "invalid-or-missing"
+                ),
+                "candidate_skipped": True,
+            }
+            state.completed = True
+            return state
+        contract = (state.metadata or {}).get("fixture_contract")
+        support = state.store.get("workflow_support")
+        if isinstance(contract, dict):
+            if not isinstance(support, dict) or support.get("status") != "supported":
+                reason = (
+                    support.get("reason", "workflow boundary is unsupported")
+                    if isinstance(support, dict)
+                    else "workflow support gate did not produce a supported result"
+                )
+                state.output = ModelOutput.from_content(
+                    model="runner/workflow-boundary",
+                    content=f"Candidate blocked before native launch: {reason}",
+                )
+                state.output.metadata = {
+                    "workflow_support_status": "blocked",
+                    "candidate_skipped": True,
+                }
+                state.completed = True
+                return state
         prompt = state.input_text
-        if with_skills:
+        if with_skills and inject_skill:
             skill = (state.metadata or {}).get("skill")
-            skill_path = SKILLS_ROOT / skill / "SKILL.md"
+            skill_path = selected_skills_root / skill / "SKILL.md"
             instructions = skill_path.read_text()
             prompt = (
                 "Follow the applicable catalog skill below for this task. Its instructions "
@@ -158,29 +291,80 @@ def native_codex(with_skills: bool, model: str) -> Solver:
                 f"<catalog_skill name=\"{skill}\">\n{instructions}\n</catalog_skill>\n\n"
                 f"{prompt}"
             )
-        completion, events = await run_codex(
-            prompt,
-            model=model,
-            with_skills=with_skills,
-            sandbox_mode="workspace-write",
-        )
+        tracker: FakeTracker | None = None
+        if isinstance(contract, dict) and contract.get("kind") == "fake-tracker-publication":
+            workspace, workspace_error = await _sandbox_workspace_path()
+            if workspace_error is not None or workspace is None:
+                state.output = ModelOutput.from_content(
+                    model="runner/workflow-boundary",
+                    content=(
+                        "Candidate blocked before native launch: "
+                        f"{workspace_error or 'fixture workspace is unavailable'}"
+                    ),
+                )
+                state.output.metadata = {
+                    "workflow_support_status": "blocked",
+                    "candidate_skipped": True,
+                }
+                state.completed = True
+                return state
+            tracker = FakeTracker(
+                state.sample_id,
+                state.epoch,
+                workspace=workspace,
+                required_source_path=str(contract.get("required_source_path", "lookup.py")),
+            )
+            tracker.start()
+        try:
+            completion, events = await run_codex(
+                prompt,
+                model=model,
+                with_skills=with_skills,
+                sandbox_mode="workspace-write",
+                extra_env=tracker.environment() if tracker is not None else None,
+                skills_root=selected_skills_root,
+            )
+        finally:
+            # Snapshot before closing/cleaning the fixture directory.  This is
+            # the only publication evidence consumed by the scorer; command
+            # names and final prose are deliberately not consulted.
+            if tracker is not None:
+                state.store.set("fixture_publication", tracker.snapshot())
+                tracker.close()
         state.output = ModelOutput.from_content(
             model=f"codex-subscription/{model}",
             content=completion,
         )
         state.output.metadata = {"codex_jsonl": events}
-        if with_skills:
+        native_usage = _codex_usage(events)
+        if native_usage is not None:
+            state.output.metadata["native_usage"] = native_usage
+        if with_skills and inject_skill:
             state.output.metadata["injected_skill"] = skill
+        elif with_skills:
+            state.output.metadata["skill_discovery"] = "installed-catalog"
+        if tracker is not None:
+            state.output.metadata["fixture_source"] = "runner-owned-fake-tracker"
+        state.output.metadata["skills_root"] = str(selected_skills_root)
+        state.output.metadata["skills_revision"] = _revision_identity(selected_skills_root)
+        state.output.metadata["global_instructions"] = str(selected_global)
+        state.output.metadata["global_identity"] = _global_identity(selected_global)
+        scope = (state.metadata or {}).get("execution_scope")
+        if scope:
+            state.output.metadata["execution_scope"] = scope
+            state.output.metadata["containment"] = (
+                "unsupported outside trusted synthetic fixtures"
+            )
         return state
 
     return solve
 
 
-def catalog_routing_index() -> str:
+def catalog_routing_index(skills_root: Path = SKILLS_ROOT) -> str:
     """Return only compact trigger metadata, not full skill instructions."""
 
     rows: list[str] = []
-    for skill_path in sorted(SKILLS_ROOT.iterdir()):
+    for skill_path in sorted(skills_root.iterdir()):
         skill_file = skill_path / "SKILL.md"
         if not skill_file.is_file():
             continue
@@ -229,6 +413,92 @@ def routing_dataset() -> MemoryDataset:
             )
         )
     return MemoryDataset(samples=samples, name="catalog-routing", shuffled=False)
+
+
+def workflows_dataset(
+    *,
+    execution_ready_only: bool = False,
+    global_instructions: Path = GLOBAL_INSTRUCTIONS,
+) -> MemoryDataset:
+    """Load routing cases or explicitly supplied execution fixtures.
+
+    A routing case is useful for classification but is not silently promoted
+    to an executable workspace.  The integrated task opts into the smaller
+    execution-ready subset; route diagnostics retain every case.
+    """
+
+    dataset = json_dataset(str(WORKFLOW_CASES))
+    global_rules = global_instructions.read_text()
+    samples: list[Sample] = []
+    for sample in dataset.samples:
+        metadata = dict(sample.metadata or {})
+        execution_mode = metadata.get("execution_mode")
+        if execution_mode not in {"routing-only", "execution-ready"}:
+            execution_mode = "execution-ready" if sample.files else "routing-only"
+        if execution_ready_only and execution_mode != "execution-ready":
+            continue
+        files = dict(sample.files or {})
+        files["AGENTS.md"] = global_rules
+        sample.files = files
+        if execution_mode == "routing-only" and not sample.setup:
+            sample.setup = WORKFLOW_DEFAULT_SETUP
+        sample.metadata = {
+            **metadata,
+            "execution_scope": "trusted-synthetic-local",
+            "execution_mode": execution_mode,
+        }
+        samples.append(sample)
+    return MemoryDataset(samples=samples, name=dataset.name, shuffled=False)
+
+
+def _revision_identity(path: Path) -> str:
+    """Return an immutable source identity for comparison metadata."""
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(path), "rev-parse", "HEAD"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return f"unresolved:{path}"
+    if result.returncode:
+        return f"unresolved:{path}"
+    return result.stdout.strip()
+
+
+def _global_identity(path: Path) -> str:
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return f"unresolved:{path}"
+
+
+def _codex_usage(events: str) -> dict[str, int] | None:
+    """Extract the native CLI's own usage record when it emits one."""
+
+    if not isinstance(events, str):
+        return None
+    usage: object = None
+    for line in events.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "turn.completed":
+            usage = event.get("usage")
+    if not isinstance(usage, dict):
+        return None
+    fields = {
+        key: value
+        for key, value in usage.items()
+        if key in {"input_tokens", "cached_input_tokens", "cache_write_input_tokens", "output_tokens", "reasoning_output_tokens"}
+        and isinstance(value, int)
+    }
+    return fields or None
 
 
 @solver
@@ -281,7 +551,7 @@ def route_codex(model: str) -> Solver:
             model=model,
             with_skills=False,
             sandbox_mode="read-only",
-            output_schema=ROUTE_SCHEMA,
+            output_schema=LEGACY_ROUTE_SCHEMA,
             timeout=300,
         )
         state.output = ModelOutput.from_content(
@@ -345,30 +615,662 @@ def routing_minimality():
     return score
 
 
+def _parse_workflow_route(state: TaskState) -> tuple[dict[str, object] | None, str | None]:
+    try:
+        value = json.loads(state.output.completion)
+    except (AttributeError, json.JSONDecodeError):
+        return None, "router did not return JSON"
+    if not isinstance(value, dict) or not isinstance(value.get("workflow"), dict):
+        return None, "router omitted workflow composition"
+    workflow = value["workflow"]
+    required = {
+        "primary",
+        "mode",
+        "follow_ons",
+        "domains",
+        "modifiers",
+        "effects",
+        "constraints",
+    }
+    if set(workflow) != required:
+        return None, f"workflow fields mismatch: {sorted(set(workflow) ^ required)}"
+    if not isinstance(workflow["primary"], str) or not isinstance(workflow["mode"], str):
+        return None, "workflow primary/mode must be strings"
+    for field in ("follow_ons", "domains", "modifiers", "constraints"):
+        values = workflow[field]
+        if not isinstance(values, list) or not all(isinstance(item, str) for item in values):
+            return None, f"workflow {field} must be a string array"
+    unknown_domains = sorted(set(workflow["domains"]) - SKILL_NAMES)
+    if unknown_domains:
+        return None, f"workflow domains contain unknown skills: {unknown_domains}"
+    if any(item != "parallel" for item in workflow["modifiers"]):
+        return None, "workflow modifiers contain an unknown value"
+    effects = workflow["effects"]
+    if not isinstance(effects, dict) or set(effects) != {
+        "workspace",
+        "external",
+        "production",
+    } or not all(isinstance(value, str) for value in effects.values()):
+        return None, "workflow effects must name string workspace/external/production"
+    return workflow, None
+
+
+@solver
+def workflow_route_codex(
+    model: str,
+    *,
+    skills_root: Path | str = SKILLS_ROOT,
+    global_instructions: Path | str = GLOBAL_INSTRUCTIONS,
+) -> Solver:
+    """Use coordinator/global instructions without injecting expected answers."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        selected_skills_root = Path(skills_root)
+        selected_global = Path(global_instructions)
+        prompt = (
+            "Classify this request using the supplied global instructions and the "
+            "follow-instructions coordinator. Return only JSON matching the supplied "
+            "schema. Populate its optional workflow object with the primary family, "
+            "separate mode, ordered follow-ons, peer domains, parallel modifier, "
+            "permitted effects, and material constraints. Do not perform the task.\n\n"
+            f"GLOBAL INSTRUCTIONS:\n{selected_global.read_text()}\n\n"
+            f"FOLLOW-INSTRUCTIONS:\n{(selected_skills_root / 'follow-instructions' / 'SKILL.md').read_text()}\n\n"
+            f"CATALOG TRIGGERS:\n{catalog_routing_index(selected_skills_root)}\n\n"
+            f"USER REQUEST:\n{state.input_text}"
+        )
+        completion, events = await run_codex(
+            prompt,
+            model=model,
+            with_skills=False,
+            sandbox_mode="read-only",
+            output_schema=WORKFLOW_ROUTE_SCHEMA,
+            timeout=300,
+        )
+        state.output = ModelOutput.from_content(
+            model=f"codex-subscription/{model}",
+            content=completion,
+        )
+        state.output.metadata = {
+            "codex_jsonl": events,
+            "routing_mode": "coordinator-discovery-diagnostic",
+            "skills_root": str(selected_skills_root),
+            "skills_revision": _revision_identity(selected_skills_root),
+            "global_instructions": str(selected_global),
+            "global_identity": _global_identity(selected_global),
+        }
+        return state
+
+    return solve
+
+
+def _unavailable_baseline(reason: str) -> Baseline:
+    return Baseline(status="unavailable", reason=reason)
+
+
+def _stored_strings(value: dict[str, object], field: str) -> tuple[str, ...]:
+    raw = value.get(field, ())
+    if not isinstance(raw, (list, tuple)) or not all(
+        isinstance(item, str) for item in raw
+    ):
+        raise ValueError(f"{field} must be a string sequence")
+    return tuple(raw)
+
+
+def _stored_baseline(value: object) -> Baseline | None:
+    """Rehydrate exactly the Baseline contract across Inspect Store boundaries."""
+
+    if isinstance(value, Baseline):
+        return value
+    if not isinstance(value, dict):
+        return None
+    status = value.get("status")
+    revision = value.get("revision")
+    if not isinstance(status, str) or (
+        revision is not None and not isinstance(revision, str)
+    ):
+        return None
+    try:
+        raw_index = value.get("index_entries", ())
+        if not isinstance(raw_index, (list, tuple)):
+            return None
+        index_entries: list[tuple[str, str, int, int, int]] = []
+        for entry in raw_index:
+            if (
+                not isinstance(entry, (list, tuple))
+                or len(entry) != 5
+                or not isinstance(entry[0], str)
+                or not isinstance(entry[1], str)
+                or not all(isinstance(item, int) for item in entry[2:])
+            ):
+                return None
+            index_entries.append(tuple(entry))  # type: ignore[arg-type]
+
+        raw_boundary = value.get("git_boundary", ())
+        if (
+            not isinstance(raw_boundary, (list, tuple))
+            or len(raw_boundary) != 4
+            or not isinstance(raw_boundary[0], str)
+            or not isinstance(raw_boundary[1], int)
+            or not isinstance(raw_boundary[2], int)
+            or (raw_boundary[3] is not None and not isinstance(raw_boundary[3], str))
+        ):
+            return None
+        raw_snapshot = value.get("snapshot", ())
+        if not isinstance(raw_snapshot, (list, tuple)):
+            return None
+        snapshot: list[tuple[str, str, int | None, str | None, str | None]] = []
+        for entry in raw_snapshot:
+            if (
+                not isinstance(entry, (list, tuple))
+                or len(entry) != 5
+                or not isinstance(entry[0], str)
+                or not isinstance(entry[1], str)
+                or (entry[2] is not None and not isinstance(entry[2], int))
+                or (entry[3] is not None and not isinstance(entry[3], str))
+                or (entry[4] is not None and not isinstance(entry[4], str))
+            ):
+                return None
+            snapshot.append(tuple(entry))  # type: ignore[arg-type]
+        raw_control = value.get("git_control", ())
+        if not isinstance(raw_control, (list, tuple)):
+            return None
+        git_control: list[tuple[str, str, int | None, str | None]] = []
+        for entry in raw_control:
+            if (
+                not isinstance(entry, (list, tuple))
+                or len(entry) != 4
+                or not isinstance(entry[0], str)
+                or not isinstance(entry[1], str)
+                or (entry[2] is not None and not isinstance(entry[2], int))
+                or (entry[3] is not None and not isinstance(entry[3], str))
+            ):
+                return None
+            git_control.append(tuple(entry))  # type: ignore[arg-type]
+        object_id_bytes = value.get("object_id_bytes", 20)
+        if not isinstance(object_id_bytes, int):
+            return None
+        reason = value.get("reason")
+        if reason is not None and not isinstance(reason, str):
+            return None
+        return Baseline(
+            status=status,
+            revision=revision,
+            initial_paths=_stored_strings(value, "initial_paths"),
+            tracked_paths=_stored_strings(value, "tracked_paths"),
+            index_entries=tuple(index_entries),
+            object_id_bytes=object_id_bytes,
+            git_boundary=tuple(raw_boundary),  # type: ignore[arg-type]
+            snapshot=tuple(snapshot),
+            git_control=tuple(git_control),
+            snapshot_omissions=_stored_strings(value, "snapshot_omissions"),
+            reason=reason,
+        )
+    except (TypeError, ValueError):
+        return None
+
+
+def _unavailable_evidence(reason: str, *, baseline_revision: str | None = None) -> Evidence:
+    return Evidence(
+        status="unavailable",
+        available=False,
+        baseline_revision=baseline_revision,
+        reason=reason,
+        outcome="unavailable",
+    )
+
+
+def _baseline_text(baseline: Baseline) -> str:
+    return f"STATUS: {baseline.status}\nREASON: {baseline.reason or 'none'}"
+
+
+def _evidence_text(evidence: Evidence) -> str:
+    return evidence.as_text()
+
+
+def _stored_evidence(value: object) -> Evidence | None:
+    """Rehydrate exactly the Evidence contract if Inspect serialized it."""
+
+    if isinstance(value, Evidence):
+        return value
+    if not isinstance(value, dict):
+        return None
+    status = value.get("status")
+    available = value.get("available")
+    if not isinstance(status, str) or not isinstance(available, bool):
+        return None
+    baseline_revision = value.get("baseline_revision")
+    final_revision = value.get("final_revision")
+    if any(
+        revision is not None and not isinstance(revision, str)
+        for revision in (baseline_revision, final_revision)
+    ):
+        return None
+    bool_fields = (
+        "truncated",
+        "index_changed",
+        "git_metadata_changed",
+        "has_changes",
+    )
+    if any(not isinstance(value.get(field), bool) for field in bool_fields):
+        return None
+    outcome = value.get("outcome")
+    reason = value.get("reason")
+    if not isinstance(outcome, str) or (reason is not None and not isinstance(reason, str)):
+        return None
+    try:
+        return Evidence(
+            status=status,
+            available=available,
+            baseline_revision=baseline_revision,
+            final_revision=final_revision,
+            tracked_worktree_paths=_stored_strings(value, "tracked_worktree_paths"),
+            tracked_index_paths=_stored_strings(value, "tracked_index_paths"),
+            tracked_paths=_stored_strings(value, "tracked_paths"),
+            committed_paths=_stored_strings(value, "committed_paths"),
+            baseline_untracked_paths=_stored_strings(value, "baseline_untracked_paths"),
+            current_untracked_paths=_stored_strings(value, "current_untracked_paths"),
+            untracked_paths=_stored_strings(value, "untracked_paths"),
+            required_paths=_stored_strings(value, "required_paths"),
+            content=_stored_strings(value, "content"),
+            omissions=_stored_strings(value, "omissions"),
+            truncated=value["truncated"],
+            index_changed=value["index_changed"],
+            git_metadata_changed=value["git_metadata_changed"],
+            has_changes=value["has_changes"],
+            outcome=outcome,
+            reason=reason,
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+async def _sandbox_workspace_path() -> tuple[Path | None, str | None]:
+    """Resolve the local Inspect root used by trusted synthetic fixtures.
+
+    The collector's synchronous path API cannot address a remote/container
+    filesystem from the runner process. Refuse that unsupported arrangement
+    instead of treating a container's ``pwd`` as a host path. The local route
+    is limited to disposable synthetic cases; it is not hostile-code
+    containment.
+    """
+
+    environment = sandbox()
+    try:
+        connection = await environment.connection()
+    except NotImplementedError:
+        # Inspect's local provider has no connection endpoint. It is the only
+        # supported path-collector route for these trusted fixtures.
+        connection = None
+    except Exception as exc:
+        return None, f"unable to inspect sandbox boundary: {exc}"
+    if connection is not None:
+        return (
+            None,
+            "workspace evidence path collector does not support remote/container "
+            f"sandbox '{connection.type}'; live containment is unsupported",
+        )
+
+    try:
+        result = await environment.exec(
+            ["pwd"],
+            timeout=30,
+            timeout_retry=False,
+        )
+    except Exception as exc:
+        return None, f"unable to resolve sandbox workspace: {exc}"
+    if not result.success:
+        return None, f"unable to resolve sandbox workspace: {result.stderr.strip()}"
+    lines = result.stdout.strip().splitlines()
+    if not lines:
+        return None, "sandbox returned no workspace path"
+    path = Path(lines[-1])
+    if not path.is_absolute() or not path.is_dir():
+        return None, f"sandbox workspace path is not a readable directory: {path}"
+    return path, None
+
+
+def _workflow_observed_effects(kind: str) -> set[str]:
+    """Return only effects backed by an actual runner-owned observation."""
+
+    if kind == "response-contract":
+        return {"response"}
+    if kind == "fake-tracker-publication":
+        return {"source-read", "issue-create", "issue-readback"}
+    if kind in {"workspace-test", "workspace-artifact"}:
+        return {"workspace-delete", "workspace-edit", "workspace-read", "test-run"}
+    return set()
+
+
+def _runner_acceptance_command(
+    contract: Mapping[str, object],
+) -> tuple[list[str] | None, str | None]:
+    """Build the fixed acceptance regression command from runner-owned input."""
+
+    acceptance_test = contract.get("acceptance_test")
+    if acceptance_test is None:
+        return None, None
+    if not isinstance(acceptance_test, str) or not acceptance_test.strip():
+        return None, "runner acceptance regression is missing"
+    if len(acceptance_test.encode("utf-8")) > MAX_ACCEPTANCE_TEST_BYTES:
+        return None, "runner acceptance regression exceeds the bounded test limit"
+    # ``-S`` prevents a candidate-provided sitecustomize from changing the
+    # check, while ``-B`` keeps this runner-owned probe from creating artifacts.
+    # The working directory remains the candidate workspace so the regression
+    # imports the candidate implementation, not a copied source tree.
+    return ["python", "-S", "-B", "-c", acceptance_test], None
+
+
+async def _workflow_support_status(state: TaskState) -> dict[str, object]:
+    """Check the exact native boundary before allowing a model to run."""
+
+    metadata = state.metadata or {}
+    contract = metadata.get("fixture_contract")
+    if not isinstance(contract, dict):
+        return {
+            "status": "unmeasured",
+            "reason": "workflow has no executable fixture contract",
+            "capabilities": [],
+        }
+    kind = contract.get("kind")
+    if not isinstance(kind, str):
+        return {
+            "status": "blocked",
+            "reason": "workflow fixture contract has no kind",
+            "capabilities": [],
+        }
+    workspace, workspace_error = await _sandbox_workspace_path()
+    if workspace_error is not None or workspace is None:
+        return {
+            "status": "blocked",
+            "reason": workspace_error or "fixture workspace is unavailable",
+            "capabilities": sorted(_workflow_observed_effects(kind)),
+        }
+    boundary_error = bwrap_preflight(workspace)
+    if boundary_error:
+        return {
+            "status": "blocked",
+            "reason": boundary_error,
+            "capabilities": sorted(_workflow_observed_effects(kind)),
+        }
+    observed = _workflow_observed_effects(kind)
+    forbidden = metadata.get("forbidden_effects", [])
+    if not isinstance(forbidden, list) or not all(isinstance(item, str) for item in forbidden):
+        return {
+            "status": "blocked",
+            "reason": "workflow forbidden-effects contract is invalid",
+            "capabilities": sorted(observed),
+        }
+    unsupported = sorted(set(forbidden) - observed)
+    if unsupported:
+        return {
+            "status": "blocked",
+            "reason": (
+                "native candidate requires effects outside the supported observed "
+                f"boundary: {unsupported}"
+            ),
+            "capabilities": sorted(observed),
+            "unobserved_forbidden_effects": unsupported,
+        }
+    return {
+        "status": "supported",
+        "reason": "native workspace boundary and required effects are observed",
+        "capabilities": sorted(observed),
+    }
+
+
+@solver
+def workflow_support_gate() -> Solver:
+    """Reject unobservable native workflows before any model execution."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        baseline = _stored_baseline(state.store.get("workspace_baseline"))
+        if baseline is None or not baseline.available:
+            return state
+        support = await _workflow_support_status(state)
+        state.store.set("workflow_support", support)
+        if support.get("status") != "supported":
+            state.output = ModelOutput.from_content(
+                model="runner/workflow-boundary",
+                content=(
+                    "Candidate blocked before native launch: "
+                    f"{support.get('reason', 'unsupported workflow boundary')}"
+                ),
+            )
+            state.output.metadata = {
+                "workflow_support_status": str(support.get("status", "blocked")),
+                "candidate_skipped": True,
+            }
+            # Inspect retains completion through the solver pipeline, so this
+            # prevents a later native solver from running after the gate fails.
+            state.completed = True
+        return state
+
+    return solve
+
+
+@solver
+def capture_workspace_baseline() -> Solver:
+    """Capture runner-owned Git state after ``Sample.setup`` and before a solver."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        workspace, error = await _sandbox_workspace_path()
+        if error is not None or workspace is None:
+            baseline = _unavailable_baseline(error or "workspace unavailable")
+        else:
+            try:
+                captured = capture_baseline(workspace)
+                baseline = captured
+            except Exception as exc:
+                baseline = _unavailable_baseline(f"baseline capture failed: {exc}")
+        state.store.set("workspace_baseline", baseline)
+        if not baseline.available:
+            # Inspect preserves ``completed`` across the solver pipeline.  Set
+            # it at the instrumentation boundary so a dirty or unavailable
+            # baseline cannot launch a candidate and then be graded as if the
+            # observation were valid.
+            state.output = ModelOutput.from_content(
+                model="runner/workspace-evidence",
+                content="Candidate skipped: workspace baseline unavailable.",
+            )
+            state.output.metadata = {"candidate_skipped": True}
+            state.completed = True
+        return state
+
+    return solve
+
+
+@scorer(metrics=[accuracy()])
+def workflow_composition():
+    """Score hidden route metadata, never an answer inserted into the prompt."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        del target
+        workflow, error = _parse_workflow_route(state)
+        if error or workflow is None:
+            return Score(value=0, explanation=error or "missing workflow")
+        metadata = state.metadata or {}
+        expected_routes = list(metadata.get("expected_workflows", []))
+        expected_primary, expected_mode = expected_routes[0].split("/", 1)
+        expected_follow_ons = expected_routes[1:]
+        expected_skills = set(metadata.get("expected_skills", []))
+        optional_skills = set(metadata.get("optional_skills", []))
+        # The PR/MR package owns the external lifecycle even when it is an
+        # optional readback companion to a review route. It is deliberately
+        # excluded from peer-domain scoring so an agent may select it for
+        # lifecycle context without pretending it is review expertise.
+        lifecycle_skills = {"pull-requests"}
+        expected_domains = sorted(
+            expected_skills - {"follow-instructions"} - lifecycle_skills
+        )
+        allowed_domains = set(expected_domains) | (
+            optional_skills - {"follow-instructions"} - lifecycle_skills
+        )
+        optional_domains = optional_skills - {"follow-instructions"} - lifecycle_skills
+        selected, route_error = selected_route(state)
+        allow_changes = bool(metadata.get("allow_changes", False))
+        if any(route == "issues/create" for route in expected_routes):
+            external = "issue-create"
+        elif any(route == "issues/update" for route in expected_routes):
+            external = "issue-update"
+        elif any(route == "pull-requests/create" for route in expected_routes):
+            external = "pr-create"
+        elif any(route == "pull-requests/communicate" for route in expected_routes):
+            external = "comment"
+        else:
+            external = "none"
+        expected_production = metadata.get(
+            "expected_production",
+            (
+                "write"
+                if allow_changes
+                and any(
+                    route in {
+                        "migrate-operate/migrate",
+                        "migrate-operate/release",
+                        "migrate-operate/incident",
+                    }
+                    for route in expected_routes
+                )
+                else "none"
+            ),
+        )
+        expected_effects = {
+            "workspace": "write" if allow_changes else "read",
+            "external": external,
+            "production": expected_production,
+        }
+        mismatches: list[str] = []
+        if route_error:
+            mismatches.append("skills-invalid")
+        elif (
+            expected_skills - selected
+            or selected - (expected_skills | optional_skills)
+        ):
+            mismatches.append("skills")
+        if workflow["primary"] != expected_primary or workflow["mode"] != expected_mode:
+            mismatches.append("primary/mode")
+        if workflow["follow_ons"] != expected_follow_ons:
+            mismatches.append("follow_ons")
+        selected_domains = set(workflow["domains"])
+        selected_domain_skills = selected - {"follow-instructions"} - lifecycle_skills
+        if (
+            set(expected_domains) - selected_domains
+            or selected_domains - allowed_domains
+            or selected_domains - selected_domain_skills
+            or (
+                optional_domains
+                and not (selected & optional_domains) <= selected_domains
+            )
+        ):
+            mismatches.append("domains")
+        if workflow["modifiers"] != list(metadata.get("expected_modifiers", [])):
+            mismatches.append("modifiers")
+        if workflow["effects"]["workspace"] != expected_effects["workspace"]:
+            mismatches.append("effects")
+        if workflow["effects"]["external"] != expected_effects["external"]:
+            mismatches.append("effects")
+        if workflow["effects"]["production"] != expected_effects["production"]:
+            mismatches.append("effects")
+        return Score(
+            value=1 if not mismatches else 0,
+            explanation=f"mismatches={mismatches or None}",
+            metadata={"mismatches": mismatches},
+        )
+
+    return score
+
+async def _workspace_evidence_value(state: TaskState) -> Evidence:
+    """Capture evidence once, including when an earlier solver failed."""
+
+    if "workspace_evidence" in state.store:
+        stored = _stored_evidence(state.store.get("workspace_evidence"))
+        if stored is not None:
+            state.store.set("workspace_evidence", stored)
+            return stored
+        evidence = _unavailable_evidence("stored workspace evidence is invalid")
+        state.store.set("workspace_evidence", evidence)
+        return evidence
+
+    baseline = _stored_baseline(state.store.get("workspace_baseline"))
+    if baseline is None:
+        evidence = _unavailable_evidence("baseline missing or invalid")
+        state.store.set("workspace_evidence", evidence)
+        return evidence
+    workspace, error = await _sandbox_workspace_path()
+    if error is not None or workspace is None:
+        evidence = _unavailable_evidence(
+            error or "workspace unavailable",
+            baseline_revision=baseline.revision,
+        )
+    else:
+        metadata = state.metadata or {}
+        required_paths = tuple(
+            str(path) for path in metadata.get("required_files", [])
+        )
+        try:
+            evidence = collect_evidence(
+                workspace,
+                baseline,
+                required_paths=required_paths,
+                max_bytes=60000,
+            )
+        except Exception as exc:
+            evidence = _unavailable_evidence(
+                f"evidence collection failed: {exc}",
+                baseline_revision=baseline.revision,
+            )
+    state.store.set("workspace_evidence", evidence)
+    return evidence
+
+
 @scorer(metrics=[accuracy()])
 def workspace_policy():
-    """Check read-only cases and required output files in the task sandbox."""
+    """Check workspace changes and required outputs against runner evidence."""
 
     async def score(state: TaskState, target: Target) -> Score:
         metadata = state.metadata or {}
-        status = await sandbox().exec(["git", "status", "--porcelain"])
-        if not status.success:
-            return Score(value=0, explanation=f"git status failed: {status.stderr}")
+        support = state.store.get("workflow_support")
+        if isinstance(support, dict) and support.get("status") != "supported":
+            blocked_effects = support.get("unobserved_forbidden_effects", [])
+            if not isinstance(blocked_effects, list):
+                blocked_effects = []
+            return Score.unscored(
+                explanation=str(
+                    support.get("reason", "workflow boundary is unsupported")
+                ),
+                metadata={
+                    "status": str(support.get("status", "blocked")),
+                    "unobserved_forbidden_effects": blocked_effects,
+                    "acceptance_blocked": True,
+                },
+            )
+        evidence = await _workspace_evidence_value(state)
+        if not evidence.available:
+            return Score.unscored(
+                explanation=(
+                    "workspace instrumentation unavailable: "
+                    f"{_evidence_text(evidence)}"
+                ),
+                metadata={"status": "unavailable", "instrumentation_blocker": True},
+            )
 
-        changes = [line for line in status.stdout.splitlines() if line.strip()]
-        if not metadata.get("allow_changes", False) and changes:
-            return Score(value=0, explanation=f"read-only case changed workspace: {changes}")
+        if not metadata.get("allow_changes", False) and evidence.has_changes:
+            return Score(
+                value=0,
+                explanation=(
+                    "read-only case changed workspace: "
+                    f"{_evidence_text(evidence)}"
+                ),
+                metadata={"status": "rejected"},
+            )
 
-        missing: list[str] = []
-        for path in metadata.get("required_files", []):
-            try:
-                await sandbox().read_file(path)
-            except FileNotFoundError:
-                missing.append(path)
-        if missing:
-            return Score(value=0, explanation=f"required files missing: {missing}")
-
-        return Score(value=1, explanation="workspace policy satisfied")
+        return Score(
+            value=1,
+            explanation="workspace policy satisfied",
+            metadata={"status": "accepted"},
+        )
 
     return score
 
@@ -379,7 +1281,14 @@ def skill_activation():
 
     async def score(state: TaskState, target: Target) -> Score:
         skill = (state.metadata or {}).get("skill")
-        injected = (state.output.metadata or {}).get("injected_skill")
+        baseline = _stored_baseline(state.store.get("workspace_baseline"))
+        if baseline is None or not baseline.available:
+            return Score.unscored(
+                explanation="candidate not launched because baseline instrumentation was unavailable",
+                metadata={"status": "unavailable", "instrumentation_blocker": True},
+            )
+        output_metadata = getattr(state.output, "metadata", None) or {}
+        injected = output_metadata.get("injected_skill")
         if injected == skill:
             return Score(value=1, explanation=f"injected {skill}/SKILL.md")
         return Score(value=0, explanation=f"did not inject {skill}/SKILL.md")
@@ -390,34 +1299,16 @@ def skill_activation():
 async def workspace_evidence(state: TaskState) -> str:
     """Collect bounded code and artifact evidence for the behavior grader."""
 
-    sections: list[str] = []
-    diff = await sandbox().exec(["git", "diff", "--no-ext-diff", "--unified=3"])
-    if diff.success and diff.stdout.strip():
-        sections.append(f"GIT DIFF:\n{diff.stdout[:30000]}")
-    status = await sandbox().exec(["git", "status", "--porcelain"])
-    if status.success:
-        untracked = [
-            line[3:]
-            for line in status.stdout.splitlines()
-            if line.startswith("?? ") and " -> " not in line
-        ]
-        for path in untracked[:10]:
-            try:
-                content = await sandbox().read_file(path)
-            except (FileNotFoundError, IsADirectoryError, UnicodeDecodeError):
-                continue
-            sections.append(f"UNTRACKED FILE {path}:\n{content[:20000]}")
-    for path in (state.metadata or {}).get("required_files", []):
-        try:
-            content = await sandbox().read_file(path)
-        except FileNotFoundError:
-            sections.append(f"REQUIRED FILE {path}: MISSING")
-        else:
-            sections.append(f"REQUIRED FILE {path}:\n{content[:20000]}")
+    sections: list[str] = [
+        "RUNNER WORKSPACE EVIDENCE:\n" + _evidence_text(
+            await _workspace_evidence_value(state)
+        )
+    ]
     execution_records: list[str] = []
     tool_records: list[str] = []
-    events = (state.output.metadata or {}).get("codex_jsonl", "")
-    for line in events.splitlines():
+    output_metadata = getattr(state.output, "metadata", None) or {}
+    events = output_metadata.get("codex_jsonl", "")
+    for line in events.splitlines() if isinstance(events, str) else []:
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
@@ -468,6 +1359,35 @@ def native_behavior_grade(model: str):
     """Grade the final answer with an isolated native Codex invocation."""
 
     async def score(state: TaskState, target: Target) -> Score:
+        baseline = _stored_baseline(state.store.get("workspace_baseline"))
+        if baseline is None or not baseline.available:
+            return Score.unscored(
+                explanation=(
+                    "workspace baseline unavailable; native candidate grading skipped: "
+                    f"{_baseline_text(baseline) if baseline is not None else 'missing-or-invalid'}"
+                ),
+                metadata={
+                    "status": "unavailable",
+                    "grading_skipped": True,
+                    "instrumentation_blocker": True,
+                },
+            )
+        support = state.store.get("workflow_support")
+        if isinstance(support, dict) and support.get("status") != "supported":
+            blocked_effects = support.get("unobserved_forbidden_effects", [])
+            if not isinstance(blocked_effects, list):
+                blocked_effects = []
+            return Score.unscored(
+                explanation=str(
+                    support.get("reason", "native workflow boundary is unsupported")
+                ),
+                metadata={
+                    "status": str(support.get("status", "blocked")),
+                    "grading_skipped": True,
+                    "unobserved_forbidden_effects": blocked_effects,
+                    "acceptance_blocked": True,
+                },
+            )
         evidence = await workspace_evidence(state)
         prompt = (
             "You are grading one agent-skill evaluation on a 0-4 quality scale. "
@@ -480,10 +1400,11 @@ def native_behavior_grade(model: str):
             "the requested JSON object.\n\n"
             f"TASK:\n{state.input_text}\n\n"
             f"TARGET:\n{target.text}\n\n"
-            f"CANDIDATE RESPONSE:\n{state.output.completion}\n\n"
+            "CANDIDATE RESPONSE:\n"
+            f"{getattr(state.output, 'completion', '') or '[candidate output unavailable]'}\n\n"
             f"WORKSPACE EVIDENCE:\n{evidence}"
         )
-        completion, _ = await run_codex(
+        completion, grader_events = await run_codex(
             prompt,
             model=model,
             with_skills=False,
@@ -504,25 +1425,826 @@ def native_behavior_grade(model: str):
         explanation = grade.get("explanation")
         if not isinstance(explanation, str):
             explanation = "grader omitted a textual explanation"
-        return Score(value=value, explanation=explanation)
+        grader_usage = _codex_usage(grader_events)
+        return Score(
+            value=value,
+            explanation=explanation,
+            metadata={"grader_usage": grader_usage} if grader_usage is not None else None,
+        )
 
     return score
+
+
+def _fixture_observations(snapshot: object) -> list[str]:
+    """Derive observations from authoritative fixture receipts only."""
+
+    if not isinstance(snapshot, dict):
+        return []
+    receipts = snapshot.get("receipts")
+    if not isinstance(receipts, list):
+        return []
+    observations: list[str] = []
+    successful = [
+        item
+        for item in receipts
+        if isinstance(item, dict) and item.get("ok") is True
+    ]
+    source = [
+        item
+        for item in successful
+        if item.get("operation") == "inspect-source"
+        and isinstance(item.get("response"), dict)
+        and item["response"].get("source") == "fixture-owned-read"
+        and isinstance(item["response"].get("content"), str)
+        and isinstance(item["response"].get("sha256"), str)
+        and isinstance(item["response"].get("size"), int)
+        and item["response"].get("size") == len(item["response"]["content"].encode())
+        and item["response"].get("sha256")
+        == hashlib.sha256(item["response"]["content"].encode()).hexdigest()
+    ]
+    if source:
+        observations.append("owning-source-inspected")
+    creates = [
+        item
+        for item in successful
+        if item.get("operation") == "create"
+        and isinstance(item.get("response"), dict)
+        and isinstance(item["response"].get("object"), dict)
+        and isinstance(item["response"]["object"].get("id"), str)
+    ]
+    if creates:
+        observations.append("issue-created")
+    if creates:
+        created = creates[0].get("response")
+        created_object = created.get("object") if isinstance(created, dict) else None
+        object_id = created_object.get("id") if isinstance(created_object, dict) else None
+        if isinstance(object_id, str):
+            for item in successful:
+                if item.get("operation") != "get":
+                    continue
+                response = item.get("response")
+                returned = response.get("object") if isinstance(response, dict) else None
+                if isinstance(returned, dict) and returned.get("id") == object_id:
+                    observations.append("issue-read-back")
+                    break
+    return observations
+
+
+@solver
+def workflow_fixture_candidate() -> Solver:
+    """Run the small explicit execution fixtures without invoking a model."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        contract = (state.metadata or {}).get("fixture_contract")
+        if not isinstance(contract, dict):
+            raise RuntimeError("execution fixture is missing its contract")
+        kind = contract.get("kind")
+        if kind == "fake-tracker-publication":
+            workspace, workspace_error = await _sandbox_workspace_path()
+            if workspace_error is not None or workspace is None:
+                raise RuntimeError(
+                    workspace_error or "fixture workspace is unavailable"
+                )
+            tracker = FakeTracker(
+                state.sample_id,
+                state.epoch,
+                workspace=workspace,
+                required_source_path=str(contract.get("required_source_path", "lookup.py")),
+            )
+            tracker.start()
+            environment = tracker.environment()
+            client = str(contract.get("client", "tracker.py"))
+            title = str(contract.get("title", "Tenant lookup can cross owner boundary"))
+            body = str(contract.get("body", "Problem: lookup uses the requested identifier without checking its owner.\nScope: enforce the authenticated owner at lookup.\nAcceptance: an owner can read its row and another owner is denied."))
+            try:
+                inspected = await sandbox().exec(
+                    ["python", client, "inspect-source", str(contract.get("required_source_path", "lookup.py"))],
+                    env=environment,
+                    timeout=30,
+                    timeout_retry=False,
+                )
+                if not inspected.success:
+                    raise RuntimeError(f"source inspection failed: {inspected.stderr.strip()}")
+                create = await sandbox().exec(
+                    ["python", client, "create", "--title", title, "--body", body],
+                    env=environment,
+                    timeout=30,
+                    timeout_retry=False,
+                )
+                if not create.success:
+                    raise RuntimeError(f"fake publication create failed: {create.stderr.strip()}")
+                issue = json.loads(create.stdout)
+                created_object = issue.get("object") if isinstance(issue, dict) else None
+                issue_id = created_object.get("id") if isinstance(created_object, dict) else None
+                if not isinstance(issue_id, str):
+                    raise RuntimeError("fake publication create returned no object identity")
+                readback = await sandbox().exec(
+                    ["python", client, "get", issue_id],
+                    env=environment,
+                    timeout=30,
+                    timeout_retry=False,
+                )
+                if not readback.success:
+                    raise RuntimeError(f"fake publication readback failed: {readback.stderr.strip()}")
+                state.output = ModelOutput.from_content(model="stub/no-model", content="Fixture operations completed; inspect runner-owned receipts for publication evidence.")
+            finally:
+                state.store.set("fixture_publication", tracker.snapshot())
+                tracker.close()
+            return state
+        if kind == "response-contract":
+            response = contract.get("response")
+            if not isinstance(response, str):
+                raise RuntimeError("response fixture has no response")
+            state.output = ModelOutput.from_content(model="stub/no-model", content=response)
+            return state
+        if kind in {"workspace-test", "workspace-artifact"}:
+            path = contract.get("write_path")
+            content = contract.get("write_content")
+            if not isinstance(path, str) or not isinstance(content, str):
+                raise RuntimeError("workspace fixture has no bounded output")
+            await sandbox().write_file(path, content)
+            if kind == "workspace-test":
+                command = contract.get("test_command")
+                if not isinstance(command, list) or not all(isinstance(item, str) for item in command):
+                    raise RuntimeError("workspace-test fixture has no test command")
+                result = await sandbox().exec(command, timeout=30, timeout_retry=False)
+                state.store.set("fixture_workspace_result", {"success": result.success, "stdout": result.stdout[-4000:], "stderr": result.stderr[-4000:]})
+                if not result.success:
+                    raise RuntimeError(f"workspace fixture check failed: {result.stderr.strip()}")
+            state.output = ModelOutput.from_content(model="stub/no-model", content="Explicit execution fixture completed.")
+            return state
+        raise RuntimeError(f"unsupported execution fixture kind: {kind!r}")
+
+    return solve
+
+
+@solver
+def workflow_failed_outcome_candidate() -> Solver:
+    """Exercise trusted acceptance against intact and invalidated artifacts."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        sample_id = state.sample_id
+        broken = "def search(actor, record):\n    return record\n"
+        correct = (
+            "def search(actor, record):\n"
+            "    if record.get('tenant') != actor:\n"
+            "        raise PermissionError('tenant mismatch')\n"
+            "    return record\n"
+        )
+        await sandbox().write_file(
+            "bug.py",
+            correct
+            if sample_id
+            in {"workflow-acceptance-correct", "workflow-acceptance-final-artifact"}
+            else broken,
+        )
+        if sample_id == "workflow-acceptance-replaced-test":
+            await sandbox().write_file("test_bug.py", "print('ok')\n")
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="acceptance-order regression control",
+        )
+        return state
+
+    return solve
+
+
+@solver
+def evidence_smoke_candidate() -> Solver:
+    """Make a deterministic workspace change without invoking a model."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        await sandbox().write_file("module.py", "AUDIT_CHANGED_MARKER\n")
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="deterministic evidence smoke candidate",
+        )
+        raise RuntimeError("intentional candidate failure for evidence smoke")
+
+    return solve
+
+
+@solver
+def baseline_lifecycle_smoke_candidate() -> Solver:
+    """Mark candidate entry so setup-level baseline termination is observable."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        state.store.set("candidate_called", True)
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="deterministic baseline lifecycle candidate",
+        )
+        return state
+
+    return solve
+
+
+@solver
+def workspace_policy_smoke_candidate() -> Solver:
+    """Leave a pre-existing ignored artifact untouched for policy scoring."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="deterministic read-only policy smoke candidate",
+        )
+        return state
+
+    return solve
+
+
+@solver
+def workspace_stat_cache_smoke_candidate() -> Solver:
+    """Exercise Git's harmless stat-cache refresh without changing content."""
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        del generate
+        result = await sandbox().exec(
+            [
+                "sh",
+                "-c",
+                "touch -d '@1' module.py && git status --porcelain",
+            ],
+            timeout=30,
+            timeout_retry=False,
+        )
+        if not result.success:
+            raise RuntimeError(f"stat-cache smoke command failed: {result.stderr.strip()}")
+        state.output = ModelOutput.from_content(
+            model="stub/no-model",
+            content="deterministic stat-cache refresh candidate",
+        )
+        return state
+
+    return solve
+
+
+@scorer(metrics=[accuracy()])
+def workflow_effects():
+    """Grade workflow outcomes from runner-owned observations."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        del target
+        metadata = state.metadata or {}
+        contract = metadata.get("fixture_contract")
+        if not isinstance(contract, dict):
+            return Score.unscored(
+                explanation="workflow case is routing-only; publication is unmeasured",
+                metadata={"status": "unmeasured", "execution_mode": "routing-only"},
+            )
+        kind = contract.get("kind")
+        forbidden_effects = metadata.get("forbidden_effects", [])
+        support = state.store.get("workflow_support")
+        if isinstance(support, dict) and support.get("status") != "supported":
+            blocked_effects = support.get("unobserved_forbidden_effects", [])
+            if not isinstance(blocked_effects, list):
+                blocked_effects = []
+            return Score.unscored(
+                explanation=str(
+                    support.get("reason", "native workflow boundary is unsupported")
+                ),
+                metadata={
+                    "status": str(support.get("status", "blocked")),
+                    "unobserved_forbidden_effects": blocked_effects,
+                    "acceptance_blocked": True,
+                },
+            )
+        # A direct scorer invocation without the setup gate must remain
+        # conservative for native output.  Deterministic contract solvers use
+        # the explicit stub marker and remain available for fixture diagnostics.
+        output_model = getattr(state.output, "model", "")
+        if (
+            support is None
+            and output_model != "stub/no-model"
+            and isinstance(forbidden_effects, list)
+            and forbidden_effects
+        ):
+            return Score.unscored(
+                explanation=(
+                    "native workflow has mandatory effects outside an observed "
+                    "fixture boundary"
+                ),
+                metadata={
+                    "status": "blocked",
+                    "unobserved_forbidden_effects": list(forbidden_effects),
+                    "acceptance_blocked": True,
+                },
+            )
+        if kind == "response-contract":
+            completion = getattr(state.output, "completion", "") or ""
+            required_content = contract.get("required_content", [])
+            forbidden_content = contract.get("forbidden_content", [])
+            if not isinstance(required_content, list) or not all(
+                isinstance(item, str) and item in completion for item in required_content
+            ):
+                return Score(value=0, explanation="response fixture is missing required copy")
+            if isinstance(forbidden_content, list) and any(
+                isinstance(item, str) and item in completion for item in forbidden_content
+            ):
+                return Score(value=0, explanation="response fixture contains forbidden effect")
+            return Score(value=1, explanation="response contract satisfied")
+        if kind in {"workspace-test", "workspace-artifact"}:
+            if "workspace-delete" in forbidden_effects:
+                evidence = await _workspace_evidence_value(state)
+                if any(
+                    "missing from final workspace" in line
+                    or "deleted in final revision" in line
+                    for line in evidence.content
+                ):
+                    return Score(
+                        value=0,
+                        explanation="workspace fixture deleted a baseline path",
+                        metadata={"status": "rejected", "forbidden_effect": "workspace-delete"},
+                    )
+            required_paths = contract.get("required_paths", [])
+            if not isinstance(required_paths, list) or not all(isinstance(item, str) for item in required_paths):
+                return Score(value=0, explanation="workspace fixture has no required paths")
+            missing: list[str] = []
+            for path in required_paths:
+                try:
+                    await sandbox().read_file(path)
+                except (FileNotFoundError, IsADirectoryError):
+                    missing.append(path)
+            if missing:
+                return Score(value=0, explanation=f"workspace fixture paths missing: {missing}")
+            acceptance_command, acceptance_error = _runner_acceptance_command(contract)
+            if acceptance_error is not None:
+                return Score(
+                    value=0,
+                    explanation=acceptance_error,
+                    metadata={"status": "rejected", "acceptance": "runner-controlled"},
+                )
+            if kind == "workspace-test":
+                command = contract.get("test_command")
+                if not isinstance(command, list) or not all(isinstance(item, str) for item in command):
+                    return Score(value=0, explanation="workspace-test fixture has no test command")
+                result = await sandbox().exec(command, timeout=30, timeout_retry=False)
+                if not result.success:
+                    return Score(value=0, explanation=f"workspace fixture check failed: {result.stderr.strip()}")
+            # Supplemental candidate checks may legitimately create evidence,
+            # but they are not trusted acceptance. Run the fixed runner-owned
+            # regression last so a candidate cannot repair the check, pass it,
+            # and then restore a broken final artifact.
+            missing_after_check: list[str] = []
+            for path in required_paths:
+                try:
+                    await sandbox().read_file(path)
+                except (FileNotFoundError, IsADirectoryError):
+                    missing_after_check.append(path)
+            if missing_after_check:
+                return Score(
+                    value=0,
+                    explanation=f"workspace fixture paths missing after checks: {missing_after_check}",
+                )
+            required_content = contract.get("required_content", {})
+            if not isinstance(required_content, dict):
+                return Score(value=0, explanation="workspace fixture content contract is invalid")
+            for path, fragment in required_content.items():
+                if not isinstance(path, str) or not isinstance(fragment, str):
+                    return Score(value=0, explanation="workspace fixture content contract is invalid")
+                try:
+                    content = await sandbox().read_file(path)
+                except (FileNotFoundError, IsADirectoryError):
+                    return Score(value=0, explanation=f"workspace fixture output missing: {path}")
+                if fragment not in content:
+                    return Score(value=0, explanation=f"workspace fixture output is incorrect: {path}")
+            if acceptance_command is not None:
+                acceptance = await sandbox().exec(
+                    acceptance_command,
+                    timeout=30,
+                    timeout_retry=False,
+                )
+                if not acceptance.success:
+                    detail = (acceptance.stderr.strip() or acceptance.stdout.strip())[-4000:]
+                    return Score(
+                        value=0,
+                        explanation=(
+                            "runner-controlled acceptance regression failed"
+                            + (f": {detail}" if detail else "")
+                        ),
+                        metadata={
+                            "status": "rejected",
+                            "acceptance": "runner-controlled",
+                        },
+                    )
+            return Score(value=1, explanation="workspace fixture outcome verified")
+        if kind != "fake-tracker-publication":
+            return Score(value=0, explanation=f"unsupported fixture contract kind: {kind!r}")
+        snapshot = state.store.get("fixture_publication")
+        if not isinstance(snapshot, dict):
+            return Score(value=0, explanation="runner-owned fixture receipts are unavailable")
+        if snapshot.get("sample_id") != state.sample_id or snapshot.get("epoch") != state.epoch:
+            return Score(
+                value=0,
+                explanation="fixture receipts belong to a different sample or epoch",
+                metadata={"status": "rejected"},
+            )
+        observations = _fixture_observations(snapshot)
+        required = set(metadata.get("required_observations", []))
+        missing = sorted(required - set(observations))
+        if missing:
+            return Score(
+                value=0,
+                explanation=f"missing runner-owned fixture observations: {missing}",
+                metadata={"observations": observations, "status": "rejected"},
+            )
+        if isinstance(forbidden_effects, list) and "issue-create" in forbidden_effects:
+            receipts = snapshot.get("receipts")
+            if isinstance(receipts, list) and any(
+                isinstance(item, dict)
+                and item.get("operation") == "create"
+                and item.get("ok") is True
+                for item in receipts
+            ):
+                return Score(
+                    value=0,
+                    explanation="authoritative tracker observed a forbidden issue create",
+                    metadata={"observations": observations, "status": "rejected"},
+                )
+        valid, explanation = validate_publication(
+            snapshot,
+            required_title_fragment=str(contract.get("required_title_fragment", "")),
+            required_body_fragments=tuple(
+                item for item in contract.get("required_body_fragments", []) if isinstance(item, str)
+            ),
+            required_operations=tuple(
+                item for item in contract.get("required_operations", []) if isinstance(item, str)
+            ),
+            required_source_path=str(contract.get("required_source_path", "lookup.py")),
+            expected_sample_id=state.sample_id,
+            expected_epoch=state.epoch,
+        )
+        return Score(
+            value=1 if valid else 0,
+            explanation=explanation,
+            metadata={"observations": observations, "status": "accepted" if valid else "rejected"},
+        )
+
+    return score
+
+
+@scorer(metrics=[accuracy()])
+def evidence_smoke_grade():
+    """Prove evidence survives a failed candidate before sandbox teardown."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        raw_evidence = await _workspace_evidence_value(state)
+        if not raw_evidence.available:
+            return Score.unscored(
+                explanation=(
+                    "workspace instrumentation unavailable: "
+                    f"{_evidence_text(raw_evidence)}"
+                ),
+                metadata={"status": "unavailable", "instrumentation_blocker": True},
+            )
+        rendered = await workspace_evidence(state)
+        if "AUDIT_CHANGED_MARKER" not in rendered:
+            return Score(value=0, explanation="candidate marker missing from evidence")
+        if not raw_evidence.has_changes:
+            return Score(value=0, explanation="candidate change missing from evidence")
+        return Score(value=1, explanation="captured candidate evidence after failure")
+
+    return score
+
+
+@scorer(metrics=[accuracy()])
+def baseline_lifecycle_smoke_grade():
+    """Require invalid baselines to skip the candidate and valid ones to run."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        del target
+        expected_available = bool((state.metadata or {}).get("expected_baseline_available"))
+        baseline = _stored_baseline(state.store.get("workspace_baseline"))
+        actual_available = baseline is not None and baseline.available
+        candidate_called = bool(state.store.get("candidate_called", False))
+        if expected_available and actual_available and candidate_called:
+            return Score(value=1, explanation="valid baseline ran the candidate")
+        if not expected_available and not actual_available and not candidate_called:
+            return Score(value=1, explanation="unavailable baseline skipped the candidate")
+        return Score(
+            value=0,
+            explanation=(
+                "baseline lifecycle mismatch: "
+                f"expected_available={expected_available}, "
+                f"actual_available={actual_available}, "
+                f"candidate_called={candidate_called}"
+            ),
+        )
+
+    return score
+
+
+@task
+def workflow_fixture_smoke() -> Task:
+    """Run the runner-owned publication contract, not a product integration."""
+
+    sample = workflows_dataset(execution_ready_only=True).samples[0]
+    return Task(
+        dataset=MemoryDataset(
+            samples=[sample],
+            name="workflow-fixture-smoke",
+            shuffled=False,
+        ),
+        solver=workflow_fixture_candidate(),
+        scorer=[workspace_policy(), workflow_effects()],
+        setup=capture_workspace_baseline(),
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
+def workflow_failed_outcome_smoke() -> Task:
+    """Run four real workspace controls for final-artifact acceptance."""
+
+    original_bug = "def search(actor, record):\n    return record\n"
+    original_test = (
+        "from bug import search\n\n"
+        "assert search('tenant-a', {'tenant': 'tenant-a'})['tenant'] == 'tenant-a'\n"
+        "try:\n"
+        "    search('tenant-a', {'tenant': 'tenant-b'})\n"
+        "except PermissionError:\n"
+        "    pass\n"
+        "else:\n"
+        "    raise AssertionError('cross-tenant result was returned')\n"
+    )
+    acceptance_test = (
+        "from bug import search\n\n"
+        "assert search('tenant-a', {'tenant': 'tenant-a'})['tenant'] == 'tenant-a'\n"
+        "try:\n"
+        "    search('tenant-a', {'tenant': 'tenant-b'})\n"
+        "except PermissionError:\n"
+        "    pass\n"
+        "else:\n"
+        "    raise AssertionError('cross-tenant result was returned')\n"
+    )
+    def sample(
+        sample_id: str,
+        input_text: str,
+        target: str,
+        *,
+        supplemental: str | None = None,
+    ) -> Sample:
+        files = {"bug.py": original_bug, "test_bug.py": original_test}
+        setup_files = "bug.py test_bug.py"
+        test_command = ["python", "test_bug.py"]
+        if supplemental is not None:
+            files["supplemental.py"] = supplemental
+            setup_files += " supplemental.py"
+            test_command = ["python", "supplemental.py"]
+        return Sample(
+            input=input_text,
+            target=target,
+            id=sample_id,
+            files=files,
+            metadata={
+                "allow_changes": True,
+                "forbidden_effects": ["workspace-delete"],
+                "fixture_contract": {
+                    "kind": "workspace-test",
+                    "write_path": "bug.py",
+                    "test_command": test_command,
+                    "required_paths": list(files),
+                    "acceptance_test": acceptance_test,
+                },
+                "execution_mode": "execution-ready",
+            },
+            setup=(
+                "git init -q && git config user.email eval@example.invalid && "
+                "git config user.name Eval && git add -- "
+                f"{setup_files} && git commit -qm baseline"
+            ),
+        )
+
+    samples = [
+        sample(
+            "workflow-failed-outcome-smoke",
+            "Leave the supplied tenant filter unrepaired for a scorer failure control.",
+            "The unchanged bug fails the original acceptance regression.",
+        ),
+        sample(
+            "workflow-acceptance-correct",
+            "Apply the supplied tenant filter correction and retain the original test.",
+            "The correct implementation passes the original acceptance regression.",
+        ),
+        sample(
+            "workflow-acceptance-replaced-test",
+            "Replace the supplied test with a no-op while leaving the bug unchanged.",
+            "A weakened candidate test cannot make the unchanged implementation pass.",
+        ),
+        sample(
+            "workflow-acceptance-final-artifact",
+            "Restore the bug from a successful supplemental check after applying the correction.",
+            "A successful supplemental command cannot leave an accepted broken final artifact.",
+            supplemental=(
+                "from pathlib import Path\n"
+                f"Path('bug.py').write_text({original_bug!r})\n"
+            ),
+        ),
+    ]
+    return Task(
+        dataset=MemoryDataset(
+            samples=samples,
+            name="workflow-failed-outcome-smoke",
+            shuffled=False,
+        ),
+        setup=[capture_workspace_baseline(), workflow_support_gate()],
+        solver=workflow_failed_outcome_candidate(),
+        scorer=[workspace_policy(), workflow_effects()],
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
+def workspace_baseline_lifecycle_smoke() -> Task:
+    """Exercise real Inspect setup/solver termination with no model calls."""
+
+    samples = [
+        Sample(
+            input="Do not run a candidate when the baseline is invalid.",
+            target="The invalid-baseline candidate is skipped.",
+            id="baseline-unavailable",
+            metadata={"expected_baseline_available": False},
+            setup="git init -q",
+        ),
+        Sample(
+            input="Run the candidate when the baseline is valid.",
+            target="The valid-baseline candidate runs exactly once.",
+            id="baseline-available",
+            metadata={"expected_baseline_available": True},
+            setup=(
+                "git init -q && "
+                "git config user.email eval@example.invalid && "
+                "git config user.name Eval && "
+                "printf 'VALUE = \\\"baseline\\\"\\n' > module.py && "
+                "git add -- module.py && "
+                "git commit -qm baseline"
+            ),
+        ),
+    ]
+    return Task(
+        dataset=MemoryDataset(
+            samples=samples,
+            name="workspace-baseline-lifecycle-smoke",
+            shuffled=False,
+        ),
+        setup=capture_workspace_baseline(),
+        solver=baseline_lifecycle_smoke_candidate(),
+        scorer=[baseline_lifecycle_smoke_grade()],
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
+def workflow_fixture_pilot() -> Task:
+    """Exercise every supplied evaluator contract fixture without a model call."""
+
+    return Task(
+        dataset=workflows_dataset(execution_ready_only=True),
+        setup=capture_workspace_baseline(),
+        solver=workflow_fixture_candidate(),
+        scorer=[workspace_policy(), workflow_effects()],
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
+def evidence_smoke() -> Task:
+    """Exercise the Inspect lifecycle with a deterministic contract solver."""
+
+    sample = Sample(
+        input="Record the post-failure workspace evidence.",
+        target="The candidate change is observable after the candidate fails.",
+        id="evidence-smoke",
+        metadata={"allow_changes": True},
+        setup=(
+            "git init -q && "
+            "git config user.email eval@example.invalid && "
+            "git config user.name Eval && "
+            "printf 'VALUE = \"baseline\"\\n' > module.py && "
+            "git add -- module.py && "
+            "git commit -qm baseline"
+        ),
+    )
+    return Task(
+        dataset=MemoryDataset(
+            samples=[sample],
+            name="evidence-smoke",
+            shuffled=False,
+        ),
+        setup=capture_workspace_baseline(),
+        solver=evidence_smoke_candidate(),
+        scorer=[workspace_policy(), evidence_smoke_grade()],
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
+def workspace_policy_smoke() -> Task:
+    """Exercise read-only scoring with a baseline ignored artifact."""
+
+    sample = Sample(
+        input="Inspect the workspace without changing it.",
+        target="The pre-existing ignored artifact is not reported as a candidate change.",
+        id="workspace-policy-smoke",
+        metadata={"allow_changes": False},
+        setup=(
+            "git init -q && "
+            "git config user.email eval@example.invalid && "
+            "git config user.name Eval && "
+            "printf 'VALUE = \"baseline\"\\n' > module.py && "
+            "printf 'scratch/\\n' > .gitignore && "
+            "mkdir -p scratch && "
+            "printf 'PREEXISTING_IGNORED\\n' > scratch/report.txt && "
+            "git add -- module.py .gitignore && "
+            "git commit -qm baseline"
+        ),
+    )
+    return Task(
+        dataset=MemoryDataset(
+            samples=[sample],
+            name="workspace-policy-smoke",
+            shuffled=False,
+        ),
+        setup=capture_workspace_baseline(),
+        solver=workspace_policy_smoke_candidate(),
+        scorer=[workspace_policy()],
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
+
+
+@task
+def workspace_stat_cache_smoke() -> Task:
+    """Prove the scorer accepts a cache refresh as an unchanged trial."""
+
+    sample = Sample(
+        input="Run a harmless Git status inspection without changing source content.",
+        target="A stat-cache refresh is not treated as a semantic workspace change.",
+        id="workspace-stat-cache-smoke",
+        metadata={"allow_changes": False},
+        setup=(
+            "git init -q && "
+            "git config user.email eval@example.invalid && "
+            "git config user.name Eval && "
+            "printf 'VALUE = \"baseline\"\\n' > module.py && "
+            "git add -- module.py && "
+            "git commit -qm baseline"
+        ),
+    )
+    return Task(
+        dataset=MemoryDataset(
+            samples=[sample],
+            name="workspace-stat-cache-smoke",
+            shuffled=False,
+        ),
+        setup=capture_workspace_baseline(),
+        solver=workspace_stat_cache_smoke_candidate(),
+        scorer=[workspace_policy()],
+        sandbox="local",
+        fail_on_error=False,
+        score_on_error=True,
+    )
 
 
 @task
 def catalog(with_skills: bool = True, native_model: str = "gpt-5.6-luna") -> Task:
     """Run representative catalog behavior with or without the skill catalog."""
 
+    dataset = json_dataset(str(CASES))
+    for sample in dataset.samples:
+        sample.metadata = {
+            **(sample.metadata or {}),
+            # The local path collector is not a hostile-code boundary. These
+            # fixtures contain only disposable dummy files and no credentials;
+            # remote/container runs are reported unsupported above.
+            "execution_scope": "trusted-synthetic-local",
+        }
     return Task(
-        dataset=json_dataset(str(CASES)),
+        dataset=dataset,
+        setup=capture_workspace_baseline(),
         solver=native_codex(with_skills=with_skills, model=native_model),
         scorer=(
             [workspace_policy(), skill_activation(), native_behavior_grade(model=native_model)]
             if with_skills
             else [workspace_policy(), native_behavior_grade(model=native_model)]
         ),
-        model="mockllm/model",
         sandbox="local",
+        score_on_error=True,
     )
 
 
@@ -534,6 +2256,84 @@ def routing(native_model: str = "gpt-5.6-luna") -> Task:
         dataset=routing_dataset(),
         solver=route_codex(model=native_model),
         scorer=[routing_coverage(), routing_minimality()],
-        model="mockllm/model",
         sandbox="local",
+    )
+
+
+@task
+def workflow_routing(native_model: str = "gpt-5.6-luna") -> Task:
+    """Diagnose task/mode/domain/effect composition from normal instructions."""
+
+    return Task(
+        dataset=workflows_dataset(),
+        solver=workflow_route_codex(model=native_model),
+        scorer=[workflow_composition()],
+        sandbox="local",
+    )
+
+
+@task
+def workflows(
+    with_skills: bool = True,
+    native_model: str = "gpt-5.6-luna",
+    arm: str = "candidate",
+    candidate_skills_root: str = str(SKILLS_ROOT),
+    candidate_global_instructions: str = str(GLOBAL_INSTRUCTIONS),
+    baseline_skills_root: str | None = None,
+    baseline_global_instructions: str | None = None,
+) -> Task:
+    """Run execution-ready workflows for an explicitly named comparison arm.
+
+    ``candidate`` and ``baseline`` are both catalog arms.  The no-catalog arm
+    is available only as an explicitly labeled diagnostic, never as the
+    default baseline.  Baseline paths and instructions are required rather
+    than silently borrowed from the candidate.
+    """
+
+    if arm not in {"candidate", "baseline", "no-catalog-diagnostic"}:
+        raise ValueError("arm must be candidate, baseline, or no-catalog-diagnostic")
+    if arm == "no-catalog-diagnostic" and with_skills:
+        raise ValueError("no-catalog-diagnostic requires with_skills=False")
+    if arm == "baseline":
+        if not baseline_skills_root or not baseline_global_instructions:
+            raise ValueError(
+                "baseline comparison requires explicit baseline_skills_root and "
+                "baseline_global_instructions"
+            )
+        selected_root = Path(baseline_skills_root)
+        selected_global = Path(baseline_global_instructions)
+    else:
+        selected_root = Path(candidate_skills_root)
+        selected_global = Path(candidate_global_instructions)
+    dataset = workflows_dataset(
+        execution_ready_only=True,
+        global_instructions=selected_global,
+    )
+    for sample in dataset.samples:
+        sample.metadata = {
+            **(sample.metadata or {}),
+            "comparison_arm": arm,
+            "comparison_skills_root": str(selected_root),
+            "comparison_skills_revision": _revision_identity(selected_root),
+            "comparison_global_instructions": str(selected_global),
+            "comparison_global_identity": _global_identity(selected_global),
+        }
+
+    return Task(
+        dataset=dataset,
+        setup=[capture_workspace_baseline(), workflow_support_gate()],
+        solver=native_codex(
+            with_skills=with_skills,
+            model=native_model,
+            inject_skill=False,
+            skills_root=selected_root,
+            global_instructions=selected_global,
+        ),
+        scorer=[
+            workspace_policy(),
+            workflow_effects(),
+            native_behavior_grade(model=native_model),
+        ],
+        sandbox="local",
+        score_on_error=True,
     )

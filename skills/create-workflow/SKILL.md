@@ -1,6 +1,6 @@
 ---
 name: create-workflow
-description: Create or simplify a repeatable repository workflow into the smallest deterministic artifact. Do not add automation for one-off tasks.
+description: Turn a recurring repository decision into a small, repeatable workflow.
 ---
 
 # Create Workflow
