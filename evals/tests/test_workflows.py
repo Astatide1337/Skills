@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import socket
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -144,6 +145,80 @@ class WorkflowContractTests(unittest.TestCase):
             self.assertEqual(metadata.get("execution_mode"), "execution-ready")
             self.assertIsInstance(metadata.get("fixture_contract"), dict)
             self.assertTrue(sample.files)
+
+    def test_runner_acceptance_is_the_original_test_not_a_source_fragment(self) -> None:
+        sample = next(
+            sample
+            for sample in skills.workflows_dataset(execution_ready_only=True).samples
+            if sample.id == "workflow-native-local-repair"
+        )
+        contract = (sample.metadata or {}).get("fixture_contract")
+        self.assertIsInstance(contract, dict)
+        self.assertEqual(contract.get("acceptance_test"), sample.files["test_bug.py"])
+        self.assertNotIn("required_content", contract)
+
+    def test_runner_acceptance_distinguishes_fix_broken_code_and_replaced_test(self) -> None:
+        sample = next(
+            sample
+            for sample in skills.workflows_dataset(execution_ready_only=True).samples
+            if sample.id == "workflow-native-local-repair"
+        )
+        contract = (sample.metadata or {}).get("fixture_contract")
+        self.assertIsInstance(contract, dict)
+        acceptance_command, error = skills._runner_acceptance_command(contract)
+        self.assertIsNone(error)
+        self.assertIsNotNone(acceptance_command)
+        command = acceptance_command or []
+        original_bug = sample.files["bug.py"]
+        original_test = sample.files["test_bug.py"]
+        correct_bug = str(contract["write_content"])
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            (workspace / "bug.py").write_text(correct_bug)
+            (workspace / "test_bug.py").write_text(original_test)
+            fixed = subprocess.run(
+                command,
+                cwd=workspace,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(fixed.returncode, 0, fixed.stderr)
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            (workspace / "bug.py").write_text(original_bug)
+            (workspace / "test_bug.py").write_text(original_test)
+            broken = subprocess.run(
+                command,
+                cwd=workspace,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(broken.returncode, 0)
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            (workspace / "bug.py").write_text(original_bug)
+            (workspace / "test_bug.py").write_text("print('ok')\n")
+            weakened_test = subprocess.run(
+                ["python", "-S", "-B", "test_bug.py"],
+                cwd=workspace,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(weakened_test.returncode, 0, weakened_test.stderr)
+            runner_check = subprocess.run(
+                command,
+                cwd=workspace,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(runner_check.returncode, 0)
 
     def test_standalone_verification_has_a_coherent_route(self) -> None:
         schema = json.loads(skills.WORKFLOW_ROUTE_SCHEMA.read_text())

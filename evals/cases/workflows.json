@@ -103,7 +103,7 @@
         "write_content": "def search(actor, record):\n    if record.get('tenant') != actor:\n        raise PermissionError('tenant mismatch')\n    return record\n",
         "test_command": ["python", "test_bug.py"],
         "required_paths": ["bug.py", "test_bug.py"],
-        "required_content": {"bug.py": "tenant mismatch"}
+        "acceptance_test": "from bug import search\n\nassert search('tenant-a', {'tenant': 'tenant-a', 'value': 1})['value'] == 1\ntry:\n    search('tenant-a', {'tenant': 'tenant-b', 'value': 2})\nexcept PermissionError:\n    pass\nelse:\n    raise AssertionError('cross-tenant result was returned')\n"
       }
     }
   },
@@ -132,7 +132,7 @@
         "write_content": "def search(actor, record):\n    if record.get('tenant') != actor:\n        raise PermissionError('tenant mismatch')\n    return record\n",
         "test_command": ["python", "test_bug.py"],
         "required_paths": ["bug.py", "test_bug.py"],
-        "required_content": {"bug.py": "PermissionError"}
+        "acceptance_test": "from bug import search\n\nassert search('tenant-a', {'tenant': 'tenant-a', 'value': 1})['value'] == 1\ntry:\n    search('tenant-a', {'tenant': 'tenant-b', 'value': 2})\nexcept PermissionError:\n    pass\nelse:\n    raise AssertionError('cross-tenant result was returned')\n"
       }
     }
   },

@@ -84,6 +84,7 @@ WORKFLOW_DEFAULT_SETUP = (
     "git config user.name Eval && git add . && "
     "git commit --allow-empty -qm baseline"
 )
+MAX_ACCEPTANCE_TEST_BYTES = 60_000
 SKILL_NAMES = {
     path.name
     for path in SKILLS_ROOT.iterdir()
@@ -941,6 +942,25 @@ def _workflow_observed_effects(kind: str) -> set[str]:
     return set()
 
 
+def _runner_acceptance_command(
+    contract: Mapping[str, object],
+) -> tuple[list[str] | None, str | None]:
+    """Build the fixed acceptance regression command from runner-owned input."""
+
+    acceptance_test = contract.get("acceptance_test")
+    if acceptance_test is None:
+        return None, None
+    if not isinstance(acceptance_test, str) or not acceptance_test.strip():
+        return None, "runner acceptance regression is missing"
+    if len(acceptance_test.encode("utf-8")) > MAX_ACCEPTANCE_TEST_BYTES:
+        return None, "runner acceptance regression exceeds the bounded test limit"
+    # ``-S`` prevents a candidate-provided sitecustomize from changing the
+    # check, while ``-B`` keeps this runner-owned probe from creating artifacts.
+    # The working directory remains the candidate workspace so the regression
+    # imports the candidate implementation, not a copied source tree.
+    return ["python", "-S", "-B", "-c", acceptance_test], None
+
+
 async def _workflow_support_status(state: TaskState) -> dict[str, object]:
     """Check the exact native boundary before allowing a model to run."""
 
@@ -1649,7 +1669,7 @@ def workspace_stat_cache_smoke_candidate() -> Solver:
 
 @scorer(metrics=[accuracy()])
 def workflow_effects():
-    """Grade fake publication from runner-owned operation receipts."""
+    """Grade workflow outcomes from runner-owned observations."""
 
     async def score(state: TaskState, target: Target) -> Score:
         del target
@@ -1735,6 +1755,32 @@ def workflow_effects():
                     missing.append(path)
             if missing:
                 return Score(value=0, explanation=f"workspace fixture paths missing: {missing}")
+            acceptance_command, acceptance_error = _runner_acceptance_command(contract)
+            if acceptance_error is not None:
+                return Score(
+                    value=0,
+                    explanation=acceptance_error,
+                    metadata={"status": "rejected", "acceptance": "runner-controlled"},
+                )
+            if acceptance_command is not None:
+                acceptance = await sandbox().exec(
+                    acceptance_command,
+                    timeout=30,
+                    timeout_retry=False,
+                )
+                if not acceptance.success:
+                    detail = (acceptance.stderr.strip() or acceptance.stdout.strip())[-4000:]
+                    return Score(
+                        value=0,
+                        explanation=(
+                            "runner-controlled acceptance regression failed"
+                            + (f": {detail}" if detail else "")
+                        ),
+                        metadata={
+                            "status": "rejected",
+                            "acceptance": "runner-controlled",
+                        },
+                    )
             required_content = contract.get("required_content", {})
             if not isinstance(required_content, dict):
                 return Score(value=0, explanation="workspace fixture content contract is invalid")
@@ -1910,7 +1956,16 @@ def workflow_failed_outcome_smoke() -> Task:
                 "write_path": "bug.py",
                 "test_command": ["python", "test_bug.py"],
                 "required_paths": ["bug.py", "test_bug.py"],
-                "required_content": {"bug.py": "PermissionError"},
+                "acceptance_test": (
+                    "from bug import search\n\n"
+                    "assert search('tenant-a', {'tenant': 'tenant-a'})['tenant'] == 'tenant-a'\n"
+                    "try:\n"
+                    "    search('tenant-a', {'tenant': 'tenant-b'})\n"
+                    "except PermissionError:\n"
+                    "    pass\n"
+                    "else:\n"
+                    "    raise AssertionError('cross-tenant result was returned')\n"
+                ),
             },
             "execution_mode": "execution-ready",
         },
