@@ -221,3 +221,43 @@ production behavior remain unmeasured or unsupported. The six blocked workflow
 cases remain contract diagnostics, not validation. The native comparison has
 one repeated pair and therefore cannot establish general reliability or a
 quality/cost win.
+
+## Post-audit: evaluator inventory and code cleanup skill
+
+The current PR19 candidate adds `deslop` at commit `be78b4b`. The source is
+Cursor's public `cursor-team-kit/skills/deslop/SKILL.md`, pinned in
+`catalog.yaml` to Cursor/plugins commit
+`889ec4b68fa5aab0e867dad71ec3fdf386ae48f3`. It is a code-diff cleanup skill;
+the existing `unslop` remains the prose rewrite owner. The new primary case is
+`deslop-generated-code-cleanup`; it is catalog behavior coverage only and was
+not run as a native model task.
+
+The fake tracker remains an optional evaluator fixture, not a daily-use or
+product dependency. It is imported only by the publication-contract path and
+is covered by tests for runner-owned source bytes, ordering, same-object
+readback, idempotent replay, conflicting duplicates, forged state, and
+sample/epoch isolation. Its receipts are not live GitHub/GitLab evidence and
+are never counted as product or browser verification. Removing it would delete
+those contract regressions rather than simplify installed skills.
+
+Checks run against the committed candidate:
+
+| Command | Result |
+|---|---|
+| `./scripts/validate-skills.sh` | 22 skills, 22 behavior cases, 6 routing cases, 21 workflow cases validated |
+| `uv sync --frozen` | dependency environment already synchronized |
+| `uv run python -m unittest discover -s evals/tests -p 'test_*.py'` | 54 passed |
+| `uv run inspect list tasks evals/skills.py` | 11 task entry points discovered |
+| `uv run inspect eval ...@workflow_fixture_smoke --max-samples 1` | contract diagnostic passed (1.000/1.000) |
+| `uv run inspect eval ...@workflow_failed_outcome_smoke --max-samples 4` | expected controls: workspace 1.000; outcome 0.250 |
+| `uv run inspect eval ...@workspace_baseline_lifecycle_smoke --max-samples 2` | lifecycle diagnostic passed (1.000) |
+| `uv run inspect eval ...@workspace_policy_smoke --max-samples 1` | policy diagnostic passed (1.000) |
+| `uv run inspect eval ...@workspace_stat_cache_smoke --max-samples 1` | cache diagnostic passed (1.000) |
+| `uv run inspect eval ...@evidence_smoke --max-samples 1` | evidence scorer passed (1.000); one intentional candidate error was reported by Inspect |
+| `uv run inspect eval ...@workflow_fixture_pilot --max-samples 7` | fixture contract diagnostic passed (1.000/1.000) |
+| disposable `install.sh --all/--skill ... --target ...` | full 22-skill and selected entry/deslop installs succeeded; entry resources copied |
+
+These are structural, lifecycle, and evaluator-contract checks. No new native
+model run, live tracker write, browser session, or production operation was
+performed for this audit. The newly added deslop behavior and every live
+external-effect workflow remain unmeasured until a real authorized task is run.
