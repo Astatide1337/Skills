@@ -159,6 +159,15 @@ native pilot case is `workflow-native-local-repair`, which checks the actual
 edited checkout and runs its supplied regression test. It does not establish
 live tracker, pull-request, deployment, browser, or adversarial behavior.
 
+That local workflow also runs a runner-controlled copy of the original
+acceptance regression from the supplied case metadata, before any
+candidate-supplied test command. The check imports the candidate's changed
+implementation in the disposable workspace, so replacing `test_bug.py` or
+mentioning an exception in a source comment cannot satisfy the behavioral
+acceptance. The runner-owned regression is separate from the candidate's own
+tests and is reported as local contract evidence, not live product
+verification.
+
 For a fair native comparison, select both catalog arms explicitly. The baseline
 must point at the last accepted checkout and its matching global instructions;
 the no-catalog control is an optional diagnostic, not the baseline:

@@ -8,7 +8,9 @@ model transcripts, credentials, tracker objects, or binary Inspect logs.
 - shared base: `3ad2f8c24ce9e3d65128d45f87b4e294610b4d12`
 - PR18 evidence head used: `d74071b87b55c7c3ceac88d983d86ad704740ed8`
 - PR19 workflow implementation commit: `128864f94bc6d796fb5e6261558743175c0154ba`
-  (the final branch head will also include this report/README update)
+  (historical implementation commit; the follow-up is recorded below)
+- PR19 acceptance-control follow-up: `8237822c0de356f9c7597da331db1edc9fffce4f`
+  (current branch head for this follow-up)
 - evaluator: Inspect `0.3.259`, local sandbox, runner-owned contract diagnostics
   and one native local-repair task
 - native model configuration when applicable: `gpt-5.6-luna`, reasoning effort
@@ -23,15 +25,25 @@ model transcripts, credentials, tracker objects, or binary Inspect logs.
 | Command | Repetitions | Result |
 |---|---:|---|
 | `./scripts/validate-skills.sh` | 1 | 21 skills, 21 behavior cases, 6 routing cases, 21 workflow cases validated |
-| `uv run python -m unittest discover -s evals/tests -p 'test_*.py'` | 1 | 51/51 passed on the combined stack |
+| `uv run python -m unittest evals.tests.test_workflows` | 1 | 16/16 passed, including runner-owned acceptance controls |
+| `uv run python -m unittest discover -s evals/tests -p 'test_*.py'` | 1 | 53/53 passed on the combined stack |
 | `uv run inspect eval evals/skills.py@evidence_smoke --max-samples 1` | 1 | contract lifecycle/evidence checks passed; intentional candidate error preserved |
 | `uv run inspect eval evals/skills.py@workspace_baseline_lifecycle_smoke --max-samples 2` | 1 | contract check passed; invalid baseline skipped, valid baseline launched |
 | `uv run inspect eval evals/skills.py@workspace_policy_smoke --max-samples 1` | 1 | contract check passed |
 | `uv run inspect eval evals/skills.py@workspace_stat_cache_smoke --max-samples 1` | 1 | contract check passed |
 | `uv run inspect eval evals/skills.py@workflow_fixture_smoke --max-samples 1` | 1 | evaluator-contract check passed |
-| `uv run inspect eval evals/skills.py@workflow_fixture_pilot --max-samples 7` | 1 | evaluator-contract diagnostics completed across seven execution-ready cases |
-| `uv run inspect eval evals/skills.py@workflow_failed_outcome_smoke --max-samples 1` | 1 | supported local contract rejected the intentionally failing outcome (workspace 1.000, outcome 0.000) |
+| `uv run inspect eval evals/skills.py@workflow_failed_outcome_smoke --max-samples 1` | 1 | supported local contract rejected the intentionally failing outcome through the runner-owned acceptance regression (workspace 1.000, outcome 0.000) |
+| `uv run inspect eval evals/skills.py@workflow_fixture_pilot --max-samples 7` | 1 | current seven-case evaluator-contract diagnostics completed (workspace/effects 1.000; not product verification) |
 | `uv run inspect list tasks evals/skills.py` | 1 | 11 task entry points discovered; discovery only |
+
+The follow-up also ran `uv sync --frozen`, `uv run python scripts/validate_catalog.py`,
+`uv run inspect list tasks evals/skills.py`, and the installed CLI startup probe
+with `codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check
+--sandbox read-only --model gpt-5.6-luna -c 'model_reasoning_effort="max"'`;
+the probe returned `STARTUP_OK`. `uv run python -m compileall -q
+evals/skills.py evals/tests/test_workflows.py` passed. The optional `ruff`
+check was attempted but is unavailable in this environment (`ruff` executable
+and Python module are not installed), so no lint result is claimed.
 
 Execution-ready case IDs:
 `workflow-investigate-create-issue`, `workflow-draft-issue`,
@@ -115,6 +127,34 @@ was launched and all three outcome scorers were unscored with
 `acceptance_blocked=true`. The reasons identify the unobserved tracker,
 publication, merge, deployment, or production boundaries. This is a blocked
 configuration count, not six agent failures.
+
+## Follow-up native comparison (acceptance repair)
+
+At `8237822c0de356f9c7597da331db1edc9fffce4f`, both explicit catalog arms ran
+only `workflow-native-local-repair` with the same current evaluator/scorer,
+runner-controlled original acceptance script, local sandbox, `gpt-5.6-luna`
+at max reasoning, one epoch, one sample, one model connection, subprocess,
+and sandbox, and the same finite 1800-second nested command bound. The
+candidate selected the current PR19 skill/global roots; the baseline selected
+the last accepted catalog/global roots at `3ad2f8c24ce9e3d65128d45f87b4e294610b4d12`.
+No candidate instructions were supplied to the baseline arm.
+
+| Arm | Attempts | Blocked cases | Workspace/effect outcome | Native quality | Time | Native usage (input/output/reasoning) | Tool calls / failed |
+|---|---:|---:|---|---:|---:|---|---:|
+| candidate | 1 | 6 | 1.000 / 1.000 | 4/4 | 161.449s | 506,291 / 5,522 / 2,962 | 25 / 1 |
+| last accepted baseline | 1 | 6 | 1.000 / 1.000 | 4/4 | 110.713s | 219,997 / 3,709 / 2,017 | 9 / 2 |
+
+Both agents completed the repair before any corrective user prompting. The
+runner acceptance check passed the corrected implementation and would reject
+the unchanged implementation even if `test_bug.py` were replaced; the unit
+regressions exercise those three real subprocess cases. This one-repetition
+comparison is a tie, not evidence of superiority. Grader usage was
+candidate `22,340` input / `799` output / `737` reasoning and baseline `15,996`
+input / `426` output / `361` reasoning. Inspect aggregate model usage remains
+empty because the nested CLI is outside its accounting. No price telemetry was
+available. Six other execution-ready cases remained blocked before native
+launch because their required external effects are outside the observed
+boundary; they are not agent failures.
 
 ## Real repository evidence
 
