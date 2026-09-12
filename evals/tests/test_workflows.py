@@ -220,6 +220,29 @@ class WorkflowContractTests(unittest.TestCase):
             )
             self.assertNotEqual(runner_check.returncode, 0)
 
+    def test_acceptance_order_controls_cover_the_final_artifact(self) -> None:
+        task = skills.workflow_failed_outcome_smoke()
+        samples = {sample.id: sample for sample in task.dataset}
+        self.assertEqual(
+            set(samples),
+            {
+                "workflow-failed-outcome-smoke",
+                "workflow-acceptance-correct",
+                "workflow-acceptance-replaced-test",
+                "workflow-acceptance-final-artifact",
+            },
+        )
+        for sample in samples.values():
+            contract = (sample.metadata or {}).get("fixture_contract")
+            self.assertIsInstance(contract, dict)
+            self.assertEqual(contract.get("acceptance_test"), sample.files["test_bug.py"])
+            self.assertEqual((contract.get("kind")), "workspace-test")
+        final_artifact = samples["workflow-acceptance-final-artifact"]
+        self.assertEqual(
+            (final_artifact.metadata or {})["fixture_contract"]["test_command"],
+            ["python", "supplemental.py"],
+        )
+
     def test_standalone_verification_has_a_coherent_route(self) -> None:
         schema = json.loads(skills.WORKFLOW_ROUTE_SCHEMA.read_text())
         primary = schema["properties"]["workflow"]["properties"]["primary"]["enum"]

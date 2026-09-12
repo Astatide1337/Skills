@@ -7,10 +7,9 @@ model transcripts, credentials, tracker objects, or binary Inspect logs.
 
 - shared base: `3ad2f8c24ce9e3d65128d45f87b4e294610b4d12`
 - PR18 evidence head used: `d74071b87b55c7c3ceac88d983d86ad704740ed8`
-- PR19 workflow implementation commit: `128864f94bc6d796fb5e6261558743175c0154ba`
-  (historical implementation commit; the follow-up is recorded below)
-- PR19 acceptance-control follow-up: `8237822c0de356f9c7597da331db1edc9fffce4f`
-  (source correction; the final branch head includes this report)
+- PR19 reviewed source head before this v1 finish: `21f0caf28cda0580003ba03c517dda0208ac93e0`
+- PR19 final v1 candidate commit: `39571d1fd57a408a3b1a9943de0eb20507655d93` (local before publication)
+- acceptance-order source correction retained from `8237822c0de356f9c7597da331db1edc9fffce4f`
 - evaluator: Inspect `0.3.259`, local sandbox, runner-owned contract diagnostics
   and one native local-repair task
 - native model configuration when applicable: `gpt-5.6-luna`, reasoning effort
@@ -25,14 +24,14 @@ model transcripts, credentials, tracker objects, or binary Inspect logs.
 | Command | Repetitions | Result |
 |---|---:|---|
 | `./scripts/validate-skills.sh` | 1 | 21 skills, 21 behavior cases, 6 routing cases, 21 workflow cases validated |
-| `uv run python -m unittest evals.tests.test_workflows` | 1 | 16/16 passed, including runner-owned acceptance controls |
-| `uv run python -m unittest discover -s evals/tests -p 'test_*.py'` | 1 | 53/53 passed on the combined stack |
+| `uv run python -m unittest evals.tests.test_workflows` | 1 | 17/17 passed, including runner-owned acceptance controls |
+| `uv run python -m unittest discover -s evals/tests -p 'test_*.py'` | 1 | 54/54 passed on the combined stack |
 | `uv run inspect eval evals/skills.py@evidence_smoke --max-samples 1` | 1 | contract lifecycle/evidence checks passed; intentional candidate error preserved |
 | `uv run inspect eval evals/skills.py@workspace_baseline_lifecycle_smoke --max-samples 2` | 1 | contract check passed; invalid baseline skipped, valid baseline launched |
 | `uv run inspect eval evals/skills.py@workspace_policy_smoke --max-samples 1` | 1 | contract check passed |
 | `uv run inspect eval evals/skills.py@workspace_stat_cache_smoke --max-samples 1` | 1 | contract check passed |
 | `uv run inspect eval evals/skills.py@workflow_fixture_smoke --max-samples 1` | 1 | evaluator-contract check passed |
-| `uv run inspect eval evals/skills.py@workflow_failed_outcome_smoke --max-samples 1` | 1 | supported local contract rejected the intentionally failing outcome through the runner-owned acceptance regression (workspace 1.000, outcome 0.000) |
+| `uv run inspect eval evals/skills.py@workflow_failed_outcome_smoke --max-samples 4` | 1 | four runner-owned acceptance controls executed: correct implementation passes; unchanged, replaced-test, and final-artifact controls are rejected (workspace 1.000, outcome 0.250) |
 | `uv run inspect eval evals/skills.py@workflow_fixture_pilot --max-samples 7` | 1 | current seven-case evaluator-contract diagnostics completed (workspace/effects 1.000; not product verification) |
 | `uv run inspect list tasks evals/skills.py` | 1 | 11 task entry points discovered; discovery only |
 
@@ -57,6 +56,35 @@ are supplied. The fake tracker is a local evaluator contract fixture, not live
 GitHub/GitLab publication. None of the rows above is used as evidence that an
 agent, tracker, or product works; no fake or mocked result is counted as
 verification.
+
+## Final v1 package and runtime checks
+
+The final candidate adds a concise coordinator, ten playbooks, operational
+principles, five selectively loaded public case studies, and the source-grounded
+Jobmark example. Full and selected installs were copied to disposable explicit
+targets; the primary Codex discovery probe loaded `follow-instructions` from
+the installed `.agents/skills` target with `gpt-5.6-luna` at max reasoning in a
+read-only run and returned a route plus limitation without writing the target.
+No live global installation was performed.
+
+The native Jobmark replay used a clean disposable checkout at test-only commit
+`b3be144cdbb5fd34cc419ce0c119bcb04d24f800`. The authenticated native agent
+inspected the real owner/caller path and applied the minimal cursor correction
+in that disposable worktree. Its native `npm run verify` passed and `npm test`
+passed 152 tests; the 7-test PostgreSQL regression was attempted before and
+after the edit but both attempts stopped at the same missing `DATABASE_URL`
+initialization error. No preview/production credentials were used. The
+repository's own Playwright public-entry smoke was also attempted and stopped
+before a browser page because `instrumentation.ts` requires `DATABASE_URL`,
+OAuth variables, and an auth/encryption secret even for local startup. The
+required disposable database/server environment is therefore a blocker for
+authenticated PostgreSQL and browser evidence, not a fabricated pass.
+
+The replay agent used the available Node `24.14.0` because this host had no
+Node 22 executable; the repository's required Node 22 runtime was recorded as
+an environment mismatch. `npm run build` reached Prisma generation but could
+not fetch the three Google Fonts in this network-restricted environment. These
+are explicit limitations, not quality claims.
 
 ## Native comparison pilot
 

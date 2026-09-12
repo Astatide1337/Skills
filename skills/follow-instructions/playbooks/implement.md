@@ -21,7 +21,9 @@ handoff.
 ## Steps and decision points
 
 1. Inspect the owner and run the original reproducer on the pre-change state
-   when claiming a bug fix. Record facts separately from assumptions.
+   when claiming a bug fix. Record facts separately from assumptions. A feature
+   or refactor starts from its own observable contract; it does not need an
+   incident reproducer.
 2. For a bug, list competing causes and run the cheapest discriminating check.
    For a feature, define observable states and extend existing interfaces. For
    a refactor, state behavior/contracts that must remain unchanged.

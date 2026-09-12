@@ -13,7 +13,15 @@ profiles:
   workflow-automation: [create-workflow, hillclimb]
   catalog-admin: [skill-creator]
 skills:
-  - {profile: agent-workflows, trust: local-reviewed, exported_path: skills/follow-instructions/SKILL.md, source: {origin: local, adaptation: task/domain/authority coordinator and linked Markdown playbooks derived from an observed multi-skill production incident; no new runtime or agent framework}}
+  - profile: agent-workflows
+    trust: local-reviewed
+    exported_path: skills/follow-instructions/SKILL.md
+    source:
+      origin: local
+      adaptation: proportionate task/domain/authority coordinator with linked playbooks, operational principles, and source-grounded examples; no new runtime or agent framework
+      references:
+        - {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/poteto-mode/SKILL.md}
+        - {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/docs/guide/08-principles.md}
   - profile: web-engineering
     trust: local-reviewed
     exported_path: skills/web-interface/SKILL.md

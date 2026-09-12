@@ -22,7 +22,9 @@ for the claimed result.
 ## Steps and decision points
 
 1. Start read-only. Inspect authoritative desired and actual state, dependencies,
-   versions and migration notes. Never infer “production” or “latest.”
+   versions and migration notes with the permitted read tools. An authorized
+   `kubectl get` is inspection; it is not an `apply`. Never infer “production”
+   or “latest.”
 2. For upgrades, update only required callers/configuration and run compatibility
    checks. For migrations, validate representative data, completeness,
    idempotency/retry, and recovery before executing authorized steps.

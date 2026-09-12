@@ -27,10 +27,12 @@ Use [`security-and-hardening`](../../security-and-hardening/SKILL.md) or
    invariants, failure/retry, migration, complexity, and security. Do not
    invent alternatives for a trivial choice.
 3. Resolve the riskiest material uncertainty with source evidence or the
-   smallest authorized disposable experiment. A plan-only request stops here.
+   smallest authorized disposable experiment. A plan-only request stops before
+   mutation, not before choosing and explaining the recommendation.
 4. Choose the simplest shape, name interfaces/state transitions, failure
    behavior, rollback where effects require it, and the first implementation
-   step. Keep prototype shortcuts visibly non-production.
+   step. Deliver the actionable plan even when implementation is out of scope;
+   keep prototype shortcuts visibly non-production.
 
 ## Failure and recovery
 

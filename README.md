@@ -1,7 +1,12 @@
 # Astatide Skills
 
-The reviewed, installable Agent Skills catalog. Each directory in `skills/` is
-self-contained and portable across compatible harnesses.
+The personal engineering workflow. Start with one entry skill, select a
+proportionate playbook, use the existing domain skills, and verify the actual
+result. The catalog is daily-use documentation first; its optional evaluator
+is evidence about contracts, not a product judge.
+
+Each directory in `skills/` is self-contained and portable across compatible
+harnesses.
 
 ```text
 skills/<skill-name>/
@@ -23,13 +28,17 @@ List the catalog:
 ./scripts/install.sh --list
 ```
 
-Install every skill into an explicit harness directory:
+Codex's current user discovery location is `~/.agents/skills`. Install every
+skill into an explicit destination:
 
 ```bash
-./scripts/install.sh --all --target ~/.codex/skills
+./scripts/install.sh --all --target ~/.agents/skills
 ./scripts/install.sh --all --target ~/.config/opencode/skills
 ./scripts/install.sh --all --target ~/.claude/skills
 ```
+
+The older `~/.codex/skills` path remains usable when supplied explicitly. The
+installer never overwrites it unless you name it.
 
 Install selected skills instead:
 
@@ -38,9 +47,10 @@ Install selected skills instead:
   --skill systematic-debugging --skill web-interface
 ```
 
-Without `--target`, the installer detects a Codex, OpenCode, Claude, or
-project `.agents` directory. Pass an explicit target whenever more than one is
-present. Each selected skill directory is replaced as a complete copy.
+Without `--target`, the installer prefers the current project's `.agents`, then
+Codex's `~/.agents`, the legacy `~/.codex`, OpenCode, and Claude. Pass an
+explicit target whenever more than one is present. Each selected skill
+directory is replaced as a complete copy.
 
 ## Global instructions
 
@@ -82,23 +92,26 @@ The implemented package map is intentionally small:
 
 ```text
 skills/follow-instructions/
-  SKILL.md                 coordinator and route table
+  SKILL.md                 entry point, route table, and evidence gates
+  references/principles.md compact decision rules
+  references/case-studies.md selectively loaded public contrasts
+  examples/jobmark-pagination.md source-grounded worked example
   playbooks/               investigate, design, implement, performance,
                            migrate-operate, review, issues, document-teach,
                            custom, and parallel procedures
 skills/<domain-skill>/SKILL.md
 global-instructions/AGENTS.md
-evals/cases/workflows.json  composition and execution fixtures
+evals/cases/workflows.json  optional composition and execution diagnostics
 evals/workspace_evidence.py runner-owned Git baseline/evidence contract
 evals/fake_tracker.py       isolated publication fixture
 evals/results/               sanitized review-unit summaries
 ```
 
-For the second example, the agent reads `lookup.py`, records the finding in the
-supplied local tracker with one `create`, fetches that issue with `get`, and
-stops before editing the repository or opening a PR. The fixture is only a
-deterministic evaluator-contract boundary; it is not a live tracker
-integration, and its results are never product or agent verification.
+For the worked application example, read
+[`examples/jobmark-pagination.md`](skills/follow-instructions/examples/jobmark-pagination.md).
+The supplied tracker fixture remains a deterministic evaluator-contract
+boundary only. It is not a live tracker integration, and its results are never
+product or agent verification.
 
 ## Validate and evaluate
 
@@ -159,13 +172,13 @@ native pilot case is `workflow-native-local-repair`, which checks the actual
 edited checkout and runs its supplied regression test. It does not establish
 live tracker, pull-request, deployment, browser, or adversarial behavior.
 
-That local workflow also runs a runner-controlled copy of the original
-acceptance regression from the supplied case metadata, before any
-candidate-supplied test command. The check imports the candidate's changed
-implementation in the disposable workspace, so replacing `test_bug.py` or
-mentioning an exception in a source comment cannot satisfy the behavioral
+That local workflow runs candidate supplemental checks first, then a
+runner-controlled copy of the original acceptance regression against the final
+workspace. The check imports the candidate's changed implementation, so
+replacing `test_bug.py`, restoring the bug after a passing supplemental command,
+or mentioning an exception in a source comment cannot satisfy behavioral
 acceptance. The runner-owned regression is separate from the candidate's own
-tests and is reported as local contract evidence, not live product
+tests and is reported as optional local contract evidence, not live product
 verification.
 
 For a fair native comparison, select both catalog arms explicitly. The baseline
@@ -205,6 +218,13 @@ checkout/test result establishes only that repository behavior; it does not
 establish live GitHub publication, deployment, browser behavior, or a better
 agent workflow. Do not substitute the disposable fixture or a no-model run for
 that evidence.
+
+The Jobmark example is the directly executed application path. Browser QA is a
+separate matching-surface check and must use the app's local server, real local
+database, and native Playwright/browser tools. A screenshot or passing build
+without the interaction is not a browser result. If the app's required
+database or browser setup is unavailable, report that blocker instead of
+fabricating a UI or using the tracker fixture as a substitute.
 
 ## Safety and provenance
 
