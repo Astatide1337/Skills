@@ -49,6 +49,15 @@ specific repository instructions win.
 Example: "How does this work?" authorizes inspection and an explanation. It
 does not authorize edits, a documentation pass, a commit, or a new PR.
 
+## The SOPS age key
+
+- The age key in `~/.config/sops/age/keys.txt`, the `sops-age` Secret in
+  `argocd`, and the Bitwarden secure note "SOPS age key (gitops)" (in the local
+  vault or the cluster's `bitwarden-vault`) are the root of every encrypted
+  file in the gitops repo. Never read, print, copy, export, or search for them,
+  and never pass the key to a tool. Decrypting through `sops` or `make` when a
+  task needs it is fine; handling the key itself is not.
+
 ## Verification and handoff
 
 - Make claims match observed evidence. State what is proven, what remains
