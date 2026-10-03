@@ -2,7 +2,7 @@
 
 Use this when asked to keep an existing application-owned verify-* skill and feature map aligned with source and live behavior. Edit only that verifier, its map, and its owned helpers; report product defects without changing product code or rewriting expectations to bless the defect.
 
-1. **Locate and pin:** find the app's verifier, feature map, locked CLI version, and actual executable. Reject unsupported versions. If no verifier exists, create one only when requested.
+1. **Locate and pin:** find the app's committed verifier, feature map, locked CLI version, and actual executable. Reject unsupported versions. Derive the clean app HEAD at launch and compare it with the run manifest; do not make the committed map self-reference its own commit. If no verifier exists, create one only when requested.
 2. **Trace:** reconcile every mapped journey with its source entry point, types, selectors, data ownership, and expected user result. Preserve independent expectations; do not derive them from candidate output.
 3. **Check structure:** compare the map's feature index and required assertions with the prior revision. A removed journey, assertion, scorer, discovery rule, or lint rule needs an explicit reviewed reason and a violating fixture proving the intended boundary still rejects bad behavior.
 4. **Drive:** doctor the intended instance, then exercise each mapped journey at least once. Re-run doctor or reset after surprising behavior. Record accepted, failed, skipped, and not-run separately, with a reason for each skipped check.

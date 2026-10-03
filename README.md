@@ -117,6 +117,21 @@ The supplied tracker fixture remains a deterministic evaluator-contract
 boundary only. It is not a live tracker integration, and its results are never
 product or agent verification.
 
+## Application verification ownership
+
+Skills owns the judgment: [verify-work](skills/verify-work/SKILL.md) chooses
+independent expectations, interprets accepted, failed, skipped, and not-run
+checks, and decides what evidence must be refreshed. A separate pinned per-app
+CLI may own deterministic startup, actions, assertions, evidence, and cleanup.
+The application owns its types, schemas, lint/import boundaries, CI, and
+committed feature map. Its map pins the CLI version; it must not pin the app's
+own Git HEAD. The CLI records a clean app HEAD and map digest for each run and
+checks them again before claiming the result. See the
+[create](skills/verify-work/references/create-project-verifier.md) and
+[maintain](skills/verify-work/references/maintain-project-verifier.md)
+recipes for app-side adoption and recovery. This catalog does not install a
+per-app CLI or supply application-specific expected values.
+
 ## Validate and evaluate
 
 Run deterministic structure and catalog checks:

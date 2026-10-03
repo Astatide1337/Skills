@@ -8,7 +8,7 @@ Trace one user entry point through source and identify its launch command, readi
 
 ## Write the app-owned map and skill
 
-The feature map names a real user journey, stable input or seed, independently chosen expected result, failure path, and evidence to retain. Keep the map in the application repository. Pin the CLI version in the application's dependency lock or verifier configuration, and reject unsupported map/CLI versions. A candidate's output cannot supply its own expected value or remove a required check.
+The feature map names a real user journey, stable input or seed, independently chosen expected result, failure path, and evidence to retain. Commit the map in the application repository. Pin the CLI version in the application's dependency lock or verifier configuration, and reject unsupported map/CLI versions. Do not pin the application's own HEAD inside that map: derive a clean app HEAD at startup, store it in the run manifest, and check it again before and after the drive. A candidate's output cannot supply its own expected value or remove a required check.
 For each feature, record its sub-features, how a user reaches it, how the
 driver acts, the observable end state, and relevant prerequisites. Start with
 only the requested feature files. Do not add a project README or general

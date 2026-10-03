@@ -245,11 +245,14 @@ Check the author's verification story:
 
 ## Independent Review
 
-Inspect the final diff against the requested behavior and each affected caller.
-An independent reviewer or model can be useful for a difficult boundary when
-available and authorized, but is not a required gate or a substitute for the
-real test and runtime evidence. Keep one owner accountable for integrating
-findings.
+For substantive implementation, an independent reviewer must inspect the
+current diff and its evidence before the change is called review-ready or
+merged. The reviewer may be a person or an agent other than the integrating
+author; choosing a different model is optional. The integrating owner remains
+accountable for resolving findings and verifying the final head. The author's
+own reread, green tests, and a model's summary of the author's account do not
+satisfy the independent gate. If a reviewer is unavailable, leave the gate
+pending and say so; a draft may remain open for review.
 
 ## Dead Code Hygiene
 

@@ -131,8 +131,10 @@ boundary, and effects” template.
 ## Work, recover, and hand off
 
 Follow the selected playbook's mode-specific inputs, decisions, recovery, and
-completion evidence. Reuse valid evidence until the relevant code, environment,
-or requirement changes. Preserve original regressions and negative cases. If a
+completion evidence. Inspect provenance and reuse valid evidence only while
+the relevant code, environment, requirement, fixture, and artifact or instance
+identity remain unchanged; rerun affected checks after a change. Preserve
+original regressions and negative cases. If a
 required input or capability is unavailable, finish independent safe work and
 name the exact blocker; never manufacture evidence or weaken acceptance.
 

@@ -42,8 +42,13 @@ The application owns its feature map and pins any separate per-app CLI version; 
    - A real user flow proves the observed user flow.
    - Choose expected results from the request, app-owned map, or pre-change behavior before seeing candidate output. Do not let the candidate's output define its own oracle.
 
-3. **Run the relevant checks now.**
-   - Do not rely on an earlier run, another agent's report, or an assumed green state.
+3. **Establish current evidence for each relevant check.**
+   - Inspect an earlier result's provenance: source revision, environment,
+     requirement, fixture, artifact or instance identity, check and outcome.
+     Reuse it only when those relevant inputs are unchanged and the result
+     actually covers the claim. A report without inspectable provenance is
+     not evidence. Re-run affected checks when any relevant input changes;
+     do not rerun unrelated checks merely because time passed.
    - Prefer targeted checks first; broaden only when the changed surface requires it.
    - For a bug-fix claim, preserve the original reproducer and compare it on the
      pre-fix revision and the candidate revision. Observe the pre-fix failure
@@ -81,7 +86,7 @@ The application owns its feature map and pins any separate per-app CLI version; 
    - Confirm only intended files/state changed.
    - Look for accidental, unrelated, generated, or debug artifacts.
    - Confirm the final state still matches the request.
-   - Check the final tree or artifact identity and, where relevant, the running instance identity. A stale file or old deployment is not current evidence.
+   - Check the final tree or artifact identity and, where relevant, the running instance identity. If the final tree differs from the evidenced tree, rerun its affected checks before claiming success. A stale file or old deployment is not current evidence.
 
 Before writing the completion sentence, record three explicit fields:
 
