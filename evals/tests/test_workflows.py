@@ -61,7 +61,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.files, {"AGENTS.md": skills.GLOBAL_INSTRUCTIONS.read_text()})
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            7,
+            10,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -138,6 +138,9 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-custom-temporary",
                 "workflow-parallel-safe",
                 "workflow-correction-resume",
+                "workflow-independent-review-gate",
+                "workflow-unchanged-evidence",
+                "workflow-stale-final-tree",
             },
         )
         for sample in cases.values():
@@ -145,6 +148,19 @@ class WorkflowContractTests(unittest.TestCase):
             self.assertEqual(metadata.get("execution_mode"), "execution-ready")
             self.assertIsInstance(metadata.get("fixture_contract"), dict)
             self.assertTrue(sample.files)
+        for case_id in (
+            "workflow-independent-review-gate",
+            "workflow-unchanged-evidence",
+            "workflow-stale-final-tree",
+        ):
+            sample = cases[case_id]
+            contract = (sample.metadata or {})["fixture_contract"]
+            self.assertEqual(contract["kind"], "response-contract")
+            self.assertIn("evidence.txt", sample.files)
+            self.assertIn("git commit", sample.setup or "")
+            required = contract["required_content"]
+            self.assertTrue(required)
+            self.assertTrue(all(fragment in contract["response"] for fragment in required))
 
     def test_runner_acceptance_is_the_original_test_not_a_source_fragment(self) -> None:
         sample = next(

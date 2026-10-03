@@ -5,6 +5,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import AsyncMock, patch
 from pathlib import Path
+from types import SimpleNamespace
 
 from inspect_ai.model import ModelOutput
 from inspect_ai.scorer import Target
@@ -57,6 +58,60 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(supplied_grade.value, 4)
         grader.assert_awaited_once()
         self.assertIn("CANDIDATE RESPONSE:\nblue", grader.await_args.args[0])
+
+    async def test_correct_artifact_can_pass_with_empty_final_response(self) -> None:
+        state = TaskState(
+            model="stub/no-model",
+            sample_id="synthetic-artifact-only",
+            epoch=1,
+            input="Produce the required artifact",
+            messages=[],
+        )
+        state.metadata = {
+            "fixture_contract": {
+                "kind": "workspace-artifact",
+                "required_paths": ["result.txt"],
+                "required_content": {"result.txt": "verified artifact"},
+            },
+            "forbidden_effects": [],
+        }
+        state.store.set("workspace_baseline", Baseline(status="available", revision="abc"))
+        state.output = ModelOutput.from_content(model="stub/no-model", content="")
+        target = Target("verified artifact")
+        artifact = SimpleNamespace(read_file=AsyncMock(return_value="verified artifact"))
+        with patch.object(skills, "sandbox", return_value=artifact):
+            artifact_contract = await skills.workflow_effects()(state, target)
+        self.assertEqual(artifact_contract.value, 1)
+
+        grader = AsyncMock(return_value=('{"score":4,"explanation":"artifact verified"}', ""))
+        with (
+            patch.object(skills, "workspace_evidence", AsyncMock(return_value="verified artifact")),
+            patch.object(skills, "run_codex", grader),
+        ):
+            artifact_grade = await skills.native_behavior_grade(model="stub/grader")(state, target)
+        self.assertEqual(artifact_grade.value, 4)
+        grader.assert_awaited_once()
+
+    async def test_missing_execution_prerequisite_stays_unscored(self) -> None:
+        state = TaskState(
+            model="stub/no-model",
+            sample_id="synthetic-blocked-response",
+            epoch=1,
+            input="Supply the requested answer",
+            messages=[],
+        )
+        state.metadata = {
+            "fixture_contract": {"kind": "response-contract", "required_content": ["blue"]}
+        }
+        state.store.set("workspace_baseline", Baseline(status="available", revision="abc"))
+        state.store.set("workflow_support", {"status": "blocked", "reason": "execution unavailable"})
+        state.output = ModelOutput.from_content(model="stub/no-model", content="")
+        grader = AsyncMock()
+        with patch.object(skills, "run_codex", grader):
+            result = await skills.native_behavior_grade(model="stub/grader")(state, Target("blue"))
+        self.assertEqual(result.metadata["status"], "blocked")
+        self.assertTrue(result.metadata["grading_skipped"])
+        grader.assert_not_awaited()
 
     def test_native_usage_is_read_from_cli_events(self) -> None:
         usage = skills._codex_usage(

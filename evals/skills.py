@@ -1389,7 +1389,15 @@ def native_behavior_grade(model: str):
                 },
             )
         candidate_answer = getattr(state.output, "completion", None)
-        if not isinstance(candidate_answer, str) or not candidate_answer.strip():
+        contract = (state.metadata or {}).get("fixture_contract")
+        requires_answer = (
+            isinstance(contract, dict)
+            and contract.get("kind") == "response-contract"
+            and bool(contract.get("required_content"))
+        )
+        if requires_answer and (
+            not isinstance(candidate_answer, str) or not candidate_answer.strip()
+        ):
             return Score(
                 value=0,
                 explanation="required candidate response is missing",
@@ -1408,7 +1416,7 @@ def native_behavior_grade(model: str):
             f"TASK:\n{state.input_text}\n\n"
             f"TARGET:\n{target.text}\n\n"
             "CANDIDATE RESPONSE:\n"
-            f"{candidate_answer}\n\n"
+            f"{candidate_answer or '[candidate output unavailable]'}\n\n"
             f"WORKSPACE EVIDENCE:\n{evidence}"
         )
         completion, grader_events = await run_codex(
