@@ -27,6 +27,9 @@ runner-owned acceptance, and the
 rejects a missing required answer even when the expected answer is available.
 The [Catalog validation workflow](../../../.github/workflows/catalog-validation.yml)
 runs catalog structure and case validation plus these model-free, local/mocked
-unit contracts. It does not run native model evaluation or the workspace
-containment tests, which require a working Bubblewrap namespace. Record each
-run's actual status with its revision.
+unit contracts. Its separate Workspace evidence unit tests job installs
+Bubblewrap from Ubuntu's package repository and attempts the full model-free
+unit suite, including disposable local workspace observations. This is not
+live model or adversarial workspace-containment evaluation. Report the actual
+hosted result, including a blocked namespace preflight if it occurs, with its
+revision; never count a blocked suite as a pass.
