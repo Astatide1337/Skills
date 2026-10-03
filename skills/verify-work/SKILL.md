@@ -1,6 +1,6 @@
 ---
 name: verify-work
-description: Verify the requested observable result before claiming completion.
+description: Verify requested behavior with current evidence, or create or maintain an application-owned verifier and feature map when asked.
 ---
 
 # Verify Work
@@ -25,6 +25,7 @@ into a generic request to verify production.
   `references/maintain-project-verifier.md`.
 
 Project-local verification skills live at `.agents/skills/verify-<app>/` unless the repository declares another agent-skill location. Do not create platform-specific directories by default.
+The application owns its feature map and pins any separate per-app CLI version; the skill supplies judgment and the CLI performs repeatable operations.
 
 ## Workflow
 
@@ -39,6 +40,7 @@ Project-local verification skills live at `.agents/skills/verify-<app>/` unless 
    - CI proves only the pipeline that actually ran.
    - Deployment state proves only the deployed artifact/state.
    - A real user flow proves the observed user flow.
+   - Choose expected results from the request, app-owned map, or pre-change behavior before seeing candidate output. Do not let the candidate's output define its own oracle.
 
 3. **Run the relevant checks now.**
    - Do not rely on an earlier run, another agent's report, or an assumed green state.
@@ -48,6 +50,7 @@ Project-local verification skills live at `.agents/skills/verify-<app>/` unless 
      and candidate success; do not infer the counterfactual from a new unit
      test. If the old revision or reproducer is unavailable, report that
      counterfactual as unknown and do not say the bug is fixed.
+   - Record each required check as accepted, failed, skipped with a reason, or not-run. A skipped or not-run check is not a pass. If a proposed change removes discovery, assertions, scoring, or rule configuration, compare the prior contract and require an explicit reviewed reason plus a violating fixture.
 
 4. **Verify the actual changed behavior.**
    - Exercise the changed path end to end when practical.
@@ -78,6 +81,7 @@ Project-local verification skills live at `.agents/skills/verify-<app>/` unless 
    - Confirm only intended files/state changed.
    - Look for accidental, unrelated, generated, or debug artifacts.
    - Confirm the final state still matches the request.
+   - Check the final tree or artifact identity and, where relevant, the running instance identity. A stale file or old deployment is not current evidence.
 
 Before writing the completion sentence, record three explicit fields:
 
@@ -119,6 +123,7 @@ Do not claim completion if:
   the claim is that a bug was fixed;
 
 Instead report the strongest verified state and the remaining verification gap.
+When a check fails or cannot run, preserve its input and evidence, diagnose the next safe cause, and rerun after a justified correction. Stop only at a real authority, capability, or safety boundary.
 
 ## Execution boundary
 

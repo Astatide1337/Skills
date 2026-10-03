@@ -239,41 +239,26 @@ Check the author's verification story:
 - Was the change tested manually?
 - Are there screenshots for UI changes?
 - Is there a before/after comparison?
+- Are expectations independent of candidate output, and do they exercise the final tree or running revision?
+- Did any changed test, feature map, discovery rule, scorer, lint/import boundary, or CI configuration remove coverage? Require an explicit reason and a violating fixture before accepting a structural replacement.
 ```
 
-## Multi-Model Review Pattern
+## Independent Review
 
-Use different models for different review perspectives:
-
-```
-Model A writes the code
-    │
-    ▼
-Model B reviews for correctness and architecture
-    │
-    ▼
-Model A addresses the feedback
-    │
-    ▼
-Human makes the final call
-```
-
-This catches issues that a single model might miss — different models have different blind spots.
-
-**Example prompt for a review agent:**
-```
-Review this code change for correctness, security, and adherence to
-our project conventions. The spec says [X]. The change should [Y].
-Flag any issues as Critical, Required, Optional, or Nit.
-```
+Inspect the final diff against the requested behavior and each affected caller.
+An independent reviewer or model can be useful for a difficult boundary when
+available and authorized, but is not a required gate or a substitute for the
+real test and runtime evidence. Keep one owner accountable for integrating
+findings.
 
 ## Dead Code Hygiene
 
 After any refactoring or implementation change, check for orphaned code:
 
 1. Identify code that is now unreachable or unused
-2. List it explicitly
-3. **Ask before deleting:** "Should I remove these now-unused elements: [list]?"
+2. Verify its callers and ownership.
+3. Remove it when the requested change made it obsolete and removal is within
+   scope; ask only if a live consumer or ownership decision remains unclear.
 
 Don't leave dead code lying around — it confuses future readers and agents. But don't silently delete things you're not sure about. When in doubt, ask.
 
@@ -282,7 +267,7 @@ DEAD CODE IDENTIFIED:
 - formatLegacyDate() in src/utils/date.ts — replaced by formatDate()
 - OldTaskCard component in src/components/ — replaced by TaskCard
 - LEGACY_API_URL constant in src/config.ts — no remaining references
-→ Safe to remove these?
+→ Remove only after the caller check.
 ```
 
 ## Review Speed

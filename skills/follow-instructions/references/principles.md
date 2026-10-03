@@ -10,6 +10,12 @@ describes 23 separate, trigger-specific principles. We read those files at
 upstream commit [`889ec4b6`](https://github.com/cursor/plugins/tree/889ec4b68fa5aab0e867dad71ec3fdf386ae48f3/pstack/skills)
 and retain the catalog's earlier provenance pin
 [`60c641e4`](https://github.com/cursor/plugins/tree/60c641e4fad674784b30abcf9f8915dea39df38d/pstack).
+The current verification and boundary pass also read the actual
+[Encode Lessons in Structure](https://github.com/cursor/plugins/blob/7022c81efb48d8b5eb15498ce6043a3bd74b694c/pstack/skills/principle-encode-lessons-in-structure/SKILL.md),
+[Boundary Discipline](https://github.com/cursor/plugins/blob/7022c81efb48d8b5eb15498ce6043a3bd74b694c/pstack/skills/principle-boundary-discipline/SKILL.md),
+[Make Operations Idempotent](https://github.com/cursor/plugins/blob/7022c81efb48d8b5eb15498ce6043a3bd74b694c/pstack/skills/principle-make-operations-idempotent/SKILL.md),
+and [Create Verification Skill](https://github.com/cursor/plugins/blob/7022c81efb48d8b5eb15498ce6043a3bd74b694c/pstack/skills/create-verification-skill/SKILL.md)
+at commit `7022c81efb48d8b5eb15498ce6043a3bd74b694c`.
 This package combines overlapping ideas instead of copying pstack's text,
 Cursor-only tools, model choices, or autonomy rules.
 

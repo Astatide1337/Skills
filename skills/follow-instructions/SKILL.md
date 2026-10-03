@@ -21,6 +21,18 @@ Read repository guidance and the selected playbook/domain skills before
 substantive work. Reconcile the record when the user changes scope, a
 revision changes, a delegated artifact returns, or the task resumes. A simple
 answer or small explanation does not need a formal record.
+Across compaction or handoff, retain the active objective, accepted decisions,
+unfinished gates, next authorized action, and exact blockers. Do not replace a
+still-active objective with an empty status summary.
+
+The five working areas are **Environment** (current host, checkout, instance
+and identity), **Verification** (independent expected result and final
+evidence), **Context** (active objective and available authoritative facts),
+**Engineering Constraints** (the narrowest owner and enforceable boundary),
+and **Loops** (bounded retry, recovery, and continuation). Use the selected
+owner skills for procedure; this is a routing lens, not another workflow.
+The anonymized [failure-to-check map](references/failure-to-checks.md) shows
+which observed failures justify these gates.
 
 ## Choose the route
 
@@ -107,6 +119,9 @@ required reading curriculum.
    relevant layer, list material unknowns, and narrow the claim to what the
    evidence proves. A build, manifest, command exit, or model prose is not
    runtime proof by itself.
+   Preserve the exact final revision and distinguish accepted, failed, skipped,
+   and not-run checks. Continue safe diagnosis after a failed check; an
+   untested assumption is not a blocker.
 
 For secrets, multiple processes, production-like state, or a consequential
 external write, report the boundary and effect only to the detail that changes

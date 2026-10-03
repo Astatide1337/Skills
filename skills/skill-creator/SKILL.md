@@ -36,6 +36,12 @@ Choose the lowest layer that fixes the observed failure:
   behavior that can be enforced there; and
 - a skill only when a distinct recurring invocation needs focused guidance.
 
+For a structural rule, record the approved pattern, the forbidden alternative,
+the enforcing type/lint/runtime/CI boundary, and a violating fixture that
+fails there. If no check can enforce it and judgment remains necessary, keep
+one concise instruction with the trigger and evidence. Do not duplicate a
+working enforcement rule as emphatic prose.
+
 Do not create a skill for generic knowledge Codex already handles well. Do not
 create or rewrite project documentation as a side effect of skill work; author
 README files, AGENTS files, plans, or runbooks only when the user asks for that
@@ -164,6 +170,9 @@ automatic-routing settings.
 - Re-read the description against positive and negative triggers.
 - Remove duplicated or generic text.
 - Ensure every reference is reachable from `SKILL.md`.
+- Give the revised instructions to a cold reader or clean context, including a
+  positive trigger, nearby non-trigger, and adversarial attempt to skip a
+  required check. Correct what fails and rerun the same case.
 - Compare the result with the original conversation and corrections. Confirm
   that it solves the user's workflow rather than only passing the eval wording.
 - Report validation actually run and limitations of any evaluation evidence.

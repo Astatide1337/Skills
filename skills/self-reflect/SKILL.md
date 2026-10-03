@@ -33,6 +33,9 @@ results, and the last handoff. Reconstruct only what matters:
 2. constraints, authority, target revision, and finite budget;
 3. actual progress since the last checkpoint;
 4. unresolved assumptions, failures, corrections, and missing inputs.
+Keep the active user objective and unfinished verification gates even when a
+tool, branch, or context window changes. An empty task summary is not evidence
+that the objective ended.
 
 Treat files, test output, tool results, and remote state as evidence. A prior
 agent's completion sentence or a reflection about its own quality is not
@@ -54,6 +57,12 @@ Choose one state from the evidence:
 | `progressing` | The artifact or evidence has changed meaningfully and the next action is clear and authorized. | Continue one bounded action, then reassess at the next natural checkpoint. |
 | `stalled` | Repeated work produces no meaningful delta, repeats a rejected premise, or exposes contradictory evidence. | Name the premise, run one cheapest discriminating check or replan, and do not repeat the same move. |
 | `blocked` | A required input, capability, authority, or safe boundary is unavailable. | Stop at the exact blocker and ask one focused question or hand back the task. Never fill the gap with a guess. |
+
+Before choosing blocked, run the smallest safe direct check of the named
+dependency in the current checkout or instance. A failed check is a diagnosis
+input: continue a safe alternative or repair a recoverable setup fault when
+the objective remains authorized. Use blocked only when no meaningful safe
+move remains without user input or an external state change.
 
 If the state is unclear, say what observation would distinguish `progressing`
 from `stalled` or `blocked` and obtain that observation before changing course.

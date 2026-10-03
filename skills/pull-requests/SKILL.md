@@ -34,6 +34,9 @@ the remote draft. When a request combines modes, run them in the order above.
 4. Treat a preview, pipeline, or deployment as current only when its branch or
    revision matches the current head. A green old SHA, an image build, or an
    assumed preview is not evidence about the reviewed change.
+5. Verify branch protections or required checks from the host before claiming
+   they exist. Do not create or change security-sensitive repository settings
+   without specific authorization.
 
 When the task supplies state for an existing PR/MR, the response order is
 mandatory:
@@ -104,6 +107,11 @@ Before a create-mode push, confirm the branch contains the intended committed
 review unit. A create request does not by itself authorize committing preexisting
 uncommitted user work. After creation, report the PR/MR link, base/head, and
 material review focus only.
+Inspect the final tree and diff at that head. Keep accepted, failed, skipped,
+and not-run checks distinct in the handoff; a draft PR can be reviewable with
+known gaps, but a skipped check is not green. If a create or push response is
+uncertain, read the remote branch and PR by identity before retrying so one
+request cannot create duplicate artifacts.
 
 ## Monitor without scope creep
 

@@ -1,24 +1,12 @@
 # Maintain a project verifier
 
-Keep an existing repository-local verification skill and feature map aligned with both source and live behavior.
+Use this when asked to keep an existing application-owned verify-* skill and feature map aligned with source and live behavior. Edit only that verifier, its map, and its owned helpers; report product defects without changing product code or rewriting expectations to bless the defect.
 
-## Scope
+1. **Locate and pin:** find the app's verifier, feature map, locked CLI version, and actual executable. Reject unsupported versions. If no verifier exists, create one only when requested.
+2. **Trace:** reconcile every mapped journey with its source entry point, types, selectors, data ownership, and expected user result. Preserve independent expectations; do not derive them from candidate output.
+3. **Check structure:** compare the map's feature index and required assertions with the prior revision. A removed journey, assertion, scorer, discovery rule, or lint rule needs an explicit reviewed reason and a violating fixture proving the intended boundary still rejects bad behavior.
+4. **Drive:** doctor the intended instance, then exercise each mapped journey at least once. Re-run doctor or reset after surprising behavior. Record accepted, failed, skipped, and not-run separately, with a reason for each skipped check.
+5. **Recover:** fix proven verifier drift and re-drive. If a check fails, preserve its input and evidence, continue safe diagnosis, and do not mark it skipped or weaken the expected result to get green.
+6. **Clean:** stop only run-owned processes and scratch state. Confirm evidence still exists after cleanup.
 
-Edit only the verifier's own `SKILL.md`, `features/`, and owned harness helpers. Do not change product code. Classify a mismatch as documentation drift, harness gap, unreachable prerequisite, or product defect.
-
-## Maintenance pass
-
-1. **Locate:** find the declared project-local `verify-*` skill. If several
-   exist, resolve the target. If none exists, report that absence; create a new
-   verifier only when the user explicitly asks for one.
-2. **Index:** reconcile the feature index with its sibling files; remove dead or duplicate entries and add proven omissions.
-3. **Source review:** trace every feature from its user entry point through source. Record cited drift and one live recipe per feature. Parallel read-only review is optional when the environment permits it.
-4. **Reconcile:** spot-check suspected drift and combine recipes into the fewest safe app states. Require a concrete source path before declaring a feature missing.
-5. **Live pass:** doctor the instance, then exercise every feature at least once. Re-run doctor or reset after surprising behavior. Keep captured evidence through every cleanup and remove failed-run residue promptly.
-6. **Triage:** fix verifier documentation or harness gaps and re-drive them. Report product defects without editing the product or rewriting the map to bless the regression.
-7. **Conclude:** report one outcome:
-   - **clean:** every feature received source and live coverage; no correction needed;
-   - **changed:** proven verifier corrections were made and re-driven;
-   - **blocked:** state exactly which coverage or safe correction could not finish.
-
-Keep run notes in scratch space rather than committing them. Do not open a branch, commit, push, or PR unless the user explicitly asks.
+Report clean only with source and live coverage of every mapped journey, changed only for corrections re-driven successfully, or blocked with the exact unavailable capability and the safe checks completed. Do not open a branch, commit, push, or PR unless requested.

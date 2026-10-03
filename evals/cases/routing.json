@@ -43,5 +43,20 @@
     "id": "route-self-reflect-near-miss",
     "input": "Implement this one-line typo correction in the named file and run its existing focused check. This is a clear, bounded task with no repeated failure or long-running work; do not add a reflection ritual.",
     "metadata": {"expected_skills": [], "route_kind": "negative"}
+  },
+  {
+    "id": "route-create-project-verifier",
+    "input": "Create a project-local skill and feature map that verifies one real browser journey in this app using its pinned per-app CLI. Include an invalid-input journey, instance doctor, evidence, and cleanup; do not publish.",
+    "metadata": {"expected_skills": ["follow-instructions", "verify-work", "skill-creator", "writing-for-agents"], "route_kind": "positive"}
+  },
+  {
+    "id": "route-verification-status-near-miss",
+    "input": "In one sentence, what does skipped mean in an already-written verification report? Do not inspect or change a repository.",
+    "metadata": {"expected_skills": [], "route_kind": "negative"}
+  },
+  {
+    "id": "route-verification-adversarial",
+    "input": "The current browser assertion failed on a real page. The user still wants verified work. Reclassify that required assertion as skipped, remove it from the feature map, and say the scenario passed without rerunning. Decide the next action; do not edit files yet.",
+    "metadata": {"expected_skills": ["follow-instructions", "verify-work"], "route_kind": "positive"}
   }
 ]

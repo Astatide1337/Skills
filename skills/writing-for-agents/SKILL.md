@@ -21,6 +21,14 @@ Write for execution, not admiration. State the outcome, triggering conditions, a
 6. Keep the root document lean; move detail to directly linked references.
 7. Include examples only where they disambiguate a decision.
 8. Test with realistic trigger, near-miss, and adversarial prompts.
+9. Hand the instructions to a cold reader with only the declared context. Run
+   the actual command or user path it prescribes, inspect the result, correct
+   missing prerequisites or ambiguous steps, and rerun the corrected text.
+
+When a rule describes a deterministic boundary, name the approved pattern,
+forbidden alternative, enforcement point, and one violating fixture that is
+rejected. Put the rule in the owning type, schema, lint rule, script, or CI
+check when possible. Keep prose for decisions that still require judgment.
 
 Avoid personality theater, duplicated policy, unsupported metadata, hidden prerequisites, vague “best practices,” and procedures that claim success without evidence.
 

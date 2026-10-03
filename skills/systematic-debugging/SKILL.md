@@ -54,6 +54,10 @@ Find the cause before fixing the symptom.
      reproduction.
    - Change only diagnostic state when necessary; avoid behavior-changing fixes at this stage. Mark temporary logs, probes, flags, and fixtures so their removal is verifiable.
    - If evidence contradicts the current explanation, discard the explanation.
+   - If a setup or tool fault is recoverable within scope, repair it and rerun
+     the original check. If an external write has an uncertain result, observe
+     the same object by stable identity before any retry; never infer failure
+     from a timeout alone.
 
 7. **Establish the root cause.**
    - Do not proceed because a hypothesis merely "sounds right."
@@ -72,6 +76,9 @@ Find the cause before fixing the symptom.
      narrowest seam that can assert the broken invariant and explain the gap.
    - Record the prevention follow-up when the failure exposed a missing alert,
      invariant, deployment check, or operational runbook.
+   - Preserve the failing input, observed output, and cleanup evidence. Do not
+     turn a failed assertion into a skip or narrow the expected result merely
+     to obtain a passing check.
 
 ## Stop conditions
 
