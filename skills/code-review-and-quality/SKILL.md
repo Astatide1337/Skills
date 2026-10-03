@@ -246,13 +246,14 @@ Check the author's verification story:
 ## Independent Review
 
 For substantive implementation, an independent reviewer must inspect the
-current diff and its evidence before the change is called review-ready or
-merged. The reviewer may be a person or an agent other than the integrating
+current diff and its evidence before the integrating owner claims substantive
+work complete or recommends merge. A draft may remain open while this review
+is pending. The reviewer may be a person or an agent other than the integrating
 author; choosing a different model is optional. The integrating owner remains
 accountable for resolving findings and verifying the final head. The author's
 own reread, green tests, and a model's summary of the author's account do not
 satisfy the independent gate. If a reviewer is unavailable, leave the gate
-pending and say so; a draft may remain open for review.
+pending and say so.
 
 ## Dead Code Hygiene
 
@@ -301,7 +302,7 @@ When reviewing code — whether written by you, another agent, or a human:
 - **Don't soften real issues.** "This might be a minor concern" when it's a bug that will hit production is dishonest.
 - **Quantify problems when possible.** "This N+1 query will add ~50ms per item in the list" is better than "this could be slow."
 - **Push back on approaches with clear problems.** Sycophancy is a failure mode in reviews. If the implementation has issues, say so directly and propose alternatives.
-- **Accept override gracefully.** If the author has full context and disagrees, defer to their judgment. Comment on code, not people — reframe personal critiques to focus on the code itself.
+- **Accept override gracefully for technical judgment.** If the author has full context and disagrees about a design trade-off, defer to their judgment. An override does not waive required verification or independent review. Comment on code, not people — reframe personal critiques to focus on the code itself.
 
 ## Dependency Discipline
 
