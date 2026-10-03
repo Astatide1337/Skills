@@ -182,14 +182,14 @@ execution remain unsupported. Contained Git subprocesses do not contain every
 Python read or native-agent operation.
 
 The workflow dataset labels cases as `execution-ready` or `routing-only`.
-Seven supplied execution-ready cases are available: six contract diagnostics
+Ten supplied execution-ready cases are available: nine contract diagnostics
 whose native external effects are intentionally blocked, plus one local-only
 repair with a real workspace/test outcome. The other fourteen are
 classification cases and are reported as behaviorally unmeasured. Run the
 deterministic contract pilot with:
 
 ```bash
-uv run inspect eval evals/skills.py@workflow_fixture_pilot --max-samples 7
+uv run inspect eval evals/skills.py@workflow_fixture_pilot --max-samples 10
 ```
 
 The native `workflows` task runs a pre-launch boundary gate. A case is

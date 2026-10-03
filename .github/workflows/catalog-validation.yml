@@ -22,3 +22,4 @@ jobs:
           enable-cache: false
       - run: uv sync --frozen
       - run: uv run --frozen python scripts/validate_catalog.py
+      - run: uv run --frozen python -m unittest evals.tests.test_skills_lifecycle evals.tests.test_workflows

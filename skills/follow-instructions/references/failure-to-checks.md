@@ -25,7 +25,8 @@ not an installed automated guard. Implemented checks are separate: the
 runner-owned acceptance, and the
 [candidate-output regression](../../../evals/tests/test_skills_lifecycle.py)
 rejects a missing required answer even when the expected answer is available.
-These unit tests run only when explicitly invoked; the current
-[Catalog validation workflow](../../../.github/workflows/catalog-validation.yml)
-runs catalog structure and case validation, not evaluator unit tests or a live
-model evaluation. Record each run's actual status with its revision.
+The [Catalog validation workflow](../../../.github/workflows/catalog-validation.yml)
+runs catalog structure and case validation plus these model-free, local/mocked
+unit contracts. It does not run native model evaluation or the workspace
+containment tests, which require a working Bubblewrap namespace. Record each
+run's actual status with its revision.
