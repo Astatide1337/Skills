@@ -1388,6 +1388,13 @@ def native_behavior_grade(model: str):
                     "acceptance_blocked": True,
                 },
             )
+        candidate_answer = getattr(state.output, "completion", None)
+        if not isinstance(candidate_answer, str) or not candidate_answer.strip():
+            return Score(
+                value=0,
+                explanation="required candidate response is missing",
+                metadata={"status": "rejected", "candidate_output": "missing"},
+            )
         evidence = await workspace_evidence(state)
         prompt = (
             "You are grading one agent-skill evaluation on a 0-4 quality scale. "
@@ -1401,7 +1408,7 @@ def native_behavior_grade(model: str):
             f"TASK:\n{state.input_text}\n\n"
             f"TARGET:\n{target.text}\n\n"
             "CANDIDATE RESPONSE:\n"
-            f"{getattr(state.output, 'completion', '') or '[candidate output unavailable]'}\n\n"
+            f"{candidate_answer}\n\n"
             f"WORKSPACE EVIDENCE:\n{evidence}"
         )
         completion, grader_events = await run_codex(

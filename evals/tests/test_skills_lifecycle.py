@@ -6,6 +6,8 @@ import unittest
 from unittest.mock import AsyncMock, patch
 from pathlib import Path
 
+from inspect_ai.model import ModelOutput
+from inspect_ai.scorer import Target
 from inspect_ai.solver import TaskState
 
 from evals import skills
@@ -13,6 +15,49 @@ from evals.workspace_evidence import Baseline
 
 
 class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_missing_candidate_answer_cannot_use_expected_answer(self) -> None:
+        state = TaskState(
+            model="stub/no-model",
+            sample_id="synthetic-required-answer",
+            epoch=1,
+            input="Supply the requested answer",
+            messages=[],
+        )
+        state.metadata = {
+            "fixture_contract": {
+                "kind": "response-contract",
+                "response": "blue",
+                "required_content": ["blue"],
+            },
+            "forbidden_effects": [],
+        }
+        state.store.set("workspace_baseline", Baseline(status="available", revision="abc"))
+        state.output = ModelOutput.from_content(model="stub/no-model", content="")
+        target = Target("blue")
+
+        missing_contract = await skills.workflow_effects()(state, target)
+        self.assertEqual(missing_contract.value, 0)
+        grader = AsyncMock(return_value=('{"score":4,"explanation":"correct"}', ""))
+        with (
+            patch.object(skills, "workspace_evidence", AsyncMock(return_value="")),
+            patch.object(skills, "run_codex", grader),
+        ):
+            missing_grade = await skills.native_behavior_grade(model="stub/grader")(state, target)
+        self.assertEqual(missing_grade.value, 0)
+        grader.assert_not_awaited()
+
+        state.output = ModelOutput.from_content(model="stub/no-model", content="blue")
+        supplied_contract = await skills.workflow_effects()(state, target)
+        self.assertEqual(supplied_contract.value, 1)
+        with (
+            patch.object(skills, "workspace_evidence", AsyncMock(return_value="")),
+            patch.object(skills, "run_codex", grader),
+        ):
+            supplied_grade = await skills.native_behavior_grade(model="stub/grader")(state, target)
+        self.assertEqual(supplied_grade.value, 4)
+        grader.assert_awaited_once()
+        self.assertIn("CANDIDATE RESPONSE:\nblue", grader.await_args.args[0])
+
     def test_native_usage_is_read_from_cli_events(self) -> None:
         usage = skills._codex_usage(
             '{"type":"turn.completed","usage":{"input_tokens":12,"output_tokens":3,"reasoning_output_tokens":1}}\n'

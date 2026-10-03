@@ -2,7 +2,7 @@
 
 This map abstracts confirmed, in-scope incidents from a private local audit. It excludes ambiguous intent changes, suspected omissions, excluded evaluation work, credentials, raw histories, and project-specific data. Use a row only when its trigger is present; the owning skill supplies the detailed procedure.
 
-| Area | Decision | Observed failure | Executable check | Owner |
+| Area | Decision | Observed failure | Required verification procedure | Owner |
 | --- | --- | --- | --- | --- |
 | Environment | Mark a dependency unavailable | A long task stopped on stale assumptions although the current checkout and connected tool worked. | Recheck the exact checkout, instance, and dependency with a current direct call before blocked status. | follow-instructions, self-reflect |
 | Environment | Announce a preview or release | A served page linked to a route that returned 404; a separate release crashed after a green build. | Request the advertised URL and exercise the hydrated user path at the current revision. | verify-work |
@@ -18,3 +18,14 @@ This map abstracts confirmed, in-scope incidents from a private local audit. It 
 | Loops | Wake or continue a worker | Generic message updates caused repeated wakeups; a continuous loop waited for an hourly schedule. | Trigger on the requested transition, dedupe by state identity, and check the actual next-start interval. | architect, self-reflect |
 
 A structural rule is justified when an observed recurrence or safety boundary can be enforced. State the approved pattern, forbidden alternative, enforcement point, and a violating fixture that fails. Keep app-specific types, schemas, lint/import rules, CI, and feature maps in the application; keep deterministic operations in a pinned per-app CLI.
+
+The table lists procedures to perform when their triggers arise; its prose is
+not an installed automated guard. Implemented checks are separate: the
+[workflow contract tests](../../../evals/tests/test_workflows.py) exercise
+runner-owned acceptance, and the
+[candidate-output regression](../../../evals/tests/test_skills_lifecycle.py)
+rejects a missing required answer even when the expected answer is available.
+These unit tests run only when explicitly invoked; the current
+[Catalog validation workflow](../../../.github/workflows/catalog-validation.yml)
+runs catalog structure and case validation, not evaluator unit tests or a live
+model evaluation. Record each run's actual status with its revision.
