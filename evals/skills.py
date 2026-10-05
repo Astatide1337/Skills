@@ -167,6 +167,8 @@ async def run_codex(
     # investigation). Keep a finite bound while avoiding false evaluation
     # failures caused solely by the old 900-second cap.
     timeout: int = 1800,
+    interrupt_marker: str | None = None,
+    interrupt_absent: str | None = None,
 ) -> tuple[str, str]:
     """Run signed-in Codex in the current Inspect local sandbox workspace."""
 
@@ -200,6 +202,11 @@ async def run_codex(
         if output_schema is not None:
             command.extend(["--output-schema", str(output_schema)])
         command.append("-")
+        if interrupt_marker is not None:
+            command = [sys.executable, str(REPO_ROOT / "evals/interruption.py"),
+                       "--marker", interrupt_marker, "--checkpoint", "checkpoint.json",
+                       "--record", ".interruption-receipt.json",
+                       *(["--absent", interrupt_absent] if interrupt_absent else []), "--", *command]
         try:
             result = await sandbox().exec(
                 command,
@@ -216,6 +223,8 @@ async def run_codex(
                 timeout_retry=False,
                 concurrency=True,
             )
+            if interrupt_marker is not None and result.returncode == 130:
+                return "", result.stdout
             if not result.success:
                 raise RuntimeError(
                     "native Codex failed: "
@@ -334,7 +343,23 @@ def native_codex(
                     sandbox_mode="workspace-write",
                     extra_env=tracker.environment() if tracker is not None else None,
                     skills_root=loaded_root,
+                    interrupt_marker=(state.metadata or {}).get("interrupt_marker"),
+                    interrupt_absent=contract.get("write_path") if (state.metadata or {}).get("interrupt_marker") else None,
                 )
+                if (state.metadata or {}).get("interrupt_marker"):
+                    receipt = json.loads(await sandbox().read_file(".interruption-receipt.json"))
+                    if receipt.get("interrupted") is not True:
+                        raise RuntimeError("native process was not interrupted")
+                    state.store.set("native_interruption", receipt)
+                    removed = await sandbox().exec(["rm", "--", ".interruption-receipt.json", str(state.metadata["interrupt_marker"])], timeout=30)
+                    if removed.returncode != 0:
+                        raise RuntimeError("could not remove runner-owned interruption controls")
+                    completion, resumed_events = await run_codex(
+                        str(state.metadata["resume_prompt"]), model=model,
+                        with_skills=with_skills, sandbox_mode="workspace-write",
+                        skills_root=loaded_root,
+                    )
+                    events += "\n" + resumed_events
                 if with_skills and _skills_identity(loaded_root) != loaded_identity:
                     raise RuntimeError("loaded catalog changed during candidate execution")
         finally:
@@ -349,6 +374,9 @@ def native_codex(
             content=completion,
         )
         state.output.metadata = {"codex_jsonl": events}
+        if "native_interruption" in state.store:
+            state.output.metadata["native_interruption"] = state.store.get("native_interruption")
+            state.output.metadata["usage_scope"] = "completed-turn usage only; interrupted phase may be unavailable"
         native_usage = _codex_usage(events)
         if native_usage is not None:
             state.output.metadata["native_usage"] = native_usage
@@ -456,6 +484,15 @@ def workflows_dataset(
         if execution_ready_only and execution_mode != "execution-ready":
             continue
         files = dict(sample.files or {})
+        if metadata.get("portable_tools") is True:
+            # Same executable capabilities in both comparison arms. Only the
+            # selected catalog instructions differ; expectations stay separate.
+            files["checkpoint.py"] = (SKILLS_ROOT / "follow-instructions/scripts/checkpoint.py").read_text()
+            files["check_profile.py"] = (SKILLS_ROOT / "verify-work/scripts/check_profile.py").read_text()
+            metadata["portable_tools_identity"] = {
+                name: hashlib.sha256(files[name].encode()).hexdigest()
+                for name in ("checkpoint.py", "check_profile.py")
+            }
         files["AGENTS.md"] = global_rules
         sample.files = files
         if execution_mode == "routing-only" and not sample.setup:
@@ -1374,6 +1411,14 @@ async def workspace_evidence(state: TaskState) -> str:
             await _workspace_evidence_value(state)
         )
     ]
+    interruption = state.store.get("native_interruption")
+    if isinstance(interruption, dict):
+        sections.append(
+            "RUNNER-OWNED INTERRUPTION OBSERVATION:\n"
+            "The runner observed the fixture marker and checkpoint, signalled its owned native CLI process group, "
+            "waited for exit, and retained the initial task. This does not prove context compaction or containment "
+            "of descendants that create separate sessions.\n" + json.dumps(interruption, sort_keys=True)
+        )
     execution_records: list[str] = []
     tool_records: list[str] = []
     output_metadata = getattr(state.output, "metadata", None) or {}
@@ -1823,6 +1868,19 @@ def workflow_effects():
                     "acceptance_blocked": True,
                 },
             )
+        if metadata.get("interrupt_marker"):
+            interruption = state.store.get("native_interruption")
+            if not isinstance(interruption, dict) or interruption.get("interrupted") is not True:
+                return Score(value=0, explanation="required native interruption was not observed")
+            try:
+                after = json.loads(await sandbox().read_file("checkpoint.json"))["task"]
+                before = interruption["task_before"]
+                identities = lambda task: {(r["id"], r["description"]) for r in task["requirements"]}
+                if (after["objective"] != before["objective"] or identities(after) != identities(before)
+                        or not set(before["decisions"]).issubset(after["decisions"])):
+                    return Score(value=0, explanation="resume discarded the retained objective, requirements or decisions")
+            except (OSError, ValueError, KeyError, TypeError):
+                return Score(value=0, explanation="resume checkpoint cannot establish retained intent")
         if kind == "response-contract":
             completion = getattr(state.output, "completion", "") or ""
             required_content = contract.get("required_content", [])

@@ -18,6 +18,20 @@ from evals.workspace_evidence import Baseline, Evidence
 
 
 class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_grader_receives_runner_interruption_not_author_metadata(self) -> None:
+        state = self._workflow_state(forbidden=[])
+        state.output = ModelOutput.from_content(model="stub/no-model", content="Finished")
+        state.output.metadata = {"native_interruption": {"interrupted": "author claim"}}
+        observed = Evidence(available=True, status="available", baseline_revision="abc")
+        with patch.object(skills, "_workspace_evidence_value", AsyncMock(return_value=observed)):
+            self.assertNotIn("RUNNER-OWNED INTERRUPTION", await skills.workspace_evidence(state))
+            state.store.set("native_interruption", {"interrupted": True, "checkpoint_sha256": "observed-digest", "exit_code": -15})
+            evidence = await skills.workspace_evidence(state)
+        self.assertIn("RUNNER-OWNED INTERRUPTION", evidence)
+        self.assertIn("observed-digest", evidence)
+        self.assertIn("does not prove context compaction", evidence)
+        self.assertNotIn("author claim", evidence)
+
     async def test_missing_candidate_answer_cannot_use_expected_answer(self) -> None:
         state = TaskState(
             model="stub/no-model",

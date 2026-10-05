@@ -22,7 +22,9 @@ jobs:
           enable-cache: false
       - run: uv sync --frozen
       - run: uv run --frozen python scripts/validate_catalog.py
+      - run: uv run --frozen python skills/verify-work/scripts/boundary_checks.py ci --dialect github --file .github/workflows/catalog-validation.yml
       - run: uv run --frozen python -m unittest evals.tests.test_skills_lifecycle evals.tests.test_workflows
+      - run: uv run --frozen python -m unittest evals.tests.test_portable_tools
 
   workspace-evidence-unit-tests:
     name: Workspace evidence unit tests
@@ -44,4 +46,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes bubblewrap
       - run: uv sync --frozen
+      - name: Diagnose namespace prerequisite without changing host policy
+        run: uv run --frozen python scripts/namespace-doctor.py
       - run: uv run --frozen python -m unittest discover -s evals/tests -v

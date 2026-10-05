@@ -26,6 +26,9 @@ once; leaf skills link to this rule rather than repeating it.
 Across compaction or handoff, retain the active objective, accepted decisions,
 unfinished gates, next authorized action, and exact blockers. Do not replace a
 still-active objective with an empty status summary.
+For expected interruption or durable continuation, use
+[checkpoints](references/durable-checkpoints.md); the record preserves intent
+and unfinished gates, while current evidence still determines completion.
 
 The five working areas are **Environment** (current host, checkout, instance
 and identity), **Verification** (independent expected result and final

@@ -58,6 +58,21 @@ startup/reset/report-combination paths, reinforce `systematic-debugging`'s
 environment checks and `verify-work`'s claim boundaries. They have not received
 application-level fixes or native integration coverage in this PR.
 
+## Additional mechanisms and their limits
+
+| Observed gap | Addition | Observable contract and remaining limit |
+| --- | --- | --- |
+| Original summaries: objective and unfinished gates lost at handoff. | [Durable checkpoints](durable-checkpoints.md) and `workflow-native-process-resume`. | Atomic revisioned records refuse stale updates or silent replacement of objectives, requirements and decisions. The runner interrupts an actual CLI process and a fresh session resumes from the record. This does not test every context-compaction mechanism. |
+| Original summaries: green builds and old artifacts promoted to working user journeys; later exports: startup/reset failures. | [User-owned profiles](../../verify-work/references/portable-profiles.md). | Existing app-owned commands must satisfy independent exact expectations with unchanged declared source through cleanup. Failed startup attempts cleanup and later drives remain not-run. This does not install a browser harness or fix the audited applications. |
+| Original summaries: discarded conflicted drafts, divergent shared views, duplicate retries; separately user-reported cancellation. | [State and lifecycle guidance](../../architect/references/state-and-lifecycle.md). | Design and verification identify state owner, commit boundary, preservation of drafts, stable retry identity, and pre/post-commit negative outcomes. These decisions still need implementation and runtime checks in the application. |
+| Later retrospective exports: undefined CI dependency and executable schema replaced by prose. | `verify-work/scripts/boundary_checks.py`. | Exact JSON contracts and static CI job references reject controlled violating fixtures; valid optional dependencies remain accepted. Not a full CI platform validator or automatically installed application lint. |
+
+The portable helpers are supplied identically to both arms of the native
+resume comparison. Only the selected catalog instructions differ. The grader's
+acceptance remains separate from candidate output. Subprocess/file controls
+establish helper behavior; a small live trial does not establish broad agent
+reliability or resolve attribution to K-Agent versus Lestatide.
+
 The table lists procedures to perform when their triggers arise; its prose is
 not an installed automated guard. Implemented checks are separate: the
 [workflow contract tests](../../../evals/tests/test_workflows.py) exercise

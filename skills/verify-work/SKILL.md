@@ -23,6 +23,9 @@ into a generic request to verify production.
 - **Maintain a project verifier:** only when the user asks to improve an
   existing verification skill or feature map; then read
   `references/maintain-project-verifier.md`.
+- **User-owned verification:** when application repositories cannot be changed,
+  use [portable profiles](references/portable-profiles.md) to compose existing
+  checks or a pinned app CLI with independent expectations and fresh receipts.
 
 Project-local verification skills live at `.agents/skills/verify-<app>/` unless the repository declares another agent-skill location. Do not create platform-specific directories by default.
 The application owns its feature map and pins any separate per-app CLI version; the skill supplies judgment and the CLI performs repeatable operations.

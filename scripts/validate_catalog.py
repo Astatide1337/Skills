@@ -247,6 +247,16 @@ def main() -> None:
         ):
             fail(f"workflow case {case_id} has invalid fixture files")
         execution_mode = metadata.get("execution_mode")
+        if "portable_tools" in metadata and type(metadata["portable_tools"]) is not bool:
+            fail(f"workflow case {case_id} portable_tools must be boolean")
+        if "interrupt_marker" in metadata:
+            marker = metadata["interrupt_marker"]
+            if (execution_mode != "execution-ready" or not isinstance(marker, str)
+                    or not marker or Path(marker).is_absolute() or ".." in Path(marker).parts
+                    or marker in files or not metadata.get("portable_tools")
+                    or not isinstance(metadata.get("resume_prompt"), str)
+                    or not metadata["resume_prompt"].strip()):
+                fail(f"workflow case {case_id} needs a fresh bounded marker, portable tools and resume prompt")
         if execution_mode not in {"routing-only", "execution-ready"}:
             fail(
                 f"workflow case {case_id} needs execution_mode routing-only or execution-ready"

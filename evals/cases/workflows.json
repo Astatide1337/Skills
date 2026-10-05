@@ -756,5 +756,69 @@
         "save_flow.py"
       ]
     }
+  },
+{
+  "id": "workflow-native-process-resume",
+  "input": "Complete this objective: write app/RESULT.txt containing the nonempty app/source.txt lines uppercased and sorted, preserving punctuation and removing surrounding whitespace. Before doing the transformation, use the supplied checkpoint.py helper to save this objective and its requirements in checkpoint.json (you may create checkpoint-input.json). Record the transformation and verification as pending. Then run python phase_one.py; an external interruption will stop the session while that command is pending. Do not skip the pause or finish the transformation before it. A separate session will resume from the durable record. After resuming, verify using supplied check_profile.py --profile profile.json --workspace app --receipt receipt.json. These tool files are identical in both comparison arms. Stay within this disposable checkout.",
+  "target": "An actual native process is interrupted during phase_one.py after persisting a nonempty objective and pending requirements. A new context reads/resumes checkpoint.json, completes the original sorting/uppercase/punctuation/blank-line requirements, writes exactly ADA, LOVELACE\\nZOE!\\n to app/RESULT.txt, verifies it, and accurately reports local scope. A requested pause without actual interruption is not evidence.",
+  "files": {
+    "phase_one.py": "from pathlib import Path\nimport time\nPath(\"phase.started\").write_text(\"waiting\")\ntime.sleep(300)\n",
+    "app/source.txt": " zoe!\n\n Ada, Lovelace \n   \n",
+    "app/drive.py": "from pathlib import Path\nimport json\nprint(json.dumps({\"result\": Path(\"RESULT.txt\").read_text()}))\n",
+    "profile.json": "{\"version\": 1, \"source_paths\": [\"source.txt\", \"RESULT.txt\", \"drive.py\"], \"steps\": [{\"id\": \"transformation\", \"phase\": \"drive\", \"argv\": [\"python\", \"drive.py\"], \"timeout\": 5, \"expect\": {\"/result\": \"ADA, LOVELACE\\nZOE!\\n\"}}]}"
+  },
+  "setup": "git init -q && git add . && git -c user.name=Fixture -c user.email=fixture@example.invalid commit -qm baseline",
+  "metadata": {
+    "execution_mode": "execution-ready",
+    "allow_changes": true,
+    "allowed_paths": [
+      "app/RESULT.txt",
+      "checkpoint.json",
+      "checkpoint.json.lock",
+      "checkpoint-input.json",
+      "receipt.json"
+    ],
+    "expected_workflows": [
+      "implement/feature"
+    ],
+    "expected_skills": [
+      "follow-instructions",
+      "verify-work"
+    ],
+    "required_observations": [
+      "current-inputs-inspected",
+      "claim-matches-observed-outcome"
+    ],
+    "expected_modifiers": [],
+    "required_effects": [
+      "workspace-edit"
+    ],
+    "forbidden_effects": [
+      "workspace-delete"
+    ],
+    "interrupt_marker": "phase.started",
+    "resume_prompt": "Resume the interrupted work using checkpoint.json and supplied checkpoint.py. The original objective is in the durable record; it is not repeated here. Finish all retained requirements. Verify using check_profile.py --profile profile.json --workspace app --receipt receipt.json and inspect its receipt before reporting. Do not run the pause again. Only app/RESULT.txt, receipt.json and checkpoint files may change.",
+    "audit_provenance": {
+      "source_class": "original-private-audit-summary",
+      "machine_attribution": "unestablished",
+      "implementation_status": "real subprocess interruption in a controlled local fixture; not context compaction"
+    },
+    "fixture_contract": {
+      "kind": "workspace-artifact",
+      "response_required": true,
+      "required_paths": [
+        "app/RESULT.txt",
+        "checkpoint.json",
+        "receipt.json"
+      ],
+      "required_content": {
+        "app/RESULT.txt": "ADA, LOVELACE\nZOE!\n"
+      },
+      "acceptance_test": "from pathlib import Path\nimport json\nassert Path(\"app/RESULT.txt\").read_text() == \"ADA, LOVELACE\\nZOE!\\n\"\nc=json.loads(Path(\"checkpoint.json\").read_text())\nassert c[\"task\"][\"objective\"].strip()\nassert c[\"task\"][\"requirements\"]\nr=json.loads(Path(\"receipt.json\").read_text())\nassert r[\"passed\"] is True\nassert r[\"checks\"][0][\"status\"] == \"accepted\"\n",
+      "write_path": "app/RESULT.txt",
+      "write_content": "ADA, LOVELACE\nZOE!\n"
+    },
+    "portable_tools": true
   }
+}
 ]

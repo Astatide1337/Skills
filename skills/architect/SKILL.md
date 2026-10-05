@@ -33,3 +33,5 @@ Pause for approval only when requested or when the choice changes public contrac
 Use `references/rationale-template.md` for the decision record. Read
 `references/design-red-flags.md` when comparing module boundaries or reviewing
 an existing proposal.
+For asynchronous saves, conflicts, retries, shared views, or owned resources,
+read [state and lifecycle boundaries](references/state-and-lifecycle.md).

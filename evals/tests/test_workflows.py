@@ -66,7 +66,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.files, {"AGENTS.md": skills.GLOBAL_INSTRUCTIONS.read_text()})
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            17,
+            18,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -153,6 +153,7 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-artifact-only",
                 "workflow-native-genuine-blocker",
                 "workflow-native-cancellation-effects",
+                "workflow-native-process-resume",
             },
         )
         for sample in cases.values():
@@ -177,7 +178,7 @@ class WorkflowContractTests(unittest.TestCase):
     def test_native_regression_cases_keep_expectations_separate_and_scope_bounded(self) -> None:
         cases = [sample for sample in skills.workflows_dataset().samples
                  if "audit_provenance" in (sample.metadata or {})]
-        self.assertEqual(len(cases), 7)
+        self.assertEqual(len(cases), 8)
         for sample in cases:
             metadata = sample.metadata or {}
             contract = metadata["fixture_contract"]
@@ -186,7 +187,10 @@ class WorkflowContractTests(unittest.TestCase):
             self.assertNotIn("audit_provenance", sample.input)
             self.assertNotIn(sample.target, sample.input)
             if metadata["allow_changes"]:
-                self.assertEqual(metadata["allowed_paths"], [contract["write_path"]])
+                if metadata.get("interrupt_marker"):
+                    self.assertEqual(set(metadata["allowed_paths"]), {"app/RESULT.txt", "checkpoint.json", "checkpoint.json.lock", "checkpoint-input.json", "receipt.json"})
+                else:
+                    self.assertEqual(metadata["allowed_paths"], [contract["write_path"]])
             if contract["kind"] == "workspace-test":
                 command, error = skills._runner_acceptance_command(contract)
                 self.assertIsNone(error)
