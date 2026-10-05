@@ -1,6 +1,6 @@
 ---
 name: pull-requests
-description: Manage a GitHub PR or GitLab MR from draft through handoff.
+description: Draft, create, monitor, or review a GitHub PR or GitLab MR.
 ---
 
 # Pull requests
@@ -13,6 +13,7 @@ Treat GitHub pull requests and GitLab merge requests as the same review artifact
 | --- | --- | --- |
 | Write, prepare, or draft a title, description, reply, or suggestion | Draft | No remote writes. |
 | File, create, or open a PR/MR, including "open a draft PR/MR" | Create | Push the reviewed current branch and create one PR/MR. |
+| Review or re-review a PR/MR or coworker's branch | Review | Read source and checks; return private findings/drafts. No source edits or remote writes. |
 | Check/watch/status a PR/MR | Monitor | Read remote state only; no code, push, or retry effect is implied. |
 | Monitor and fix/address named in-scope defects | Monitor-and-fix | Repair only the authorized scope, then verify and push when that lifecycle is authorized. |
 | Post, reply, comment, or suggest on a PR/MR | Communicate | Post that specific checked comment only. |
@@ -50,6 +51,40 @@ mandatory:
 Ignore superseded checks; say `Not ready` when a verified unresolved current
 issue remains. Do not omit the status line because the user also asked for copy
 or a comment. It is a review decision, not routine pipeline boilerplate.
+
+## Review a coworker's PR/MR
+
+Use [code-review-and-quality](../code-review-and-quality/SKILL.md) for technical
+judgment. This mode owns the review artifact, feedback and authority; do not
+repeat that skill's checklist here.
+
+- Read the originating issue and current diff in context. Check whether the
+  intended feature is covered, including relevant UI/UX and affected callers.
+  When QA is requested, exercise the actual feature using the existing app
+  verifier and [verify-work](../verify-work/SKILL.md); source inspection or
+  mocked tests do not prove a live journey. Give reproducible steps and useful
+  visual evidence for confirmed UI issues, with unavailable checks explicit.
+- Preserve the coworker's source checkout. Review and QA do not authorize
+  fixes, commits or pushes; use an isolated test setup if running checks would
+  otherwise modify their files. A later explicit local-fix request changes
+  only that authority, not publication authority.
+- Draft short, natural, line-anchored feedback: the observed problem and the
+  requested correction. Keep detailed analysis in the private review; separate
+  blockers from optional coverage or UX improvements. Prefer a small valid host
+  suggestion block when replacement code is requested and verified.
+- “In-file comments on the MR” means review comments attached to diff lines,
+  not editing source files. A host suggestion block proposes a patch; it does
+  not authorize applying it. Cross-cutting concerns can use a general comment
+  when that is the requested surface. Do not replace requested inline feedback
+  with a general review essay.
+- Re-check the new head and original findings when the author adds commits.
+  Return current findings, actual QA results and drafted feedback. Switch to
+  Communicate only for explicitly requested posting; submit the requested
+  review/comments and fetch their visible state before claiming they were sent.
+
+Apply the attribution and comment rules below to any posted feedback. A plain
+review request ends with private findings; no comment, approval or change-request
+review is submitted merely because the review finished.
 
 ## Draft and create the review unit
 

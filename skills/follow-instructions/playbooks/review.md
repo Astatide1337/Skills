@@ -6,7 +6,9 @@ Use for findings on a revision, a security/quality audit, or a re-review after
 the head changed. Review-only is read-only; fixes and posting are separate
 requested follow-ons. Use [`code-review-and-quality`](../../code-review-and-quality/SKILL.md)
 for the five-axis review and [`security-and-hardening`](../../security-and-hardening/SKILL.md)
-for a material trust boundary.
+for a material trust boundary. For a PR/MR review, also use
+[`pull-requests`](../../pull-requests/SKILL.md) to resolve the host, current head
+and requested feedback surface; private review does not imply posting.
 
 ## Inputs to establish
 

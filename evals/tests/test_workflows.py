@@ -66,7 +66,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.files, {"AGENTS.md": skills.GLOBAL_INSTRUCTIONS.read_text()})
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            20,
+            21,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -156,6 +156,7 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-process-resume",
                 "workflow-native-small-task",
                 "workflow-native-small-diff-sensitive-boundary",
+                "workflow-coworker-inline-review",
             },
         )
         for sample in cases.values():
