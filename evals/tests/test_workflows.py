@@ -66,7 +66,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.files, {"AGENTS.md": skills.GLOBAL_INSTRUCTIONS.read_text()})
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            18,
+            20,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -154,6 +154,8 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-genuine-blocker",
                 "workflow-native-cancellation-effects",
                 "workflow-native-process-resume",
+                "workflow-native-small-task",
+                "workflow-native-small-diff-sensitive-boundary",
             },
         )
         for sample in cases.values():
@@ -178,11 +180,16 @@ class WorkflowContractTests(unittest.TestCase):
     def test_native_regression_cases_keep_expectations_separate_and_scope_bounded(self) -> None:
         cases = [sample for sample in skills.workflows_dataset().samples
                  if "audit_provenance" in (sample.metadata or {})]
-        self.assertEqual(len(cases), 8)
+        self.assertEqual(len(cases), 10)
         for sample in cases:
             metadata = sample.metadata or {}
             contract = metadata["fixture_contract"]
-            self.assertEqual(metadata["audit_provenance"]["machine_attribution"], "unestablished")
+            expected_attribution = (
+                "not-applicable; synthetic held-out case"
+                if sample.id in {"workflow-native-small-task", "workflow-native-small-diff-sensitive-boundary"}
+                else "unestablished"
+            )
+            self.assertEqual(metadata["audit_provenance"]["machine_attribution"], expected_attribution)
             self.assertNotIn("fixture_contract", sample.input)
             self.assertNotIn("audit_provenance", sample.input)
             self.assertNotIn(sample.target, sample.input)

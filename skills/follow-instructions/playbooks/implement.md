@@ -4,8 +4,8 @@
 
 Use when the requested outcome changes repository behavior or structure. Pick
 `bug`, `feature`, or `refactor`; add a PR route only when publication is also
-requested. Use [`systematic-debugging`](../../systematic-debugging/SKILL.md) for
-bugs, [`architect`](../../architect/SKILL.md) for unclear boundaries,
+requested. Mechanical local changes use the coordinator's short path instead.
+Use [`systematic-debugging`](../../systematic-debugging/SKILL.md) for unclear causes, [`architect`](../../architect/SKILL.md) for unclear boundaries,
 [`web-interface`](../../web-interface/SKILL.md) for UI, and
 [`code-review-and-quality`](../../code-review-and-quality/SKILL.md) before
 handoff.
@@ -24,7 +24,9 @@ handoff.
    when claiming a bug fix. Record facts separately from assumptions. A feature
    or refactor starts from its own observable contract; it does not need an
    incident reproducer.
-2. For a bug, list competing causes and run the cheapest discriminating check.
+2. For a bug with material causal uncertainty, list competing causes and run
+   the cheapest discriminating check; an observed obvious cause needs no invented
+   alternatives.
    For a feature, define observable states and extend existing interfaces. For
    a refactor, state behavior/contracts that must remain unchanged.
 3. Choose the smallest correction or coherent feature sequence. Preserve

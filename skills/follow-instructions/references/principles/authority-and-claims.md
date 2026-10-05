@@ -28,6 +28,28 @@ Do not probe credentials, evaluator expectations, unrelated repositories, or
 external services outside the authorized scope. A skill adds procedure, not
 authority. Report actions and results only when observed.
 
+## Review-risk triggers
+
+Require independent review for material trust-boundary changes: authentication,
+authorization, tenant/object isolation, secrets or sensitive data; unsafe
+execution, rendering or fetch; externally reachable integrations; dependency
+or build trust. Also require it for durable writes, destructive operations or
+ambiguous commit/retry/cancellation boundaries; concurrency or shared state;
+incompatible public interfaces, migrations, deployment or privilege; or a
+cross-module design whose ownership or correctness remains materially uncertain.
+
+Evaluator, safety-gate and agent-authority changes require review, as do changes
+that weaken or redefine acceptance, scoring or discovery gates. Adding an
+ordinary application regression test alone does not trigger independent review.
+User or repository review requirements win.
+
+A mechanical local change with a clear owner, preserved contracts and focused
+behavioral evidence can finish with author diff review when these triggers are
+absent. File or line count does not determine risk. Self-review never counts as
+independent. If inspection reveals a trigger, use
+[code-review-and-quality](../../../code-review-and-quality/SKILL.md) before
+claiming completion; unavailable review stays pending.
+
 ## Procedure
 
 1. State the exact target, authorized effect, source of truth, and current

@@ -1,11 +1,13 @@
 ---
 name: systematic-debugging
-description: Diagnose the root cause of a bug or failure before fixing it.
+description: Diagnose unclear causes, contradictory evidence, or repeated failed fixes before changing behavior.
 ---
 
 # Systematic Debugging
 
-Find the cause before fixing the symptom.
+Find the cause before fixing the symptom. An obvious mechanical correction
+with a clear owner and focused reproducer uses `follow-instructions`' short
+path; do not manufacture a multi-hypothesis investigation for it.
 
 ## Workflow
 

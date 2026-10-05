@@ -18,6 +18,109 @@ from evals.workspace_evidence import Baseline, Evidence
 
 
 class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_native_launch_respects_effort_and_isolates_grader_directory(self) -> None:
+        events = '{"type":"turn.completed","usage":{"input_tokens":12,"cached_input_tokens":5,"output_tokens":3}}\n'
+        for isolated in (False, True):
+            with self.subTest(isolated=isolated), tempfile.TemporaryDirectory() as directory:
+                home = Path(directory) / "home"
+                home.mkdir()
+                sandbox = SimpleNamespace(read_file=AsyncMock(return_value="answer"))
+                seen_directory = None
+
+                async def execute(command, **kwargs):
+                    nonlocal seen_directory
+                    if command[0] == "codex":
+                        self.assertIn('model_reasoning_effort="medium"', command)
+                        self.assertEqual(command[command.index("--sandbox") + 1], "read-only")
+                        self.assertEqual(command[command.index("--model") + 1], "stub/model")
+                        self.assertEqual(kwargs["input"], "supplied task only")
+                        if isolated:
+                            seen_directory = Path(command[command.index("--cd") + 1])
+                            self.assertTrue(seen_directory.is_dir())
+                            self.assertEqual(list(seen_directory.iterdir()), [])
+                        else:
+                            self.assertNotIn("--cd", command)
+                    return SimpleNamespace(success=True, returncode=0, stdout=events, stderr="")
+
+                sandbox.exec = AsyncMock(side_effect=execute)
+                with (
+                    patch.object(skills, "bwrap_preflight", return_value=None),
+                    patch.object(skills, "isolated_codex_home", return_value=skills.nullcontext(str(home))),
+                    patch.object(skills, "sandbox", return_value=sandbox),
+                ):
+                    answer, observed = await skills.run_codex(
+                        "supplied task only", model="stub/model", with_skills=False,
+                        sandbox_mode="read-only", effort="medium", isolate_workspace=isolated,
+                    )
+                self.assertEqual(answer, "answer")
+                self.assertEqual(observed, events)
+                if seen_directory is not None:
+                    self.assertFalse(seen_directory.exists())
+
+    def test_invalid_effort_is_rejected_before_native_execution(self) -> None:
+        for effort in ("unlimited", 'max"; unexpected', "", None):
+            with self.subTest(effort=effort), self.assertRaises(ValueError):
+                skills.catalog(native_effort=effort)
+        with self.assertRaises(ValueError):
+            skills.workflows(grader_effort="unlimited")
+        with self.assertRaises(ValueError):
+            skills.workflow_routing(native_effort="unlimited")
+
+    def test_effort_metrics_keep_failures_and_do_not_invent_missing_usage(self) -> None:
+        events = '\n'.join([
+            'not JSON', '[]',
+            '{"type":"item.completed","item":{"type":"command_execution","exit_code":1}}',
+            '{"type":"item.completed","item":{"type":"command_execution","exit_code":0}}',
+            '{"type":"item.started","item":{"type":"command_execution"}}',
+            '{"type":"item.completed","item":{"type":"agent_message","text":"done"}}',
+        ])
+        result = skills._execution_metrics(events)
+        self.assertEqual(result, {"completed_commands": 2, "failed_commands": 1, "agent_messages": 1})
+        usage = '\n{"type":"turn.completed","usage":{"input_tokens":12,"cached_input_tokens":5,"output_tokens":3}}'
+        self.assertEqual(skills._execution_metrics(events + usage)["uncached_input_tokens"], 7)
+
+    async def test_guidance_hides_evaluation_cues_and_keeps_expected_answer_out(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "skills"
+            package = root / "example"
+            package.mkdir(parents=True)
+            (package / "SKILL.md").write_text("Declared task guidance")
+            state = self._workflow_state(forbidden=[])
+            state.metadata = {"skill": "example", "expected_answer": "HIDDEN_EXPECTATION"}
+            launcher = AsyncMock(return_value=("candidate answer", ""))
+            with patch.object(skills, "run_codex", launcher):
+                result = await skills.native_codex(
+                    with_skills=True, model="stub/model", skills_root=root, effort="medium",
+                )(state, None)
+            prompt = launcher.await_args.args[0]
+            self.assertIn("Declared task guidance", prompt)
+            self.assertNotIn("HIDDEN_EXPECTATION", prompt)
+            self.assertNotIn("evaluation", prompt)
+            self.assertEqual(launcher.await_args.kwargs["effort"], "medium")
+            self.assertEqual(result.output.metadata["native_effort"], "medium")
+
+    async def test_grader_has_separate_effort_and_no_candidate_model_or_arm(self) -> None:
+        state = self._workflow_state(forbidden=[])
+        state.metadata.update({"comparison_arm": "PRIVATE_ARM", "skills_revision": "PRIVATE_REVISION"})
+        state.output = ModelOutput.from_content(model="PRIVATE_MODEL", content="Observed result")
+        grader = AsyncMock(return_value=('{"score":4,"explanation":"verified"}', ""))
+        with (
+            patch.object(skills, "workspace_evidence", AsyncMock(return_value="literal observed evidence")),
+            patch.object(skills, "run_codex", grader),
+        ):
+            result = await skills.native_behavior_grade(model="stub/grader", effort="high")(
+                state, Target("Independent target"),
+            )
+        prompt = grader.await_args.args[0]
+        for hidden in ("PRIVATE_ARM", "PRIVATE_MODEL", "PRIVATE_REVISION"):
+            self.assertNotIn(hidden, prompt)
+        self.assertIn("Independent target", prompt)
+        self.assertIn("Observed result", prompt)
+        self.assertIn("literal observed evidence", prompt)
+        self.assertTrue(grader.await_args.kwargs["isolate_workspace"])
+        self.assertEqual(grader.await_args.kwargs["effort"], "high")
+        self.assertEqual(result.metadata["grader_effort"], "high")
+
     async def test_grader_receives_runner_interruption_not_author_metadata(self) -> None:
         state = self._workflow_state(forbidden=[])
         state.output = ModelOutput.from_content(model="stub/no-model", content="Finished")

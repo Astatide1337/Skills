@@ -100,3 +100,22 @@ An additional runner regression reproduces a passing supplemental check that
 creates an out-of-scope file after evidence was cached. Workflow checks now run
 before policy/behavior scoring and invalidate earlier evidence, so the final
 observation includes those effects rather than accepting the stale snapshot.
+
+## Measured ordinary-task overhead
+
+A separate October 5 comparison at `93f5240` ran two known local tasks twice
+under the catalog, original upstream P-stack and a no-catalog diagnostic with
+common authority/evidence rules and the same model/effort. All twelve produced
+the correct functional outcomes. The catalog used median 26,678 uncached input
+tokens and 27 command calls versus 10,092 and 6.5 for the control; one two-line
+fix read ten instruction sections before project inspection. This is measured
+context/tool overhead, not a demonstrated slowdown or general efficacy verdict.
+Native Cursor delegation was unavailable and timing varied substantially.
+
+The short task path, conditional principle index, narrower review triggers and
+removal of automatic completion reflection respond to that observation. They
+must retain freshness, actual-outcome, authority and negative-case gates.
+P-stack's explicit reasoning budget and cue-reduced evaluation informed
+configurable native/grader effort and isolated grader context. Those are source
+adaptations, not newly observed failures in K-Agent or Lestatide, and are not
+proof that historical application incidents are fixed.

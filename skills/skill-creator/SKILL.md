@@ -121,40 +121,12 @@ the representative case, treatment (catalog skill available), identical
 baseline (skill absent), and the behavioral evidence or scorer used to compare
 them. A case without the paired baseline is not an efficacy evaluation.
 
-The repository task uses Inspect AI to run the locally authenticated Codex CLI
-inside Codex's workspace sandbox. The treatment injects the selected catalog
-skill verbatim and exposes its files; the baseline receives neither. This
-isolates instruction efficacy from routing. Test installation and automatic
-routing separately. Personal configuration and unrelated installed skills are
-excluded. Inspect owns cases, concurrency, scorers, logs, and result viewing.
-
-Validate task discovery without a model call:
-
-```bash
-uv run inspect list tasks evals/skills.py
-```
-
-Run the treatment and baseline only when the user authorizes model usage and
-`codex login status` confirms a signed-in ChatGPT session:
-
-```bash
-uv run inspect eval evals/skills.py@catalog -T native_model=gpt-5.6-luna --max-samples 2
-uv run inspect eval evals/skills.py@catalog -T with_skills=false -T native_model=gpt-5.6-luna --max-samples 2
-```
-
-Review transcripts and per-case scores in Inspect View. Look for qualitative
-failure modes as well as the scalar grade: ignored instructions, unnecessary
-steps, surprising authority, weak evidence, accidental overfitting, and user
-corrections the rubric missed. A numerical win with worse interaction quality
-is not an improvement.
-
-Test trigger quality separately with positive, near-miss, and adversarial
-requests. The behavior case measures what the skill teaches after injection; it
-does not prove that the description routes correctly.
-
-Do not tune on a hidden
-case after observing it, treat repeated runs as independent tasks, or claim a
-skill improved from a single noisy sample.
+For execution, blinding, effort settings and outcome/cost metrics, read
+[the evaluation procedure](references/evaluation.md). It uses the existing
+Inspect tasks and authenticated native CLI; do not create another framework.
+Expected answers stay outside candidate prompts. Missing required output is a
+failure; legitimate artifact-only answers and unsupported environments retain
+their existing contracts.
 
 For a design-only skill proposal, finish with concrete repository commands for
 structural validation and task discovery, plus a compact case specification

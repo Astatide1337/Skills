@@ -9,8 +9,8 @@ Use this as a bounded modifier when the work itself signals that direction,
 evidence, or effort needs a reset. Invoke it without waiting for the user when
 one of these triggers is present:
 
-- **Close:** a task or thread is settling and a final handoff is about to be
-  made.
+- **Close:** settling work still has contradictory evidence, an unresolved
+  acceptance gate, or a proposed durable lesson needing a decision.
 - **Recover:** the same approach has failed twice, a correction conflicts with
   the current plan, evidence is contradictory, or progress has stopped.
 - **Checkpoint:** a declared work unit, iteration, or available runtime/budget
