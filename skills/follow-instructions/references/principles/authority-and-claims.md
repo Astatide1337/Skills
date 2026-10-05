@@ -15,6 +15,19 @@ evidence proves. Proceed with reversible in-scope work without unnecessary
 permission pauses. Stop before irreversible or unauthorized effects. Distinguish
 drafting, fixing, creating, publishing, merging, and deploying.
 
+## Execution boundary
+
+Match the requested outcome, permitted effects, declared inputs, and output
+paths. A prompt-only task that explicitly forbids tools uses only supplied
+text. Review, diagnosis, planning, and "do not edit" permit read-only inspection
+of in-scope evidence unless the user also forbids it. Check that evidence before
+declaring it missing.
+
+For bounded workspace tasks, use the declared source and output locations.
+Do not probe credentials, evaluator expectations, unrelated repositories, or
+external services outside the authorized scope. A skill adds procedure, not
+authority. Report actions and results only when observed.
+
 ## Procedure
 
 1. State the exact target, authorized effect, source of truth, and current

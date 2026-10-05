@@ -201,6 +201,13 @@ def main() -> None:
         metadata = case.get("metadata")
         if not isinstance(metadata, dict) or not isinstance(metadata.get("allow_changes"), bool):
             fail(f"workflow case {case_id} needs explicit allow_changes")
+        if "allowed_paths" in metadata:
+            paths = metadata["allowed_paths"]
+            if not isinstance(paths, list) or not paths or not all(
+                isinstance(path, str) and path and not path.startswith("/")
+                and ".." not in Path(path).parts for path in paths
+            ):
+                fail(f"workflow case {case_id} needs bounded allowed_paths")
         expected_skills = metadata.get("expected_skills")
         if not isinstance(expected_skills, list) or not all(
             isinstance(skill, str) and skill in names for skill in expected_skills
@@ -253,6 +260,8 @@ def main() -> None:
             if execution_mode != "execution-ready" or not isinstance(contract, dict):
                 fail(f"workflow case {case_id} has an invalid fixture contract")
             kind = contract.get("kind")
+            if "response_required" in contract and not isinstance(contract["response_required"], bool):
+                fail(f"workflow case {case_id} response_required must be boolean")
             if kind not in {"fake-tracker-publication", "response-contract", "workspace-test", "workspace-artifact"}:
                 fail(f"workflow case {case_id} has an unknown fixture contract kind")
             if kind == "fake-tracker-publication":

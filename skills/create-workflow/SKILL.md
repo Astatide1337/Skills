@@ -96,12 +96,5 @@ Delete wrappers, duplicate configuration, speculative integrations, and runtime 
 
 ## Execution boundary
 
-Match the task's requested mode and the tools it authorizes.
-
-- For prompt-only tasks that explicitly forbid workspace or tool use, use only
-  the supplied text. `Review-only`, `diagnose`, and `do not edit` prohibit
-  mutation, not observation: inspect in-scope supplied files with read-only
-  tools unless the user also forbids that inspection. If required evidence is
-  absent after checking the declared scope, identify the smallest artifact needed.
-- For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
-- Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.
+Apply the shared [execution boundary](../follow-instructions/references/principles/authority-and-claims.md#execution-boundary).
+Keep the task-specific restrictions above; this skill grants no additional effects.

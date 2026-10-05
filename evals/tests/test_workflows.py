@@ -18,6 +18,11 @@ from evals.fake_tracker import FakeTracker, validate_publication
 
 
 class WorkflowContractTests(unittest.TestCase):
+    def test_model_free_pilot_does_not_supply_native_agent_answers(self) -> None:
+        dataset = skills.workflow_fixture_pilot().dataset
+        self.assertEqual(len(dataset), 9)
+        self.assertTrue(all(not str(sample.id).startswith("workflow-native-") for sample in dataset))
+
     @staticmethod
     def _source_response(content: str = "def lookup():\n    return None\n") -> dict[str, object]:
         raw = content.encode()
@@ -61,7 +66,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.files, {"AGENTS.md": skills.GLOBAL_INSTRUCTIONS.read_text()})
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            10,
+            17,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -141,6 +146,13 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-independent-review-gate",
                 "workflow-unchanged-evidence",
                 "workflow-stale-final-tree",
+                "workflow-native-stale-evidence",
+                "workflow-native-required-answer",
+                "workflow-native-interrupted-objective",
+                "workflow-native-recoverable-debugging",
+                "workflow-native-artifact-only",
+                "workflow-native-genuine-blocker",
+                "workflow-native-cancellation-effects",
             },
         )
         for sample in cases.values():
@@ -161,6 +173,37 @@ class WorkflowContractTests(unittest.TestCase):
             required = contract["required_content"]
             self.assertTrue(required)
             self.assertTrue(all(fragment in contract["response"] for fragment in required))
+
+    def test_native_regression_cases_keep_expectations_separate_and_scope_bounded(self) -> None:
+        cases = [sample for sample in skills.workflows_dataset().samples
+                 if "audit_provenance" in (sample.metadata or {})]
+        self.assertEqual(len(cases), 7)
+        for sample in cases:
+            metadata = sample.metadata or {}
+            contract = metadata["fixture_contract"]
+            self.assertEqual(metadata["audit_provenance"]["machine_attribution"], "unestablished")
+            self.assertNotIn("fixture_contract", sample.input)
+            self.assertNotIn("audit_provenance", sample.input)
+            self.assertNotIn(sample.target, sample.input)
+            if metadata["allow_changes"]:
+                self.assertEqual(metadata["allowed_paths"], [contract["write_path"]])
+            if contract["kind"] == "workspace-test":
+                command, error = skills._runner_acceptance_command(contract)
+                self.assertIsNone(error)
+                with tempfile.TemporaryDirectory() as raw:
+                    root = Path(raw)
+                    for path, content in (sample.files or {}).items():
+                        (root / path).parent.mkdir(parents=True, exist_ok=True)
+                        (root / path).write_text(content)
+                    broken = subprocess.run(command, cwd=root, capture_output=True)
+                    self.assertNotEqual(broken.returncode, 0, sample.id)
+                    (root / contract["write_path"]).write_text(contract["write_content"])
+                    correct = subprocess.run(command, cwd=root, capture_output=True)
+                    self.assertEqual(correct.returncode, 0, (sample.id, correct.stderr))
+                    (root / contract["write_path"]).write_text(sample.files[contract["write_path"]])
+                    (root / contract["test_command"][-1]).write_text("pass\n")
+                    weakened = subprocess.run(command, cwd=root, capture_output=True)
+                    self.assertNotEqual(weakened.returncode, 0, sample.id)
 
     def test_runner_acceptance_is_the_original_test_not_a_source_fragment(self) -> None:
         sample = next(

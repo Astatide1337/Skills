@@ -21,6 +21,8 @@ Read repository guidance and the selected playbook/domain skills before
 substantive work. Reconcile the record when the user changes scope, a
 revision changes, a delegated artifact returns, or the task resumes. A simple
 answer or small explanation does not need a formal record.
+Apply the shared [execution boundary](references/principles/authority-and-claims.md#execution-boundary)
+once; leaf skills link to this rule rather than repeating it.
 Across compaction or handoff, retain the active objective, accepted decisions,
 unfinished gates, next authorized action, and exact blockers. Do not replace a
 still-active objective with an empty status summary.

@@ -7,8 +7,8 @@ description: Verify requested behavior with current evidence, or create or maint
 
 Completion requires current evidence.
 
-For a claim-verification request, make the handoff explicit even when no tools
-are available: **Proven**, **Unknown**, **Next checks**, and **Narrow claim**.
+For a claim-verification request, explain what is proven, what remains unknown,
+the next useful check, and the narrow claim, even when tools are unavailable.
 Name the evidence required at every relevant layer (artifact, environment
 deployment record, running revision or digest, rollout/workload health,
 service/API behavior, and user-visible behavior). Never collapse “not observed”
@@ -61,6 +61,9 @@ The application owns its feature map and pins any separate per-app CLI version; 
    - Exercise the changed path end to end when practical.
    - Check important error/edge states affected by the change.
    - Verify the environment that is part of the user's request.
+   - For cancellation, interrupt before and during the operation, let pending
+     work settle, and check persistence, navigation, and owned resources. A
+     hidden UI does not prove that a save or other side effect was cancelled.
    - When the repository provides a project-local `verify-<app>` skill, use its launch, doctor, drive, evidence, and cleanup contract instead of rediscovering the harness.
 
 5. **For UI or visual work, inspect rendered evidence.**
@@ -87,13 +90,6 @@ The application owns its feature map and pins any separate per-app CLI version; 
    - Look for accidental, unrelated, generated, or debug artifacts.
    - Confirm the final state still matches the request.
    - Check the final tree or artifact identity and, where relevant, the running instance identity. If the final tree differs from the evidenced tree, rerun its affected checks before claiming success. A stale file or old deployment is not current evidence.
-
-Before writing the completion sentence, record three explicit fields:
-
-- **Proven:** the exact observable result and evidence that supports it.
-- **Unknown:** requested checks or environments that were not exercised.
-- **Claim:** the narrowest completion statement justified by Proven; never
-  promote an Unknown into a success claim.
 
 9. **Match the completion claim to the evidence.**
    - Say exactly what was verified.
@@ -132,12 +128,5 @@ When a check fails or cannot run, preserve its input and evidence, diagnose the 
 
 ## Execution boundary
 
-Match the task's requested mode and the tools it authorizes.
-
-- For prompt-only tasks that explicitly forbid workspace or tool use, use only
-  the supplied text. `Review-only`, `diagnose`, and `do not edit` prohibit
-  mutation, not observation: inspect in-scope supplied files with read-only
-  tools unless the user also forbids that inspection. If required evidence is
-  absent after checking the declared scope, identify the smallest artifact needed.
-- For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
-- Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.
+Apply the shared [execution boundary](../follow-instructions/references/principles/authority-and-claims.md#execution-boundary).
+Keep the task-specific restrictions above; this skill grants no additional effects.

@@ -2,6 +2,23 @@
 
 This map abstracts confirmed, in-scope incidents from a private local audit. It excludes ambiguous intent changes, suspected omissions, excluded evaluation work, credentials, raw histories, and project-specific data. Use a row only when its trigger is present; the owning skill supplies the detailed procedure.
 
+## Provenance and limits
+
+The original rows below informed this PR's implementation from private audit
+summaries. Their underlying machine-specific records are not packaged here;
+this repository cannot establish which incidents belong to K-Agent or
+Lestatide. Preserve those as unestablished rather than guessing attribution.
+
+The later March–August historical export supplied retrospective corroboration
+and additional regression examples. It contains copied histories, including
+external-agent conversations imported into another agent's session format;
+source-file counts and session labels are not independent task or model counts.
+It predates the current verification/routing revisions. A mapping or a passing
+synthetic fixture does not certify that its original application incident is
+fixed or that today's catalog reliably prevents it.
+
+## Original implementation inputs
+
 | Area | Decision | Observed failure | Required verification procedure | Owner |
 | --- | --- | --- | --- | --- |
 | Environment | Mark a dependency unavailable | A long task stopped on stale assumptions although the current checkout and connected tool worked. | Recheck the exact checkout, instance, and dependency with a current direct call before blocked status. | follow-instructions, self-reflect |
@@ -19,6 +36,28 @@ This map abstracts confirmed, in-scope incidents from a private local audit. It 
 
 A structural rule is justified when an observed recurrence or safety boundary can be enforced. State the approved pattern, forbidden alternative, enforcement point, and a violating fixture that fails. Keep app-specific types, schemas, lint/import rules, CI, and feature maps in the application; keep deterministic operations in a pinned per-app CLI.
 
+## Later regression coverage
+
+These cases extend the existing [workflow dataset](../../../evals/cases/workflows.json).
+Each target and runner assertion is defined before candidate execution and kept
+outside the candidate prompt. The case's `audit_provenance` distinguishes the
+source class, unestablished machine identity, and limited implementation claim.
+
+| Case | Source and cause | Observable prevention |
+| --- | --- | --- |
+| `workflow-native-stale-evidence` | Historical inspection: a prior result was promoted to current user-flow proof after changed inputs. | Inspect provenance, run the affected current check, and retain the failure rather than claim completion. |
+| `workflow-native-required-answer` | Existing evaluator regression: an expected answer could substitute for missing candidate output; independent review was also confused with author review. | Require the requested answer separately from a correct artifact; keep independent review pending without a separate reviewer. |
+| `workflow-native-interrupted-objective` | Original private audit summary: unfinished acceptance was lost through a handoff. | Complete every retained requirement and run the original regression. This is a simulated resume, not a context-compaction test. |
+| `workflow-native-recoverable-debugging` | Original private audit summary: a stale capability assumption became a blocker. | Probe the current dependency-free check, reproduce the failure, fix its owner, and rerun that check. |
+| `workflow-native-artifact-only` | Valid near-miss for the missing-answer guard. | Accept the required artifact without demanding redundant prose or unrelated runtime proof. |
+| `workflow-native-genuine-blocker` | Valid near-miss for capability recovery. | Inspect the current verifier and report missing deployment evidence under local-only authority; do not manufacture a receipt. |
+| `workflow-native-cancellation-effects` | User-reported audit scenario; underlying machine record uncorroborated here. | Exercise early, pending, post-commit, and normal cancellation boundaries. Late cancellation reports the completed save rather than pretending to undo it. |
+
+Other historical findings, including invalid CI job references and failures in
+startup/reset/report-combination paths, reinforce `systematic-debugging`'s
+environment checks and `verify-work`'s claim boundaries. They have not received
+application-level fixes or native integration coverage in this PR.
+
 The table lists procedures to perform when their triggers arise; its prose is
 not an installed automated guard. Implemented checks are separate: the
 [workflow contract tests](../../../evals/tests/test_workflows.py) exercise
@@ -33,3 +72,16 @@ unit suite, including disposable local workspace observations. This is not
 live model or adversarial workspace-containment evaluation. Report the actual
 hosted result, including a blocked namespace preflight if it occurs, with its
 revision; never count a blocked suite as a pass.
+
+The workspace suite now checks its namespace prerequisite before creating test
+baselines. An unsupported host fails once with an actionable reason instead of
+continuing with unavailable baselines; isolation and integration assertions stay
+enabled. Native trials snapshot and hash the loaded catalog's instructions,
+references, and scripts. Git HEAD is context, not the identity of dirty bytes.
+Response-marker checks report only observed shape, with semantic acceptance
+left to the independent behavior grader. Model-free fixtures remain evaluator
+contract checks, never evidence of agent efficacy.
+An additional runner regression reproduces a passing supplemental check that
+creates an out-of-scope file after evidence was cached. Workflow checks now run
+before policy/behavior scoring and invalidate earlier evidence, so the final
+observation includes those effects rather than accepting the stale snapshot.
