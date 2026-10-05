@@ -1,6 +1,6 @@
 ---
 name: code-review-and-quality
-description: Review material code changes or an explicitly requested diff for correctness, design, security, and performance.
+description: When reviewing a diff or a material code change.
 ---
 
 # Code Review and Quality

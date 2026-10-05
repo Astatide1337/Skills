@@ -1,6 +1,6 @@
 ---
 name: follow-instructions
-description: Route engineering work through the smallest applicable procedure and evidence gates.
+description: When catalog skills apply; choose the smallest required procedure.
 ---
 
 # Follow instructions

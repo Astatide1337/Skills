@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 LINK = re.compile(r"\[[^]]*\]\(([^)]+)\)")
+# Local routing budget, not a claimed Codex/Claude harness limit.
+MAX_DESCRIPTION_CHARS = 80
 PLAYBOOK_NAMES = {
     "investigate.md",
     "design.md",
@@ -71,6 +73,16 @@ def fail(message: str) -> None:
     raise ValueError(message)
 
 
+def validate_description(name: str, description: object) -> None:
+    if (not isinstance(description, str) or not description.strip()
+            or len(description) > MAX_DESCRIPTION_CHARS
+            or "\n" in description or "\r" in description):
+        fail(
+            f"description for {name} must be a non-empty, single-line trigger "
+            f"of at most {MAX_DESCRIPTION_CHARS} characters"
+        )
+
+
 def frontmatter(path: Path) -> dict:
     text = path.read_text()
     match = re.match(r"^---\n(.*?)\n---(?:\n|$)", text, re.DOTALL)
@@ -116,8 +128,7 @@ def main() -> None:
             fail(f"invalid skill name in {skill_file.relative_to(ROOT)}")
         if name != skill_file.parent.name or name in names or len(name) > 64:
             fail(f"duplicate or mismatched skill name: {name}")
-        if not isinstance(description, str) or not 1 <= len(description) <= 1024:
-            fail(f"invalid description for {name}")
+        validate_description(name, description)
         names.add(name)
         relative = str(skill_file.relative_to(ROOT))
         if relative not in catalog_paths:

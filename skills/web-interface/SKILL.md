@@ -1,6 +1,6 @@
 ---
 name: web-interface
-description: Design, build, or review a user-facing web interface.
+description: When designing, building or reviewing a user-facing web interface.
 ---
 
 # Web Interface

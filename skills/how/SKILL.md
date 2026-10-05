@@ -1,6 +1,6 @@
 ---
 name: how
-description: Explain a subsystem's runtime flow, ownership, or boundaries.
+description: When asked to trace runtime flow or explain subsystem boundaries.
 ---
 
 # How

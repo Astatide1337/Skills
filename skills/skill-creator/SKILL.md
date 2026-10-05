@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: Create, revise, validate, or evaluate a reusable catalog skill.
+description: When creating, revising, validating or evaluating a reusable skill.
 ---
 
 # Skill Creator
@@ -57,6 +57,9 @@ Every skill requires `SKILL.md` with YAML frontmatter containing `name` and
   the user situation that should select the skill first, then one or two nearby
   non-triggers when they prevent a collision. The body is unavailable until
   after selection.
+- Use one short trigger line within the catalog validator's
+  [description budget](../../scripts/validate_catalog.py); keep procedure and
+  capabilities in the body. This is a local budget, not a harness guarantee.
 - Good: `Use when the user asks to watch an already-open PR. Do not use to
   create one.` Bad: `Helps with pull requests and GitHub workflows.`
 - Keep the body to essential workflow, decisions, safety gates, and reference

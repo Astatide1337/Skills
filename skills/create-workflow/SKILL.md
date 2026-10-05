@@ -1,6 +1,6 @@
 ---
 name: create-workflow
-description: Turn a recurring repository decision into a small, repeatable workflow.
+description: When a recurring repository task needs a reusable workflow.
 ---
 
 # Create Workflow

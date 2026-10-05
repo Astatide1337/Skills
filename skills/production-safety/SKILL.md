@@ -1,6 +1,6 @@
 ---
 name: production-safety
-description: Safely inspect or change production-like systems, data, credentials, or delivery.
+description: When production-like state, credentials or delivery are involved.
 ---
 
 # Production Safety

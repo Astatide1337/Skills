@@ -1,6 +1,6 @@
 ---
 name: verify-work
-description: Verify requested behavior with current evidence, or create or maintain an application-owned verifier and feature map when asked.
+description: When proving claims or creating or maintaining app verification.
 ---
 
 # Verify Work

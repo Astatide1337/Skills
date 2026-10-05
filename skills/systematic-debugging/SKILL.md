@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Diagnose unclear causes, contradictory evidence, or repeated failed fixes before changing behavior.
+description: When causes are unclear, evidence conflicts or fixes keep failing.
 ---
 
 # Systematic Debugging

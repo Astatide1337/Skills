@@ -1,6 +1,6 @@
 ---
 name: architect
-description: Plan unclear code boundaries before a non-trivial implementation.
+description: When implementation boundaries or ownership need design.
 ---
 
 # Architect

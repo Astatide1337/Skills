@@ -1,6 +1,6 @@
 ---
 name: teach
-description: Teach a code change or subsystem so the user can maintain it.
+description: When asked to teach code so the user can maintain it.
 ---
 
 # Teach

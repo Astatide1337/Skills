@@ -1,6 +1,6 @@
 ---
 name: self-reflect
-description: Proactively reassess stuck, prolonged, or settling work and choose the next justified move.
+description: When work stalls, repeats failures or settles for partial results.
 ---
 
 # Self-reflect

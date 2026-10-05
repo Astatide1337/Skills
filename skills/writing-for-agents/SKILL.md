@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: Write or revise agent-facing instructions, prompts, and runbooks.
+description: When writing or revising instructions for agents.
 ---
 
 # Writing for Agents

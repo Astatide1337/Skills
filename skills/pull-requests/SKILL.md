@@ -1,6 +1,6 @@
 ---
 name: pull-requests
-description: Draft, create, monitor, or review a GitHub PR or GitLab MR.
+description: When drafting, opening, reviewing, posting on or watching a PR/MR.
 ---
 
 # Pull requests
