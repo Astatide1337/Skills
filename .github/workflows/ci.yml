@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cluster-ci-${{ github.ref }}
+  group: cluster-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -37,4 +37,34 @@ jobs:
         run: |
           uv sync --frozen --python 3.13
           uv run --frozen python scripts/validate_catalog.py
+          uv run --frozen python -m unittest evals.tests.test_workflows evals.tests.test_skills_lifecycle -v
+
+  workspace-tests:
+    # Bubblewrap requires user namespaces denied by the restricted cluster runtime.
+    # Standard hosted VM minutes are free only while this repository is public.
+    if: >-
+      github.repository == 'Astatide1337/Skills' && github.event.repository.private == false &&
+      github.actor == 'Astatide1337' &&
+      (github.event_name != 'pull_request_target' ||
+       (github.event.pull_request.user.login == 'Astatide1337' &&
+        github.event.pull_request.head.repo.full_name == github.repository))
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: 0.12.19
+          enable-cache: false
+      - name: Install distro Bubblewrap and verify its namespace
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends bubblewrap
+          bwrap --unshare-all --ro-bind / / -- true
+      - name: Run complete offline evaluation suite
+        run: |
+          uv sync --frozen --python 3.13
           uv run --frozen python -m unittest discover -s evals/tests -v
