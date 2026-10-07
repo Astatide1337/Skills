@@ -79,9 +79,9 @@ not an installed automated guard. Implemented checks are separate: the
 runner-owned acceptance, and the
 [candidate-output regression](../../../evals/tests/test_skills_lifecycle.py)
 rejects a missing required answer even when the expected answer is available.
-The [Catalog validation workflow](../../../.github/workflows/catalog-validation.yml)
+The [CI workflow](../../../.github/workflows/ci.yml)
 runs catalog structure and case validation plus these model-free, local/mocked
-unit contracts. Its separate Workspace evidence unit tests job installs
+unit contracts on the cluster runner. Its hosted `workspace-tests` job installs
 Bubblewrap from Ubuntu's package repository and attempts the full model-free
 unit suite, including disposable local workspace observations. This is not
 live model or adversarial workspace-containment evaluation. Report the actual
