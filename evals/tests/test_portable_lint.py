@@ -122,6 +122,38 @@ class TypeScriptLintTests(unittest.TestCase):
         self.assertFalse(result['passed'])
         self.assertIn('no-misused-promises', result['check']['stdout'])
 
+    def test_unsafe_external_assignment_and_return_fail(self):
+        for text, rule in (
+            ('const name: string = JSON.parse("null");\n', 'no-unsafe-assignment'),
+            ('export function read(): string { return JSON.parse("null"); }\n', 'no-unsafe-return'),
+        ):
+            with self.subTest(rule=rule):
+                result = self.check(text)
+                self.assertFalse(result['passed'])
+                self.assertIn(rule, result['check']['stdout'])
+
+    def test_narrowing_cast_fails_but_validated_value_passes(self):
+        bad = self.check('declare const input: unknown;\nconst value = input as string;\n')
+        self.assertFalse(bad['passed'])
+        self.assertIn('no-unsafe-type-assertion', bad['check']['stdout'])
+        good = self.check('export function parse(input: unknown): string {\n'
+                          '  if (typeof input !== "string") throw new Error("invalid input");\n'
+                          '  return input;\n}\n')
+        self.assertTrue(good['passed'])
+
+    def test_missing_variant_fails_even_with_default_fallback(self):
+        bad = self.check('export function label(state: "pending" | "saved"): string {\n'
+                         '  switch (state) { case "pending": return "Waiting"; default: return "Done"; }\n}\n')
+        self.assertFalse(bad['passed'])
+        self.assertIn('switch-exhaustiveness-check', bad['check']['stdout'])
+        good = self.check('export function label(state: "pending" | "saved"): string {\n'
+                          '  switch (state) { case "pending": return "Waiting"; case "saved": return "Done"; }\n}\n')
+        self.assertTrue(good['passed'])
+
+    def test_valid_type_widening_and_local_array_need_no_new_types(self):
+        self.assertTrue(self.check('const count = 1 as number | string;\n'
+                                  'export function first(values: string[]): string | undefined { return values[0]; }\n')['passed'])
+
     def test_missing_project_is_unavailable(self):
         with self.assertRaisesRegex(ValueError, "expected a regular"):
             self.check('export const x = 1;\n', config=False)

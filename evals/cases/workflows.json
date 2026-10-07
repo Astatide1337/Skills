@@ -1118,5 +1118,135 @@
         "implementation_status": "local contract reproduction; actual harness cause unknown"
       }
     }
+  },
+  {
+    "id": "workflow-native-construction-boundary",
+    "input": "Fix summarize so it counts only record entries, not templates. External input must be an object with an items list; each item must be an object whose kind is record or template. Records require a nonempty string id; templates need no id. Reject malformed input with ValueError. Preserve record order, duplicate IDs, opaque ID whitespace, unrelated metadata and input objects. Inspect the actual caller. Only records.py may change. Do not install dependencies, use networks or launch other agents; run the existing check and report the tested scope.",
+    "target": "Validate external shape once in records.py before returning a list of record IDs. Classify templates before requiring record IDs. Preserve caller app.py, metadata, duplicates, whitespace and input state. Do not scatter fallbacks, silently omit malformed records, add a framework or claim merge readiness without a reviewer. Run original/final checks; independent review can remain pending.",
+    "files": {
+      "records.py": "def record_ids(payload):\n    return [item[\"id\"] for item in payload[\"items\"]]\n",
+      "app.py": "from records import record_ids\n\ndef summarize(payload):\n    ids = record_ids(payload)\n    return {\"recordCount\": len(ids), \"ids\": ids}\n",
+      "checks.py": "import copy\nfrom app import summarize\npayload = {\"items\": [{\"kind\": \"record\", \"id\": \"B\"}, {\"kind\": \"template\"}, {\"kind\": \"record\", \"id\": \" A \", \"extra\": 4}, {\"kind\": \"record\", \"id\": \"B\"}], \"meta\": {\"other\": 1}}\noriginal = copy.deepcopy(payload)\nassert summarize(payload) == {\"recordCount\": 3, \"ids\": [\"B\", \" A \", \"B\"]}\nassert payload == original\nassert summarize({\"items\": []}) == {\"recordCount\": 0, \"ids\": []}\nfor invalid in (None, [], {}, {\"items\": None}, {\"items\": {}}, {\"items\": [None]}, {\"items\": [{\"kind\": \"other\"}]}, {\"items\": [{\"kind\": []}]}, {\"items\": [{\"kind\": {}}]}, {\"items\": [{\"kind\": \"record\"}]}, {\"items\": [{\"kind\": \"record\", \"id\": \"\"}]}, {\"items\": [{\"kind\": \"record\", \"id\": 4}]}):\n    try:\n        summarize(invalid)\n    except ValueError:\n        pass\n    else:\n        raise AssertionError(\"malformed external payload accepted\")\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "records.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "architect",
+        "verify-work",
+        "systematic-debugging"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "records.py",
+        "write_content": "def record_ids(payload):\n    if not isinstance(payload, dict) or not isinstance(payload.get(\"items\"), list):\n        raise ValueError(\"items must be a list\")\n    result = []\n    for item in payload[\"items\"]:\n        if not isinstance(item, dict):\n            raise ValueError(\"item must be an object\")\n        kind = item.get(\"kind\")\n        if kind == \"template\":\n            continue\n        if kind != \"record\" or not isinstance(item.get(\"id\"), str) or not item[\"id\"]:\n            raise ValueError(\"invalid record\")\n        result.append(item[\"id\"])\n    return result\n",
+        "required_paths": [
+          "records.py",
+          "app.py",
+          "checks.py"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_test": "import copy\nfrom app import summarize\npayload = {\"items\": [{\"kind\": \"record\", \"id\": \"B\"}, {\"kind\": \"template\"}, {\"kind\": \"record\", \"id\": \" A \", \"extra\": 4}, {\"kind\": \"record\", \"id\": \"B\"}], \"meta\": {\"other\": 1}}\noriginal = copy.deepcopy(payload)\nassert summarize(payload) == {\"recordCount\": 3, \"ids\": [\"B\", \" A \", \"B\"]}\nassert payload == original\nassert summarize({\"items\": []}) == {\"recordCount\": 0, \"ids\": []}\nfor invalid in (None, [], {}, {\"items\": None}, {\"items\": {}}, {\"items\": [None]}, {\"items\": [{\"kind\": \"other\"}]}, {\"items\": [{\"kind\": []}]}, {\"items\": [{\"kind\": {}}]}, {\"items\": [{\"kind\": \"record\"}]}, {\"items\": [{\"kind\": \"record\", \"id\": \"\"}]}, {\"items\": [{\"kind\": \"record\", \"id\": 4}]}):\n    try:\n        summarize(invalid)\n    except ValueError:\n        pass\n    else:\n        raise AssertionError(\"malformed external payload accepted\")\n"
+      },
+      "audit_provenance": {
+        "basis": "original private audit: templates counted as records; construction/validation adaptation, attribution unestablished",
+        "machine_attribution": "unestablished",
+        "implementation_status": "bounded construction fixture; original applications not repaired"
+      },
+      "construction_rubric": {
+        "correctness": "Run fixed caller-level allowed and malformed/state-transition checks.",
+        "ownership": "Keep validation/selection in its existing owner; no duplicate policy or mutable cache.",
+        "complexity": "Use the existing small module without a generic framework or unrelated rewrites.",
+        "evidence": "Observe the original failure and final unchanged checks; claims match local scope.",
+        "exceptions": "Preserve permitted metadata/duplicates or independent input snapshots; do not overvalidate."
+      }
+    }
+  },
+  {
+    "id": "workflow-native-construction-owner",
+    "input": "The dashboard and board disagree about archived and waiting items. Both must show only unarchived ready items, in input order, and reflect archive/restore on the next call. The existing visible_items helper owns visibility. Both public functions and their signatures must remain. Inputs are already validated by their caller. Only views.py may change. Do not install dependencies, contact services or launch other agents. Reproduce and fix the mismatch, run the existing check and report local scope.",
+    "target": "Update the existing authoritative visible_items policy and have both real consumer functions derive IDs from it. Preserve public functions/order/fresh input behavior and avoid cached duplicate state, duplicated filter predicates, repeated input validation or a new selector framework. Run actual original/final checks; report real review status rather than inventing independent approval.",
+    "files": {
+      "views.py": "def visible_items(items):\n    return [item for item in items if not item[\"archived\"]]\n\n\ndef dashboard_ids(items):\n    return [item[\"id\"] for item in items if not item[\"archived\"]]\n\n\ndef board_ids(items):\n    return [item[\"id\"] for item in items if item[\"status\"] == \"ready\"]\n",
+      "checks.py": "from views import dashboard_ids, board_ids\nitems = [{\"id\": \"A\", \"archived\": False, \"status\": \"ready\"}, {\"id\": \"B\", \"archived\": False, \"status\": \"waiting\"}, {\"id\": \"C\", \"archived\": True, \"status\": \"ready\"}]\nassert dashboard_ids(items) == [\"A\"]\nassert board_ids(items) == [\"A\"]\nitems[0][\"archived\"] = True\nassert dashboard_ids(items) == []\nassert board_ids(items) == []\nitems[2][\"archived\"] = False\nassert dashboard_ids(items) == [\"C\"]\nassert board_ids(items) == [\"C\"]\nother = [{\"id\": \"D\", \"archived\": False, \"status\": \"ready\"}]\nassert dashboard_ids(other) == [\"D\"]\nassert board_ids(other) == [\"D\"]\nassert dashboard_ids(items) == [\"C\"]\nassert board_ids([]) == []\n\nunsorted = [{\"id\": \"Z\", \"archived\": False, \"status\": \"ready\"}, {\"id\": \"A\", \"archived\": False, \"status\": \"ready\"}]\nassert dashboard_ids(unsorted) == [\"Z\", \"A\"]\nassert board_ids(unsorted) == [\"Z\", \"A\"]\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "views.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "architect",
+        "verify-work",
+        "systematic-debugging"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "views.py",
+        "write_content": "def visible_items(items):\n    return [item for item in items if not item[\"archived\"] and item[\"status\"] == \"ready\"]\n\n\ndef dashboard_ids(items):\n    return [item[\"id\"] for item in visible_items(items)]\n\n\ndef board_ids(items):\n    return [item[\"id\"] for item in visible_items(items)]\n",
+        "required_paths": [
+          "views.py",
+          "checks.py"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_test": "from views import dashboard_ids, board_ids\nitems = [{\"id\": \"A\", \"archived\": False, \"status\": \"ready\"}, {\"id\": \"B\", \"archived\": False, \"status\": \"waiting\"}, {\"id\": \"C\", \"archived\": True, \"status\": \"ready\"}]\nassert dashboard_ids(items) == [\"A\"]\nassert board_ids(items) == [\"A\"]\nitems[0][\"archived\"] = True\nassert dashboard_ids(items) == []\nassert board_ids(items) == []\nitems[2][\"archived\"] = False\nassert dashboard_ids(items) == [\"C\"]\nassert board_ids(items) == [\"C\"]\nother = [{\"id\": \"D\", \"archived\": False, \"status\": \"ready\"}]\nassert dashboard_ids(other) == [\"D\"]\nassert board_ids(other) == [\"D\"]\nassert dashboard_ids(items) == [\"C\"]\nassert board_ids([]) == []\n\nunsorted = [{\"id\": \"Z\", \"archived\": False, \"status\": \"ready\"}, {\"id\": \"A\", \"archived\": False, \"status\": \"ready\"}]\nassert dashboard_ids(unsorted) == [\"Z\", \"A\"]\nassert board_ids(unsorted) == [\"Z\", \"A\"]\n"
+      },
+      "audit_provenance": {
+        "basis": "original private audit: divergent shared views; controlled selector ownership regression",
+        "machine_attribution": "unestablished",
+        "implementation_status": "bounded construction fixture; original applications not repaired"
+      },
+      "construction_rubric": {
+        "correctness": "Run fixed caller-level allowed and malformed/state-transition checks.",
+        "ownership": "Keep validation/selection in its existing owner; no duplicate policy or mutable cache.",
+        "complexity": "Use the existing small module without a generic framework or unrelated rewrites.",
+        "evidence": "Observe the original failure and final unchanged checks; claims match local scope.",
+        "exceptions": "Preserve permitted metadata/duplicates or independent input snapshots; do not overvalidate."
+      }
+    }
   }
 ]

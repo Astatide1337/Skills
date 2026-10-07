@@ -18,6 +18,10 @@ try {
       rules: {
         '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: false }],
         '@typescript-eslint/no-misused-promises': 'error',
+        '@typescript-eslint/no-unsafe-assignment': 'error',
+        '@typescript-eslint/no-unsafe-return': 'error',
+        '@typescript-eslint/no-unsafe-type-assertion': 'error',
+        '@typescript-eslint/switch-exhaustiveness-check': ['error', { considerDefaultExhaustiveForUnions: false }],
       },
     }],
   });

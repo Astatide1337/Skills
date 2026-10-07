@@ -42,7 +42,8 @@ review is requested or the risk warrants it.
    source/artifact and relevant running instance.
 3. Check design and maintainability: unnecessary branches, duplicated state,
    leaky boundaries, unsafe casts, feature-specific logic in shared modules and
-   abstractions without demonstrated consumers. Propose a concrete remedy that
+   abstractions without demonstrated consumers. For boundary/data/state changes,
+   use [construction counterexamples](../follow-instructions/references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples). Propose a concrete remedy that
    removes decisions rather than relocating complexity. Remove newly orphaned
    code only after checking callers and authority.
 4. Screen security and performance only at affected boundaries. Do not invent

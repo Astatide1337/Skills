@@ -66,7 +66,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.files, {"AGENTS.md": skills.GLOBAL_INSTRUCTIONS.read_text()})
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            24,
+            26,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -160,6 +160,8 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-capability-discovery",
                 "workflow-native-discovery-genuine-blocker",
                 "workflow-native-hook-output",
+                "workflow-native-construction-boundary",
+                "workflow-native-construction-owner",
             },
         )
         for sample in cases.values():
@@ -184,7 +186,7 @@ class WorkflowContractTests(unittest.TestCase):
     def test_native_regression_cases_keep_expectations_separate_and_scope_bounded(self) -> None:
         cases = [sample for sample in skills.workflows_dataset().samples
                  if "audit_provenance" in (sample.metadata or {})]
-        self.assertEqual(len(cases), 13)
+        self.assertEqual(len(cases), 15)
         for sample in cases:
             metadata = sample.metadata or {}
             contract = metadata["fixture_contract"]
@@ -219,6 +221,42 @@ class WorkflowContractTests(unittest.TestCase):
                     (root / contract["test_command"][-1]).write_text("pass\n")
                     weakened = subprocess.run(command, cwd=root, capture_output=True)
                     self.assertNotEqual(weakened.returncode, 0, sample.id)
+
+    def test_construction_checks_reject_sorted_output_and_retain_green_design_control(self):
+        cases = {sample.id: sample for sample in skills.workflows_dataset().samples
+                 if sample.id in {"workflow-native-construction-boundary", "workflow-native-construction-owner"}}
+        for sample in cases.values():
+            contract = sample.metadata["fixture_contract"]
+            with tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                for path, content in sample.files.items():
+                    (root / path).write_text(content)
+                good = contract["write_content"]
+                (root / contract["write_path"]).write_text(good)
+                passing = subprocess.run(contract["test_command"], cwd=root, capture_output=True)
+                self.assertEqual(passing.returncode, 0, passing.stderr)
+                if sample.id.endswith("boundary"):
+                    unchecked_kind = good.replace('if kind == "template":',
+                                                  'if kind not in {"record", "template"}:\n            raise ValueError("invalid kind")\n        if kind == "template":')
+                    (root / contract["write_path"]).write_text(unchecked_kind)
+                    malformed = subprocess.run(contract["test_command"], cwd=root, capture_output=True)
+                    self.assertNotEqual(malformed.returncode, 0)
+                    self.assertIn(b"TypeError", malformed.stderr)
+                    sorted_code = good.replace("return result", "return sorted(result)")
+                else:
+                    sorted_code = good.replace('return [item for item in items if not item["archived"] and item["status"] == "ready"]',
+                                               'return sorted([item for item in items if not item["archived"] and item["status"] == "ready"], key=lambda item: item["id"])')
+                (root / contract["write_path"]).write_text(sorted_code)
+                failed = subprocess.run(contract["test_command"], cwd=root, capture_output=True)
+                self.assertNotEqual(failed.returncode, 0, sample.id)
+                if sample.id.endswith("owner"):
+                    # Intentionally wrong ownership but correct caller behavior:
+                    # only the separate blinded design review can reject this.
+                    duplicated = good.replace('for item in visible_items(items)',
+                                              'for item in items if not item["archived"] and item["status"] == "ready"')
+                    (root / contract["write_path"]).write_text(duplicated)
+                    green = subprocess.run(contract["test_command"], cwd=root, capture_output=True)
+                    self.assertEqual(green.returncode, 0, green.stderr)
 
     def test_runner_acceptance_is_the_original_test_not_a_source_fragment(self) -> None:
         sample = next(

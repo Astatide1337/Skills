@@ -9,14 +9,21 @@ correctness nor architectural boundaries nor the user journey.
 Python checks use pinned Ruff 0.16.10: `F` (Pyflakes), `B012` (control flow in
 finally can hide exceptions) and `B018` (useless expressions). TypeScript uses
 pinned ESLint/typescript-eslint with type information to reject floating and
-misused promises. A bare `void` does not prove rejection handling. Explicit
+misused promises, unsafe `any` assignment/return, narrowing casts and omitted
+union cases in switches (a default fallback does not hide a missing case).
+A bare `void` does not prove rejection handling. Explicit
 catch/await/return can be legitimate; review the actual error semantics.
-These rules address the observed unchecked side-effect/lifecycle risks and
-executable contracts; lint cannot detect every cancellation race.
+Promise rules target unchecked side-effect/lifecycle risks. The additional
+type rules are a P-stack-inspired construction standard, not a claim that each
+historical incident was caused by a cast. Narrowing/unsafe-data checks come
+from [typescript-eslint](https://typescript-eslint.io/rules/no-unsafe-type-assertion/);
+missing-case checks use [switch exhaustiveness](https://typescript-eslint.io/rules/switch-exhaustiveness-check/).
+A lying custom type guard can still pass: run allowed and malformed-input
+regressions. Lint cannot prove a schema or detect every cancellation race.
 
 Setup is explicit and installs only into Skills/user tooling. From the Skills
-checkout run `uv sync --frozen` for Python. For TypeScript, choose a fresh
-external runtime directory, copy `assets/portable-lint/package.json` and
+checkout run `uv sync --frozen` for Python. For TypeScript, reuse a reviewed external runtime with the pinned versions.
+If absent, choose a fresh external runtime directory, copy `assets/portable-lint/package.json` and
 `package-lock.json` from this skill there, then run:
 
 ```sh

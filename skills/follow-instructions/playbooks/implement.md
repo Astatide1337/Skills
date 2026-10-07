@@ -30,7 +30,9 @@ handoff.
    For a feature, define observable states and extend existing interfaces. For
    a refactor, state behavior/contracts that must remain unchanged.
 3. Choose the smallest correction or coherent feature sequence. Preserve
-   architecture and compatibility; do not add speculative abstractions.
+   architecture and compatibility; do not add speculative abstractions. When
+   changing boundary data or shared state, apply [construction decisions](../references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples);
+   an already-clear local edit needs no extra design procedure.
 4. Implement one unit at a time. Add a focused regression or acceptance check
    that asserts the outcome, including a relevant negative control.
 5. Re-run the original path and affected checks, exercise the real UI/API/CLI

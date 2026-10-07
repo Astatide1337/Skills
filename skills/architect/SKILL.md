@@ -14,7 +14,8 @@ effect boundaries; retry ownership; and unresolved decisions. Do not hide a
 missing ownership decision behind a diagram or generic interface name.
 
 1. Ground the existing system with `how`; use `why` when historical rationale constrains the change.
-2. Write realistic caller usage before types.
+2. Write realistic caller usage before types. When choosing a boundary, data
+   shape or shared state, apply [construction decisions](../follow-instructions/references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples).
 3. Produce at least two structurally distinct candidate designs. Do this locally, or with collaborators only when permitted.
 4. Compare candidates on interface depth, ownership, data access, boundary validation, invariants, state transitions, failure recovery, and likely evolution.
 5. Reject shallow modules, information leakage, temporal decomposition, pass-through layers, and speculative generality.

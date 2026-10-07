@@ -194,6 +194,16 @@ async def run_codex(
         tempfile.TemporaryDirectory(prefix="review-workspace-")
         if isolate_workspace else nullcontext(None) as review_directory,
     ):
+        if with_skills:
+            # Catalog locators can use short root aliases. Give the native
+            # candidate a real filesystem root rather than relying on it to
+            # infer an alias or search outside its isolated home.
+            prompt = (
+                f"Installed catalog filesystem root: {codex_home}/skills/. "
+                "Read each skill as <root>/<skill-name>/SKILL.md; "
+                "r0 is a catalog alias, not a directory below this root.\n\n"
+                + prompt
+            )
         output_file = f"/tmp/work-response-{uuid4().hex}.txt"
         command = [
             "codex",
