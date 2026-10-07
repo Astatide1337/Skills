@@ -5,6 +5,7 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage: ./scripts/install.sh [--all | --skill NAME ...] [--target PATH]
+                           [--agent-clis-source PATH]
        ./scripts/install.sh --list
 
 Options:
@@ -12,6 +13,7 @@ Options:
   --list            List available skill names and exit.
   --skill NAME     Install one named skill; may be repeated.
   --target PATH    Directory that directly contains installed skill folders.
+  --agent-clis-source PATH  Also install the pinned CLI from a local Git checkout.
   -h, --help       Show this help.
 
 Without --target, the installer checks the current project's .agents directory,
@@ -21,11 +23,12 @@ present or when installing into a different project.
 EOF
 }
 
-repo_root=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+repo_root=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 skills_root="$repo_root/skills"
 target=""
 install_all=false
 list_only=false
+agent_clis_source=""
 declare -a requested=()
 
 while (($# > 0)); do
@@ -44,6 +47,11 @@ while (($# > 0)); do
     --target)
       (($# >= 2)) || { printf '%s\n' '--target requires a path' >&2; exit 2; }
       target="$2"
+      shift
+      ;;
+    --agent-clis-source)
+      (($# >= 2)) || { printf '%s\n' '--agent-clis-source requires a path' >&2; exit 2; }
+      agent_clis_source="$2"
       shift
       ;;
     -h|--help)
@@ -122,13 +130,22 @@ for skill in "${requested[@]}"; do
 done
 
 mkdir -p -- "$target"
-target=$(CDPATH= cd -- "$target" && pwd)
+target=$(CDPATH= cd -- "$target" && pwd -P)
 case "$target" in
   /|"$HOME")
     printf 'Refusing unsafe target: %s\n' "$target" >&2
     exit 2
     ;;
 esac
+
+if [[ "$target" == "$skills_root" || "$target" == "$skills_root/"* ]]; then
+  printf '%s\n' 'Refusing to install into the source skill tree.' >&2
+  exit 2
+fi
+
+if [[ -n "$agent_clis_source" ]]; then
+  python3 "$repo_root/scripts/install-agent-clis.py" --source "$agent_clis_source"
+fi
 
 for skill in "${requested[@]}"; do
   destination="$target/$skill"

@@ -7,6 +7,10 @@ description: When proving claims or creating or maintaining app verification.
 
 Completion requires current evidence.
 
+For Linktree verification, use the installed `linktree-agent` rather than
+recreating its browser/runtime automation. Read the
+[CLI binding](references/agent-clis.md) for discovery, setup and limits.
+
 For a claim-verification request, explain what is proven, what remains unknown,
 the next useful check, and the narrow claim, even when tools are unavailable.
 Name the evidence required at every relevant layer (artifact, environment
