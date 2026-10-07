@@ -1132,6 +1132,8 @@
     },
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
     "metadata": {
+      "artifact_first_review": true,
+      "required_files": ["records.py", "app.py", "checks.py"],
       "allow_changes": true,
       "response_required": true,
       "allowed_paths": [
@@ -1200,6 +1202,8 @@
     },
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
     "metadata": {
+      "artifact_first_review": true,
+      "required_files": ["views.py", "checks.py"],
       "allow_changes": true,
       "response_required": true,
       "allowed_paths": [
@@ -1317,6 +1321,90 @@
         "generalization": "held-out examples of stated contract; no universal capability claim"
       },
       "response_required": true
+    }
+  },
+  {
+    "id": "workflow-native-construction-discovery",
+    "input": "Templates are being counted as records in the import summary. Fix the bug, preserving the existing import API and repository contract. Only records.py may change. Do not install dependencies, use networks or launch other agents. Reproduce the problem, run the existing checks on the final code and report the tested scope.",
+    "target": "Discover the repository import contract and actual app.py caller. Repair records.py in its existing ownership boundary; preserve API error handling, valid inputs and caller output. Observe the original failure and verify the final artifact. Accept equivalent maintainable implementations; do not demand catalog labels or reading a particular reference. Report local scope accurately; independent review may remain pending.",
+    "files": {
+      "records.py": "def record_ids(payload):\n    return [item[\"id\"] for item in payload[\"items\"]]\n",
+      "app.py": "from records import record_ids\n\ndef summarize(payload):\n    ids = record_ids(payload)\n    return {\"recordCount\": len(ids), \"ids\": ids}\n\ndef handle_request(payload):\n    try:\n        return 200, summarize(payload)\n    except ValueError:\n        return 400, {\"error\": \"invalid records\"}\n",
+      "checks.py": "from app import handle_request\npayload = {\"items\": [{\"kind\": \"template\", \"id\": \"draft\"}, {\"kind\": \"record\", \"id\": \"B\"}]}\nassert handle_request(payload) == (200, {\"recordCount\": 1, \"ids\": [\"B\"]})\nassert handle_request({\"items\": []}) == (200, {\"recordCount\": 0, \"ids\": []})\n",
+      "README.txt": "Import API contract (used by app.py):\nrecords.py owns decoding and record selection; app.py owns response formatting.\nInput is a JSON object with an items array. Each item is an object with a string\nkind equal to record or template. Every record has a nonempty string id.\nTemplates are excluded before checking IDs; their IDs/metadata may have any\nshape or be absent. Reject malformed payloads/items/kinds/record IDs with\nValueError, so handle_request returns the existing 400 invalid-records response.\nKeep order and duplicate record IDs; IDs are opaque (do not trim whitespace).\nIgnore extra metadata without mutating the input. Empty/all-template lists\nproduce zero records. No message text for ValueError is prescribed.\nRun python -B checks.py for the local smoke regression. It is not an exhaustive\nAPI test; the contract above applies to all inputs. No dependency installation\nor caller changes are needed.\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "records.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "architect",
+        "verify-work",
+        "systematic-debugging"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "records.py",
+        "write_content": "def record_ids(payload):\n    if not isinstance(payload, dict) or not isinstance(payload.get(\"items\"), list):\n        raise ValueError(\"items must be a list\")\n    result = []\n    for item in payload[\"items\"]:\n        if not isinstance(item, dict):\n            raise ValueError(\"item must be an object\")\n        kind = item.get(\"kind\")\n        if kind == \"template\":\n            continue\n        if kind != \"record\" or not isinstance(item.get(\"id\"), str) or not item[\"id\"]:\n            raise ValueError(\"invalid record\")\n        result.append(item[\"id\"])\n    return result\n",
+        "required_paths": [
+          "records.py",
+          "app.py",
+          "checks.py",
+          "README.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_test": "from app import handle_request\npayload = {\"items\": [{\"kind\": \"template\", \"id\": \"draft\"}, {\"kind\": \"record\", \"id\": \"B\"}]}\nassert handle_request(payload) == (200, {\"recordCount\": 1, \"ids\": [\"B\"]})\nassert handle_request({\"items\": []}) == (200, {\"recordCount\": 0, \"ids\": []})\n",
+        "heldout_test": "import copy\nfrom app import summarize, handle_request\nfor identifier in (\"Z\", \"  \", \"\u03b1\", \"record-991\"):\n    payload = {\"items\": [{\"kind\": \"template\", \"id\": {\"anything\": [1]}, \"meta\": [1]}, {\"kind\": \"template\"}, {\"kind\": \"record\", \"id\": identifier}, {\"kind\": \"record\", \"id\": identifier}], \"meta\": {\"keep\": True}}\n    original = copy.deepcopy(payload)\n    expected = {\"recordCount\": 2, \"ids\": [identifier, identifier]}\n    assert summarize(payload) == expected\n    assert handle_request(payload) == (200, expected)\n    assert payload == original\nassert handle_request({\"items\": [{\"kind\": \"template\"}]}) == (200, {\"recordCount\": 0, \"ids\": []})\ninvalid = [None, [], {}, {\"items\": None}, {\"items\": {}}, {\"items\": [None]}, {\"items\": [{}]}, {\"items\": [{\"kind\": \"other\"}]}, {\"items\": [{\"kind\": \"record\"}]}, {\"items\": [{\"kind\": \"record\", \"id\": \"\"}]}]\ninvalid += [{\"items\": [{\"kind\": kind, \"id\": \"valid\"}]} for kind in (True, 0, [\"record\"], {\"record\": True})]\ninvalid += [{\"items\": [{\"kind\": \"record\", \"id\": identifier}]} for identifier in (False, 0, [], {})]\nfor payload in invalid:\n    original = copy.deepcopy(payload)\n    try:\n        summarize(payload)\n    except ValueError:\n        pass\n    else:\n        raise AssertionError(\"malformed input accepted\")\n    assert handle_request(payload) == (400, {\"error\": \"invalid records\"})\n    assert payload == original\n"
+      },
+      "evaluation_dimensions": {
+        "correctness": "discoverable repository contract; short organic request and visible smoke checks",
+        "routing": "separate routing task",
+        "guidance_access": "native tool-event observations only",
+        "guidance_application": "artifact-first assessment before author claims; comparison and access observations remain separate",
+        "generalization": "runner-owned examples of discoverable API contract; no hidden requirements or universal capability claim"
+      },
+      "audit_provenance": {
+        "basis": "templates counted as records; organic discovery adaptation of supplied-contract construction fixture",
+        "machine_attribution": "unestablished",
+        "implementation_status": "bounded discoverable-contract fixture; no historical application repair or efficacy established"
+      },
+      "construction_rubric": {
+        "correctness": "Exercise the import caller with allowed and malformed payloads; green smoke checks alone are insufficient.",
+        "ownership": "Keep validation/selection in its existing owner; no duplicate policy or mutable cache.",
+        "complexity": "Use the existing small module without a generic framework or unrelated rewrites.",
+        "evidence": "Observe the original failure and final unchanged checks; claims match local scope.",
+        "exceptions": "Preserve permitted metadata/duplicates or independent input snapshots; do not overvalidate."
+      },
+      "required_files": [
+        "records.py",
+        "app.py",
+        "checks.py",
+        "README.txt"
+      ],
+      "artifact_first_review": true
     }
   }
 ]

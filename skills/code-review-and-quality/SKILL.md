@@ -69,9 +69,14 @@ Apply the canonical
 [review-risk triggers](../follow-instructions/references/principles/authority-and-claims.md#review-risk-triggers).
 For those changes, a separate person or agent must inspect the current diff
 and raw evidence before the integrating owner claims completion or recommends
-merge. Give the reviewer the original request, actual artifact and raw check/tool
-results with access to affected callers; an author-selected summary alone is
-insufficient. The reviewer chooses diagnostic checks and expectations independently. A different model is optional. The owner resolves material findings
+merge. Start the reviewer in a fresh context with the original request, actual
+artifact and raw check/tool results, with access to affected callers. Withhold
+the author's summary and prior conversation until the reviewer records an
+initial artifact assessment; then check the author's claims against that
+assessment and raw evidence. Raw artifacts/tool output can themselves contain
+author claims, so this reduces framing without guaranteeing blindness.
+The reviewer chooses diagnostic checks and expectations independently. A
+different model is optional. The owner resolves material findings
 and verifies the final artifact; green tests and the author's reread do not
 satisfy this gate.
 

@@ -195,6 +195,48 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(grader.await_args.kwargs["isolate_workspace"])
         self.assertEqual(grader.await_args.kwargs["effort"], "high")
         self.assertEqual(result.metadata["grader_effort"], "high")
+        self.assertEqual(grader.await_count, 1)
+
+    async def test_artifact_review_precedes_claims_and_cannot_be_rescued_by_narrative(self):
+        state = self._workflow_state(forbidden=[])
+        state.metadata.update({"artifact_first_review": True, "construction_rubric": {"ownership": "existing owner"}})
+        state.output = ModelOutput.from_content(model="PRIVATE_MODEL", content="AUTHOR_NARRATIVE: everything is perfect")
+        usage = '{"type":"turn.completed","usage":{"input_tokens":12,"cached_input_tokens":5,"output_tokens":3}}'
+        responses = [('{"score":1,"explanation":"duplicate policy"}', usage),
+                     ('{"score":4,"explanation":"clear report"}', usage)]
+
+        async def launch(prompt, **kwargs):
+            self.assertTrue(kwargs["isolate_workspace"])
+            self.assertFalse(kwargs["with_skills"])
+            if "AUTHOR_NARRATIVE" in prompt:
+                self.assertEqual(state.store.get("artifact_review")["score"], 1)
+            return responses.pop(0)
+
+        grader = AsyncMock(side_effect=launch)
+        with patch.object(skills, "workspace_evidence", AsyncMock(return_value="actual source and raw checks")), patch.object(skills, "run_codex", grader):
+            result = await skills.native_behavior_grade(model="stub/grader")(state, Target("preserve ownership"))
+        first, second = [call.args[0] for call in grader.await_args_list]
+        self.assertNotIn("AUTHOR_NARRATIVE", first)
+        self.assertNotIn("PRIVATE_MODEL", first)
+        self.assertIn("actual source and raw checks", first)
+        self.assertIn("existing owner", first)
+        self.assertIn("AUTHOR_NARRATIVE", second)
+        self.assertIn("duplicate policy", second)
+        self.assertEqual(result.value, 1)
+        self.assertEqual(result.metadata["grader_usage"]["input_tokens"], 24)
+        self.assertEqual([p["phase"] for p in result.metadata["grader_phases"]], ["artifact-before-claims", "claims-after-artifact"])
+
+    async def test_invalid_artifact_assessment_fails_closed_and_missing_usage_stays_unknown(self):
+        for answer in ('{"score":true,"explanation":"wrong type"}', '[]', 'not JSON'):
+            state = self._workflow_state(forbidden=[])
+            state.metadata["artifact_first_review"] = True
+            state.output = ModelOutput.from_content(model="stub/model", content="a report")
+            grader = AsyncMock(side_effect=[(answer, ""), ('{"score":4,"explanation":"clear report"}', '{"type":"turn.completed","usage":{"input_tokens":12}}')])
+            with patch.object(skills, "workspace_evidence", AsyncMock(return_value="raw evidence")), patch.object(skills, "run_codex", grader):
+                result = await skills.native_behavior_grade(model="stub/grader")(state, Target("contract"))
+            self.assertEqual(result.value, 0)
+            self.assertNotIn("grader_usage", result.metadata)
+            self.assertIn("usage", result.metadata["grader_phases"][1])
 
     async def test_grader_receives_runner_interruption_not_author_metadata(self) -> None:
         state = self._workflow_state(forbidden=[])

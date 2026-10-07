@@ -48,9 +48,16 @@ skills/principles. Use neutral temporary paths and task guidance. Retain the
 real paths/digests and arm mapping privately in runner logs; blinding must not
 rewrite the evidence or hide a failed check.
 
-The native grader receives quoted task, target, answer and runner evidence in
-a fresh directory without the candidate's AGENTS file/catalog. It is instructed
-to use only that material. Do not send candidate model/arm labels to it. The
+The native grader receives quoted task, target and runner evidence in a fresh
+directory without the candidate's AGENTS file/catalog. Construction cases use
+`artifact_first_review`: record an artifact assessment without the final author
+narrative, then assess requested answers/claims in another fresh context. The
+final score cannot exceed the first artifact score; both phases and observed
+usage are logged. Ordinary cases assess evidence and answer in one call. This
+extra construction call is a measurement cost, not a required ordinary-task
+review panel. The grader uses only supplied data and cannot execute its own
+checks; a live independent review is a separate procedure. Do not send candidate
+model/arm labels to it. The
 content may still reveal origin; this is reduced cue exposure, not guaranteed
 blinding or hostile-data isolation. For subjective paired decisions, blind
 artifact labels and use a fixed rubric; inspect both outputs and discrepancies
@@ -106,6 +113,11 @@ Representative construction and ordinary cases retain visible regressions and
 runner-owned `heldout_test` examples of the stated contract. Freeze those before
 native runs. Both arms passing correctly means no demonstrated difference;
 post-pilot replay controls are regression evidence, not predefined pilot results.
+The construction-discovery variant uses a short organic bug report and an
+authoritative repository contract instead of putting the full recipe in the
+prompt. Its held-out examples test that discoverable contract, not unstated
+requirements. Passing still does not establish guidance value; compare artifact
+judgment, discovery and observed guidance access separately.
 Workflow repository `AGENTS.md` is preserved; personal instructions are installed
 separately in the isolated native home, with both identities logged. The
 repository-instruction fixture exercises precedence over a global default.
@@ -116,17 +128,15 @@ effort, grader, fixtures and checks with `mandatory_coordinator=true` and
 rules remain. The global shipped mandate remains until results justify a change.
 Include ordinary work and valid near-misses, not only boundary failures.
 
-A bounded diagnostic budget is ten candidate executions, one epoch:
-three workflows per coordinator arm (`workflow-native-small-task`,
-`workflow-native-artifact-only`, `workflow-native-repository-instructions`),
-and two requests per shipped/enriched routing arm
-(`route-how-request-flow`, `route-no-skill-arithmetic`). Use
-`gpt-5.6-luna`, candidate effort `medium`, a fixed explicitly selected grader
-model at `high`, max-samples 1 and 240 seconds per sample. Grading is separate
-from native token/time costs. Stop at the budget, including failed runs;
-namespace-unavailable runs must be recorded as unavailable without bypassing
-Bubblewrap. This small pilot diagnoses overhead/routing; it cannot establish
-construction-guidance efficacy or universal quality. Broader UI expansion waits
-for credible measurement. Record explicit CLI settings; provider-internal effort
-is unobserved, and a shared candidate/grader model is not independent artifact
-review. Final review needs the original request, actual artifacts and raw evidence.
+For PR20, the [gap closure plan](../../../evals/results/pr20-gap-plan.md) freezes
+four paired cases, one paired ordinary-task repeat, explicit settings and a
+reversal criterion: ten candidates and at most twelve grader calls. It supersedes
+the earlier planned coordinator/routing budget; that attempt recorded six
+unavailable samples and zero native launches. Stop at the new declared budget;
+never bypass Bubblewrap or tune cases after seeing outcomes. Native measurement
+remains unavailable on the current host. Retaining the mandate is explicitly
+pending evidence, despite overhead signals, not an efficacy conclusion.
+Broader UI expansion waits for credible measurement. Record explicit CLI
+settings; provider-internal effort is unobserved. Model diversity alone does not
+establish independence. Final review starts from the original request, actual
+artifacts and raw evidence, with author claims assessed after the artifact.

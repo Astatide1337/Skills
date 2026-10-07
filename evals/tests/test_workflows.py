@@ -141,7 +141,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            27,
+            28,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -237,6 +237,7 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-hook-output",
                 "workflow-native-construction-boundary",
                 "workflow-native-construction-owner",
+                "workflow-native-construction-discovery",
                 "workflow-native-repository-instructions",
             },
         )
@@ -262,7 +263,7 @@ class WorkflowContractTests(unittest.TestCase):
     def test_native_regression_cases_keep_expectations_separate_and_scope_bounded(self) -> None:
         cases = [sample for sample in skills.workflows_dataset().samples
                  if "audit_provenance" in (sample.metadata or {})]
-        self.assertEqual(len(cases), 16)
+        self.assertEqual(len(cases), 17)
         for sample in cases:
             metadata = sample.metadata or {}
             contract = metadata["fixture_contract"]
@@ -333,6 +334,54 @@ class WorkflowContractTests(unittest.TestCase):
                     (root / contract["write_path"]).write_text(duplicated)
                     green = subprocess.run(contract["test_command"], cwd=root, capture_output=True)
                     self.assertEqual(green.returncode, 0, green.stderr)
+
+    def test_discovery_contract_accepts_alternatives_and_rejects_smoke_only_fixes(self):
+        sample = next(s for s in skills.workflows_dataset() if s.id == "workflow-native-construction-discovery")
+        contract = sample.metadata["fixture_contract"]
+        self.assertNotIn("ValueError", sample.input)
+        for requirement in ("ValueError", "duplicate", "opaque", "metadata", "Templates", "records.py owns"):
+            self.assertIn(requirement, sample.files["README.txt"])
+        self.assertIn("README.txt", sample.metadata["required_files"])
+        self.assertNotIn(contract["heldout_test"], sample.files.values())
+        alternative = '''def record_ids(payload):
+    if not isinstance(payload, dict) or not isinstance(payload.get("items"), list):
+        raise ValueError("bad payload")
+    ids = []
+    for entry in payload["items"]:
+        if not isinstance(entry, dict) or not isinstance(entry.get("kind"), str):
+            raise ValueError("bad item")
+        if entry["kind"] == "template":
+            continue
+        if entry["kind"] != "record":
+            raise ValueError("unknown kind")
+        identifier = entry.get("id")
+        if not isinstance(identifier, str) or len(identifier) == 0:
+            raise ValueError("bad id")
+        ids += [identifier]
+    return ids
+'''
+        controls = {
+            "filter-only": 'def record_ids(payload):\n    return [x["id"] for x in payload["items"] if x.get("kind") == "record"]\n',
+            "trim-opaque-ids": contract["write_content"].replace('result.append(item["id"])', 'result.append(item["id"].strip())'),
+            "drop-duplicates": contract["write_content"].replace('return result', 'return list(dict.fromkeys(result))'),
+            "wrong-error-kind": contract["write_content"].replace('raise ValueError(', 'raise TypeError('),
+        }
+        command, error = skills._runner_acceptance_command(contract)
+        self.assertIsNone(error)
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            for name, source in sample.files.items():
+                (root / name).write_text(source)
+            for source in (contract["write_content"], alternative):
+                (root / "records.py").write_text(source)
+                passing = subprocess.run(command, cwd=root, capture_output=True)
+                self.assertEqual(passing.returncode, 0, passing.stderr)
+            for name, source in controls.items():
+                (root / "records.py").write_text(source)
+                smoke = subprocess.run(contract["test_command"], cwd=root, capture_output=True)
+                self.assertEqual(smoke.returncode, 0, (name, smoke.stderr))
+                rejected = subprocess.run(command, cwd=root, capture_output=True)
+                self.assertNotEqual(rejected.returncode, 0, name)
 
     def test_runner_acceptance_is_the_original_test_not_a_source_fragment(self) -> None:
         sample = next(
