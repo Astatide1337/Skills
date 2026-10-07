@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cluster-ci-${{ github.ref }}
+  group: cluster-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
