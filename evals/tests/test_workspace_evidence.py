@@ -228,7 +228,7 @@ class WorkspaceEvidenceTests(unittest.TestCase):
 
             async def execute(command, **kwargs):
                 result = subprocess.run(command, cwd=root, capture_output=True, text=True)
-                return SimpleNamespace(success=result.returncode == 0,
+                return SimpleNamespace(success=result.returncode == 0, returncode=result.returncode,
                                        stdout=result.stdout, stderr=result.stderr)
 
             environment = SimpleNamespace(
@@ -240,6 +240,10 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             ):
                 self.assertEqual(asyncio.run(skills.workspace_policy()(state, None)).value, 1)
                 self.assertEqual(asyncio.run(skills.workflow_effects()(state, None)).value, 1)
+                acceptance = state.store.get("runner_acceptance")
+                self.assertEqual(acceptance["exit_code"], 0)
+                self.assertEqual(acceptance["stdout"], "")
+                self.assertTrue(acceptance["test_sha256"])
                 after = asyncio.run(skills.workspace_policy()(state, None))
             self.assertEqual(after.value, 0)
             self.assertIn("outside.txt", after.explanation)
