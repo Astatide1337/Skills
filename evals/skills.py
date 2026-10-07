@@ -1210,6 +1210,7 @@ def capture_workspace_baseline() -> Solver:
             try:
                 captured = capture_baseline(workspace)
                 baseline = captured
+                state.store.set("runner_workspace_location", str(workspace))
             except Exception as exc:
                 baseline = _unavailable_baseline(f"baseline capture failed: {exc}")
         state.store.set("workspace_baseline", baseline)
@@ -1467,6 +1468,10 @@ async def workspace_evidence(state: TaskState) -> str:
             await _workspace_evidence_value(state)
         )
     ]
+    location = state.store.get("runner_workspace_location")
+    if isinstance(location, str):
+        sections.append("RUNNER-OBSERVED WORKSPACE LOCATION: " + location
+                        + "\nThis resolves local file citations; it does not prove those files were read.")
     interruption = state.store.get("native_interruption")
     if isinstance(interruption, dict):
         sections.append(

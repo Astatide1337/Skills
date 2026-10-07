@@ -35,7 +35,8 @@ review is requested or the risk warrants it.
    for the affected surface. Keep its configuration and suppressions visible;
    weakening a rule or adding an ignore is not a repair of the underlying defect.
    When repository changes are unavailable, run its existing commands and keep
-   results outside the checkout; do not claim shared skills installed app lint rules.
+   results outside the checkout. For supplemental Python/TypeScript correctness
+   checks without app configuration changes, use [portable lint](references/portable-lint.md).
 2. Check correctness and state ownership first: errors, lifecycle, cancellation,
    retries, compatibility and identity. Verify evidence belongs to the final
    source/artifact and relevant running instance.

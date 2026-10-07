@@ -66,7 +66,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.files, {"AGENTS.md": skills.GLOBAL_INSTRUCTIONS.read_text()})
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            21,
+            24,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -157,6 +157,9 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-small-task",
                 "workflow-native-small-diff-sensitive-boundary",
                 "workflow-coworker-inline-review",
+                "workflow-native-capability-discovery",
+                "workflow-native-discovery-genuine-blocker",
+                "workflow-native-hook-output",
             },
         )
         for sample in cases.values():
@@ -181,7 +184,7 @@ class WorkflowContractTests(unittest.TestCase):
     def test_native_regression_cases_keep_expectations_separate_and_scope_bounded(self) -> None:
         cases = [sample for sample in skills.workflows_dataset().samples
                  if "audit_provenance" in (sample.metadata or {})]
-        self.assertEqual(len(cases), 10)
+        self.assertEqual(len(cases), 13)
         for sample in cases:
             metadata = sample.metadata or {}
             contract = metadata["fixture_contract"]

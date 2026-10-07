@@ -26,6 +26,11 @@ external research is requested or needed for an uncertain primary source.
 2. Separate `Known`, `Unknown`, and hypotheses. For a causal claim, state at
    least one plausible competing explanation and the smallest observation that
    distinguishes it.
+   For capability discovery, resolve the effective configuration and target
+   identity; names and prior sessions are hypotheses. An absent conventional
+   endpoint does not establish an absent API: inspect the owning source or
+   existing client before escalating. Keep discovery bounded to the authorized
+   target and metadata; do not print credentials or enumerate unrelated secrets.
 3. Run that read-only check in the closest authorized environment. If it
    contradicts the hypothesis, update the explanation rather than forcing the
    result. Use a disposable reproduction only when authorized.
@@ -44,7 +49,8 @@ plausible mechanism into a confirmed diagnosis.
 Return the direct answer, source locations or observations, the distinguished
 hypotheses, material uncertainty, and the smallest next check. A diagnosis is
 not a fix, and a command that exited successfully is not proof of runtime
-behavior.
+behavior. For offline service snapshots, explicitly mark live reachability and
+authentication untested; discovering an interface does not exercise it.
 
 ## Example
 

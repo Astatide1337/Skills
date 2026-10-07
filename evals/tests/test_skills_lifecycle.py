@@ -57,6 +57,16 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 if seen_directory is not None:
                     self.assertFalse(seen_directory.exists())
 
+    async def test_grader_evidence_retains_runner_location_without_inferring_reads(self):
+        state = TaskState(model="stub/model", sample_id="location", epoch=1, input="Read snapshot", messages=[])
+        state.output = ModelOutput.from_content(model="stub/model", content="answer")
+        state.store.set("runner_workspace_location", "/tmp/actual-workspace")
+        state.store.set("workspace_evidence", Evidence(available=False, status="unavailable", reason="test unavailable"))
+        rendered = await skills.workspace_evidence(state)
+        self.assertIn("RUNNER-OBSERVED WORKSPACE LOCATION: /tmp/actual-workspace", rendered)
+        self.assertIn("does not prove those files were read", rendered)
+        self.assertIn("test unavailable", rendered)
+
     def test_invalid_effort_is_rejected_before_native_execution(self) -> None:
         for effort in ("unlimited", 'max"; unexpected', "", None):
             with self.subTest(effort=effort), self.assertRaises(ValueError):

@@ -38,7 +38,7 @@ jobs:
           uv sync --frozen --python 3.13
           uv run --frozen python scripts/validate_catalog.py
           uv run --frozen python skills/verify-work/scripts/boundary_checks.py ci --dialect github --file .github/workflows/ci.yml
-          uv run --frozen python -m unittest evals.tests.test_catalog_validation evals.tests.test_cli_installation evals.tests.test_workflows evals.tests.test_skills_lifecycle -v
+          uv run --frozen python -m unittest evals.tests.test_catalog_validation evals.tests.test_cli_installation evals.tests.test_portable_lint.PythonLintTests evals.tests.test_workflows evals.tests.test_skills_lifecycle -v
 
   workspace-tests:
     # Bubblewrap requires user namespaces denied by the restricted cluster runtime.
@@ -65,7 +65,17 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends bubblewrap
           bwrap --unshare-all --ro-bind / / -- true
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Install locked supplemental lint tools outside the checkout
+        run: |
+          mkdir -p "$RUNNER_TEMP/skills-lint"
+          cp skills/code-review-and-quality/assets/portable-lint/package*.json "$RUNNER_TEMP/skills-lint/"
+          npm ci --prefix "$RUNNER_TEMP/skills-lint" --ignore-scripts --no-audit --no-fund
       - name: Run complete offline evaluation suite
+        env:
+          SKILLS_LINT_RUNTIME: ${{ runner.temp }}/skills-lint
         run: |
           uv sync --frozen --python 3.13
           uv run --frozen python -m unittest discover -s evals/tests -v

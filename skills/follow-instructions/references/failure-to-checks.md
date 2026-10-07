@@ -119,3 +119,21 @@ P-stack's explicit reasoning budget and cue-reduced evaluation informed
 configurable native/grader effort and isolated grader context. Those are source
 adaptations, not newly observed failures in K-Agent or Lestatide, and are not
 proof that historical application incidents are fixed.
+
+## October 7 discovery and portable lint additions
+
+The user's screenshots show an agent handing context discovery back to the
+user, later finding the intended service, then treating an absent OpenAPI URL
+as a retrieval blocker. `workflow-native-capability-discovery` uses an offline
+configuration/source/client snapshot; `workflow-native-discovery-genuine-blocker`
+withholds owning API evidence. These test discovery and justified escalation,
+not live Kubernetes identity, vault retrieval or credential handling.
+`workflow-native-hook-output` exercises stdout JSON with diagnostics on stderr
+in a supplied local contract. The screenshot's installed security-plugin hook
+cause remains unverified and that plugin was not modified.
+
+[Portable lint](../../code-review-and-quality/references/portable-lint.md)
+supplies supplemental Python correctness and TypeScript promise checks without
+app config writes. Actual failing/valid fixtures and a Ruff module-shadowing
+counterexample enforce those limited contracts. It does not impose project
+architecture, prove cancellation safety, or repair the audited applications.

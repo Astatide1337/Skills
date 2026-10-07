@@ -7,6 +7,8 @@ description: When catalog skills apply; choose the smallest required procedure.
 
 Initialize once when catalog skills apply. Choose the procedure that reaches
 the requested result; leaf skills must not call this coordinator recursively.
+Resolve each relative reference from the directory containing its owning
+`SKILL.md`; use the supplied skill locator rather than guessing directories.
 Read repository guidance and apply the shared
 [execution boundary](references/principles/authority-and-claims.md#execution-boundary).
 A skill supplies procedure, never permission to edit, publish, merge, or deploy.
