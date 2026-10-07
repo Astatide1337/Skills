@@ -1,0 +1,40 @@
+name: cluster-ci
+
+on:
+  push:
+    branches: [main]
+  # Read the trusted base workflow; fork code never reaches a runner.
+  pull_request_target:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cluster-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    if: >-
+      github.repository == 'Astatide1337/Skills' &&
+      github.actor == 'Astatide1337' &&
+      (github.event_name != 'pull_request_target' ||
+       (github.event.pull_request.user.login == 'Astatide1337' &&
+        github.event.pull_request.head.repo.full_name == github.repository))
+    runs-on: astatide-skills-ci
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: 0.12.19
+          enable-cache: false
+      - name: Validate catalog and run offline evaluation tests
+        run: |
+          uv sync --frozen --python 3.13
+          uv run --frozen python scripts/validate_catalog.py
+          uv run --frozen python -m unittest discover -s evals/tests -v
