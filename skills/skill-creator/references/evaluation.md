@@ -31,8 +31,8 @@ uv run inspect eval evals/skills.py@catalog -T with_skills=false -T native_model
 
 Select representative sample IDs instead of the first two when appropriate.
 `native_effort` applies to candidates and routing; `grader_effort` and optional
-`grader_model` configure assessment separately. Defaults remain `max` for
-historical comparability. Supported effort names are low, medium, high, xhigh
+`grader_model` configure assessment separately. Defaults are `medium` for candidates/routing and `high` for grading;
+use explicit `max` only for a justified comparison with historical runs. Supported effort names are low, medium, high, xhigh
 and max; the chosen model may reject a level, which is a failed/unavailable run,
 not permission to silently substitute a setting. Keep both arms identical and
 the grader fixed while measuring an instruction change. Measure a different
@@ -82,3 +82,51 @@ when its observed benefit justifies its overhead, or a named real safety
 boundary requires it. Simplifications need the same gates, a paired baseline
 and the reserved held-out check. Stop at the declared budget; report
 inconclusive instead of continuing until the preferred answer appears.
+
+## Separate measurements
+
+`routing` defaults to shipped descriptions plus the global contract. Its
+`enriched=true` variant retains evaluator hints as a separate diagnostic;
+`workflow_routing` supplies coordinator content and measures composition.
+Selection scores are diagnostics, not task-success gates. Define optional
+procedures, `reasonable_skill_sets`, and explicitly harmful additions in case
+metadata before execution. Composition allows declared optional domains;
+canonical family/mode labels diagnose classification, not execution competence.
+
+`skill_injection` establishes delivery only. Native `guidance_access` records
+reference mentions in command/tool events, preserving success/failure context.
+A path mention proves neither a completed read nor comprehension/application;
+missing command mentions do not universally prove missing access. Correctness
+under a supplied contract, discovery, guidance access, independent assessment
+of application, and held-out generalization are distinct observations. A short
+path's deliberate lack of a reference read is valid. Do not force extra reading
+to improve an activation score.
+
+Representative construction and ordinary cases retain visible regressions and
+runner-owned `heldout_test` examples of the stated contract. Freeze those before
+native runs. Both arms passing correctly means no demonstrated difference;
+post-pilot replay controls are regression evidence, not predefined pilot results.
+Workflow repository `AGENTS.md` is preserved; personal instructions are installed
+separately in the isolated native home, with both identities logged. The
+repository-instruction fixture exercises precedence over a global default.
+
+For a coordinator ablation use the same `workflows` task, catalog, model,
+effort, grader, fixtures and checks with `mandatory_coordinator=true` and
+`false`. Only the mandate clause changes; authority, evidence and security
+rules remain. The global shipped mandate remains until results justify a change.
+Include ordinary work and valid near-misses, not only boundary failures.
+
+A bounded diagnostic budget is ten candidate executions, one epoch:
+three workflows per coordinator arm (`workflow-native-small-task`,
+`workflow-native-artifact-only`, `workflow-native-repository-instructions`),
+and two requests per shipped/enriched routing arm
+(`route-how-request-flow`, `route-no-skill-arithmetic`). Use
+`gpt-5.6-luna`, candidate effort `medium`, a fixed explicitly selected grader
+model at `high`, max-samples 1 and 240 seconds per sample. Grading is separate
+from native token/time costs. Stop at the budget, including failed runs;
+namespace-unavailable runs must be recorded as unavailable without bypassing
+Bubblewrap. This small pilot diagnoses overhead/routing; it cannot establish
+construction-guidance efficacy or universal quality. Broader UI expansion waits
+for credible measurement. Record explicit CLI settings; provider-internal effort
+is unobserved, and a shared candidate/grader model is not independent artifact
+review. Final review needs the original request, actual artifacts and raw evidence.

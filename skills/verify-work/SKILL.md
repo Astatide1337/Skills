@@ -7,10 +7,6 @@ description: When proving claims or creating or maintaining app verification.
 
 Completion requires current evidence.
 
-For Linktree verification, use the installed `linktree-agent` rather than
-recreating its browser/runtime automation. Read the
-[CLI binding](references/agent-clis.md) for discovery, setup and limits.
-
 For a claim-verification request, explain what is proven, what remains unknown,
 the next useful check, and the narrow claim, even when tools are unavailable.
 Name the evidence required at every relevant layer (artifact, environment
@@ -30,6 +26,9 @@ into a generic request to verify production.
 - **User-owned verification:** when application repositories cannot be changed,
   use [portable profiles](references/portable-profiles.md) to compose existing
   checks or a pinned app CLI with independent expectations and fresh receipts.
+  If the request or bounded app discovery identifies Linktree, use the installed
+  `linktree-agent` and read its [CLI binding](references/agent-clis.md) for setup
+  and limits. Other apps use their own discovered commands.
 
 Project-local verification skills live at `.agents/skills/verify-<app>/` unless the repository declares another agent-skill location. Do not create platform-specific directories by default.
 The application owns its feature map and pins any separate per-app CLI version; the skill supplies judgment and the CLI performs repeatable operations.

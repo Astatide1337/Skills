@@ -44,6 +44,45 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 with patch.object(skills, "AUTH_FILE", auth), patch.object(skills, "bwrap_preflight", return_value=None), patch.object(skills, "sandbox", return_value=sandbox):
                     await skills.run_codex("User task", model="stub/model", with_skills=installed, sandbox_mode="read-only", skills_root=package.parent)
 
+    async def test_shipped_routing_has_no_evaluator_hints(self):
+        state = TaskState(model='stub/router', sample_id='route', epoch=1, input='Explain this parser.', messages=[])
+        native = AsyncMock(return_value=('{"skills":[],"reason":"ordinary question"}', ''))
+        with patch.object(skills, 'run_codex', native):
+            result = await skills.route_codex(model='stub/router')(state, None)
+        prompt = native.await_args.args[0]
+        self.assertIn(skills.catalog_routing_index(), prompt)
+        self.assertIn(skills.GLOBAL_INSTRUCTIONS.read_text(), prompt)
+        self.assertNotIn('how (even when', prompt)
+        self.assertNotIn('Do select verify-work when', prompt)
+        self.assertEqual(result.output.metadata['routing_mode'], 'shipped-descriptions-global')
+        with patch.object(skills, 'run_codex', native):
+            result = await skills.route_codex(model='stub/router', enriched=True)(state, None)
+        self.assertIn('Do select verify-work when', native.await_args.args[0])
+        self.assertEqual(result.output.metadata['routing_mode'], 'enriched-diagnostic')
+
+    async def test_global_rules_are_installed_separately_from_repository(self):
+        with tempfile.TemporaryDirectory() as raw:
+            home = Path(raw); native = SimpleNamespace(read_file=AsyncMock(return_value='answer'),
+                exec=AsyncMock(return_value=SimpleNamespace(success=True, returncode=0, stdout='', stderr='')))
+            with (patch.object(skills, 'bwrap_preflight', return_value=None),
+                  patch.object(skills, 'isolated_codex_home', return_value=skills.nullcontext(str(home))),
+                  patch.object(skills, 'sandbox', return_value=native)):
+                await skills.run_codex('task', model='stub/model', with_skills=False,
+                    sandbox_mode='workspace-write', global_rules='personal defaults')
+                self.assertEqual((home / 'AGENTS.md').read_text(), 'personal defaults')
+
+    async def test_construction_answers_required_but_artifact_prose_optional(self):
+        cases = {s.id:s for s in skills.workflows_dataset()}
+        for name in ('workflow-native-construction-boundary', 'workflow-native-construction-owner'):
+            metadata = cases[name].metadata
+            self.assertTrue(skills._response_required(metadata))
+            state = TaskState(model='stub/model', sample_id=name, epoch=1, input='task', messages=[], metadata=metadata)
+            state.output = ModelOutput.from_content(model='stub/no-model', content='')
+            score = await skills.workflow_effects()(state, Target('expected answer'))
+            self.assertEqual(score.value, 0)
+            self.assertIn('response is missing', score.explanation)
+        self.assertFalse(skills._response_required(cases['workflow-native-artifact-only'].metadata))
+
     async def test_native_launch_respects_effort_and_isolates_grader_directory(self) -> None:
         events = '{"type":"turn.completed","usage":{"input_tokens":12,"cached_input_tokens":5,"output_tokens":3}}\n'
         for isolated in (False, True):

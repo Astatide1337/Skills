@@ -68,3 +68,35 @@ weaken or remove a rule to claim a defect repaired.
 
 Dependency boundaries need the project's actual ownership map and allowed
 imports. No universal layering rule or style policy is installed here.
+
+## Compare an authorized change with existing debt
+
+Full mode remains the default and reports every selected-file violation.
+For an incremental change, choose a separate trusted baseline checkout/snapshot
+before examining candidate diagnostics. Preserve its native project inputs and
+run the same pinned supplemental tools in both workspaces:
+
+```sh
+/path/to/Skills/.venv/bin/python /path/to/skill/scripts/portable_lint.py \
+  --language python --workspace /path/to/current --mode compare \
+  --baseline-workspace /path/to/pre-change --receipt /private/new-comparison.json module.py
+```
+
+TypeScript comparison also requires the same external `--runtime` and valid
+project membership/dependencies in both workspaces. Selected files must exist
+in both; absent baseline files (including added files) are unavailable for this
+comparison, so full-check new files separately. No baseline is fabricated.
+
+Receipts retain all current/baseline diagnostics and raw check failures.
+`full_passed` reports the current full result; comparison acceptance means no
+new-or-changed supplemental diagnostics, even if existing debt leaves the full
+check failed. Match occurrences one-to-one using rule, message, location mapping
+and unchanged source spans. A newly duplicated diagnostic remains new. Unique
+unchanged moved lines can match; edited/ambiguous spans conservatively remain
+new-or-changed. This is attribution to source spans, not proof of who introduced
+a bug. Review ambiguous moves rather than suppressing findings.
+
+Missing/incompatible tooling, parser failures, changed inputs and unavailable
+baselines retain `comparison.status: unavailable` and fail the receipt. Exit 0
+in compare mode accepts only that incremental scope; it never waives failed
+project-native checks, proves unrelated debt repaired, or authorizes cleanup.

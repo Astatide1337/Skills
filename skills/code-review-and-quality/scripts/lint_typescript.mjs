@@ -28,7 +28,7 @@ try {
   const results = await engine.lintFiles(files);
   const diagnostics = results.flatMap(r => r.messages.map(m => ({
     file: path.relative(workspace, r.filePath), rule: m.ruleId,
-    line: m.line, column: m.column, severity: m.severity, message: m.message,
+    line: m.line, column: m.column, end_line: m.endLine, end_column: m.endColumn, severity: m.severity, message: m.message,
   })));
   const passed = results.length === files.length && results.every(r => r.errorCount === 0 && r.warningCount === 0);
   console.log(JSON.stringify({ passed, diagnostics, files: results.map(r => path.relative(workspace, r.filePath)) }));

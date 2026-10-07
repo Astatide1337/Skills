@@ -2,7 +2,7 @@
   {
     "id": "route-no-skill-arithmetic",
     "input": "What is 2 + 2? Answer in one sentence. Do not inspect files or use a workflow.",
-    "metadata": {"expected_skills": [], "route_kind": "negative"}
+    "metadata": {"expected_skills": [], "route_kind": "negative", "harmful_skills": ["production-safety"]}
   },
   {
     "id": "route-no-skill-pasted-summary",
@@ -37,7 +37,7 @@
   {
     "id": "route-self-reflect-settling",
     "input": "The implementation is finished and the thread is settling. Before the handoff, reassess the actual diff and checks, state the narrowest supported result, and record a durable lesson only if it changes a future decision. This is a reflective handoff, not a separate verification request.",
-    "metadata": {"expected_skills": ["follow-instructions", "self-reflect"], "route_kind": "positive"}
+    "metadata": {"expected_skills": ["follow-instructions", "self-reflect"], "route_kind": "positive", "optional_skills": ["code-review-and-quality"]}
   },
   {
     "id": "route-self-reflect-near-miss",

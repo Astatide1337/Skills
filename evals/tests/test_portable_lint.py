@@ -28,6 +28,67 @@ class PythonLintTests(unittest.TestCase):
             self.assertEqual(set(p.name for p in root.iterdir()), {'sample.py', 'ruff.toml'})
             return result
 
+    def comparison(self, before, after):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw); old = root / 'old'; new = root / 'new'
+            old.mkdir(); new.mkdir()
+            (old / 'sample.py').write_text(before); (new / 'sample.py').write_text(after)
+            return lint.run(new, ['sample.py'], 'python', None, baseline_workspace=old)
+
+    def test_existing_debt_and_clean_change_is_accepted_with_raw_failure(self):
+        result = self.comparison('print(missing)  # noqa: F821\n', '# clean comment\nprint(missing)  # noqa: F821\n')
+        self.assertTrue(result['passed'])
+        self.assertFalse(result['full_passed'])
+        self.assertEqual(result['check']['status'], 'failed')
+        self.assertEqual(len(result['diagnostics']), 1)
+        self.assertEqual(len(result['comparison']['existing']), 1)
+
+    def test_introduced_and_identical_duplicate_diagnostics_reject(self):
+        for after in ('print(missing)\nprint(other)\n', 'print(missing)\nprint(missing)\n'):
+            with self.subTest(after=after):
+                result = self.comparison('print(missing)\n', after)
+                self.assertFalse(result['passed'])
+                self.assertEqual(len(result['comparison']['existing']), 1)
+                self.assertEqual(len(result['comparison']['new_or_changed']), 1)
+
+    def test_moved_unchanged_code_and_edited_diagnostic_span(self):
+        moved = self.comparison('print(missing)\nx = 1\n', 'x = 1\nprint(missing)\n')
+        self.assertTrue(moved['passed'])
+        edited = self.comparison('print(missing)\n', 'print(missing + 1)\n')
+        self.assertFalse(edited['passed'])
+        self.assertEqual(len(edited['comparison']['new_or_changed']), 1)
+        fixed = self.comparison('print(missing)\n', 'print("valid")\n')
+        self.assertTrue(fixed['passed'])
+        self.assertEqual(len(fixed['comparison']['resolved']), 1)
+
+    def test_missing_invalid_and_same_workspace_baselines_unavailable(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw); (root / 'sample.py').write_text('x = 1\n')
+            for baseline in (root, root / 'absent'):
+                result = lint.run(root, ['sample.py'], 'python', None, baseline_workspace=baseline)
+                self.assertFalse(result['passed'])
+                self.assertEqual(result['comparison']['status'], 'unavailable')
+            old = root / 'old'; old.mkdir(); (old / 'sample.py').write_text('def invalid(:\n')
+            result = lint.run(root, ['sample.py'], 'python', None, baseline_workspace=old)
+            self.assertFalse(result['passed'])
+            self.assertEqual(result['comparison']['status'], 'unavailable')
+
+    def test_incompatible_toolchain_never_becomes_passing_comparison(self):
+        from unittest.mock import patch
+        original = lint.full_check
+        calls = 0
+        def incompatible(*args):
+            nonlocal calls
+            result = original(*args); calls += 1
+            if calls == 2:
+                result['tools'] = {'ruff': 'different'}
+            return result
+        with patch.object(lint, 'full_check', incompatible):
+            result = self.comparison('x = 1\n', 'x = 2\n')
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['comparison']['status'], 'unavailable')
+        self.assertIn('toolchain', result['comparison']['reason'])
+
     def test_undefined_name_and_suppression_fail(self):
         result = self.check('print(missing_name)  # noqa: F821\n')
         self.assertFalse(result['passed'])
@@ -61,6 +122,18 @@ class PythonLintTests(unittest.TestCase):
             for files in ([], ['../bad.py'], ['/tmp/bad.py'], ['-bad.py'], ['sample.ts']):
                 with self.subTest(files=files), self.assertRaises((ValueError, OSError)):
                     lint.run(Path(raw), files, 'python', None)
+
+    def test_receipt_cannot_write_to_baseline_checkout(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw); old = root / 'old'; new = root / 'new'; old.mkdir(); new.mkdir()
+            for path in (old, new):
+                (path / 'sample.py').write_text('x = 1\n')
+            receipt = old / 'receipt.json'
+            result = subprocess.run([sys.executable, str(SCRIPT), '--workspace', str(new),
+                '--language', 'python', '--mode', 'compare', '--baseline-workspace', str(old),
+                '--receipt', str(receipt), 'sample.py'], capture_output=True)
+            self.assertEqual(result.returncode, 2)
+            self.assertFalse(receipt.exists())
 
     def test_receipt_collision_prevents_execution(self):
         with tempfile.TemporaryDirectory() as raw:
@@ -105,6 +178,26 @@ class TypeScriptLintTests(unittest.TestCase):
             self.assertEqual((root / 'sample.ts').read_text(), text)
             self.assertEqual(set(p.name for p in root.iterdir()), {'sample.ts', 'tsconfig.json'} if config else {'sample.ts'})
             return result
+
+    def test_typescript_debt_comparison_retains_multiplicity_and_parser_failure(self):
+        with tempfile.TemporaryDirectory() as raw:
+            old = Path(raw) / 'old'; new = Path(raw) / 'new'; old.mkdir(); new.mkdir()
+            config = json.dumps({'compilerOptions': {'strict': True, 'target': 'ES2022'}, 'include': ['sample.ts']})
+            for root in (old, new):
+                (root / 'tsconfig.json').write_text(config)
+            (old / 'sample.ts').write_text('Promise.resolve(1);\n')
+            (new / 'sample.ts').write_text('// clean change\nPromise.resolve(1);\n')
+            result = lint.run(new, ['sample.ts'], 'typescript', self.runtime, baseline_workspace=old)
+            self.assertTrue(result['passed'], result)
+            self.assertFalse(result['full_passed'])
+            (new / 'sample.ts').write_text('Promise.resolve(1);\nPromise.resolve(1);\n')
+            result = lint.run(new, ['sample.ts'], 'typescript', self.runtime, baseline_workspace=old)
+            self.assertFalse(result['passed'])
+            self.assertEqual(len(result['comparison']['new_or_changed']), 1)
+            (old / 'tsconfig.json').unlink()
+            result = lint.run(new, ['sample.ts'], 'typescript', self.runtime, baseline_workspace=old)
+            self.assertFalse(result['passed'])
+            self.assertEqual(result['comparison']['status'], 'unavailable')
 
     def test_floating_void_and_inline_ignore_fail(self):
         for text in ('Promise.resolve(1);\n', 'void Promise.resolve(1);\n',

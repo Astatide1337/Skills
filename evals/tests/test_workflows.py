@@ -18,6 +18,80 @@ from evals.fake_tracker import FakeTracker, validate_publication
 
 
 class WorkflowContractTests(unittest.TestCase):
+    def test_global_ablation_preserves_repository_layer_and_other_rules(self):
+        mandated = skills.workflows_dataset(execution_ready_only=True)
+        direct = skills.workflows_dataset(execution_ready_only=True, mandatory_coordinator=False)
+        self.assertEqual([s.id for s in mandated], [s.id for s in direct])
+        for left, right in zip(mandated, direct):
+            self.assertEqual(left.input, right.input)
+            self.assertEqual(left.files, right.files)
+            self.assertEqual(left.setup, right.setup)
+            self.assertEqual(left.metadata['fixture_contract'], right.metadata['fixture_contract'])
+            self.assertEqual(right.metadata['global_rules'], skills.coordinator_ablation(left.metadata['global_rules']))
+            for section in ('## Default authority', '## The SOPS age key', '## Work from evidence'):
+                self.assertEqual(left.metadata['global_rules'].split(section)[1], right.metadata['global_rules'].split(section)[1])
+        repo = next(s for s in mandated if s.id == 'workflow-native-repository-instructions')
+        self.assertIn('no catalog procedure is required', repo.files['AGENTS.md'])
+        self.assertNotEqual(repo.files['AGENTS.md'], repo.metadata['global_rules'])
+        self.assertIsNotNone(repo.metadata['repository_instructions_identity'])
+        with self.assertRaisesRegex(ValueError, 'mandate changed'):
+            skills.coordinator_ablation('other instructions')
+
+    def test_routing_alternatives_and_harmful_additions_are_separate(self):
+        metadata = {'expected_skills': ['follow-instructions', 'how'],
+                    'reasonable_skill_sets': [['follow-instructions', 'teach']],
+                    'optional_skills': ['verify-work'], 'harmful_skills': ['production-safety']}
+        good = skills.route_assessment({'follow-instructions', 'teach', 'verify-work'}, metadata)
+        self.assertEqual(good['missing'], [])
+        self.assertEqual(good['unnecessary_additions'], [])
+        bad = skills.route_assessment({'teach', 'production-safety', 'architect'}, metadata)
+        self.assertEqual(bad['missing'], ['follow-instructions'])
+        self.assertEqual(bad['harmful_additions'], ['production-safety'])
+        self.assertEqual(bad['unnecessary_additions'], ['architect'])
+
+    def test_guidance_instrumentation_records_events_without_claiming_use(self):
+        events = '\n'.join(json.dumps(e) for e in [
+            {'type': 'item.completed', 'item': {'type': 'command_execution', 'command': 'cat /root/skills/follow-instructions/references/principles/ownership-and-domain.md', 'exit_code': 0}},
+            {'type': 'item.completed', 'item': {'type': 'command_execution', 'command': 'echo ownership-and-domain.md', 'exit_code': 0}},
+            {'type': 'item.completed', 'item': {'type': 'file_read', 'path': 'follow-instructions/references/principles/ownership-and-domain.md'}},
+        ])
+        observed = skills._guidance_access(events)
+        self.assertEqual(len(observed['observations']), 3)
+        self.assertIn('comprehension', observed['limits'])
+        self.assertEqual(skills._guidance_access('unparseable')['observations'], [])
+
+    def test_heldout_examples_reject_visible_case_hardcoding(self):
+        cases = {s.id: s for s in skills.workflows_dataset()}
+        hardcoded = {
+            'workflow-native-small-task': 'def label_count(n):\n    return {0:"0 items",1:"1 item",2:"2 items",100:"100 items"}[n]\n',
+            'workflow-native-construction-boundary': None,
+            'workflow-native-construction-owner': None,
+        }
+        for name in hardcoded:
+            sample = cases[name]; contract = sample.metadata['fixture_contract']
+            self.assertTrue(contract['heldout_test'])
+            self.assertNotIn(contract['heldout_test'], sample.files.values())
+            self.assertNotIn(contract['heldout_test'], sample.input)
+            if hardcoded[name] is None:
+                if name.endswith('boundary'):
+                    hardcoded[name] = contract['write_content'].replace('result.append(item["id"])', 'result.append(item["id"] if item["id"] in {"B", " A "} else "B")')
+                else:
+                    hardcoded[name] = contract['write_content'].replace('return [item for item in items if', 'return [item for item in items if item["id"] in {"A", "C", "D", "Z"} and')
+            with tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                for path, text in sample.files.items():
+                    (root / path).write_text(text)
+                (root / contract['write_path']).write_text(hardcoded[name])
+                visible = subprocess.run(contract['test_command'], cwd=root, capture_output=True)
+                self.assertEqual(visible.returncode, 0, (name, visible.stderr))
+                command, error = skills._runner_acceptance_command(contract)
+                self.assertIsNone(error)
+                hidden = subprocess.run(command, cwd=root, capture_output=True)
+                self.assertNotEqual(hidden.returncode, 0, name)
+                (root / contract['write_path']).write_text(contract['write_content'])
+                passing = subprocess.run(command, cwd=root, capture_output=True)
+                self.assertEqual(passing.returncode, 0, (name, passing.stderr))
+
     def test_model_free_pilot_does_not_supply_native_agent_answers(self) -> None:
         dataset = skills.workflow_fixture_pilot().dataset
         self.assertEqual(len(dataset), 9)
@@ -63,10 +137,11 @@ class WorkflowContractTests(unittest.TestCase):
             if sample.id == "workflow-update-issue"
         )
         self.assertEqual((route_only.metadata or {}).get("execution_mode"), "routing-only")
-        self.assertEqual(route_only.files, {"AGENTS.md": skills.GLOBAL_INSTRUCTIONS.read_text()})
+        self.assertEqual(route_only.files, {})
+        self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            26,
+            27,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -162,6 +237,7 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-hook-output",
                 "workflow-native-construction-boundary",
                 "workflow-native-construction-owner",
+                "workflow-native-repository-instructions",
             },
         )
         for sample in cases.values():
@@ -186,13 +262,13 @@ class WorkflowContractTests(unittest.TestCase):
     def test_native_regression_cases_keep_expectations_separate_and_scope_bounded(self) -> None:
         cases = [sample for sample in skills.workflows_dataset().samples
                  if "audit_provenance" in (sample.metadata or {})]
-        self.assertEqual(len(cases), 15)
+        self.assertEqual(len(cases), 16)
         for sample in cases:
             metadata = sample.metadata or {}
             contract = metadata["fixture_contract"]
             expected_attribution = (
                 "not-applicable; synthetic held-out case"
-                if sample.id in {"workflow-native-small-task", "workflow-native-small-diff-sensitive-boundary"}
+                if sample.id in {"workflow-native-small-task", "workflow-native-small-diff-sensitive-boundary", "workflow-native-repository-instructions"}
                 else "unestablished"
             )
             self.assertEqual(metadata["audit_provenance"]["machine_attribution"], expected_attribution)

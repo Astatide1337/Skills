@@ -26,6 +26,160 @@ boundary = load("skills/verify-work/scripts/boundary_checks.py")
 
 
 class PortableToolsTests(unittest.TestCase):
+    def git_workspace(self, root):
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+        (root / "package.json").write_text("{}")
+        (root / "logic.py").write_text("VALUE = 1\n")
+        subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(root), "-c", "user.name=Test", "-c",
+                        "user.email=test@example.invalid", "commit", "-qm", "baseline"], check=True)
+
+    def receipt_profile(self, code="", **options):
+        return {"version": 1, "source_paths": ["package.json"],
+                "workspace_identity": options,
+                "steps": [{"id": "check", "phase": "drive", "timeout": 2,
+                           "argv": [sys.executable, "-c", "from pathlib import Path; " + code + "print('{\"ok\":true}')"],
+                           "expect": {"/ok": True}}]}
+
+    def test_undeclared_tracked_and_dirty_source_changes_reject(self):
+        for dirty in (False, True):
+            with self.subTest(dirty=dirty), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw); self.git_workspace(root)
+                if dirty:
+                    (root / "logic.py").write_text("VALUE = 2\n")
+                spec = self.receipt_profile("Path('logic.py').write_text('VALUE = 3\\n'); ")
+                result = profile.run(spec, root)
+                self.assertFalse(result["passed"])
+                self.assertIn("logic.py", result["workspace_before"]["sources"])
+
+    def test_index_only_change_rejects_and_dirty_start_is_supported(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw); self.git_workspace(root)
+            (root / "logic.py").write_text("VALUE = 2\n")
+            spec = self.receipt_profile()
+            clean = profile.run(spec, root)
+            self.assertTrue(clean["passed"])
+            self.assertTrue(profile.check_freshness(clean, spec, root)["fresh"])
+            subprocess.run(["git", "-C", raw, "add", "logic.py"], check=True)
+            self.assertFalse(profile.check_freshness(clean, spec, root)["fresh"])
+            staged = profile.run(spec, root)
+            self.assertTrue(staged["passed"])
+            (root / "logic.py").write_text("VALUE = 4\n")
+            self.assertFalse(profile.check_freshness(staged, spec, root)["fresh"])
+
+    def test_broken_git_discovery_never_silently_downgrades(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw); (root / 'package.json').write_text('{}')
+            (root / '.git').write_text('gitdir: /definitely/missing/repository\n')
+            spec = self.receipt_profile("Path('logic.py').write_text('changed'); ")
+            with self.assertRaisesRegex(ValueError, 'Git discovery failed'):
+                profile.run(spec, root)
+            self.assertFalse((root / 'logic.py').exists())
+            spec['workspace_identity']['mode'] = 'artifact'
+            bounded = profile.run(spec, root)
+            self.assertTrue(bounded['passed'])
+            self.assertEqual(bounded['workspace_after']['mode'], 'artifact')
+
+    def test_executable_mode_change_fails_run_and_freshness(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw); self.git_workspace(root)
+            spec = self.receipt_profile()
+            receipt = profile.run(spec, root)
+            self.assertTrue(receipt['passed'])
+            (root / 'logic.py').chmod(0o755)
+            self.assertFalse(profile.check_freshness(receipt, spec, root)['fresh'])
+            changed = profile.run(self.receipt_profile("Path('logic.py').chmod(0o644); "), root)
+            self.assertFalse(changed['passed'])
+
+    def test_new_and_existing_untracked_sources_reject(self):
+        for existing in (False, True):
+            with self.subTest(existing=existing), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw); self.git_workspace(root)
+                if existing:
+                    (root / "helper.py").write_text("VALUE = 1\n")
+                result = profile.run(self.receipt_profile("Path('helper.py').write_text('VALUE = 2\\n'); "), root)
+                self.assertFalse(result["passed"])
+
+    def test_generated_untracked_output_supported_but_tracked_source_not_excluded(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw); self.git_workspace(root)
+            spec = self.receipt_profile("Path('generated').mkdir(exist_ok=True); Path('generated/bundle.js').write_text('output'); ",
+                                       generated_paths=["generated", "logic.py"])
+            self.assertTrue(profile.run(spec, root)["passed"])
+            spec["steps"][0]["argv"][-1] = "from pathlib import Path; Path('logic.py').write_text('changed'); print('{\"ok\":true}')"
+            self.assertFalse(profile.run(spec, root)["passed"])
+            spec["workspace_identity"]["generated_paths"] = ["package.json"]
+            with self.assertRaisesRegex(ValueError, "declared sources"):
+                profile.run(spec, root)
+
+    def test_artifact_modes_and_old_failed_or_profile_changed_receipts(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw); (root / "package.json").write_text("{}")
+            spec = self.receipt_profile()
+            receipt = profile.run(spec, root)
+            self.assertTrue(receipt["passed"])
+            self.assertEqual(receipt["workspace_after"]["mode"], "artifact")
+            self.assertTrue(profile.check_freshness(receipt, spec, root)["fresh"])
+            for bad in ({**receipt, "version": 1}, {**receipt, "passed": False}):
+                self.assertFalse(profile.check_freshness(bad, spec, root)["fresh"])
+            spec["steps"][0]["expect"]["/ok"] = False
+            self.assertFalse(profile.check_freshness(receipt, spec, root)["fresh"])
+            spec["workspace_identity"] = {"mode": "git"}
+            with self.assertRaisesRegex(ValueError, "repository root"):
+                profile.run(spec, root)
+            self.git_workspace(root)
+            spec = self.receipt_profile(mode="artifact")
+            receipt = profile.run(spec, root)
+            self.assertEqual(receipt["workspace_after"]["coverage"], "declared source_paths only")
+
+    def test_credentials_and_symlink_targets_are_never_content_inputs(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw); self.git_workspace(root)
+            (root / ".env").write_text("dummy private data")
+            (root / "credential.py").write_text("dummy private data")
+            (root / "helper.py").symlink_to(root / ".env")
+            from unittest.mock import patch
+            original = profile.digest
+            def guarded(path):
+                self.assertNotIn(path.name, {".env", "credential.py", "helper.py"})
+                return original(path)
+            with patch.object(profile, "digest", guarded):
+                result = profile.run(self.receipt_profile(), root)
+            self.assertTrue(result["passed"])
+            self.assertIn(".env", result["workspace_after"]["metadata_only"])
+            for name in ("credential.py", "helper.py"):
+                spec = self.receipt_profile(); spec["source_paths"] = [name]
+                with self.assertRaises(ValueError):
+                    profile.run(spec, root)
+
+    def test_process_resume_artifact_profile_and_freshness_cli_in_git_subdirectory(self):
+        from evals import skills
+        sample = next(s for s in skills.workflows_dataset() if s.id == 'workflow-native-process-resume')
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw); app = root / 'app'; app.mkdir()
+            for name, text in sample.files.items():
+                (root / name).write_text(text)
+            subprocess.run(['git', 'init', '-q', raw], check=True)
+            subprocess.run(['git', '-C', raw, 'add', '.'], check=True)
+            (app / 'RESULT.txt').write_text(sample.metadata['fixture_contract']['write_content'])
+            spec = json.loads((root / 'profile.json').read_text())
+            self.assertEqual(spec['workspace_identity']['mode'], 'artifact')
+            spec['steps'][0]['argv'][0] = sys.executable
+            (root / 'profile.json').write_text(json.dumps(spec))
+            argv = [sys.executable, str(root / 'check_profile.py'), '--profile', str(root / 'profile.json'),
+                    '--workspace', str(app)]
+            run = subprocess.run([*argv, '--receipt', str(root / 'receipt.json')], capture_output=True)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            record = json.loads((root / 'receipt.json').read_text())
+            self.assertTrue(record['passed'])
+            self.assertEqual(record['workspace_after']['mode'], 'artifact')
+            reuse = subprocess.run([*argv, '--check-receipt', str(root / 'receipt.json')], capture_output=True)
+            self.assertEqual(reuse.returncode, 0, reuse.stderr)
+            (app / 'RESULT.txt').write_text('stale')
+            stale = subprocess.run([*argv, '--check-receipt', str(root / 'receipt.json')], capture_output=True)
+            self.assertEqual(stale.returncode, 3, stale.stderr)
+            self.assertFalse(json.loads(stale.stdout)['fresh'])
+
     def test_actual_process_interruption_retains_checkpoint(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

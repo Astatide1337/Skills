@@ -68,8 +68,10 @@ not-run checks; valid artifact-only output need not repeat its bytes in prose.
 Apply the canonical
 [review-risk triggers](../follow-instructions/references/principles/authority-and-claims.md#review-risk-triggers).
 For those changes, a separate person or agent must inspect the current diff
-and evidence before the integrating owner claims completion or recommends
-merge. A different model is optional. The owner resolves material findings
+and raw evidence before the integrating owner claims completion or recommends
+merge. Give the reviewer the original request, actual artifact and raw check/tool
+results with access to affected callers; an author-selected summary alone is
+insufficient. The reviewer chooses diagnostic checks and expectations independently. A different model is optional. The owner resolves material findings
 and verifies the final artifact; green tests and the author's reread do not
 satisfy this gate.
 

@@ -765,7 +765,7 @@
     "phase_one.py": "from pathlib import Path\nimport time\nPath(\"phase.started\").write_text(\"waiting\")\ntime.sleep(300)\n",
     "app/source.txt": " zoe!\n\n Ada, Lovelace \n   \n",
     "app/drive.py": "from pathlib import Path\nimport json\nprint(json.dumps({\"result\": Path(\"RESULT.txt\").read_text()}))\n",
-    "profile.json": "{\"version\": 1, \"source_paths\": [\"source.txt\", \"RESULT.txt\", \"drive.py\"], \"steps\": [{\"id\": \"transformation\", \"phase\": \"drive\", \"argv\": [\"python\", \"drive.py\"], \"timeout\": 5, \"expect\": {\"/result\": \"ADA, LOVELACE\\nZOE!\\n\"}}]}"
+    "profile.json": "{\"version\": 1, \"workspace_identity\": {\"mode\": \"artifact\"}, \"source_paths\": [\"source.txt\", \"RESULT.txt\", \"drive.py\"], \"steps\": [{\"id\": \"transformation\", \"phase\": \"drive\", \"argv\": [\"python\", \"drive.py\"], \"timeout\": 5, \"expect\": {\"/result\": \"ADA, LOVELACE\\nZOE!\\n\"}}]}"
   },
   "setup": "git init -q && git add . && git -c user.name=Fixture -c user.email=fixture@example.invalid commit -qm baseline",
   "metadata": {
@@ -864,8 +864,10 @@
           "checks.py"
         ],
         "acceptance_test": "from formatter import label_count\nassert [label_count(n) for n in (0, 1, 2, 100)] == [\"0 items\", \"1 item\", \"2 items\", \"100 items\"]\n",
+        "heldout_test": "from formatter import label_count\nfor n in (3, 7, 999, 10001):\n    assert label_count(n) == f\"{n} items\"\nassert label_count(1) == \"1 item\"\n",
         "write_content": "def label_count(count):\n    return f\"{count} {'item' if count == 1 else 'items'}\"\n"
       },
+      "evaluation_dimensions": {"correctness": "supplied contract; visible and runner-owned held-out examples", "routing": "separate routing task", "guidance_access": "native tool-event observations only", "guidance_application": "independent artifact/evidence assessment; access alone insufficient", "generalization": "held-out examples of stated contract; no universal capability claim"},
       "audit_provenance": {
         "basis": "measured-ordinary-task-overhead",
         "machine_attribution": "not-applicable; synthetic held-out case",
@@ -1131,6 +1133,7 @@
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
     "metadata": {
       "allow_changes": true,
+      "response_required": true,
       "allowed_paths": [
         "records.py"
       ],
@@ -1169,8 +1172,10 @@
           "-B",
           "checks.py"
         ],
-        "acceptance_test": "import copy\nfrom app import summarize\npayload = {\"items\": [{\"kind\": \"record\", \"id\": \"B\"}, {\"kind\": \"template\"}, {\"kind\": \"record\", \"id\": \" A \", \"extra\": 4}, {\"kind\": \"record\", \"id\": \"B\"}], \"meta\": {\"other\": 1}}\noriginal = copy.deepcopy(payload)\nassert summarize(payload) == {\"recordCount\": 3, \"ids\": [\"B\", \" A \", \"B\"]}\nassert payload == original\nassert summarize({\"items\": []}) == {\"recordCount\": 0, \"ids\": []}\nfor invalid in (None, [], {}, {\"items\": None}, {\"items\": {}}, {\"items\": [None]}, {\"items\": [{\"kind\": \"other\"}]}, {\"items\": [{\"kind\": []}]}, {\"items\": [{\"kind\": {}}]}, {\"items\": [{\"kind\": \"record\"}]}, {\"items\": [{\"kind\": \"record\", \"id\": \"\"}]}, {\"items\": [{\"kind\": \"record\", \"id\": 4}]}):\n    try:\n        summarize(invalid)\n    except ValueError:\n        pass\n    else:\n        raise AssertionError(\"malformed external payload accepted\")\n"
+        "acceptance_test": "import copy\nfrom app import summarize\npayload = {\"items\": [{\"kind\": \"record\", \"id\": \"B\"}, {\"kind\": \"template\"}, {\"kind\": \"record\", \"id\": \" A \", \"extra\": 4}, {\"kind\": \"record\", \"id\": \"B\"}], \"meta\": {\"other\": 1}}\noriginal = copy.deepcopy(payload)\nassert summarize(payload) == {\"recordCount\": 3, \"ids\": [\"B\", \" A \", \"B\"]}\nassert payload == original\nassert summarize({\"items\": []}) == {\"recordCount\": 0, \"ids\": []}\nfor invalid in (None, [], {}, {\"items\": None}, {\"items\": {}}, {\"items\": [None]}, {\"items\": [{\"kind\": \"other\"}]}, {\"items\": [{\"kind\": []}]}, {\"items\": [{\"kind\": {}}]}, {\"items\": [{\"kind\": \"record\"}]}, {\"items\": [{\"kind\": \"record\", \"id\": \"\"}]}, {\"items\": [{\"kind\": \"record\", \"id\": 4}]}):\n    try:\n        summarize(invalid)\n    except ValueError:\n        pass\n    else:\n        raise AssertionError(\"malformed external payload accepted\")\n",
+        "heldout_test": "import copy\nfrom app import summarize\nfor identifier in (\"Z\", \"  \", \"α\", \"record-991\"):\n    payload = {\"items\": [{\"kind\": \"template\", \"id\": None, \"meta\": [1]}, {\"kind\": \"record\", \"id\": identifier}, {\"kind\": \"record\", \"id\": identifier}]}\n    original = copy.deepcopy(payload)\n    assert summarize(payload) == {\"recordCount\": 2, \"ids\": [identifier, identifier]}\n    assert payload == original\nfor kind in (True, 0, [\"record\"], {\"record\": True}):\n    try:\n        summarize({\"items\": [{\"kind\": kind, \"id\": \"valid\"}]})\n    except ValueError:\n        pass\n    else:\n        raise AssertionError(\"malformed kind accepted\")\n"
       },
+      "evaluation_dimensions": {"correctness": "supplied contract; visible and runner-owned held-out examples", "routing": "separate routing task", "guidance_access": "native tool-event observations only", "guidance_application": "independent artifact/evidence assessment; access alone insufficient", "generalization": "held-out examples of stated contract; no universal capability claim"},
       "audit_provenance": {
         "basis": "original private audit: templates counted as records; construction/validation adaptation, attribution unestablished",
         "machine_attribution": "unestablished",
@@ -1196,6 +1201,7 @@
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
     "metadata": {
       "allow_changes": true,
+      "response_required": true,
       "allowed_paths": [
         "views.py"
       ],
@@ -1233,8 +1239,10 @@
           "-B",
           "checks.py"
         ],
-        "acceptance_test": "from views import dashboard_ids, board_ids\nitems = [{\"id\": \"A\", \"archived\": False, \"status\": \"ready\"}, {\"id\": \"B\", \"archived\": False, \"status\": \"waiting\"}, {\"id\": \"C\", \"archived\": True, \"status\": \"ready\"}]\nassert dashboard_ids(items) == [\"A\"]\nassert board_ids(items) == [\"A\"]\nitems[0][\"archived\"] = True\nassert dashboard_ids(items) == []\nassert board_ids(items) == []\nitems[2][\"archived\"] = False\nassert dashboard_ids(items) == [\"C\"]\nassert board_ids(items) == [\"C\"]\nother = [{\"id\": \"D\", \"archived\": False, \"status\": \"ready\"}]\nassert dashboard_ids(other) == [\"D\"]\nassert board_ids(other) == [\"D\"]\nassert dashboard_ids(items) == [\"C\"]\nassert board_ids([]) == []\n\nunsorted = [{\"id\": \"Z\", \"archived\": False, \"status\": \"ready\"}, {\"id\": \"A\", \"archived\": False, \"status\": \"ready\"}]\nassert dashboard_ids(unsorted) == [\"Z\", \"A\"]\nassert board_ids(unsorted) == [\"Z\", \"A\"]\n"
+        "acceptance_test": "from views import dashboard_ids, board_ids\nitems = [{\"id\": \"A\", \"archived\": False, \"status\": \"ready\"}, {\"id\": \"B\", \"archived\": False, \"status\": \"waiting\"}, {\"id\": \"C\", \"archived\": True, \"status\": \"ready\"}]\nassert dashboard_ids(items) == [\"A\"]\nassert board_ids(items) == [\"A\"]\nitems[0][\"archived\"] = True\nassert dashboard_ids(items) == []\nassert board_ids(items) == []\nitems[2][\"archived\"] = False\nassert dashboard_ids(items) == [\"C\"]\nassert board_ids(items) == [\"C\"]\nother = [{\"id\": \"D\", \"archived\": False, \"status\": \"ready\"}]\nassert dashboard_ids(other) == [\"D\"]\nassert board_ids(other) == [\"D\"]\nassert dashboard_ids(items) == [\"C\"]\nassert board_ids([]) == []\n\nunsorted = [{\"id\": \"Z\", \"archived\": False, \"status\": \"ready\"}, {\"id\": \"A\", \"archived\": False, \"status\": \"ready\"}]\nassert dashboard_ids(unsorted) == [\"Z\", \"A\"]\nassert board_ids(unsorted) == [\"Z\", \"A\"]\n",
+        "heldout_test": "import copy\nfrom views import dashboard_ids, board_ids\nfor ids in ((\"Y\", \"X\", \"Y\"), (\"K\",), ()):\n    items = [{\"id\": id, \"archived\": False, \"status\": \"ready\"} for id in ids]\n    original = copy.deepcopy(items)\n    assert dashboard_ids(items) == list(ids) == board_ids(items)\n    assert items == original\n    for item in items:\n        item[\"status\"] = \"waiting\"\n    assert dashboard_ids(items) == [] == board_ids(items)\n    for item in items:\n        item[\"status\"] = \"ready\"\n    assert dashboard_ids(items) == list(ids) == board_ids(items)\n"
       },
+      "evaluation_dimensions": {"correctness": "supplied contract; visible and runner-owned held-out examples", "routing": "separate routing task", "guidance_access": "native tool-event observations only", "guidance_application": "independent artifact/evidence assessment; access alone insufficient", "generalization": "held-out examples of stated contract; no universal capability claim"},
       "audit_provenance": {
         "basis": "original private audit: divergent shared views; controlled selector ownership regression",
         "machine_attribution": "unestablished",
@@ -1247,6 +1255,68 @@
         "evidence": "Observe the original failure and final unchanged checks; claims match local scope.",
         "exceptions": "Preserve permitted metadata/duplicates or independent input snapshots; do not overvalidate."
       }
+    }
+  },
+  {
+    "id": "workflow-native-repository-instructions",
+    "input": "Correct the local count label: 1 is \"1 item\"; 0 and larger counts use \"items\". Only formatter.py may change. Inspect its caller and run the current checks before and after; do not install dependencies or use external services. Report the tested local scope.",
+    "target": "Inspect formatter.py and its actual caller/checks; observe the current pluralization check fail; make the bounded pure-function correction; preserve the supplied cases and pass the same check. Author diff review suffices: do not add architecture exploration, invented hypotheses, a checkpoint or independent review for this mechanical task.",
+    "files": {
+      "formatter.py": "def label_count(count):\n    return f\"{count} item\"\n",
+      "checks.py": "from formatter import label_count\nassert [label_count(n) for n in (0, 1, 2, 100)] == [\"0 items\", \"1 item\", \"2 items\", \"100 items\"]\n",
+      "README.txt": "The current dependency-free caller/regression is python checks.py.\n",
+      "AGENTS.md": "Repository instruction: formatter.py is a pure function. For this bounded edit use the existing checks.py; no catalog procedure is required. Start the requested scope report with \"Formatter scope:\". Do not change other files or publish.\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "formatter.py"
+      ],
+      "expected_skills": [],
+      "optional_skills": ["follow-instructions"],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "owner-inspected",
+        "original-repro-run",
+        "regression-run"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "formatter.py",
+        "test_command": [
+          "python",
+          "checks.py"
+        ],
+        "required_paths": [
+          "formatter.py",
+          "checks.py"
+        ],
+        "acceptance_test": "from formatter import label_count\nassert [label_count(n) for n in (0, 1, 2, 100)] == [\"0 items\", \"1 item\", \"2 items\", \"100 items\"]\n",
+        "write_content": "def label_count(count):\n    return f\"{count} {'item' if count == 1 else 'items'}\"\n",
+        "heldout_test": "from formatter import label_count\nfor n in (3, 7, 999, 10001):\n    assert label_count(n) == f\"{n} items\"\nassert label_count(1) == \"1 item\"\n",
+        "response_prefix": "Formatter scope:"
+      },
+      "audit_provenance": {
+        "basis": "repository instruction precedence; valid near-miss",
+        "machine_attribution": "not-applicable; synthetic held-out case",
+        "implementation_status": "short-path evaluation; no application incident certified fixed"
+      },
+      "evaluation_dimensions": {
+        "correctness": "supplied contract; visible and runner-owned held-out examples",
+        "routing": "separate routing task",
+        "guidance_access": "native tool-event observations only",
+        "guidance_application": "independent artifact/evidence assessment; access alone insufficient",
+        "generalization": "held-out examples of stated contract; no universal capability claim"
+      },
+      "response_required": true
     }
   }
 ]

@@ -168,11 +168,12 @@ async def run_codex(
     model: str,
     with_skills: bool,
     sandbox_mode: str,
-    effort: str = "max",
+    effort: str = "medium",
     isolate_workspace: bool = False,
     output_schema: Path | None = None,
     extra_env: Mapping[str, str] | None = None,
     skills_root: Path | None = None,
+    global_rules: str | None = None,
     # Max-effort native cases can spend more than fifteen minutes in one
     # isolated command session (for example, a full artifact or deployment
     # investigation). Keep a finite bound while avoiding false evaluation
@@ -194,6 +195,8 @@ async def run_codex(
         tempfile.TemporaryDirectory(prefix="review-workspace-")
         if isolate_workspace else nullcontext(None) as review_directory,
     ):
+        if global_rules is not None:
+            (Path(codex_home) / "AGENTS.md").write_text(global_rules)
         if with_skills:
             # Catalog locators can use short root aliases. Give the native
             # candidate a real filesystem root rather than relying on it to
@@ -269,7 +272,7 @@ def native_codex(
     model: str,
     *,
     inject_skill: bool = True,
-    effort: str = "max",
+    effort: str = "medium",
     skills_root: Path | str | None = None,
     global_instructions: Path | str | None = None,
 ) -> Solver:
@@ -371,6 +374,7 @@ def native_codex(
                     sandbox_mode="workspace-write",
                     extra_env=tracker.environment() if tracker is not None else None,
                     skills_root=loaded_root,
+                    global_rules=state.metadata.get("global_rules"),
                     interrupt_marker=(state.metadata or {}).get("interrupt_marker"),
                     interrupt_absent=contract.get("write_path") if (state.metadata or {}).get("interrupt_marker") else None,
                 )
@@ -386,6 +390,7 @@ def native_codex(
                         str(state.metadata["resume_prompt"]), model=model, effort=effort,
                         with_skills=with_skills, sandbox_mode="workspace-write",
                         skills_root=loaded_root,
+                        global_rules=state.metadata.get("global_rules"),
                     )
                     events += "\n" + resumed_events
                 if with_skills and _skills_identity(loaded_root) != loaded_identity:
@@ -403,7 +408,10 @@ def native_codex(
         )
         state.output.metadata = {
             "codex_jsonl": events,
+            "native_model": model,
             "native_effort": effort,
+            "settings_evidence": "explicit CLI model/effort arguments; provider internal settings unobserved",
+            "guidance_access": _guidance_access(events),
             "execution_metrics": _execution_metrics(events),
         }
         if "native_interruption" in state.store:
@@ -425,7 +433,7 @@ def native_codex(
         state.output.metadata["global_identity"] = global_identity
         state.output.metadata["global_instructions"] = str(selected_global) if global_identity else None
         state.output.metadata["global_status"] = (
-            "captured-workspace-AGENTS" if global_identity else "not-installed"
+            "isolated-home-AGENTS" if global_identity else "not-installed"
         )
         scope = (state.metadata or {}).get("execution_scope")
         if scope:
@@ -493,10 +501,26 @@ def routing_dataset() -> MemoryDataset:
     return MemoryDataset(samples=samples, name="catalog-routing", shuffled=False)
 
 
+COORDINATOR_MANDATE = """- Whenever one or more other catalog skills apply, initialize
+  `follow-instructions` once before loading the selected domain skills. It
+  classifies the requested outcome/process, domain expertise, follow-on
+  deliverables, and permitted effects, then composes only the required
+  procedures. Do not use it for ordinary direct-answer tasks or invoke it
+  recursively from a leaf skill. """
+
+
+def coordinator_ablation(global_rules: str) -> str:
+    if global_rules.count(COORDINATOR_MANDATE) != 1:
+        raise ValueError("coordinator mandate changed; inspect the ablation before running")
+    return global_rules.replace(COORDINATOR_MANDATE,
+        "- Select applicable catalog procedures directly; coordinator entry is optional. ")
+
+
 def workflows_dataset(
     *,
     execution_ready_only: bool = False,
     global_instructions: Path = GLOBAL_INSTRUCTIONS,
+    mandatory_coordinator: bool = True,
 ) -> MemoryDataset:
     """Load routing cases or explicitly supplied execution fixtures.
 
@@ -507,6 +531,8 @@ def workflows_dataset(
 
     dataset = json_dataset(str(WORKFLOW_CASES))
     global_rules = global_instructions.read_text()
+    if not mandatory_coordinator:
+        global_rules = coordinator_ablation(global_rules)
     samples: list[Sample] = []
     for sample in dataset.samples:
         metadata = dict(sample.metadata or {})
@@ -525,13 +551,20 @@ def workflows_dataset(
                 name: hashlib.sha256(files[name].encode()).hexdigest()
                 for name in ("checkpoint.py", "check_profile.py")
             }
-        files["AGENTS.md"] = global_rules
+        # Keep repository instructions as the more-specific layer. The personal
+        # contract is installed globally, not substituted for the repository.
+        repository_rules = files.get("AGENTS.md")
+        metadata["repository_instructions_identity"] = (
+            hashlib.sha256(repository_rules.encode()).hexdigest() if repository_rules is not None else None
+        )
         sample.files = files
         if execution_mode == "routing-only" and not sample.setup:
             sample.setup = WORKFLOW_DEFAULT_SETUP
         sample.metadata = {
             **metadata,
             "global_identity": hashlib.sha256(global_rules.encode()).hexdigest(),
+            "global_rules": global_rules,
+            "mandatory_coordinator": mandatory_coordinator,
             "execution_scope": "trusted-synthetic-local",
             "execution_mode": execution_mode,
         }
@@ -650,8 +683,40 @@ def _execution_metrics(events: str) -> dict[str, int]:
     return result
 
 
+def _guidance_access(events: str) -> dict:
+    observations = []
+    references = [str(p.relative_to(SKILLS_ROOT)) for p in SKILLS_ROOT.rglob("*.md")]
+    for line in events.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict) or event.get("type") != "item.completed":
+            continue
+        item = event.get("item", {})
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") == "command_execution":
+            command = item.get("command", "")
+            if not isinstance(command, str):
+                continue
+            for ref in references:
+                if ref in command or (Path(ref).name != "SKILL.md" and Path(ref).name in command):
+                    observations.append({"reference": ref, "event": "command-reference",
+                                         "exit_code": item.get("exit_code"), "command": command[:2000]})
+        elif item.get("type") in {"mcp_tool_call", "file_read"}:
+            # Tool argument/result shapes vary by CLI; retain inspectable native
+            # metadata without inferring a successful read from a path alone.
+            raw = json.dumps(item, ensure_ascii=False)
+            for ref in references:
+                if ref in raw:
+                    observations.append({"reference": ref, "event": "tool-reference", "native_item": raw[:4000]})
+    return {"observations": observations,
+            "limits": "path/tool mention does not prove read completion, comprehension or application; absent mentions do not prove absent access"}
+
+
 @solver
-def route_codex(model: str, effort: str = "max") -> Solver:
+def route_codex(model: str, effort: str = "medium", *, enriched: bool = False) -> Solver:
     """Ask the native model to route without giving it a skill by fiat."""
 
     _validate_effort(effort)
@@ -697,6 +762,13 @@ def route_codex(model: str, effort: str = "max") -> Solver:
             f"CATALOG:\n{catalog_routing_index()}\n\n"
             f"USER REQUEST:\n{state.input_text}"
         )
+        if not enriched:
+            prompt = (
+                "Select catalog skills for this request using the shipped descriptions and global instructions. "
+                "Return JSON matching the supplied schema. Do not perform the task.\n\n"
+                f"GOVERNING GLOBAL INSTRUCTIONS:\n{GLOBAL_INSTRUCTIONS.read_text()}\n\n"
+                f"CATALOG:\n{catalog_routing_index()}\n\nUSER REQUEST:\n{state.input_text}"
+            )
         completion, events = await run_codex(
             prompt,
             model=model,
@@ -710,7 +782,8 @@ def route_codex(model: str, effort: str = "max") -> Solver:
             model=f"codex-subscription/{model}",
             content=completion,
         )
-        state.output.metadata = {"codex_jsonl": events, "native_effort": effort}
+        state.output.metadata = {"codex_jsonl": events, "native_model": model, "native_effort": effort,
+                                 "routing_mode": "enriched-diagnostic" if enriched else "shipped-descriptions-global"}
         return state
 
     return solve
@@ -737,17 +810,28 @@ def selected_route(state: TaskState) -> tuple[set[str], str | None]:
     return set(selected), None
 
 
+def route_assessment(selected: set[str], metadata: dict) -> dict:
+    alternatives = [set(metadata.get("expected_skills", [])),
+                    *(set(route) for route in metadata.get("reasonable_skill_sets", []))]
+    expected = min(alternatives, key=lambda route: (len(route - selected), len(selected - route)))
+    extra = selected - expected - set(metadata.get("optional_skills", []))
+    harmful = extra & set(metadata.get("harmful_skills", []))
+    return {"missing": sorted(expected - selected), "harmful_additions": sorted(harmful),
+            "unnecessary_additions": sorted(extra - harmful),
+            "scope": "procedure selection diagnostic; execution success scored separately"}
+
+
 @scorer(metrics=[accuracy()])
 def routing_coverage():
     """Require every materially necessary skill, including no-skill cases."""
 
     async def score(state: TaskState, target: Target) -> Score:
-        expected = set((state.metadata or {}).get("expected_skills", []))
         selected, error = selected_route(state)
         if error:
             return Score(value=0, explanation=error)
-        missing = sorted(expected - selected)
-        return Score(value=1 if not missing else 0, explanation=f"missing={missing or None}")
+        assessment = route_assessment(selected, state.metadata or {})
+        return Score(value=1 if not assessment["missing"] else 0,
+                     explanation=json.dumps(assessment), metadata=assessment)
 
     return score
 
@@ -757,12 +841,12 @@ def routing_minimality():
     """Require that no selected skill is unnecessary for the case."""
 
     async def score(state: TaskState, target: Target) -> Score:
-        expected = set((state.metadata or {}).get("expected_skills", []))
         selected, error = selected_route(state)
         if error:
             return Score(value=0, explanation=error)
-        extra = sorted(selected - expected)
-        return Score(value=1 if not extra else 0, explanation=f"unnecessary={extra or None}")
+        assessment = route_assessment(selected, state.metadata or {})
+        return Score(value=1 if not (assessment["harmful_additions"] or assessment["unnecessary_additions"]) else 0,
+                     explanation=json.dumps(assessment), metadata=assessment)
 
     return score
 
@@ -813,7 +897,7 @@ def workflow_route_codex(
     *,
     skills_root: Path | str = SKILLS_ROOT,
     global_instructions: Path | str = GLOBAL_INSTRUCTIONS,
-    effort: str = "max",
+    effort: str = "medium",
 ) -> Solver:
     """Use coordinator/global instructions without injecting expected answers."""
 
@@ -1110,6 +1194,10 @@ def _runner_acceptance_command(
         return None, None
     if not isinstance(acceptance_test, str) or not acceptance_test.strip():
         return None, "runner acceptance regression is missing"
+    heldout = contract.get("heldout_test", "")
+    if not isinstance(heldout, str):
+        return None, "runner held-out regression must be code text"
+    acceptance_test += "\n" + heldout
     if len(acceptance_test.encode("utf-8")) > MAX_ACCEPTANCE_TEST_BYTES:
         return None, "runner acceptance regression exceeds the bounded test limit"
     # ``-S`` prevents a candidate-provided sitecustomize from changing the
@@ -1450,8 +1538,8 @@ def workspace_policy():
 
 
 @scorer(metrics=[accuracy()])
-def skill_activation():
-    """Require evidence that the treatment received its intended skill."""
+def skill_injection():
+    """Instrumentation only: injection is not actual guidance use or success."""
 
     async def score(state: TaskState, target: Target) -> Score:
         skill = (state.metadata or {}).get("skill")
@@ -1464,7 +1552,8 @@ def skill_activation():
         output_metadata = getattr(state.output, "metadata", None) or {}
         injected = output_metadata.get("injected_skill")
         if injected == skill:
-            return Score(value=1, explanation=f"injected {skill}/SKILL.md")
+            return Score(value=1, explanation=f"injected {skill}/SKILL.md; use unmeasured",
+                         metadata={"scope": "instrumentation-only", "behavioral_success": "unmeasured"})
         return Score(value=0, explanation=f"did not inject {skill}/SKILL.md")
 
     return score
@@ -1482,6 +1571,11 @@ async def workspace_evidence(state: TaskState) -> str:
     if isinstance(location, str):
         sections.append("RUNNER-OBSERVED WORKSPACE LOCATION: " + location
                         + "\nThis resolves local file citations; it does not prove those files were read.")
+    acceptance = state.store.get("runner_acceptance")
+    if isinstance(acceptance, dict):
+        sections.append("RAW RUNNER ACCEPTANCE EVIDENCE:\n" + json.dumps(acceptance, sort_keys=True))
+    sections.append("GUIDANCE ACCESS INSTRUMENTATION:\n" + json.dumps(
+        (getattr(state.output, "metadata", None) or {}).get("guidance_access", {"status": "unavailable"})))
     interruption = state.store.get("native_interruption")
     if isinstance(interruption, dict):
         sections.append(
@@ -1540,8 +1634,14 @@ async def workspace_evidence(state: TaskState) -> str:
     return "\n\n".join(sections) or "No workspace changes or required artifacts."
 
 
+def _response_required(metadata: dict) -> bool:
+    contract = metadata.get("fixture_contract", {})
+    return bool(metadata.get("response_required")) or (isinstance(contract, dict)
+        and (contract.get("kind") == "response-contract" or contract.get("response_required") is True))
+
+
 @scorer(metrics=[mean()])
-def native_behavior_grade(model: str, effort: str = "max"):
+def native_behavior_grade(model: str, effort: str = "high"):
     """Grade quoted evidence without the candidate catalog or workspace guidance."""
 
     _validate_effort(effort)
@@ -1577,14 +1677,7 @@ def native_behavior_grade(model: str, effort: str = "max"):
                 },
             )
         candidate_answer = getattr(state.output, "completion", None)
-        contract = (state.metadata or {}).get("fixture_contract")
-        requires_answer = bool((state.metadata or {}).get("response_required")) or (
-            isinstance(contract, dict)
-            and (
-                contract.get("kind") == "response-contract"
-                or contract.get("response_required") is True
-            )
-        )
+        requires_answer = _response_required(state.metadata or {})
         if requires_answer and (
             not isinstance(candidate_answer, str) or not candidate_answer.strip()
         ):
@@ -1950,6 +2043,11 @@ def workflow_effects():
                     "acceptance_blocked": True,
                 },
             )
+        completion = getattr(state.output, "completion", "") or ""
+        if _response_required(metadata) and not completion.strip():
+            return Score(value=0, explanation="required candidate response is missing")
+        if contract.get("response_prefix") and not completion.startswith(contract["response_prefix"]):
+            return Score(value=0, explanation="repository-required response prefix missing")
         if metadata.get("interrupt_marker"):
             interruption = state.store.get("native_interruption")
             if not isinstance(interruption, dict) or interruption.get("interrupted") is not True:
@@ -2059,6 +2157,11 @@ def workflow_effects():
                     timeout=30,
                     timeout_retry=False,
                 )
+                state.store.set("runner_acceptance", {
+                    "source": "runner-owned", "test_sha256": hashlib.sha256(acceptance_command[-1].encode()).hexdigest(),
+                    "heldout_examples": bool(contract.get("heldout_test")),
+                    "exit_code": acceptance.returncode, "stdout": acceptance.stdout[-8000:], "stderr": acceptance.stderr[-8000:],
+                })
                 if not acceptance.success:
                     detail = (acceptance.stderr.strip() or acceptance.stdout.strip())[-4000:]
                     return Score(
@@ -2072,7 +2175,9 @@ def workflow_effects():
                             "acceptance": "runner-controlled",
                         },
                     )
-            return Score(value=1, explanation="workspace fixture outcome verified")
+            return Score(value=1, explanation="workspace fixture outcome verified",
+                         metadata={"correctness": "stated-contract", "heldout_examples": bool(contract.get("heldout_test")),
+                                   "guidance_application": "unmeasured; independent assessment required"})
         if kind != "fake-tracker-publication":
             return Score(value=0, explanation=f"unsupported fixture contract kind: {kind!r}")
         snapshot = state.store.get("fixture_publication")
@@ -2482,9 +2587,9 @@ def workspace_stat_cache_smoke() -> Task:
 def catalog(
     with_skills: bool = True,
     native_model: str = "gpt-5.6-luna",
-    native_effort: str = "max",
+    native_effort: str = "medium",
     grader_model: str | None = None,
-    grader_effort: str = "max",
+    grader_effort: str = "high",
 ) -> Task:
     """Run representative catalog behavior with or without the skill catalog."""
 
@@ -2503,7 +2608,7 @@ def catalog(
         setup=capture_workspace_baseline(),
         solver=native_codex(with_skills=with_skills, model=native_model, effort=native_effort),
         scorer=(
-            [workspace_policy(), skill_activation(), native_behavior_grade(model=grader_model or native_model, effort=grader_effort)]
+            [workspace_policy(), skill_injection(), native_behavior_grade(model=grader_model or native_model, effort=grader_effort)]
             if with_skills
             else [workspace_policy(), native_behavior_grade(model=grader_model or native_model, effort=grader_effort)]
         ),
@@ -2513,19 +2618,19 @@ def catalog(
 
 
 @task
-def routing(native_model: str = "gpt-5.6-luna", native_effort: str = "max") -> Task:
+def routing(native_model: str = "gpt-5.6-luna", native_effort: str = "medium", enriched: bool = False) -> Task:
     """Evaluate activation timing and minimal skill selection."""
 
     return Task(
         dataset=routing_dataset(),
-        solver=route_codex(model=native_model, effort=native_effort),
+        solver=route_codex(model=native_model, effort=native_effort, enriched=enriched),
         scorer=[routing_coverage(), routing_minimality()],
         sandbox="local",
     )
 
 
 @task
-def workflow_routing(native_model: str = "gpt-5.6-luna", native_effort: str = "max") -> Task:
+def workflow_routing(native_model: str = "gpt-5.6-luna", native_effort: str = "medium") -> Task:
     """Diagnose task/mode/domain/effect composition from normal instructions."""
 
     return Task(
@@ -2541,13 +2646,14 @@ def workflows(
     with_skills: bool = True,
     native_model: str = "gpt-5.6-luna",
     arm: str = "candidate",
+    mandatory_coordinator: bool = True,
     candidate_skills_root: str = str(SKILLS_ROOT),
     candidate_global_instructions: str = str(GLOBAL_INSTRUCTIONS),
     baseline_skills_root: str | None = None,
     baseline_global_instructions: str | None = None,
-    native_effort: str = "max",
+    native_effort: str = "medium",
     grader_model: str | None = None,
-    grader_effort: str = "max",
+    grader_effort: str = "high",
 ) -> Task:
     """Run execution-ready workflows for an explicitly named comparison arm.
 
@@ -2575,6 +2681,7 @@ def workflows(
     dataset = workflows_dataset(
         execution_ready_only=True,
         global_instructions=selected_global,
+        mandatory_coordinator=mandatory_coordinator,
     )
     for sample in dataset.samples:
         sample.metadata = {
