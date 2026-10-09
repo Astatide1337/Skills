@@ -1,0 +1,30 @@
+{
+  "case_id": "python-keyset-pagination-lookahead",
+  "task": {
+    "page_size": 2,
+    "tenant_id": "tenant-a",
+    "contact_id": "contact-7",
+    "order_by": ["created_at", "id"]
+  },
+  "records": [
+    {"id": "A", "tenant_id": "tenant-a", "contact_id": "contact-7", "created_at": 1000},
+    {"id": "B", "tenant_id": "tenant-a", "contact_id": "contact-7", "created_at": 2000},
+    {"id": "C", "tenant_id": "tenant-a", "contact_id": "contact-7", "created_at": 3000},
+    {"id": "D", "tenant_id": "tenant-a", "contact_id": "contact-7", "created_at": 3000},
+    {"id": "E", "tenant_id": "tenant-a", "contact_id": "contact-7", "created_at": 4000},
+    {"id": "X", "tenant_id": "tenant-a", "contact_id": "contact-8", "created_at": 2500},
+    {"id": "Z", "tenant_id": "tenant-b", "contact_id": "contact-7", "created_at": 3500}
+  ],
+  "expected": {
+    "record_ids": ["A", "B", "C", "D", "E"],
+    "empty_scope_cursor": null
+  },
+  "negative_controls": {
+    "cursor_is_lookahead": {
+      "record_ids": ["A", "B", "D", "E"],
+      "missing_record": "C"
+    },
+    "excluded_scope_ids": ["X", "Z"],
+    "non_positive_page_size_rejected": true
+  }
+}

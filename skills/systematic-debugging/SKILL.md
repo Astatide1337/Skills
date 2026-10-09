@@ -91,6 +91,12 @@ For a Linux, network, or container incident whose failing layer is unclear,
 use the [Linux/network/container procedure](references/linux-network-container-incidents.md)
 to compare name resolution, route, namespace, listener, and protocol evidence.
 
+For a Python persistence, import, pagination, or migration bug, use the
+[Python/data lifecycle procedure](references/python-data-lifecycle.md) to trace
+input through validation, transformation, durable state, and the authoritative
+reader. Keep its transaction and migration decisions aligned with the owning
+repository and environment.
+
 ## Stop conditions
 
 Stop and investigate further if:
