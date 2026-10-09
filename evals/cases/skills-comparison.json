@@ -161,7 +161,7 @@
   },
   {
     "id": "comparison-client-case-a",
-    "input": "Read README.txt and api-contract.json, then repair client.py so the existing caller contract and the independent wire contract are both satisfied. Preserve service ordering, duplicates, empty results, and the documented error behavior; use only the supplied injected request callable. Run python -B checks.py. Do not install dependencies or use the network. Only client.py may change. In your final answer, output exactly one JSON object and no surrounding prose with exactly these keys: result (contract_repaired if the runner-owned contract passes, otherwise contract_not_repaired), scope (local_records_contract_fixture), deployment_action (none). Do not add other keys or free-form claims.",
+    "input": "Read README.txt and api-contract.json, then repair client.py so the existing caller contract and the independent wire contract are both satisfied. Follow the contract pagination and preserve service ordering, duplicates, empty results, and documented error behavior; use only the supplied injected request callable. Run python -B checks.py. Do not install dependencies or use the network. Only client.py may change. In your final answer, output exactly one JSON object and no surrounding prose with exactly these keys: result (contract_repaired if the runner-owned contract passes, otherwise contract_not_repaired), scope (local_records_contract_fixture), deployment_action (none). Do not add other keys or free-form claims.",
     "target": "Repair the local record client from its independent contract while preserving pagination, consumer, and failure semantics.",
     "setup": "",
     "files": {
