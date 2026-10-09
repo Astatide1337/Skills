@@ -70,6 +70,24 @@ except ModuleNotFoundError as exc:
     capture_baseline = module.capture_baseline
     collect_evidence = module.collect_evidence
 
+try:
+    from evals.final_answer_contract import (
+        parse_unique_json_object,
+        validate_final_answer,
+    )
+except ModuleNotFoundError as exc:
+    if exc.name not in {"evals", "evals.final_answer_contract"}:
+        raise
+    module_path = REPO_ROOT / "evals" / "final_answer_contract.py"
+    spec = importlib.util.spec_from_file_location("skills_final_answer_contract", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"unable to load final-answer contract helper: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    parse_unique_json_object = module.parse_unique_json_object
+    validate_final_answer = module.validate_final_answer
+
 
 SKILLS_ROOT = REPO_ROOT / "skills"
 CASES = Path(__file__).parent / "cases" / "catalog.json"
@@ -2283,6 +2301,75 @@ def workflow_effects():
 
 
 @scorer(metrics=[accuracy()])
+def workflow_final_answer():
+    """Score a constrained final answer against local artifacts and runner receipts."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        del target
+        contract = (state.metadata or {}).get("final_answer_contract")
+        if not isinstance(contract, dict):
+            return Score.unscored(
+                explanation="this workflow has no constrained final-answer contract",
+                metadata={"status": "not-applicable"},
+            )
+        support = state.store.get("workflow_support")
+        if isinstance(support, dict) and support.get("status") != "supported":
+            return Score.unscored(
+                explanation=str(
+                    support.get("reason", "native workflow boundary is unsupported")
+                ),
+                metadata={"status": str(support.get("status", "blocked"))},
+            )
+        output_model = getattr(state.output, "model", "")
+        forbidden_effects = (state.metadata or {}).get("forbidden_effects", [])
+        if (
+            support is None
+            and output_model != "stub/no-model"
+            and isinstance(forbidden_effects, list)
+            and forbidden_effects
+        ):
+            return Score.unscored(
+                explanation="native workflow effects are not supported by an observed fixture",
+                metadata={"status": "blocked"},
+            )
+        fields = contract.get("fields")
+        if not isinstance(fields, dict):
+            return Score(value=0, explanation="final-answer contract is malformed")
+
+        artifacts: dict[str, object] = {}
+        for directive in fields.values():
+            if not isinstance(directive, Mapping) or set(directive) != {"artifact_field"}:
+                continue
+            source = directive["artifact_field"]
+            if not isinstance(source, Mapping) or not isinstance(source.get("path"), str):
+                return Score(value=0, explanation="final-answer artifact binding is malformed")
+            path = source["path"]
+            if path in artifacts:
+                continue
+            try:
+                content = await sandbox().read_file(path)
+                artifacts[path] = parse_unique_json_object(content)
+            except (OSError, TypeError, ValueError):
+                return Score(value=0, explanation=f"final-answer evidence artifact is unavailable: {path}")
+
+        completion = getattr(state.output, "completion", "") or ""
+        runner_acceptance = state.store.get("runner_acceptance")
+        valid, explanation = validate_final_answer(
+            completion,
+            contract,
+            artifacts=artifacts,
+            runner_acceptance=(runner_acceptance if isinstance(runner_acceptance, Mapping) else None),
+        )
+        return Score(
+            value=1 if valid else 0,
+            explanation=explanation,
+            metadata={"status": "accepted" if valid else "rejected", "grader": "deterministic"},
+        )
+
+    return score
+
+
+@scorer(metrics=[accuracy()])
 def evidence_smoke_grade():
     """Prove evidence survives a failed candidate before sandbox teardown."""
 
@@ -2743,7 +2830,7 @@ def workflows(
             "comparison_global_identity": (sample.metadata or {}).get("global_identity"),
         }
 
-    scorers = [workflow_effects(), workspace_policy()]
+    scorers = [workflow_effects(), workflow_final_answer(), workspace_policy()]
     if include_behavior_grader:
         scorers.append(
             native_behavior_grade(
@@ -2762,8 +2849,8 @@ def workflows(
             skills_root=selected_root,
             global_instructions=selected_global,
         ),
-        # Inspect scores sequentially: execute checks, then capture their
-        # final effects, then optionally add the secondary behavior grade.
+        # Inspect scores sequentially: verify fixture behavior, validate the
+        # constrained final answer against those receipts, then inspect effects.
         scorer=scorers,
         sandbox="local",
         score_on_error=True,

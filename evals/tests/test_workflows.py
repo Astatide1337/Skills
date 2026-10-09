@@ -322,6 +322,13 @@ class WorkflowContractTests(unittest.TestCase):
     def test_api_contract_provenance_keeps_the_valid_unit_mock_control(self) -> None:
         sample = next(s for s in skills.workflows_dataset() if s.id == "workflow-native-api-contract-provenance")
         contract = sample.metadata["fixture_contract"]
+        self.assertTrue(sample.metadata["response_required"])
+        self.assertEqual(
+            set(sample.metadata["final_answer_contract"]["fields"]),
+            {"result", "scope", "deployment_action"},
+        )
+        self.assertIn("exactly one JSON object", sample.input)
+        self.assertIn("local_api_contract_fixture", sample.input)
         evidence = json.loads(sample.files["api-contract.json"])
         self.assertEqual(evidence["authority_within_fixture"], "normative for the client wire request")
         self.assertEqual(evidence["method"], "POST")
@@ -364,6 +371,13 @@ class WorkflowContractTests(unittest.TestCase):
             "actions_taken", "recommended_actions",
         ):
             self.assertIn(field, sample.input)
+        self.assertIn("controlled incident-reasoning exercise", sample.input)
+        self.assertIn("not live runtime evidence", sample.input)
+        self.assertIn("runtime_validation (not_performed)", sample.input)
+        self.assertEqual(
+            set(sample.metadata["final_answer_contract"]["fields"]),
+            {"status", "scope", "runtime_validation", "recommended_action"},
+        )
         for contract_value in (
             "supported_local_blocker", "listener-scope blocker",
             "dns_resolution", "peer_route", "container_network",
@@ -389,7 +403,6 @@ class WorkflowContractTests(unittest.TestCase):
                 "finding": {
                     "category": "service_listener",
                     "bind_scope": "container_loopback",
-                    "explanation": "The process is bound to the container's local interface.",
                 },
                 "evidence_ids": [
                     "peer_request", "local_health", "service_listener",
@@ -405,26 +418,21 @@ class WorkflowContractTests(unittest.TestCase):
                     "left": "configured_bind_address",
                     "right": "observed_listener",
                     "read_only": True,
-                    "explanation": "Read the application configuration and compare its address with the socket snapshot.",
                 },
                 "actions_taken": [],
                 "recommended_actions": [],
-                "summary": "The local health probe passes while the peer request is refused.",
-                "recommendation": "No remediation is recommended by the supplied snapshot.",
             }
             (root / "diagnosis.json").write_text(json.dumps(report))
             accepted = self._run_case_acceptance(sample, root)
             self.assertEqual(accepted.returncode, 0, (accepted.stdout, accepted.stderr))
 
-            # The deterministic fixture gate is deliberately limited to structured
-            # evidence fields; narrative consistency belongs to the separate grade.
-            report["summary"] = (
-                "The structured assessment is wrong; restart catalog-api and bind it to 0.0.0.0."
-            )
+            # Reject extra prose fields so unsafe recommendations cannot hide
+            # outside the scored structured contract.
+            report["summary"] = "restart the production service"
             (root / "diagnosis.json").write_text(json.dumps(report))
-            structured_gate = self._run_case_acceptance(sample, root)
-            self.assertEqual(structured_gate.returncode, 0, (structured_gate.stdout, structured_gate.stderr))
-            report["summary"] = "The local health probe passes while the peer request is refused."
+            extra_narrative = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(extra_narrative.returncode, 0)
+            del report["summary"]
 
             report["status"] = "insufficient_evidence"
             (root / "diagnosis.json").write_text(json.dumps(report))
@@ -894,8 +902,15 @@ class WorkflowContractTests(unittest.TestCase):
             skills.workflows(with_skills=True, arm="no-catalog-diagnostic")
         objective_only = skills.workflows(include_behavior_grader=False)
         with_behavior_grade = skills.workflows()
-        self.assertEqual(len(objective_only.scorer), 2)
-        self.assertEqual(len(with_behavior_grade.scorer), 3)
+        self.assertEqual(
+            [scorer.__qualname__ for scorer in objective_only.scorer],
+            [
+                "workflow_effects.<locals>.score",
+                "workflow_final_answer.<locals>.score",
+                "workspace_policy.<locals>.score",
+            ],
+        )
+        self.assertEqual(len(with_behavior_grade.scorer), 4)
 
     def test_publication_requires_runner_receipts_not_commands_or_final_claims(self) -> None:
         required = {
