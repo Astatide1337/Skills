@@ -13,7 +13,7 @@ Options:
   --list            List available skill names and exit.
   --skill NAME     Install one named skill; may be repeated.
   --target PATH    Directory that directly contains installed skill folders.
-  --agent-clis-source PATH  Also install the pinned CLI from a local Git checkout.
+  --agent-clis-source PATH  Also install the pinned core, Shrunk and Linktree CLIs from a local Git checkout.
   -h, --help       Show this help.
 
 Without --target, the installer checks the current project's .agents directory,
