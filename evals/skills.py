@@ -93,6 +93,7 @@ SKILLS_ROOT = REPO_ROOT / "skills"
 CASES = Path(__file__).parent / "cases" / "catalog.json"
 ROUTING_CASES = Path(__file__).parent / "cases" / "routing.json"
 WORKFLOW_CASES = Path(__file__).parent / "cases" / "workflows.json"
+COMPARISON_CASES = Path(__file__).parent / "cases" / "skills-comparison.json"
 GLOBAL_INSTRUCTIONS = REPO_ROOT / "global-instructions" / "AGENTS.md"
 GRADE_SCHEMA = Path(__file__).parent / "grade-schema.json"
 ROUTE_SCHEMA = Path(__file__).parent / "route-schema.json"
@@ -539,6 +540,7 @@ def workflows_dataset(
     execution_ready_only: bool = False,
     global_instructions: Path = GLOBAL_INSTRUCTIONS,
     mandatory_coordinator: bool = True,
+    case_ids: list[str] | None = None,
 ) -> MemoryDataset:
     """Load routing cases or explicitly supplied execution fixtures.
 
@@ -548,6 +550,21 @@ def workflows_dataset(
     """
 
     dataset = json_dataset(str(WORKFLOW_CASES))
+    if case_ids is not None:
+        if not case_ids or len(case_ids) != len(set(case_ids)):
+            raise ValueError("case_ids must be a non-empty list without duplicates")
+        comparison_dataset = json_dataset(str(COMPARISON_CASES))
+        by_id = {sample.id: sample for sample in (*dataset.samples, *comparison_dataset.samples)}
+        if len(by_id) != len(dataset.samples) + len(comparison_dataset.samples):
+            raise ValueError("workflow case IDs must be unique across fixture files")
+        missing = [case_id for case_id in case_ids if case_id not in by_id]
+        if missing:
+            raise ValueError(f"unknown workflow case IDs: {missing}")
+        dataset = MemoryDataset(
+            samples=[by_id[case_id] for case_id in case_ids],
+            name="selected-workflow-cases",
+            shuffled=False,
+        )
     global_rules = global_instructions.read_text()
     if not mandatory_coordinator:
         global_rules = coordinator_ablation(global_rules)
@@ -2791,6 +2808,7 @@ def workflows(
     grader_model: str | None = None,
     grader_effort: str = "high",
     include_behavior_grader: bool = True,
+    case_ids: list[str] | None = None,
 ) -> Task:
     """Run execution-ready workflows for an explicitly named comparison arm.
 
@@ -2819,6 +2837,7 @@ def workflows(
         execution_ready_only=True,
         global_instructions=selected_global,
         mandatory_coordinator=mandatory_coordinator,
+        case_ids=case_ids,
     )
     for sample in dataset.samples:
         sample.metadata = {
