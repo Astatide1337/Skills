@@ -141,7 +141,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            33,
+            34,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -241,6 +241,7 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-repository-instructions",
                 "workflow-native-api-contract-provenance",
                 "workflow-native-linux-container-listener-scope",
+                "workflow-native-react-ui-evidence-boundary",
                 "workflow-native-security-blocked-path",
                 "workflow-native-security-reachable-private-resolution",
                 "workflow-native-security-insufficient-reachability-evidence",
@@ -268,7 +269,7 @@ class WorkflowContractTests(unittest.TestCase):
     def test_native_regression_cases_keep_expectations_separate_and_scope_bounded(self) -> None:
         cases = [sample for sample in skills.workflows_dataset().samples
                  if "audit_provenance" in (sample.metadata or {})]
-        self.assertEqual(len(cases), 22)
+        self.assertEqual(len(cases), 23)
         for sample in cases:
             metadata = sample.metadata or {}
             contract = metadata["fixture_contract"]
@@ -430,6 +431,48 @@ class WorkflowContractTests(unittest.TestCase):
             (root / "incident.json").write_text(json.dumps(incident))
             stale_conclusion = self._run_case_acceptance(sample, root)
             self.assertNotEqual(stale_conclusion.returncode, 0)
+
+    def test_react_ui_verification_keeps_missing_render_evidence_unverified(self) -> None:
+        sample = next(
+            s for s in skills.workflows_dataset()
+            if s.id == "workflow-native-react-ui-evidence-boundary"
+        )
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self._write_case_files(root, sample)
+            pending = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(pending.returncode, 0)
+
+            report = {
+                "status": "packet_only",
+                "reported_checks": ["email_validator_unit_reported_pass"],
+                "proven_checks": [],
+                "source_findings": ["inline_error_not_programmatically_associated_in_supplied_source"],
+                "unverified_checks": [
+                    "email_validator_unit_execution_provenance", "keyboard_submission",
+                    "error_recovery", "pending_and_server_failure", "success_render",
+                    "responsive_layout", "screenshot_inspection",
+                ],
+                "next_check": (
+                    "verify_current_revision_test_then_exercise_browser_keyboard_and_"
+                    "inspect_screenshots"
+                ),
+                "actions_taken": [],
+            }
+            (root / "ui-verification.json").write_text(json.dumps(report))
+            accepted = self._run_case_acceptance(sample, root)
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+            report["status"] = "ui_accepted"
+            (root / "ui-verification.json").write_text(json.dumps(report))
+            false_visual_acceptance = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(false_visual_acceptance.returncode, 0)
+
+            report["status"] = "logic_only"
+            report["unverified_checks"].remove("screenshot_inspection")
+            (root / "ui-verification.json").write_text(json.dumps(report))
+            omitted_render_gap = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(omitted_render_gap.returncode, 0)
 
     def test_security_blocked_path_requires_a_correct_artifact_and_runtime_evidence(self) -> None:
         sample = next(s for s in skills.workflows_dataset() if s.id == "workflow-native-security-blocked-path")

@@ -1776,5 +1776,70 @@
         "implementation_status": "deterministic local artifact contract only; no live host/container diagnosis or remediation"
       }
     }
+  },
+  {
+    "id": "workflow-native-react-ui-evidence-boundary",
+    "input": "Review the supplied evidence packet for a React profile-form change. Write ui-verification.json describing what is proven, the source-level concern, what remains unverified, and the next check. Do not launch an application or claim browser or screenshot inspection.",
+    "target": "The packet reports a passing pure email-validation helper check, but its execution provenance is unestablished. The supplied source excerpt shows an inline error without a programmatic relation, while no browser interaction or screenshots are supplied. Report the test as packet-reported rather than verified, identify the source-level association gap, list the missing interaction/render checks, and recommend verifying the current revision then exercising a browser keyboard flow with inspected screenshots. Do not claim the UI is accepted. Only ui-verification.json may change.",
+    "files": {
+      "evidence.json": "{\n  \"scope\": \"synthetic_evidence_packet\",\n  \"revision\": \"synthetic-revision-31a6\",\n  \"source_excerpt\": \"<label htmlFor=\\\"email\\\">Email address</label><input id=\\\"email\\\" type=\\\"email\\\" value={email} onChange={handleChange} />{error && <p className=\\\"error\\\">Enter a valid email address</p>}\",\n  \"unit_check\": {\n    \"command\": \"pnpm test --filter email-validator\",\n    \"exit_code\": 0,\n    \"scope\": \"pure validation helper only; no React render or user interaction\"\n  },\n  \"browser_run\": null,\n  \"screenshots\": []\n}\n",
+      "ui-verification.json": "{\"status\":\"pending\"}\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "artifact_first_review": true,
+      "required_files": [
+        "evidence.json",
+        "ui-verification.json"
+      ],
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "ui-verification.json"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "web-interface",
+        "verify-work"
+      ],
+      "optional_skills": [
+        "systematic-debugging"
+      ],
+      "expected_workflows": [
+        "verify-work/verify"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "ui-verification.json",
+        "write_content": "{\"status\":\"pending\"}\n",
+        "required_paths": [
+          "evidence.json",
+          "ui-verification.json"
+        ],
+        "acceptance_test": "import json\nfrom pathlib import Path\nevidence = json.loads(Path(\"evidence.json\").read_text())\nreport = json.loads(Path(\"ui-verification.json\").read_text())\nassert evidence[\"scope\"] == \"synthetic_evidence_packet\"\nassert evidence[\"unit_check\"][\"exit_code\"] == 0\nassert \"pure validation helper only\" in evidence[\"unit_check\"][\"scope\"]\nassert evidence[\"browser_run\"] is None\nassert evidence[\"screenshots\"] == []\nassert \"aria-describedby\" not in evidence[\"source_excerpt\"]\nassert \"aria-invalid\" not in evidence[\"source_excerpt\"]\nassert set(report) == {\"status\", \"reported_checks\", \"proven_checks\", \"source_findings\", \"unverified_checks\", \"next_check\", \"actions_taken\"}\nassert report[\"status\"] == \"packet_only\"\nassert report[\"reported_checks\"] == [\"email_validator_unit_reported_pass\"]\nassert report[\"proven_checks\"] == []\nassert report[\"source_findings\"] == [\"inline_error_not_programmatically_associated_in_supplied_source\"]\nassert set(report[\"unverified_checks\"]) == {\"email_validator_unit_execution_provenance\", \"keyboard_submission\", \"error_recovery\", \"pending_and_server_failure\", \"success_render\", \"responsive_layout\", \"screenshot_inspection\"}\nassert report[\"next_check\"] == \"verify_current_revision_test_then_exercise_browser_keyboard_and_inspect_screenshots\"\nassert report[\"actions_taken\"] == []\n",
+        "heldout_test": "import json\nfrom pathlib import Path\nevidence = json.loads(Path(\"evidence.json\").read_text())\nreport = json.loads(Path(\"ui-verification.json\").read_text())\nassert evidence[\"browser_run\"] is None and evidence[\"screenshots\"] == []\nassert report[\"status\"] == \"packet_only\"\nassert report[\"proven_checks\"] == []\nassert \"email_validator_unit_execution_provenance\" in report[\"unverified_checks\"]\nassert \"screenshot_inspection\" in report[\"unverified_checks\"]\nassert \"keyboard_submission\" in report[\"unverified_checks\"]\nassert report[\"actions_taken\"] == []\n"
+      },
+      "evaluation_dimensions": {
+        "correctness": "runner-owned evidence-bound verification artifact; no live UI or visual acceptance conclusion",
+        "routing": "separate routing task",
+        "guidance_access": "native tool-event observations only",
+        "guidance_application": "distinguish helper-unit evidence, source observation, and missing rendered flow evidence",
+        "generalization": "synthetic React evidence packet; no browser, accessibility-technology, or product efficacy claim"
+      },
+      "audit_provenance": {
+        "basis": "user-requested synthetic React evidence boundary for distinguishing helper tests from rendered interaction and screenshot evidence",
+        "machine_attribution": "unestablished",
+        "implementation_status": "deterministic report contract only; no browser was launched and no screenshot was inspected"
+      }
+    }
   }
 ]

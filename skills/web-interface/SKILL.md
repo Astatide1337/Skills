@@ -33,6 +33,7 @@ actual work, but do not read the full library by default.
 | Creating a reusable primitive, component, or design-system foundation | [Component authoring](./references/component-authoring.md) |
 | Using or composing shadcn components in a project with `components.json` | [shadcn projects](./references/shadcn.md) |
 | Running the shadcn CLI, adding/updating items, changing presets, or working with registries | [shadcn operations](./references/shadcn-operations.md) |
+| An existing React feature crosses multiple UI states, a route, form submission, or shared component boundary | [React feature delivery](./references/react-feature-delivery.md) |
 | Auditing UI code, accessibility, UX, or final interface quality | [Web interface audit](./references/web-audit.md) |
 | The user explicitly wants competing visual directions | [UI prototyping](./references/ui-prototyping.md) |
 
