@@ -82,6 +82,11 @@ path; do not manufacture a multi-hypothesis investigation for it.
      turn a failed assertion into a skip or narrow the expected result merely
      to obtain a passing check.
 
+For an HTTP/RPC request mismatch or a proposed API contract change, use the
+[API/backend contract procedure](references/api-backend-contracts.md) within
+this workflow. Keep the exact caller path and contract provenance in view; a
+smoke mock alone does not establish wire behavior.
+
 ## Stop conditions
 
 Stop and investigate further if:

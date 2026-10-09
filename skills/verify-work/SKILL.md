@@ -108,7 +108,7 @@ The application owns its feature map and pins any separate per-app CLI version; 
 |---|---|
 | Pure code change | Relevant tests/checks + final diff review |
 | Bug fix | Original reproduction no longer fails + regression check |
-| API/backend | Relevant tests + real request/response when practical |
+| API/backend | [API/backend contract procedure](../systematic-debugging/references/api-backend-contracts.md), contract-focused tests + a real request/response when practical |
 | UI | Browser/app interaction + inspected screenshots |
 | Motion/animation | UI verification + recorded and watched video |
 | CI | Actual remote pipeline/job result |
