@@ -45,6 +45,29 @@ the selected canonical catalog and its logical home/skills directory. Neither
 the surrounding Codex home, authentication file, other arm nor evaluator source
 receives a read grant. Grading receives a separate empty workspace.
 
+Native startup replaces `.system` with CLI-owned bundled skills; do not put
+selected catalog aliases there. Keep selected locators at the ordinary
+`home/skills/<name>/SKILL.md` paths. Before each model session, a bounded
+30-second model-free `debug prompt-input` command initializes the fresh owned
+home. Enumerate only its concrete `.system/*/SKILL.md` files and disable every
+one through the supported `skills.config` per-file `-c` selectors, including
+future bundle names. Package-directory selectors do not filter the catalog.
+Reject failed metadata initialization or linked/external paths before model
+execution. This preparation writes no user config and reads no credential file
+through the adapter. The normal CLI owns authentication handling.
+The metadata child starts in its own process group. Cancellation or timeout
+kills that owned group, drains inherited pipes even if its leader already
+exited, and awaits the child before the home context closes;
+preparation cannot recreate its removed home after an evaluation stops.
+
+Both command profiles also deny the exact `home/skills/.system` directory.
+The selected candidate keeps its canonical and ordinary logical catalog;
+isolated grading receives no selected or bundled skill metadata. Record
+`skills_eval.native_skill_startup` separately from the requested permissions:
+its metadata digest and disabled selectors describe preparation, not successful
+native command execution. Verify the filtered model-visible catalog and actual
+command boundaries on the tested native ELF before efficacy comparison.
+
 Frozen instruction bytes live in an ephemeral `~/.cache/work-guidance-*/skills`
 snapshot; isolated Codex homes use `~/.cache/work-session-*`. Both use the
 existing user-owned canonical cache directory and are removed when their

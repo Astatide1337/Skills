@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import importlib.util
 import json
 import os
 import re
+import signal
 import stat
 import sys
 import subprocess
@@ -181,17 +183,9 @@ def isolated_codex_home(
         selected_skills_root = skills_root or SKILLS_ROOT
         skills = home / "skills"
         skills.mkdir()
-        system_skills = skills / ".system"
-        system_skills.mkdir()
         for skill in sorted(selected_skills_root.iterdir()):
             if (skill / "SKILL.md").is_file():
                 (skills / skill.name).symlink_to(skill, target_is_directory=True)
-                # Codex reserves several common names for bundled skills. Point
-                # either locator at the catalog copy so routing cannot select a
-                # nonexistent bundled path or evaluate different instructions.
-                (system_skills / skill.name).symlink_to(
-                    skill, target_is_directory=True
-                )
     return directory
 
 
@@ -249,6 +243,9 @@ def _native_permission_config(
         ":slash_tmp": "deny",
         str(binary): "read",
         str(workspace): "write" if sandbox_mode == "workspace-write" else "read",
+        # Native startup owns this directory and may install bundles there.
+        # Selected catalog locators use the ordinary top-level skills only.
+        str(home / "skills" / ".system"): "deny",
     }
     if skills_root is not None:
         filesystem[str(skills_root.resolve(strict=True))] = "read"
@@ -278,10 +275,70 @@ def _native_config_overrides(config: Mapping[str, object]) -> list[str]:
             return "{" + ",".join(
                 json.dumps(key) + "=" + render(item) for key, item in value.items()
             ) + "}"
+        if isinstance(value, list):
+            return "[" + ",".join(render(item) for item in value) + "]"
         raise ValueError("unsupported native permission config value")
 
     return [argument for key, value in config.items()
             for argument in ("-c", key + "=" + render(value))]
+
+
+async def _native_skill_startup(
+    *, binary: Path, workspace: Path, home: Path, permissions: Mapping[str, object],
+) -> tuple[dict[str, object], dict[str, object]]:
+    """Initialize owned native bundles without a model turn, then disable them."""
+
+    # This documented metadata command initializes the CLI-owned system skills.
+    # A fresh home has no user config. Never read the transport authentication
+    # file here; normal CLI startup owns its authentication handling.
+    command = [str(binary), *_native_config_overrides(permissions),
+               "debug", "prompt-input", "Owned skill startup metadata only; no model generation or tool execution."]
+    process = None
+    communication = None
+    communication_complete = False
+    try:
+        process = await asyncio.create_subprocess_exec(*command, cwd=workspace,
+            env={"HOME": str(home), "CODEX_HOME": str(home), "PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"},
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, start_new_session=True)
+        communication = asyncio.create_task(process.communicate())
+        raw_stdout, _ = await asyncio.wait_for(asyncio.shield(communication), timeout=30)
+        communication_complete = True
+        if process.returncode != 0 or len(raw_stdout) > 1_000_000:
+            raise RuntimeError("native skill metadata initialization unavailable")
+        metadata = raw_stdout.decode("utf-8")
+        if not isinstance(json.loads(metadata), list):
+            raise RuntimeError("native skill metadata initialization returned an unsupported shape")
+    except (OSError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("native skill metadata initialization unavailable") from exc
+    finally:
+        # The leader can exit while descendants still hold its pipes open.
+        # Kill the owned group and drain those pipes before the home closes.
+        if process is not None and not communication_complete:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            if communication is not None:
+                await asyncio.shield(communication)
+            await process.wait()
+    system = home / "skills" / ".system"
+    if (system.is_symlink() or not system.is_dir()
+            or not system.resolve(strict=True).is_relative_to(home.resolve(strict=True))):
+        raise RuntimeError("native system skill directory is unavailable or linked")
+    files = sorted(system.glob("*/SKILL.md"))
+    if not files or len(files) > 256:
+        raise RuntimeError("native system skill inventory is unavailable or exceeds its bound")
+    for path in files:
+        if (path.is_symlink() or path.parent.is_symlink() or not path.is_file()
+                or not path.resolve(strict=True).is_relative_to(system.resolve(strict=True))):
+            raise RuntimeError("native system skill locator is outside its owned directory")
+    selectors = {"skills.config": [{"path": str(path), "enabled": False} for path in files]}
+    receipt = {"type": "skills_eval.native_skill_startup", "model_turns": 0,
+               "metadata_sha256": hashlib.sha256(raw_stdout).hexdigest(),
+               "disabled_system_skill_files": [str(path) for path in files],
+               "metadata_timeout_seconds": 30,
+               "scope": "owned ephemeral native home; configuration provenance only"}
+    return selectors, receipt
 
 
 async def run_codex(
@@ -350,13 +407,16 @@ async def run_codex(
             sandbox_mode=sandbox_mode,
             skills_root=(skills_root or SKILLS_ROOT) if with_skills else None,
         )
+        skill_config, startup = await _native_skill_startup(binary=binary, workspace=workspace,
+            home=Path(codex_home), permissions=permissions)
+        permissions.update(skill_config)
         # This receipt records the requested configuration. It does not assert
         # that candidate commands executed or that every native tool is isolated.
         launch_receipt = json.dumps({
             "type": "skills_eval.native_permissions",
             "native_binary": str(binary), "native_binary_sha256": binary_sha256,
             "config": permissions,
-        }, sort_keys=True) + "\n"
+        }, sort_keys=True) + "\n" + json.dumps(startup, sort_keys=True) + "\n"
         output_file = f"/tmp/work-response-{uuid4().hex}.txt"
         command = [
             str(binary),

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import unittest
+import asyncio
 import math
 import hashlib
 import json
 import os
+import sys
 from unittest.mock import AsyncMock, patch
 from pathlib import Path
 import tempfile
@@ -32,6 +34,10 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
         locator = patch.object(skills, "_native_codex_binary", return_value=self.native_binary)
         locator.start()
         self.addCleanup(locator.stop)
+        startup = patch.object(skills, "_native_skill_startup", AsyncMock(return_value=(
+            {}, {"type":"skills_eval.native_skill_startup", "model_turns":0, "scope":"unit stub"})))
+        startup.start()
+        self.addCleanup(startup.stop)
 
     async def test_native_catalog_locator_resolves_frozen_bytes_only_when_installed(self):
         with tempfile.TemporaryDirectory(dir=skills.REPO_ROOT.parent) as directory:
@@ -52,7 +58,7 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
                             if installed:
                                 self.assertIn(f"Installed catalog filesystem root: {home}/skills/.", prompt)
                                 self.assertEqual((home / "skills/example/SKILL.md").read_text(), "Frozen candidate instructions")
-                                self.assertEqual((home / "skills/.system/example/SKILL.md").read_text(), "Frozen candidate instructions")
+                                self.assertFalse((home / "skills/.system").exists())
                                 self.assertTrue(prompt.endswith("User task"))
                             else:
                                 self.assertEqual(prompt, "User task")
@@ -445,7 +451,7 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
                     with skills.isolated_codex_home(True, skills_root=snapshot) as isolated:
                         isolated_home = Path(isolated)
                         self.assertEqual(isolated_home.parent, cache)
-                        for path in (snapshot / "example/SKILL.md", isolated_home / "skills/example/SKILL.md", isolated_home / "skills/.system/example/SKILL.md"):
+                        for path in (snapshot / "example/SKILL.md", isolated_home / "skills/example/SKILL.md"):
                             self.assertEqual(path.read_text(), "owned frozen instructions")
                         config = skills._native_permission_config(binary=self.native_binary,
                             workspace=self.native_workspace, home=isolated_home,
@@ -978,6 +984,178 @@ class ApprovalLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(skills._codex_usage(events), {"input_tokens":12,"output_tokens":5})
 
 
+class NativeSkillStartupTests(unittest.IsolatedAsyncioTestCase):
+    async def test_startup_failure_prevents_any_native_model_execution(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            home = root / "home"
+            workspace = root / "workspace"
+            home.mkdir()
+            workspace.mkdir()
+            binary = root / "native"
+            binary.write_bytes(b"\x7fELFowned unit fixture")
+            native = SimpleNamespace(exec=AsyncMock(), read_file=AsyncMock())
+            with (patch.object(skills, "_native_codex_binary", return_value=binary),
+                  patch.object(skills, "bwrap_preflight", return_value=None),
+                  patch.object(skills, "isolated_codex_home", return_value=skills.nullcontext(str(home))),
+                  patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(workspace, None))),
+                  patch.object(skills, "_native_skill_startup", AsyncMock(side_effect=RuntimeError("owned initialization failure"))),
+                  patch.object(skills, "sandbox", return_value=native)):
+                with self.assertRaisesRegex(RuntimeError, "owned initialization failure"):
+                    await skills.run_codex("owned task", model="stub/model", with_skills=False,
+                        sandbox_mode="read-only")
+            native.exec.assert_not_awaited()
+            native.read_file.assert_not_awaited()
+
+    async def test_generated_file_selectors_cover_new_bundles_without_a_static_name_list(self):
+        import tomllib
+
+        with tempfile.TemporaryDirectory() as raw:
+            home = Path(raw) / "home"
+            home.mkdir()
+            system = home / "skills/.system"
+            files = [system / name / "SKILL.md" for name in ("skill-creator", "new-native-bundle")]
+
+            async def initialize(*command, **kwargs):
+                command = list(command)
+                self.assertEqual(command[-3:-1], ["debug", "prompt-input"])
+                self.assertNotIn("exec", command)
+                self.assertEqual(kwargs["env"]["HOME"], str(home))
+                self.assertEqual(kwargs["env"]["CODEX_HOME"], str(home))
+                self.assertTrue(kwargs["start_new_session"])
+                self.assertFalse((home / "config.toml").exists())
+                for path in files:
+                    path.parent.mkdir(parents=True)
+                    path.write_text("owned native bundle")
+                return SimpleNamespace(returncode=0, communicate=AsyncMock(return_value=(b"[]", b"")))
+
+            with patch.object(skills.asyncio, "create_subprocess_exec", side_effect=initialize):
+                config, receipt = await skills._native_skill_startup(binary=home / "native",
+                    workspace=home, home=home, permissions={})
+            self.assertEqual(config["skills.config"], [{"path":str(path), "enabled":False} for path in sorted(files)])
+            overrides = skills._native_config_overrides(config)
+            self.assertEqual(tomllib.loads(overrides[1])["skills"]["config"], config["skills.config"])
+            self.assertEqual(receipt["model_turns"], 0)
+            self.assertEqual(receipt["disabled_system_skill_files"], [str(path) for path in sorted(files)])
+            self.assertFalse((home / "config.toml").exists())
+
+    async def test_unavailable_initialization_and_external_bundle_paths_are_rejected(self):
+        with tempfile.TemporaryDirectory() as raw:
+            home = Path(raw) / "home"
+            home.mkdir()
+            for result in (SimpleNamespace(returncode=1, stdout="", stderr="owned failure"),
+                           SimpleNamespace(returncode=0, stdout="not JSON", stderr=""),
+                           SimpleNamespace(returncode=0, stdout="{}", stderr="")):
+                process = SimpleNamespace(returncode=result.returncode,
+                    communicate=AsyncMock(return_value=(result.stdout.encode(), result.stderr.encode())))
+                with patch.object(skills.asyncio, "create_subprocess_exec", AsyncMock(return_value=process)):
+                    with self.assertRaisesRegex(RuntimeError, "initialization"):
+                        await skills._native_skill_startup(binary=home / "native", workspace=home,
+                            home=home, permissions={})
+            outside = Path(raw) / "outside"
+            outside.mkdir()
+            (outside / "SKILL.md").write_text("owned excluded canary")
+            system = home / "skills/.system"
+            system.mkdir(parents=True)
+            (system / "linked-bundle").symlink_to(outside, target_is_directory=True)
+            process = SimpleNamespace(returncode=0, communicate=AsyncMock(return_value=(b"[]", b"")))
+            with patch.object(skills.asyncio, "create_subprocess_exec", AsyncMock(return_value=process)):
+                with self.assertRaisesRegex(RuntimeError, "outside"):
+                    await skills._native_skill_startup(binary=home / "native", workspace=home,
+                        home=home, permissions={})
+
+    async def test_cancelled_startup_reaps_its_owned_child_before_home_cleanup(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            home = root / "home"
+            home.mkdir()
+            binary = root / "owned-metadata-program"
+            started = root / "started.json"
+            binary.write_text(f"#!{sys.executable}\n"
+                "import json,os,pathlib,time\n"
+                f"pathlib.Path({str(started)!r}).write_text(json.dumps({{'pid':os.getpid()}}))\n"
+                "time.sleep(60)\n"
+                "home=pathlib.Path(os.environ['HOME']); home.mkdir(parents=True,exist_ok=True)\n"
+                "(home/'late-write.txt').write_text('owned test canary')\n")
+            binary.chmod(0o700)
+            pending = asyncio.create_task(skills._native_skill_startup(binary=binary,
+                workspace=root, home=home, permissions={}))
+            try:
+                async def wait_started():
+                    while not started.exists():
+                        await asyncio.sleep(0.01)
+                await asyncio.wait_for(wait_started(), timeout=5)
+                pid = json.loads(started.read_text())["pid"]
+                pending.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await pending
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(pid, 0)
+                self.assertFalse((home / "late-write.txt").exists())
+                home.rmdir()
+                self.assertFalse(home.exists())
+            finally:
+                if not pending.done():
+                    pending.cancel()
+                    try:
+                        await pending
+                    except asyncio.CancelledError:
+                        pass
+
+    async def test_cancelled_startup_drains_descendant_pipes_after_leader_exit(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            home = root / "home"
+            home.mkdir()
+            binary = root / "owned-metadata-program"
+            started = root / "started.json"
+            binary.write_text(f"#!{sys.executable}\n"
+                "import json,os,pathlib,time\n"
+                "child=os.fork()\n"
+                "if child: os._exit(0)\n"
+                f"pathlib.Path({str(started)!r}).write_text(json.dumps({{'pid':os.getpid()}}))\n"
+                "time.sleep(60)\n"
+                "home=pathlib.Path(os.environ['HOME']); home.mkdir(parents=True,exist_ok=True)\n"
+                "(home/'late-write.txt').write_text('owned test canary')\n")
+            binary.chmod(0o700)
+            children = []
+            create_process = asyncio.create_subprocess_exec
+
+            async def capture_process(*args, **kwargs):
+                process = await create_process(*args, **kwargs)
+                children.append(process)
+                return process
+
+            with patch.object(skills.asyncio, "create_subprocess_exec", side_effect=capture_process):
+                pending = asyncio.create_task(skills._native_skill_startup(binary=binary,
+                    workspace=root, home=home, permissions={}))
+                try:
+                    async def wait_started():
+                        while not (started.exists() and children and children[0].returncode == 0):
+                            await asyncio.sleep(0.01)
+                    await asyncio.wait_for(wait_started(), timeout=5)
+                    pid = json.loads(started.read_text())["pid"]
+                    self.assertFalse(pending.done())
+                    pending.cancel()
+                    with self.assertRaises(asyncio.CancelledError):
+                        await asyncio.wait_for(pending, timeout=5)
+                    self.assertTrue(children[0].stdout.at_eof())
+                    self.assertTrue(children[0].stderr.at_eof())
+                    status = Path(f"/proc/{pid}/stat")
+                    if status.exists():
+                        self.assertIn(status.read_text().split(")", 1)[1].strip().split()[0], {"Z", "X"})
+                    self.assertFalse((home / "late-write.txt").exists())
+                    home.rmdir()
+                    self.assertFalse(home.exists())
+                finally:
+                    if not pending.done():
+                        pending.cancel()
+                        try:
+                            await pending
+                        except asyncio.CancelledError:
+                            pass
+
+
 class NativePermissionScopeTests(unittest.IsolatedAsyncioTestCase):
     def test_named_profiles_have_exact_scope_and_preserve_mode(self):
         import tomllib
@@ -996,7 +1174,8 @@ class NativePermissionScopeTests(unittest.IsolatedAsyncioTestCase):
                     config = skills._native_permission_config(binary=binary, workspace=workspace,
                         home=home, sandbox_mode=mode, skills_root=catalog if installed else None)
                     expected = {":root":"deny", ":minimal":"read", ":tmpdir":"deny", ":slash_tmp":"deny",
-                        str(binary):"read", str(workspace):"write" if mode == "workspace-write" else "read"}
+                        str(binary):"read", str(workspace):"write" if mode == "workspace-write" else "read",
+                        str(home / "skills/.system"):"deny"}
                     if installed:
                         expected.update({str(catalog):"read", str(home / "skills"):"read"})
                     self.assertEqual(config["permissions.skills-eval.filesystem"], expected)
