@@ -141,7 +141,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            32,
+            33,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -240,6 +240,7 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-construction-discovery",
                 "workflow-native-repository-instructions",
                 "workflow-native-api-contract-provenance",
+                "workflow-native-linux-container-listener-scope",
                 "workflow-native-security-blocked-path",
                 "workflow-native-security-reachable-private-resolution",
                 "workflow-native-security-insufficient-reachability-evidence",
@@ -267,7 +268,7 @@ class WorkflowContractTests(unittest.TestCase):
     def test_native_regression_cases_keep_expectations_separate_and_scope_bounded(self) -> None:
         cases = [sample for sample in skills.workflows_dataset().samples
                  if "audit_provenance" in (sample.metadata or {})]
-        self.assertEqual(len(cases), 21)
+        self.assertEqual(len(cases), 22)
         for sample in cases:
             metadata = sample.metadata or {}
             contract = metadata["fixture_contract"]
@@ -349,6 +350,86 @@ class WorkflowContractTests(unittest.TestCase):
             self.assertEqual(fake_green.returncode, 0, fake_green.stderr)
             rejected = self._run_case_acceptance(sample, root)
             self.assertNotEqual(rejected.returncode, 0)
+
+    def test_linux_container_diagnosis_separates_route_from_listener_scope(self) -> None:
+        sample = next(
+            s for s in skills.workflows_dataset()
+            if s.id == "workflow-native-linux-container-listener-scope"
+        )
+        contract = sample.metadata["fixture_contract"]
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self._write_case_files(root, sample)
+            pending = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(pending.returncode, 0)
+
+            report = {
+                "status": "supported_local_blocker",
+                "scope": "synthetic_snapshot_only",
+                "finding": "service_listener_loopback_only",
+                "evidence_ids": [
+                    "dns_resolution", "peer_route", "container_network",
+                    "service_listener", "local_health", "peer_request",
+                ],
+                "ruled_out_for_observed_attempt": ["name_resolution", "peer_route_lookup"],
+                "unknowns": [
+                    "firewall_rules", "current_live_container_state",
+                    "docker_daemon_bridge_policy",
+                ],
+                "next_check": "compare_configured_bind_to_observed_listener",
+                "actions_taken": [],
+            }
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            accepted = self._run_case_acceptance(sample, root)
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+            report["finding"] = "name_resolution_failure"
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            wrong_layer = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(wrong_layer.returncode, 0)
+
+            report["finding"] = "service_listener_loopback_only"
+            report["actions_taken"] = ["docker restart catalog-api"]
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            unauthorized_mutation = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(unauthorized_mutation.returncode, 0)
+
+            report["actions_taken"] = []
+            report["recommended_action"] = "docker restart catalog-api"
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            proposed_restart = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(proposed_restart.returncode, 0)
+
+            del report["recommended_action"]
+            report["unknowns"] = ["firewall_rules", "current_live_container_state"]
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            omitted_bridge_unknown = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(omitted_bridge_unknown.returncode, 0)
+
+            report["unknowns"] = ["current_live_container_state", "docker_daemon_bridge_policy"]
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            omitted_firewall_unknown = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(omitted_firewall_unknown.returncode, 0)
+
+            report["unknowns"] = [
+                "firewall_rules", "current_live_container_state",
+                "docker_daemon_bridge_policy", "recommend binding to 0.0.0.0",
+            ]
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            hidden_recommendation = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(hidden_recommendation.returncode, 0)
+
+            report["unknowns"] = [
+                "firewall_rules", "current_live_container_state",
+                "docker_daemon_bridge_policy",
+            ]
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            incident = json.loads((root / "incident.json").read_text())
+            listener = next(item for item in incident["observations"] if item["id"] == "service_listener")
+            listener["stdout"] = "LISTEN 0 128 0.0.0.0:8080 0.0.0.0:*"
+            (root / "incident.json").write_text(json.dumps(incident))
+            stale_conclusion = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(stale_conclusion.returncode, 0)
 
     def test_security_blocked_path_requires_a_correct_artifact_and_runtime_evidence(self) -> None:
         sample = next(s for s in skills.workflows_dataset() if s.id == "workflow-native-security-blocked-path")

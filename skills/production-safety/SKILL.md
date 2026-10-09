@@ -41,6 +41,11 @@ Inspect before writing:
 
 Do not mutate the system merely to discover how it is configured.
 
+For Linux, network, and container incident diagnosis, use the
+[layer-by-layer incident procedure](../systematic-debugging/references/linux-network-container-incidents.md)
+to order read-only observations. This does not widen command authorization;
+live changes and recovery still follow the gates in this skill.
+
 For infrastructure-as-code, GitOps, IAM, Kubernetes, or managed-database work, read `references/infrastructure-checks.md` and apply only the relevant section.
 
 For this catalog owner's recurring VPS, container, repository-delivery, database,

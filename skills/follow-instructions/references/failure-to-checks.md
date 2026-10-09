@@ -53,18 +53,23 @@ source class, unestablished machine identity, and limited implementation claim.
 | `workflow-native-genuine-blocker` | Valid near-miss for capability recovery. | Inspect the current verifier and report missing deployment evidence under local-only authority; do not manufacture a receipt. |
 | `workflow-native-cancellation-effects` | User-reported audit scenario; underlying machine record uncorroborated here. | Exercise early, pending, post-commit, and normal cancellation boundaries. Late cancellation reports the completed save rather than pretending to undo it. |
 | `workflow-native-api-contract-provenance` | User-requested synthetic case: an implementation and permissive API fixture agree while an independent contract disagrees; an in-process unit double is separately and accurately labeled. | Test the client against a runner-owned contract adapter, keep the declared local unit mock valid, and do not treat the smoke mock as wire-contract evidence. |
+| `workflow-native-linux-container-listener-scope` | User-requested synthetic container snapshot: DNS and route observations succeed, while the service listens only on container loopback; firewall, live-state, and Docker bridge-policy evidence are absent. | Compare command source and separate network namespaces; report only the listener-scope blocker supported by the snapshot and keep firewall/live-container/bridge policy unknown. |
 | `workflow-native-security-blocked-path` | User-requested synthetic false-positive control: a concerning sink is protected by a complete host/address guard and the checked addresses are bound to the connector. | Run the exact injected private/public address facts and inspect the candidate report artifact; do not infer address flags from a Python version. |
 | `workflow-native-security-reachable-private-resolution` | User-requested synthetic reachable defect: an attacker-controlled suffix host can resolve to a private, non-loopback, non-link-local address that reaches the connector. | Fix the full predicate in its owner; runner acceptance exercises the private sink path, a mixed address set, and the public control. |
 | `workflow-native-security-insufficient-reachability-evidence` | User-requested synthetic evidence-boundary control: the helper can reach a local sink, but its entrypoint, caller path, and deployment configuration are absent. | Inspect the actual assessment artifact and supplied snapshot; report reachability as unestablished rather than safe or confirmed exploitable. |
 
-These four cases are user-requested synthetic regressions, not historical
-incidents. Their machine attribution is unestablished, and their local
-injected controls do not establish a production API contract, live SSRF
-reachability, or production remediation. The security fixtures set address
-classification booleans explicitly to avoid version-dependent `ipaddress`
-semantics. Runner-owned acceptance reads the final files and exercises the
-local paths; printed PASS text or a candidate-edited self-check is not
-acceptance evidence.
+The API-provenance and three security cases are user-requested synthetic
+regressions, not historical incidents. Their machine attribution is
+unestablished, and their local injected controls do not establish a production
+API contract, live SSRF reachability, or production remediation. The security
+fixtures set address classification booleans explicitly to avoid
+version-dependent `ipaddress` semantics. Runner-owned acceptance reads the
+final files and exercises the local paths; printed PASS text or a
+candidate-edited self-check is not acceptance evidence.
+
+The Linux/container case is a separate read-only snapshot exercise. It tests
+layer discrimination and evidence limits; it does not establish current host,
+firewall, Docker daemon, or Kubernetes state.
 
 Other historical findings, including invalid CI job references and failures in
 startup/reset/report-combination paths, reinforce `systematic-debugging`'s

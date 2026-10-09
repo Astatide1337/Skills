@@ -87,6 +87,10 @@ For an HTTP/RPC request mismatch or a proposed API contract change, use the
 this workflow. Keep the exact caller path and contract provenance in view; a
 smoke mock alone does not establish wire behavior.
 
+For a Linux, network, or container incident whose failing layer is unclear,
+use the [Linux/network/container procedure](references/linux-network-container-incidents.md)
+to compare name resolution, route, namespace, listener, and protocol evidence.
+
 ## Stop conditions
 
 Stop and investigate further if:
