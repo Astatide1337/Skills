@@ -23,7 +23,10 @@ authorized operator would need. Do not run probes in an unapproved environment.
 
 1. **Bound the symptom.** Record when the issue began, affected users or
    requests, error and latency changes, and a same-duration pre-incident
-   baseline. Keep reported impact separate from measured impact.
+   baseline. If it is missing, mark the comparison unknown and request the
+   same duration immediately before the incident window; do not infer a
+   baseline from the incident data. Keep reported impact separate from measured
+   impact.
 
 2. **Establish the serving state.** Read the current rollout or process state,
    service identity, revision or image digest, traffic share, and recent
@@ -87,9 +90,12 @@ uv run --frozen python -m unittest \
 ```
 
 The packet contrasts a degraded canary with a healthy same-window revision,
-keeps green readiness separate from user-path success, preserves unknown
-dependency health, and rejects attribution when both revisions fail similarly.
-It also withholds a rollback-safety claim when the artifact digest is missing
-and the last healthy observation is stale. These checks verify the procedure
-and fixture contract only; they do not measure agent behavior or establish
-live service health.
+keeps green readiness separate from user-path success, marks the absent
+same-duration baseline unknown, and specifies a read-only request-to-revision
+check. Its canary-only outcome supports revision association without confirming
+root cause; a shared failure across revisions rejects revision-specific
+attribution and redirects the investigation toward shared traffic or a
+dependency. It also preserves unknown dependency health and withholds a
+rollback-safety claim when the artifact digest is missing and the last healthy
+observation is stale. These checks verify the procedure and fixture contract
+only; they do not measure agent behavior or establish live service health.

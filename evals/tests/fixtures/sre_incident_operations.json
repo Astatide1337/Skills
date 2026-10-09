@@ -7,6 +7,12 @@
     "window_start": "2026-10-09T10:00:00Z",
     "window_end": "2026-10-09T10:15:00Z"
   },
+  "pre_incident_baseline": {
+    "state": "not_supplied",
+    "requested_window_start": "2026-10-09T09:45:00Z",
+    "requested_window_end": "2026-10-09T10:00:00Z",
+    "expected_claim": "unknown"
+  },
   "service": {
     "name": "payments-api",
     "environment": "staging",
@@ -60,6 +66,22 @@
     "deployment_method_verified": true,
     "schema_compatibility_verified": false
   },
+  "next_observation": {
+    "type": "read-only-check",
+    "check": "Bind a bounded sample of 5xx request records from the incident window to the serving revision; request the missing same-duration baseline for both cohorts.",
+    "window_start": "2026-10-09T10:00:00Z",
+    "window_end": "2026-10-09T10:15:00Z",
+    "expected_outcomes": {
+      "canary_only_errors": {
+        "revision_association_supported": true,
+        "root_cause_confirmed": false
+      },
+      "both_revisions_fail": {
+        "revision_association_supported": false,
+        "next_hypothesis": "shared traffic or dependency"
+      }
+    }
+  },
   "negative_controls": {
     "shared_failure_across_revisions": {
       "service": "payments-api",
@@ -90,6 +112,7 @@
     "revision_cohort_correlation_supported": true,
     "root_cause_confirmed": false,
     "user_impact": "degraded",
+    "pre_incident_baseline": "unknown",
     "postgres_health": "unknown",
     "rollback_safe": false,
     "live_mutation_permitted": false

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -72,6 +73,46 @@ class SREIncidentOperationsTests(unittest.TestCase):
         self.assertIsNone(postgres["scope"])
         self.assertEqual(control["expected_health_claim"], "unknown")
         self.assertEqual(self.packet["expected"]["postgres_health"], "unknown")
+
+    def test_missing_baseline_stays_unknown_and_requests_same_duration(self) -> None:
+        baseline = self.packet["pre_incident_baseline"]
+        incident = self.packet["task"]
+        incident_duration = datetime.fromisoformat(
+            incident["window_end"]
+        ) - datetime.fromisoformat(incident["window_start"])
+        requested_duration = datetime.fromisoformat(
+            baseline["requested_window_end"]
+        ) - datetime.fromisoformat(baseline["requested_window_start"])
+
+        self.assertEqual(baseline["state"], "not_supplied")
+        self.assertEqual(baseline["requested_window_end"], incident["window_start"])
+        self.assertEqual(requested_duration, incident_duration)
+        self.assertEqual(baseline["expected_claim"], "unknown")
+        self.assertEqual(self.packet["expected"]["pre_incident_baseline"], "unknown")
+        self.assertIn("mark the comparison unknown", self.procedure)
+
+    def test_next_read_only_observation_has_discriminating_outcomes(self) -> None:
+        observation = self.packet["next_observation"]
+        outcomes = observation["expected_outcomes"]
+
+        self.assertEqual(observation["type"], "read-only-check")
+        self.assertIn("5xx request records", observation["check"])
+        self.assertIn("serving revision", observation["check"])
+        self.assertEqual(
+            observation["window_start"], self.packet["task"]["window_start"]
+        )
+        self.assertEqual(observation["window_end"], self.packet["task"]["window_end"])
+        self.assertTrue(
+            outcomes["canary_only_errors"]["revision_association_supported"]
+        )
+        self.assertFalse(outcomes["canary_only_errors"]["root_cause_confirmed"])
+        self.assertFalse(
+            outcomes["both_revisions_fail"]["revision_association_supported"]
+        )
+        self.assertEqual(
+            outcomes["both_revisions_fail"]["next_hypothesis"],
+            "shared traffic or dependency",
+        )
 
     def test_stale_unverified_recovery_does_not_support_rollback_safety(self) -> None:
         target = self.packet["recovery_target"]
