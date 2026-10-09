@@ -1697,19 +1697,29 @@ def native_behavior_grade(model: str, effort: str = "high"):
                 output_schema=GRADE_SCHEMA, timeout=900,
             )
             usage = _codex_usage(events)
-            grader_phases.append({
+            phase_record = {
                 "phase": phase, "model": model, "effort": effort,
                 "context": "fresh-directory; no-catalog; quoted-data-only",
+                "raw_completion": completion,
+                "raw_completion_sha256": hashlib.sha256(completion.encode()).hexdigest(),
+                "raw_codex_jsonl": events,
+                "raw_codex_jsonl_sha256": hashlib.sha256(events.encode()).hexdigest(),
                 **({"usage": usage} if usage is not None else {}),
-            })
+            }
             try:
                 grade = json.loads(completion)
             except json.JSONDecodeError as exc:
-                return {"score": 0, "explanation": f"grader returned invalid JSON: {exc}"}
-            if not isinstance(grade, dict) or type(grade.get("score")) is not int or not 0 <= grade["score"] <= 4:
-                return {"score": 0, "explanation": "grader omitted a valid 0-4 score"}
-            if not isinstance(grade.get("explanation"), str):
-                grade["explanation"] = "grader omitted a textual explanation"
+                grade = {"score": 0, "explanation": f"grader returned invalid JSON: {exc}"}
+            else:
+                if not isinstance(grade, dict) or type(grade.get("score")) is not int or not 0 <= grade["score"] <= 4:
+                    grade = {"score": 0, "explanation": "grader omitted a valid 0-4 score"}
+                elif not isinstance(grade.get("explanation"), str):
+                    grade["explanation"] = "grader omitted a textual explanation"
+            phase_record["parsed_result"] = grade
+            grader_phases.append(phase_record)
+            # Retain every completed phase immediately, including an earlier
+            # artifact review if the claims assessment is interrupted later.
+            state.store.set("grader_phase_records", list(grader_phases))
             return grade
 
         if (state.metadata or {}).get("artifact_first_review") is True:
@@ -2693,6 +2703,7 @@ def workflows(
     native_effort: str = "medium",
     grader_model: str | None = None,
     grader_effort: str = "high",
+    include_behavior_grader: bool = True,
 ) -> Task:
     """Run execution-ready workflows for an explicitly named comparison arm.
 
@@ -2732,6 +2743,14 @@ def workflows(
             "comparison_global_identity": (sample.metadata or {}).get("global_identity"),
         }
 
+    scorers = [workflow_effects(), workspace_policy()]
+    if include_behavior_grader:
+        scorers.append(
+            native_behavior_grade(
+                model=grader_model or native_model,
+                effort=grader_effort,
+            )
+        )
     return Task(
         dataset=dataset,
         setup=[capture_workspace_baseline(), workflow_support_gate()],
@@ -2743,13 +2762,9 @@ def workflows(
             skills_root=selected_root,
             global_instructions=selected_global,
         ),
-        scorer=[
-            # Inspect scores sequentially: execute checks, then capture their
-            # final effects, then judge the answer against current evidence.
-            workflow_effects(),
-            workspace_policy(),
-            native_behavior_grade(model=grader_model or native_model, effort=grader_effort),
-        ],
+        # Inspect scores sequentially: execute checks, then capture their
+        # final effects, then optionally add the secondary behavior grade.
+        scorer=scorers,
         sandbox="local",
         score_on_error=True,
     )

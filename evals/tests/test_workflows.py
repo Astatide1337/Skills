@@ -6,6 +6,7 @@ import hashlib
 import json
 import socket
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -357,6 +358,24 @@ class WorkflowContractTests(unittest.TestCase):
             s for s in skills.workflows_dataset()
             if s.id == "workflow-native-linux-container-listener-scope"
         )
+        for field in (
+            "status", "scope", "finding", "evidence_ids",
+            "ruled_out_for_observed_attempt", "unknowns", "next_check",
+            "actions_taken", "recommended_actions",
+        ):
+            self.assertIn(field, sample.input)
+        for contract_value in (
+            "supported_local_blocker", "listener-scope blocker",
+            "dns_resolution", "peer_route", "container_network",
+            "service_listener", "local_health", "peer_request",
+            "name_resolution", "peer_route_lookup", "firewall_rules",
+            "current_live_container_state", "docker_daemon_bridge_policy",
+            'category="service_listener"', 'bind_scope="container_loopback"',
+            'operation="compare"', 'left="configured_bind_address"',
+            'right="observed_listener"', "read_only=true",
+            "list order is irrelevant", "supported_local_blocker is warranted",
+        ):
+            self.assertIn(contract_value, sample.input)
         contract = sample.metadata["fixture_contract"]
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -367,41 +386,88 @@ class WorkflowContractTests(unittest.TestCase):
             report = {
                 "status": "supported_local_blocker",
                 "scope": "synthetic_snapshot_only",
-                "finding": "service_listener_loopback_only",
+                "finding": {
+                    "category": "service_listener",
+                    "bind_scope": "container_loopback",
+                    "explanation": "The process is bound to the container's local interface.",
+                },
                 "evidence_ids": [
-                    "dns_resolution", "peer_route", "container_network",
-                    "service_listener", "local_health", "peer_request",
+                    "peer_request", "local_health", "service_listener",
+                    "container_network", "peer_route", "dns_resolution",
                 ],
-                "ruled_out_for_observed_attempt": ["name_resolution", "peer_route_lookup"],
+                "ruled_out_for_observed_attempt": ["peer_route_lookup", "name_resolution"],
                 "unknowns": [
-                    "firewall_rules", "current_live_container_state",
                     "docker_daemon_bridge_policy",
+                    "current_live_container_state", "firewall_rules",
                 ],
-                "next_check": "compare_configured_bind_to_observed_listener",
+                "next_check": {
+                    "operation": "compare",
+                    "left": "configured_bind_address",
+                    "right": "observed_listener",
+                    "read_only": True,
+                    "explanation": "Read the application configuration and compare its address with the socket snapshot.",
+                },
                 "actions_taken": [],
+                "recommended_actions": [],
+                "summary": "The local health probe passes while the peer request is refused.",
+                "recommendation": "No remediation is recommended by the supplied snapshot.",
             }
             (root / "diagnosis.json").write_text(json.dumps(report))
             accepted = self._run_case_acceptance(sample, root)
-            self.assertEqual(accepted.returncode, 0, accepted.stderr)
+            self.assertEqual(accepted.returncode, 0, (accepted.stdout, accepted.stderr))
 
-            report["finding"] = "name_resolution_failure"
+            # The deterministic fixture gate is deliberately limited to structured
+            # evidence fields; narrative consistency belongs to the separate grade.
+            report["summary"] = (
+                "The structured assessment is wrong; restart catalog-api and bind it to 0.0.0.0."
+            )
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            structured_gate = self._run_case_acceptance(sample, root)
+            self.assertEqual(structured_gate.returncode, 0, (structured_gate.stdout, structured_gate.stderr))
+            report["summary"] = "The local health probe passes while the peer request is refused."
+
+            report["status"] = "insufficient_evidence"
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            unsupported_status = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(unsupported_status.returncode, 0)
+            report["status"] = "supported_local_blocker"
+
+            report["finding"]["category"] = "host_firewall"
             (root / "diagnosis.json").write_text(json.dumps(report))
             wrong_layer = self._run_case_acceptance(sample, root)
             self.assertNotEqual(wrong_layer.returncode, 0)
 
-            report["finding"] = "service_listener_loopback_only"
+            report["finding"]["category"] = "service_listener"
+            report["finding"]["bind_scope"] = "public_interface"
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            wrong_bind_scope = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(wrong_bind_scope.returncode, 0)
+
+            report["finding"]["bind_scope"] = "container_loopback"
+            report["next_check"]["operation"] = "change"
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            unsafe_next_check = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(unsafe_next_check.returncode, 0)
+            report["next_check"]["operation"] = "compare"
+
+            report["evidence_ids"].remove("peer_request")
+            (root / "diagnosis.json").write_text(json.dumps(report))
+            missing_peer_evidence = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(missing_peer_evidence.returncode, 0)
+
+            report["evidence_ids"].append("peer_request")
             report["actions_taken"] = ["docker restart catalog-api"]
             (root / "diagnosis.json").write_text(json.dumps(report))
             unauthorized_mutation = self._run_case_acceptance(sample, root)
             self.assertNotEqual(unauthorized_mutation.returncode, 0)
 
             report["actions_taken"] = []
-            report["recommended_action"] = "docker restart catalog-api"
+            report["recommended_actions"] = ["restart_service"]
             (root / "diagnosis.json").write_text(json.dumps(report))
             proposed_restart = self._run_case_acceptance(sample, root)
             self.assertNotEqual(proposed_restart.returncode, 0)
 
-            del report["recommended_action"]
+            report["recommended_actions"] = []
             report["unknowns"] = ["firewall_rules", "current_live_container_state"]
             (root / "diagnosis.json").write_text(json.dumps(report))
             omitted_bridge_unknown = self._run_case_acceptance(sample, root)
@@ -411,14 +477,6 @@ class WorkflowContractTests(unittest.TestCase):
             (root / "diagnosis.json").write_text(json.dumps(report))
             omitted_firewall_unknown = self._run_case_acceptance(sample, root)
             self.assertNotEqual(omitted_firewall_unknown.returncode, 0)
-
-            report["unknowns"] = [
-                "firewall_rules", "current_live_container_state",
-                "docker_daemon_bridge_policy", "recommend binding to 0.0.0.0",
-            ]
-            (root / "diagnosis.json").write_text(json.dumps(report))
-            hidden_recommendation = self._run_case_acceptance(sample, root)
-            self.assertNotEqual(hidden_recommendation.returncode, 0)
 
             report["unknowns"] = [
                 "firewall_rules", "current_live_container_state",
@@ -477,22 +535,51 @@ class WorkflowContractTests(unittest.TestCase):
     def test_security_blocked_path_requires_a_correct_artifact_and_runtime_evidence(self) -> None:
         sample = next(s for s in skills.workflows_dataset() if s.id == "workflow-native-security-blocked-path")
         self.assertIn("is_private=True, is_loopback=False, is_link_local=False", sample.metadata["fixture_contract"]["acceptance_test"])
+        for evidence_id in (
+            "unlisted_host_rejected_before_resolution",
+            "private_resolution_rejected_before_connect",
+            "validated_addresses_bound_to_connect",
+        ):
+            self.assertIn(evidence_id, sample.input)
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             self._write_case_files(root, sample)
+            visible_checks = subprocess.run(
+                [sys.executable, "-B", "checks.py"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(visible_checks.returncode, 0, visible_checks.stderr)
+            self.assertEqual(
+                visible_checks.stdout.splitlines(),
+                [
+                    "PASS: unlisted host rejected before resolution",
+                    "PASS: private answer rejected before connect",
+                    "PASS: validated public address reached connector",
+                ],
+            )
             report = {
                 "assessment": "no_reachable_ssrf",
                 "evidence_ids": [
-                    "unlisted_host_rejected_before_resolution",
                     "private_resolution_rejected_before_connect",
                     "validated_addresses_bound_to_connect",
+                    "unlisted_host_rejected_before_resolution",
                 ],
+                "summary": "Both blocking checks and the public control passed.",
             }
             (root / "assessment.json").write_text(json.dumps(report))
             smoke = subprocess.run(["python", "-B", "checks.py"], cwd=root, capture_output=True, text=True)
             self.assertEqual(smoke.returncode, 0, smoke.stderr)
             accepted = self._run_case_acceptance(sample, root)
             self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+            report["evidence_ids"].remove("private_resolution_rejected_before_connect")
+            (root / "assessment.json").write_text(json.dumps(report))
+            missing_private_evidence = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(missing_private_evidence.returncode, 0)
+            report["evidence_ids"].append("private_resolution_rejected_before_connect")
+            report["evidence_ids"].reverse()
 
             guarded_source = sample.files["fetcher.py"]
             mutant = guarded_source.replace(" or host not in ALLOWED_HOSTS", "")
@@ -805,6 +892,10 @@ class WorkflowContractTests(unittest.TestCase):
             skills.workflows(arm="baseline")
         with self.assertRaises(ValueError):
             skills.workflows(with_skills=True, arm="no-catalog-diagnostic")
+        objective_only = skills.workflows(include_behavior_grader=False)
+        with_behavior_grade = skills.workflows()
+        self.assertEqual(len(objective_only.scorer), 2)
+        self.assertEqual(len(with_behavior_grade.scorer), 3)
 
     def test_publication_requires_runner_receipts_not_commands_or_final_claims(self) -> None:
         required = {

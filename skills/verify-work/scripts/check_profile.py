@@ -68,6 +68,34 @@ def profile_digest(profile: dict) -> str:
     return hashlib.sha256(json.dumps(profile, sort_keys=True).encode()).hexdigest()
 
 
+_GIT_CONTEXT_ENV = {
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_COMMON_DIR",
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_CEILING_DIRECTORIES",
+    "GIT_DISCOVERY_ACROSS_FILESYSTEM",
+    "GIT_NAMESPACE",
+    "GIT_PREFIX",
+    "GIT_SUPER_PREFIX",
+    "GIT_CONFIG_COUNT",
+    "GIT_CONFIG_PARAMETERS",
+}
+
+
+def _workspace_git_environment() -> dict[str, str]:
+    """Keep an inherited Git checkout from redirecting workspace inspection."""
+    env = os.environ.copy()
+    for name in tuple(env):
+        if name in _GIT_CONTEXT_ENV or name.startswith(
+            ("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_")
+        ):
+            env.pop(name, None)
+    return env
+
+
 def workspace_identity(workspace: Path, profile: dict) -> dict:
     """Capture Git identities without filters, index refresh or credential reads.
 
@@ -76,26 +104,35 @@ def workspace_identity(workspace: Path, profile: dict) -> dict:
     """
     options = profile.get("workspace_identity", {})
     mode = options.get("mode", "auto")
+    git_environment = _workspace_git_environment()
     def git(*args):
         return subprocess.run(["git", "--no-optional-locks", "-C", str(workspace), *args],
-                              capture_output=True, timeout=15)
+                              capture_output=True, timeout=15, env=git_environment)
     root = None if mode == "artifact" else git("rev-parse", "--show-toplevel")
     non_git = False
     if mode == "auto" and root.returncode:
-        # rev-parse can fail for corruption, permissions or an invalid GIT_DIR;
-        # none justify bounded artifact claims under an automatic Git profile.
+        # Repository metadata, permissions, or discovered markers can all make
+        # a failed Git probe ambiguous; none justify an automatic downgrade.
         marker_found = False
+        marker_path = None
         for directory in (workspace, *workspace.parents):
             try:
                 (directory / ".git").lstat()
                 marker_found = True
+                marker_path = directory / ".git"
                 break
             except FileNotFoundError:
                 continue
         non_git = (not marker_found and root.returncode == 128
                    and root.stderr.startswith(b"fatal: not a git repository"))
         if not non_git:
-            raise ValueError("Git discovery failed; repair the repository or explicitly select bounded artifact mode")
+            detail = " ".join(root.stderr.decode(errors="replace").split())[:300]
+            marker = f"; marker={marker_path}" if marker_path is not None else ""
+            raise ValueError(
+                "Git discovery failed"
+                f" (exit={root.returncode}{marker}; stderr={detail or 'empty'}); "
+                "repair the repository or explicitly select bounded artifact mode"
+            )
     if mode == "artifact" or non_git:
         return {"mode": "artifact", "coverage": "declared source_paths only",
                 "sources": source_identity(workspace, profile["source_paths"]),

@@ -225,6 +225,14 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.value, 1)
         self.assertEqual(result.metadata["grader_usage"]["input_tokens"], 24)
         self.assertEqual([p["phase"] for p in result.metadata["grader_phases"]], ["artifact-before-claims", "claims-after-artifact"])
+        phase_records = result.metadata["grader_phases"]
+        self.assertEqual(phase_records[0]["raw_completion"], '{"score":1,"explanation":"duplicate policy"}')
+        self.assertEqual(
+            phase_records[0]["raw_completion_sha256"],
+            skills.hashlib.sha256(phase_records[0]["raw_completion"].encode()).hexdigest(),
+        )
+        self.assertEqual(phase_records[0]["raw_codex_jsonl"], usage)
+        self.assertEqual(state.store.get("grader_phase_records"), phase_records)
 
     async def test_invalid_artifact_assessment_fails_closed_and_missing_usage_stays_unknown(self):
         for answer in ('{"score":true,"explanation":"wrong type"}', '[]', 'not JSON'):

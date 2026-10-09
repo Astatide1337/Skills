@@ -115,7 +115,7 @@ class PortableToolsTests(unittest.TestCase):
     def test_artifact_modes_and_old_failed_or_profile_changed_receipts(self):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw); (root / "package.json").write_text("{}")
-            spec = self.receipt_profile()
+            spec = self.receipt_profile(mode="artifact")
             receipt = profile.run(spec, root)
             self.assertTrue(receipt["passed"])
             self.assertEqual(receipt["workspace_after"]["mode"], "artifact")
@@ -131,6 +131,75 @@ class PortableToolsTests(unittest.TestCase):
             spec = self.receipt_profile(mode="artifact")
             receipt = profile.run(spec, root)
             self.assertEqual(receipt["workspace_after"]["coverage"], "declared source_paths only")
+
+    def test_auto_git_discovery_ignores_an_inherited_checkout_context(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self.git_workspace(root)
+            spec = self.receipt_profile()
+            inherited = {
+                "GIT_DIR": str(ROOT / ".git"),
+                "GIT_WORK_TREE": str(ROOT),
+                "GIT_INDEX_FILE": str(ROOT / ".git" / "index"),
+                "GIT_CONFIG_COUNT": "1",
+                "GIT_CONFIG_KEY_0": "core.worktree",
+                "GIT_CONFIG_VALUE_0": str(ROOT),
+            }
+            from unittest.mock import patch
+            with patch.dict(os.environ, inherited, clear=False):
+                receipt = profile.run(spec, root)
+            self.assertTrue(receipt["passed"])
+            self.assertEqual(receipt["workspace_after"]["mode"], "git")
+            self.assertEqual(
+                receipt["workspace_after"]["revision"],
+                subprocess.run(
+                    ["git", "-C", str(root), "rev-parse", "--verify", "HEAD"],
+                    check=True, capture_output=True, text=True,
+                ).stdout.strip(),
+            )
+
+    def test_receipt_cli_ignores_an_inherited_checkout_context(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            app = root / "app"
+            app.mkdir()
+            self.git_workspace(app)
+            config = {
+                "version": 1,
+                "source_paths": ["package.json"],
+                "steps": [{
+                    "id": "check",
+                    "phase": "drive",
+                    "argv": [sys.executable, "-c", "print('{\"ok\":true}')"],
+                    "timeout": 2,
+                    "expect": {"/ok": True},
+                }],
+            }
+            profile_path = root / "profile.json"
+            profile_path.write_text(json.dumps(config))
+            receipt_path = root / "receipt.json"
+            argv = [
+                sys.executable,
+                str(ROOT / "skills/verify-work/scripts/check_profile.py"),
+                "--profile", str(profile_path),
+                "--workspace", str(app),
+                "--receipt", str(receipt_path),
+            ]
+            inherited = os.environ.copy()
+            inherited.update({
+                "GIT_DIR": str(ROOT / ".git"),
+                "GIT_WORK_TREE": str(ROOT),
+                "GIT_INDEX_FILE": str(ROOT / ".git" / "index"),
+                "GIT_CONFIG_COUNT": "1",
+                "GIT_CONFIG_KEY_0": "core.worktree",
+                "GIT_CONFIG_VALUE_0": str(ROOT),
+            })
+
+            result = subprocess.run(argv, capture_output=True, text=True, env=inherited)
+            self.assertEqual(result.returncode, 0, (result.stdout, result.stderr))
+            receipt = json.loads(receipt_path.read_text())
+            self.assertTrue(receipt["passed"])
+            self.assertEqual(receipt["workspace_after"]["mode"], "git")
 
     def test_credentials_and_symlink_targets_are_never_content_inputs(self):
         with tempfile.TemporaryDirectory() as raw:
@@ -239,19 +308,19 @@ class PortableToolsTests(unittest.TestCase):
                 return {"id": phase, "phase": phase, "argv": [sys.executable, "-c", code], "timeout": 2, "expect": {"/ok": True}}
             steps = [step("start"), step("doctor"), step("drive", False), step("drive"), step("cleanup")]
             steps[3]["id"] = "later"
-            result = profile.run({"version": 1, "source_paths": ["source.py"], "steps": steps}, root)
+            result = profile.run({"version": 1, "source_paths": ["source.py"], "workspace_identity": {"mode": "artifact"}, "steps": steps}, root)
             self.assertFalse(result["passed"])
             self.assertEqual([s["status"] for s in result["checks"]], ["accepted", "accepted", "failed", "not-run", "accepted"])
             self.assertEqual((root / "operations").read_text(), "start\ndoctor\ndrive\ncleanup\n")
             steps[2] = step("drive")
-            self.assertTrue(profile.run({"version": 1, "source_paths": ["source.py"], "steps": steps}, root)["passed"])
+            self.assertTrue(profile.run({"version": 1, "source_paths": ["source.py"], "workspace_identity": {"mode": "artifact"}, "steps": steps}, root)["passed"])
 
     def test_green_command_cannot_hide_source_change(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "source.py").write_text("before")
             step = {"id": "change", "phase": "drive", "argv": [sys.executable, "-c", "from pathlib import Path; Path('source.py').write_text('after'); print('{\"ok\":true}')"], "timeout": 2, "expect": {"/ok": True}}
-            result = profile.run({"version": 1, "source_paths": ["source.py"], "steps": [step]}, root)
+            result = profile.run({"version": 1, "source_paths": ["source.py"], "workspace_identity": {"mode": "artifact"}, "steps": [step]}, root)
             self.assertFalse(result["passed"])
             self.assertEqual(result["checks"][0]["status"], "failed")
 
@@ -262,7 +331,7 @@ class PortableToolsTests(unittest.TestCase):
             steps = []
             for phase, code in [("start", ""), ("doctor", ""), ("drive", "Path('source').write_text('after');"), ("cleanup", "Path('source').write_text('before');")]:
                 steps.append({"id": phase, "phase": phase, "argv": [sys.executable, "-c", "from pathlib import Path; " + code + "print('{\"ok\":true}')"], "timeout": 2, "expect": {"/ok": True}})
-            result = profile.run({"version": 1, "source_paths": ["source"], "steps": steps}, root)
+            result = profile.run({"version": 1, "source_paths": ["source"], "workspace_identity": {"mode": "artifact"}, "steps": steps}, root)
             self.assertEqual((root / "source").read_text(), "before")
             self.assertFalse(result["passed"])
             self.assertEqual(result["checks"][2]["status"], "failed")
@@ -280,7 +349,7 @@ class PortableToolsTests(unittest.TestCase):
             root = Path(tmp)
             (root / "source").write_text("known")
             steps = [{"id": phase, "phase": phase, "argv": [sys.executable, "-c", "raise SystemExit(4)" if phase == "start" else "print('{\"ok\":true}')"], "timeout": 2, "expect": {"/ok": True}} for phase in ["start", "doctor", "drive", "cleanup"]]
-            result = profile.run({"version": 1, "source_paths": ["source"], "steps": steps}, root)
+            result = profile.run({"version": 1, "source_paths": ["source"], "workspace_identity": {"mode": "artifact"}, "steps": steps}, root)
             self.assertFalse(result["passed"])
             self.assertEqual(result["checks"][-1]["status"], "accepted")
 
@@ -299,15 +368,17 @@ class PortableToolsTests(unittest.TestCase):
             app = root / "app"
             app.mkdir()
             (app / "source").write_text("known")
-            config = {"version": 1, "source_paths": ["source"], "steps": [{"id": "check", "phase": "drive", "argv": [sys.executable, "-c", "print('{\"ok\":true}')"], "timeout": 2, "expect": {"/ok": True}}]}
+            config = {"version": 1, "source_paths": ["source"], "workspace_identity": {"mode": "artifact"}, "steps": [{"id": "check", "phase": "drive", "argv": [sys.executable, "-c", "print('{\"ok\":true}')"], "timeout": 2, "expect": {"/ok": True}}]}
             path = root / "profile.json"
             path.write_text(json.dumps(config))
             receipt = root / "receipt.json"
             argv = [sys.executable, str(ROOT / "skills/verify-work/scripts/check_profile.py"), "--profile", str(path), "--workspace", str(app), "--receipt", str(receipt)]
-            self.assertEqual(subprocess.run(argv, capture_output=True).returncode, 0)
+            created = subprocess.run(argv, capture_output=True, text=True)
+            self.assertEqual(created.returncode, 0, (created.stdout, created.stderr))
             self.assertEqual(receipt.stat().st_mode & 0o777, 0o600)
             original = receipt.read_bytes()
-            self.assertEqual(subprocess.run(argv, capture_output=True).returncode, 2)
+            repeated = subprocess.run(argv, capture_output=True, text=True)
+            self.assertEqual(repeated.returncode, 2, (repeated.stdout, repeated.stderr))
             self.assertEqual(receipt.read_bytes(), original)
 
     def test_source_escape_rejected(self):
