@@ -30,6 +30,13 @@ rollback gates.
    Mark each edge with the exact observation source and scope. Compare a
    failing request with one allowed control from the same source and namespace
    where practical.
+   Carry the diagnosis as a cited chain: connect the initiating peer to the
+   target address or source tuple, then to a time-stamped listener state or
+   matching filter rule, then to the failed request and any paired counter
+   change. Name both the affected component and the interface, namespace,
+   chain, or other boundary scope. When configuration and runtime observations
+   differ, cite both and describe configured intent separately from the later
+   observed runtime.
 3. **Take the smallest read-only snapshot.** After confirming the target and
    permission, collect only the observations needed to separate the next two
    plausible layers. Typical Linux commands are `getent ahosts <name>`,

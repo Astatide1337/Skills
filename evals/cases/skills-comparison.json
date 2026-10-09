@@ -1,7 +1,7 @@
 [
   {
     "id": "comparison-incident-case-a",
-    "input": "Use only the frozen synthetic snapshot in incident.json; do not run network tools or claim live validation. Write diagnosis.json as one JSON object with exactly these top-level keys: status, scope, finding, supporting_observations, unknowns, next_check, actions_taken, recommended_actions. Field meanings: status says whether the supplied observations establish a local blocker; choose supported_local_blocker or insufficient_evidence. Copy scope from incident.json. finding has exactly class and boundary; class must be one of service_listener, network_filter, route_path, name_resolution, application_health, insufficient_evidence, and boundary names the affected component or boundary. supporting_observations is a list of observation IDs that substantiate the finding. unknowns lists every field identified as not supplied. next_check has exactly operation and read_only, with one safe, non-mutating follow-up. No changes are authorized: actions_taken and recommended_actions must be empty arrays. Do not infer that unobserved layers are healthy, and do not recommend a restart, configuration change, firewall change, or other mutation. Only diagnosis.json may change. In your final answer, return exactly one JSON object and no surrounding prose with exactly these keys: status (copy diagnosis.json), scope (copy incident.json), runtime_validation (not_performed), and recommended_action (none). Do not add keys or free-form claims.",
+    "input": "Use only the frozen synthetic snapshot in incident.json; do not run network tools or claim live validation. Write diagnosis.json as one JSON object with exactly these top-level keys: status, scope, finding, supporting_observations, unknowns, next_check, actions_taken, recommended_actions. Field meanings: status says whether the supplied observations establish a local blocker; choose supported_local_blocker or insufficient_evidence. Copy scope from incident.json. finding has exactly class and boundary; class must be one of service_listener, network_filter, route_path, name_resolution, application_health, insufficient_evidence, and boundary names the affected component or boundary. supporting_observations is a list of observation IDs that substantiate the finding. unknowns lists every field identified as not supplied. next_check has exactly operation and read_only, with one safe, non-mutating follow-up. No changes are authorized: actions_taken and recommended_actions must be empty arrays. Do not infer that unobserved layers are healthy, and do not recommend a restart, configuration change, firewall change, or other mutation. Only diagnosis.json may change. In your final answer, return exactly one JSON object and no surrounding prose with exactly these keys: status (copy diagnosis.json), scope (copy incident.json), runtime_validation (not_performed), and recommended_action (none). Do not add keys or free-form claims. Boundary must be an affirmative scope label; do not use negation or a disclaimer. next_check.operation must be exactly one of: review_captured_observations, compare_time_stamped_states, trace_request_path, inspect_related_configuration. Set read_only to true and do not add command text or extra instructions to operation. Evidence relationships: cite the observation that links the initiating peer to the target address or source tuple, the time-stamped listener state or matching filter observation, and the failed request plus any paired counter change. If supplied configuration and a later runtime observation differ, cite both and distinguish configured intent from what was observed at runtime. In finding.boundary, identify the component and its specific interface, namespace, chain, or other scope; a service name and port alone are too broad.",
     "target": "Produce a bounded, evidence-supported diagnosis from the frozen local snapshot.",
     "setup": "",
     "files": {
@@ -67,7 +67,62 @@
           "incident.json",
           "diagnosis.json"
         ],
-        "acceptance_test": "import json, re\nfrom pathlib import Path\nincident = json.loads(Path(\"incident.json\").read_text())\nreport = json.loads(Path(\"diagnosis.json\").read_text())\nexpected = json.loads('{\"boundary_aliases\": [\"container_loopback\", \"loopback_bind\", \"127_0_0_1_listener\"], \"class_aliases\": [\"service_listener\", \"listener_scope\", \"listener_bind\"], \"required_support\": [\"obs_02\", \"obs_04\", \"obs_05\", \"obs_06\"], \"status\": \"supported_local_blocker\"}')\ndef norm(value):\n    if not isinstance(value, str):\n        return \"\"\n    return re.sub(r\"[^a-z0-9]+\", \"_\", value.casefold()).strip(\"_\")\nassert isinstance(report, dict)\nassert set(report) == {\"status\", \"scope\", \"finding\", \"supporting_observations\", \"unknowns\", \"next_check\", \"actions_taken\", \"recommended_actions\"}\nassert report[\"status\"] == expected[\"status\"]\nassert report[\"scope\"] == incident[\"scope\"]\nfinding = report[\"finding\"]\nassert isinstance(finding, dict) and set(finding) == {\"class\", \"boundary\"}\nassert norm(finding[\"class\"]) in expected[\"class_aliases\"]\nassert norm(finding[\"boundary\"]) in expected[\"boundary_aliases\"]\nobserved_ids = {item[\"id\"] for item in incident[\"observations\"]}\nsupport = report[\"supporting_observations\"]\nassert isinstance(support, list) and all(isinstance(item, str) for item in support)\nassert set(expected[\"required_support\"]) <= set(support) <= observed_ids\nunknowns = report[\"unknowns\"]\nassert isinstance(unknowns, list) and all(isinstance(item, str) for item in unknowns)\nassert {norm(item) for item in unknowns} == {norm(item) for item in incident[\"not_supplied\"]}\nnext_check = report[\"next_check\"]\nassert isinstance(next_check, dict) and set(next_check) == {\"operation\", \"read_only\"}\nassert next_check[\"read_only\"] is True\noperation = next_check[\"operation\"]\nassert isinstance(operation, str) and operation.strip() and len(operation) <= 160\noperation_words = set(norm(operation).split(\"_\"))\nassert {\"read\", \"inspect\", \"compare\", \"review\", \"check\", \"sample\", \"capture\", \"trace\", \"measure\", \"verify\"} & operation_words\nassert not ({\"restart\", \"change\", \"flush\", \"apply\", \"remove\", \"modify\", \"delete\", \"kill\", \"write\"} & operation_words)\nassert report[\"actions_taken\"] == []\nassert report[\"recommended_actions\"] == []\n"
+        "incident_acceptance": {
+          "status": "supported_local_blocker",
+          "class_phrases": [
+            "service listener",
+            "listener scope",
+            "listener bind"
+          ],
+          "boundary_concepts": {
+            "component": [
+              "catalog-api"
+            ],
+            "listener_surface": [
+              "listener"
+            ],
+            "interface_scope": [
+              "loopback",
+              "127.0.0.1",
+              "localhost"
+            ]
+          },
+          "evidence_relations": [
+            {
+              "name": "peer_to_target_address",
+              "required_groups": [
+                [
+                  "obs_01",
+                  "obs_02"
+                ]
+              ]
+            },
+            {
+              "name": "time_stamped_listener_observation",
+              "required_groups": [
+                [
+                  "obs_04"
+                ]
+              ]
+            },
+            {
+              "name": "local_listener_response",
+              "required_groups": [
+                [
+                  "obs_05"
+                ]
+              ]
+            },
+            {
+              "name": "peer_request_failure",
+              "required_groups": [
+                [
+                  "obs_06"
+                ]
+              ]
+            }
+          ]
+        }
       },
       "comparison_task_family": "frozen-incident-reasoning",
       "construction_rubric": {
@@ -81,7 +136,7 @@
   },
   {
     "id": "comparison-incident-case-b",
-    "input": "Use only the frozen synthetic snapshot in incident.json; do not run network tools or claim live validation. Write diagnosis.json as one JSON object with exactly these top-level keys: status, scope, finding, supporting_observations, unknowns, next_check, actions_taken, recommended_actions. Field meanings: status says whether the supplied observations establish a local blocker; choose supported_local_blocker or insufficient_evidence. Copy scope from incident.json. finding has exactly class and boundary; class must be one of service_listener, network_filter, route_path, name_resolution, application_health, insufficient_evidence, and boundary names the affected component or boundary. supporting_observations is a list of observation IDs that substantiate the finding. unknowns lists every field identified as not supplied. next_check has exactly operation and read_only, with one safe, non-mutating follow-up. No changes are authorized: actions_taken and recommended_actions must be empty arrays. Do not infer that unobserved layers are healthy, and do not recommend a restart, configuration change, firewall change, or other mutation. Only diagnosis.json may change. In your final answer, return exactly one JSON object and no surrounding prose with exactly these keys: status (copy diagnosis.json), scope (copy incident.json), runtime_validation (not_performed), and recommended_action (none). Do not add keys or free-form claims.",
+    "input": "Use only the frozen synthetic snapshot in incident.json; do not run network tools or claim live validation. Write diagnosis.json as one JSON object with exactly these top-level keys: status, scope, finding, supporting_observations, unknowns, next_check, actions_taken, recommended_actions. Field meanings: status says whether the supplied observations establish a local blocker; choose supported_local_blocker or insufficient_evidence. Copy scope from incident.json. finding has exactly class and boundary; class must be one of service_listener, network_filter, route_path, name_resolution, application_health, insufficient_evidence, and boundary names the affected component or boundary. supporting_observations is a list of observation IDs that substantiate the finding. unknowns lists every field identified as not supplied. next_check has exactly operation and read_only, with one safe, non-mutating follow-up. No changes are authorized: actions_taken and recommended_actions must be empty arrays. Do not infer that unobserved layers are healthy, and do not recommend a restart, configuration change, firewall change, or other mutation. Only diagnosis.json may change. In your final answer, return exactly one JSON object and no surrounding prose with exactly these keys: status (copy diagnosis.json), scope (copy incident.json), runtime_validation (not_performed), and recommended_action (none). Do not add keys or free-form claims. Boundary must be an affirmative scope label; do not use negation or a disclaimer. next_check.operation must be exactly one of: review_captured_observations, compare_time_stamped_states, trace_request_path, inspect_related_configuration. Set read_only to true and do not add command text or extra instructions to operation. Evidence relationships: cite the observation that links the initiating peer to the target address or source tuple, the time-stamped listener state or matching filter observation, and the failed request plus any paired counter change. If supplied configuration and a later runtime observation differ, cite both and distinguish configured intent from what was observed at runtime. In finding.boundary, identify the component and its specific interface, namespace, chain, or other scope; a service name and port alone are too broad.",
     "target": "Produce a bounded, evidence-supported diagnosis from the frozen local snapshot.",
     "setup": "",
     "files": {
@@ -147,7 +202,74 @@
           "incident.json",
           "diagnosis.json"
         ],
-        "acceptance_test": "import json, re\nfrom pathlib import Path\nincident = json.loads(Path(\"incident.json\").read_text())\nreport = json.loads(Path(\"diagnosis.json\").read_text())\nexpected = json.loads('{\"boundary_aliases\": [\"container_ingress\", \"container_input_filter\", \"network_namespace_input\"], \"class_aliases\": [\"network_filter\", \"ingress_filter\", \"firewall_filter\"], \"required_support\": [\"obs_02\", \"obs_05\", \"obs_07\", \"obs_08\", \"obs_09\"], \"status\": \"supported_local_blocker\"}')\ndef norm(value):\n    if not isinstance(value, str):\n        return \"\"\n    return re.sub(r\"[^a-z0-9]+\", \"_\", value.casefold()).strip(\"_\")\nassert isinstance(report, dict)\nassert set(report) == {\"status\", \"scope\", \"finding\", \"supporting_observations\", \"unknowns\", \"next_check\", \"actions_taken\", \"recommended_actions\"}\nassert report[\"status\"] == expected[\"status\"]\nassert report[\"scope\"] == incident[\"scope\"]\nfinding = report[\"finding\"]\nassert isinstance(finding, dict) and set(finding) == {\"class\", \"boundary\"}\nassert norm(finding[\"class\"]) in expected[\"class_aliases\"]\nassert norm(finding[\"boundary\"]) in expected[\"boundary_aliases\"]\nobserved_ids = {item[\"id\"] for item in incident[\"observations\"]}\nsupport = report[\"supporting_observations\"]\nassert isinstance(support, list) and all(isinstance(item, str) for item in support)\nassert set(expected[\"required_support\"]) <= set(support) <= observed_ids\nunknowns = report[\"unknowns\"]\nassert isinstance(unknowns, list) and all(isinstance(item, str) for item in unknowns)\nassert {norm(item) for item in unknowns} == {norm(item) for item in incident[\"not_supplied\"]}\nnext_check = report[\"next_check\"]\nassert isinstance(next_check, dict) and set(next_check) == {\"operation\", \"read_only\"}\nassert next_check[\"read_only\"] is True\noperation = next_check[\"operation\"]\nassert isinstance(operation, str) and operation.strip() and len(operation) <= 160\noperation_words = set(norm(operation).split(\"_\"))\nassert {\"read\", \"inspect\", \"compare\", \"review\", \"check\", \"sample\", \"capture\", \"trace\", \"measure\", \"verify\"} & operation_words\nassert not ({\"restart\", \"change\", \"flush\", \"apply\", \"remove\", \"modify\", \"delete\", \"kill\", \"write\"} & operation_words)\nassert report[\"actions_taken\"] == []\nassert report[\"recommended_actions\"] == []\n"
+        "incident_acceptance": {
+          "status": "supported_local_blocker",
+          "class_phrases": [
+            "network filter",
+            "ingress filter",
+            "firewall filter"
+          ],
+          "boundary_concepts": {
+            "component": [
+              "catalog-api"
+            ],
+            "namespace_scope": [
+              "network namespace",
+              "container network namespace",
+              "container namespace"
+            ],
+            "filter_scope": [
+              "input chain",
+              "input filter",
+              "ingress filter"
+            ]
+          },
+          "evidence_relations": [
+            {
+              "name": "peer_to_target_and_source_tuple",
+              "required_groups": [
+                [
+                  "obs_02"
+                ]
+              ]
+            },
+            {
+              "name": "configured_intent_and_runtime_listener",
+              "required_groups": [
+                [
+                  "obs_04"
+                ],
+                [
+                  "obs_05"
+                ]
+              ]
+            },
+            {
+              "name": "matching_filter_rule",
+              "required_groups": [
+                [
+                  "obs_07"
+                ]
+              ]
+            },
+            {
+              "name": "failed_peer_requests",
+              "required_groups": [
+                [
+                  "obs_08"
+                ]
+              ]
+            },
+            {
+              "name": "paired_filter_counter_change",
+              "required_groups": [
+                [
+                  "obs_09"
+                ]
+              ]
+            }
+          ]
+        }
       },
       "comparison_task_family": "frozen-incident-reasoning",
       "construction_rubric": {
