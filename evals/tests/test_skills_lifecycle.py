@@ -34,7 +34,7 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(locator.stop)
 
     async def test_native_catalog_locator_resolves_frozen_bytes_only_when_installed(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(dir=skills.REPO_ROOT.parent) as directory:
             root = Path(directory)
             task_home = root / "task-home"
             (task_home / ".cache").mkdir(parents=True)
@@ -128,6 +128,8 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
                         if isolated:
                             seen_directory = Path(command[command.index("--cd") + 1])
                             self.assertTrue(seen_directory.is_dir())
+                            self.assertEqual(seen_directory.parent, skills._native_ephemeral_cache())
+                            self.assertFalse(seen_directory.is_relative_to(Path("/tmp")))
                             self.assertEqual(list(seen_directory.iterdir()), [])
                         else:
                             self.assertNotIn("--cd", command)
@@ -419,6 +421,66 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 )(state, None)
             self.assertEqual(result.output.metadata["skills_identity"], expected_identity)
             self.assertNotEqual(skills._skills_identity(root), expected_identity)
+
+    def test_snapshot_and_logical_catalog_use_owned_cache_and_are_cleaned(self):
+        with tempfile.TemporaryDirectory(dir=skills.REPO_ROOT.parent) as raw:
+            root = Path(raw).resolve()
+            home = root / "home"
+            cache = home / ".cache"
+            cache.mkdir(parents=True)
+            catalog = root / "catalog"
+            package = catalog / "example"
+            package.mkdir(parents=True)
+            (package / "SKILL.md").write_text("owned frozen instructions")
+            (package / "reference.txt").write_text("owned reference bytes")
+            auth = root / "dummy-auth.json"
+            auth.write_text("{}")
+            with patch.object(Path, "home", return_value=home), patch.object(skills, "AUTH_FILE", auth):
+                with skills.frozen_skills(catalog) as snapshot:
+                    snapshot_directory = snapshot.parent
+                    self.assertEqual(snapshot_directory.parent, cache)
+                    self.assertEqual(snapshot_directory.stat().st_mode & 0o777, 0o700)
+                    self.assertFalse(snapshot.is_relative_to(Path("/tmp")))
+                    self.assertEqual(skills._skills_identity(snapshot), skills._skills_identity(catalog))
+                    with skills.isolated_codex_home(True, skills_root=snapshot) as isolated:
+                        isolated_home = Path(isolated)
+                        self.assertEqual(isolated_home.parent, cache)
+                        for path in (snapshot / "example/SKILL.md", isolated_home / "skills/example/SKILL.md", isolated_home / "skills/.system/example/SKILL.md"):
+                            self.assertEqual(path.read_text(), "owned frozen instructions")
+                        config = skills._native_permission_config(binary=self.native_binary,
+                            workspace=self.native_workspace, home=isolated_home,
+                            sandbox_mode="workspace-write", skills_root=snapshot)
+                        readable = config["permissions.skills-eval.filesystem"]
+                        self.assertEqual(readable[str(snapshot)], "read")
+                        self.assertEqual(readable[str(isolated_home / "skills")], "read")
+                        self.assertNotIn(str(cache), readable)
+                        self.assertNotIn(str(isolated_home), readable)
+                        self.assertEqual(readable[":tmpdir"], "deny")
+                        self.assertEqual(readable[":slash_tmp"], "deny")
+                self.assertFalse(snapshot_directory.exists())
+                self.assertFalse(isolated_home.exists())
+                self.assertEqual(list(cache.iterdir()), [])
+                with patch.dict(os.environ, {"TMPDIR":str(cache)}), self.assertRaisesRegex(RuntimeError, "denied temporary root"):
+                    skills._native_ephemeral_cache()
+
+    async def test_catalog_cache_in_denied_temp_root_stops_before_native_launch(self):
+        with tempfile.TemporaryDirectory() as raw:
+            home = Path(raw)
+            (home / ".cache").mkdir()
+            catalog = home / "catalog"
+            package = catalog / "example"
+            package.mkdir(parents=True)
+            (package / "SKILL.md").write_text("owned instructions")
+            state = self._workflow_state(forbidden=[])
+            state.metadata = {"skill":"example"}
+            launcher = AsyncMock()
+            with (patch.object(Path, "home", return_value=home),
+                  patch.object(skills, "_revision_identity", return_value="owned-fixture"),
+                  patch.object(skills, "run_codex", launcher)):
+                with self.assertRaisesRegex(RuntimeError, "denied temporary root"):
+                    await skills.native_codex(with_skills=True, model="stub/model", skills_root=catalog)(state, None)
+            launcher.assert_not_awaited()
+            self.assertEqual(list((home / ".cache").iterdir()), [])
 
     def test_catalog_identity_covers_references_and_rejects_external_links(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

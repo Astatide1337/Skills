@@ -138,6 +138,26 @@ ROUTING_EXPECTED_OVERRIDES: dict[str, list[str]] = {
 }
 
 
+def _native_ephemeral_cache() -> Path:
+    """Choose existing owned storage visible outside denied temporary roots."""
+
+    cache = (Path.home() / ".cache").resolve()
+    denied = {Path("/tmp").resolve(), Path(tempfile.gettempdir()).resolve()}
+    if os.environ.get("TMPDIR"):
+        denied.add(Path(os.environ["TMPDIR"]).resolve())
+    if any(cache.is_relative_to(root) for root in denied):
+        raise RuntimeError(
+            "native ephemeral cache is inside a denied temporary root; "
+            "use an existing user-owned ~/.cache outside temporary roots"
+        )
+    try:
+        if not cache.is_dir() or cache.stat().st_uid != os.geteuid():
+            raise RuntimeError("native ephemeral ~/.cache must be an existing user-owned directory")
+    except OSError as exc:
+        raise RuntimeError("native ephemeral ~/.cache is unavailable") from exc
+    return cache
+
+
 def isolated_codex_home(
     with_skills: bool,
     *,
@@ -150,7 +170,7 @@ def isolated_codex_home(
     # aliases) while still cleaning it up after each sample.
     directory = tempfile.TemporaryDirectory(
         prefix="work-session-",
-        dir=str(Path.home() / ".cache"),
+        dir=str(_native_ephemeral_cache()),
     )
     home = Path(directory.name)
     if not AUTH_FILE.is_file():
@@ -301,7 +321,9 @@ async def run_codex(
         )
     with (
         isolated_codex_home(with_skills, skills_root=skills_root) as codex_home,
-        tempfile.TemporaryDirectory(prefix="review-workspace-")
+        tempfile.TemporaryDirectory(
+            prefix="review-workspace-", dir=str(_native_ephemeral_cache()),
+        )
         if isolate_workspace else nullcontext(None) as review_directory,
     ):
         if global_rules is not None:
@@ -799,7 +821,11 @@ def _skills_identity(root: Path) -> str:
 def frozen_skills(root: Path):
     """Hold a private catalog snapshot for one native candidate's lifetime."""
 
-    with tempfile.TemporaryDirectory(prefix="work-guidance-") as directory:
+    # The profile denies /tmp and TMPDIR even when a nested catalog read grant
+    # is present. Keep the actual snapshot next to the isolated home instead.
+    with tempfile.TemporaryDirectory(
+        prefix="work-guidance-", dir=str(_native_ephemeral_cache()),
+    ) as directory:
         snapshot = Path(directory) / "skills"
         shutil.copytree(
             root, snapshot, symlinks=True,

@@ -45,6 +45,21 @@ the selected canonical catalog and its logical home/skills directory. Neither
 the surrounding Codex home, authentication file, other arm nor evaluator source
 receives a read grant. Grading receives a separate empty workspace.
 
+Frozen instruction bytes live in an ephemeral `~/.cache/work-guidance-*/skills`
+snapshot; isolated Codex homes use `~/.cache/work-session-*`. Both use the
+existing user-owned canonical cache directory and are removed when their
+contexts close. Refuse a cache that resolves under `/tmp`, the configured
+`TMPDIR`, or the default temporary directory before native launch. A catalog
+snapshot under a denied temporary root is unreadable on the tested CLI even
+with an explicit nested catalog grant; do not restore it by weakening the
+temporary-root policy. Grant only the selected snapshot and logical skills
+directory, never the cache parent or surrounding authentication home.
+Isolated grading workspaces also use `~/.cache/review-workspace-*` and retain
+read-only workspace access with no catalog. On the tested CLI, an explicitly
+readable grader workspace under `/tmp` still loses to the temporary-root denial.
+Ordinary candidate Inspect workspaces keep their existing location and
+workspace-write binding.
+
 Each returned native JSONL stream includes a runner-owned
 `skills_eval.native_permissions` receipt with the requested profile and binary
 SHA-256. Launch failures retain that configuration too. This is configuration
