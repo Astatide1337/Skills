@@ -11,16 +11,13 @@ itself, and remains useful outside the conversation.
 
 ## Lock the deliverable
 
-HTML artifacts are disposable deliverables and must never dirty a repository,
-home directory, project tree, or other persistent location. Before designing,
-create a dedicated directory directly beneath `/tmp` with `mktemp -d`, then
-write, validate, open, and finally link the artifact from that directory.
+Default to a dedicated directory directly beneath `/tmp`, created with
+`mktemp -d`, so disposable artifacts do not dirty a repository. Write, validate,
+open and finally link the artifact from that directory. An explicit user output
+path takes precedence; preserve it without adding an unrequested second copy.
 
-Preserve an explicitly requested filename, but place it beneath the new `/tmp`
-directory. If the user supplies a path outside `/tmp`, explain that the skill's
-artifact-isolation rule requires relocating the file to `/tmp`; do not write a
-second copy at the requested persistent path. When no filename is supplied,
-choose a descriptive kebab-case `.html` filename inside the new directory.
+Preserve an explicitly requested filename. When no filename is supplied, choose
+a descriptive kebab-case `.html` filename inside the dedicated directory.
 
 ## Decide the medium
 
@@ -37,6 +34,9 @@ or a source document expected to receive frequent line-based review. Do not
 silently turn every plan, explanation, or summary into HTML. If the format is
 ambiguous, estimate whether HTML changes comprehension or enables an action;
 otherwise prefer the simpler medium.
+The coordinator's [approved-plan contract](../follow-instructions/references/approved-plans.md)
+explicitly requires HTML for nontrivial engineering approval; use its content
+requirements rather than reconsidering the medium or duplicating approval rules.
 
 ## Route by artifact
 
@@ -59,10 +59,10 @@ the product.
 
 Every artifact must:
 
-1. Exist only beneath a dedicated directory created directly under `/tmp` for
-   the current task. Preserve a requested filename, or choose one descriptive,
-   kebab-case `.html` filename when none is supplied. Resolve the final path
-   before writing and verify with `realpath` that it remains beneath `/tmp`.
+1. Exist at the explicit authorized output path or beneath the dedicated `/tmp`
+   directory for this task. Preserve a requested filename, or choose one
+   descriptive kebab-case `.html` filename. Resolve the final path before writing
+   and check that it remains within the authorized output boundary.
 2. Work offline with embedded CSS and JavaScript. Use inline SVG or data URIs
    for essential images. External links may be references, but external fonts,
    scripts, stylesheets, APIs, and runtime assets may not be required.
@@ -95,11 +95,10 @@ Every artifact must:
 3. **Sketch information architecture.** Decide what must be visible at first
    glance, what compares side by side, what can collapse, and how the reader
    navigates on mobile.
-4. **Implement the smallest complete file.** Create a dedicated output folder
-   with `mktemp -d` and confirm its canonical path begins with `/tmp/`. Prefer
+4. **Implement the smallest complete file.** Resolve the authorized output path;
+   absent an explicit path, create and confirm a dedicated `/tmp` folder. Prefer
    platform HTML, CSS, and JavaScript. Add interaction only when it reduces
-   cognitive or mechanical work. Preserve an explicit filename, but never its
-   non-temporary parent directory.
+   cognitive or mechanical work. Preserve an explicit filename and output path.
 5. **Validate the source.** Run:
 
    ```bash

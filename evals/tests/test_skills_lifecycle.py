@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import unittest
 import math
+import hashlib
+import json
+import os
 from unittest.mock import AsyncMock, patch
 from pathlib import Path
 import tempfile
@@ -18,6 +21,18 @@ from evals.workspace_evidence import Baseline, Evidence
 
 
 class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.native_binary = Path(directory.name) / "native-codex"
+        self.native_binary.write_bytes(b"\x7fELFoffline-test-double")
+        self.native_binary.chmod(0o700)
+        self.native_workspace = Path(directory.name) / "workspace"
+        self.native_workspace.mkdir()
+        locator = patch.object(skills, "_native_codex_binary", return_value=self.native_binary)
+        locator.start()
+        self.addCleanup(locator.stop)
+
     async def test_native_catalog_locator_resolves_frozen_bytes_only_when_installed(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -31,7 +46,7 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
             with patch.object(Path, "home", return_value=task_home):
                 for installed in (True, False):
                     async def execute(command, **kwargs):
-                        if command[0] == "codex":
+                        if command[0] == str(self.native_binary):
                             home = Path(kwargs["env"]["CODEX_HOME"])
                             prompt = kwargs["input"]
                             if installed:
@@ -44,7 +59,10 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
                                 self.assertFalse((home / "skills").exists())
                         return SimpleNamespace(success=True, returncode=0, stdout="", stderr="")
                     sandbox = SimpleNamespace(exec=AsyncMock(side_effect=execute), read_file=AsyncMock(return_value="answer"))
-                    with patch.object(skills, "AUTH_FILE", auth), patch.object(skills, "bwrap_preflight", return_value=None), patch.object(skills, "sandbox", return_value=sandbox):
+                    with (patch.object(skills, "AUTH_FILE", auth),
+                          patch.object(skills, "bwrap_preflight", return_value=None),
+                          patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(self.native_workspace, None))),
+                          patch.object(skills, "sandbox", return_value=sandbox)):
                         await skills.run_codex("User task", model="stub/model", with_skills=installed, sandbox_mode="read-only", skills_root=package.parent)
 
     async def test_shipped_routing_has_no_evaluator_hints(self):
@@ -69,6 +87,7 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 exec=AsyncMock(return_value=SimpleNamespace(success=True, returncode=0, stdout='', stderr='')))
             with (patch.object(skills, 'bwrap_preflight', return_value=None),
                   patch.object(skills, 'isolated_codex_home', return_value=skills.nullcontext(str(home))),
+                  patch.object(skills, '_sandbox_workspace_path', AsyncMock(return_value=(self.native_workspace, None))),
                   patch.object(skills, 'sandbox', return_value=native)):
                 await skills.run_codex('task', model='stub/model', with_skills=False,
                     sandbox_mode='workspace-write', global_rules='personal defaults')
@@ -97,9 +116,13 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
 
                 async def execute(command, **kwargs):
                     nonlocal seen_directory
-                    if command[0] == "codex":
+                    if command[0] == str(self.native_binary):
                         self.assertIn('model_reasoning_effort="medium"', command)
-                        self.assertEqual(command[command.index("--sandbox") + 1], "read-only")
+                        self.assertNotIn("--sandbox", command)
+                        self.assertIn('permissions.skills-eval.extends=":read-only"', command)
+                        self.assertIn("--strict-config", command)
+                        self.assertIn("--ignore-user-config", command)
+                        self.assertIn("--ignore-rules", command)
                         self.assertEqual(command[command.index("--model") + 1], "stub/model")
                         self.assertEqual(kwargs["input"], "supplied task only")
                         if isolated:
@@ -114,6 +137,7 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 with (
                     patch.object(skills, "bwrap_preflight", return_value=None),
                     patch.object(skills, "isolated_codex_home", return_value=skills.nullcontext(str(home))),
+                    patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(self.native_workspace, None))),
                     patch.object(skills, "sandbox", return_value=sandbox),
                 ):
                     answer, observed = await skills.run_codex(
@@ -121,7 +145,12 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
                         sandbox_mode="read-only", effort="medium", isolate_workspace=isolated,
                     )
                 self.assertEqual(answer, "answer")
-                self.assertEqual(observed, events)
+                self.assertTrue(observed.endswith(events))
+                receipt = json.loads(observed.splitlines()[0])
+                self.assertEqual(receipt["type"], "skills_eval.native_permissions")
+                self.assertEqual(receipt["native_binary_sha256"], hashlib.sha256(self.native_binary.read_bytes()).hexdigest())
+                roots = receipt["config"]["permissions.skills-eval.workspace_roots"]
+                self.assertEqual(roots, {str(seen_directory or self.native_workspace): True})
                 if seen_directory is not None:
                     self.assertFalse(seen_directory.exists())
 
@@ -134,6 +163,32 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("RUNNER-OBSERVED WORKSPACE LOCATION: /tmp/actual-workspace", rendered)
         self.assertIn("does not prove those files were read", rendered)
         self.assertIn("test unavailable", rendered)
+
+    async def test_failed_native_launch_retains_requested_policy_and_binary_hash(self):
+        with tempfile.TemporaryDirectory() as raw:
+            home = Path(raw)
+            for failure in (None, TimeoutError("bounded launch timeout")):
+                async def execute(command, **kwargs):
+                    if command[0] == str(self.native_binary):
+                        if failure is not None:
+                            raise failure
+                        return SimpleNamespace(success=False, returncode=1,
+                            stdout="failed command event", stderr="unsupported capability")
+                    return SimpleNamespace(success=True, returncode=0, stdout="", stderr="")
+                execution = SimpleNamespace(exec=AsyncMock(side_effect=execute))
+                with (self.subTest(failure=failure),
+                      patch.object(skills, "bwrap_preflight", return_value=None),
+                      patch.object(skills, "isolated_codex_home", return_value=skills.nullcontext(str(home))),
+                      patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(self.native_workspace, None))),
+                      patch.object(skills, "sandbox", return_value=execution)):
+                    with self.assertRaises(RuntimeError) as raised:
+                        await skills.run_codex("task", model="stub/model", with_skills=False, sandbox_mode="read-only")
+                    detail = str(raised.exception)
+                    self.assertIn("requested_permissions=", detail)
+                    self.assertIn("skills_eval.native_permissions", detail)
+                    self.assertIn(hashlib.sha256(self.native_binary.read_bytes()).hexdigest(), detail)
+                    self.assertIn("bounded launch timeout" if failure else "unsupported capability", detail)
+                    self.assertEqual(execution.exec.await_args_list[-1].args[0][:2], ["rm", "-f"])
 
     def test_invalid_effort_is_rejected_before_native_execution(self) -> None:
         for effort in ("unlimited", 'max"; unexpected', "", None):
@@ -504,6 +559,42 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(support["status"], "supported")
         self.assertFalse(result.completed)
 
+    async def test_native_tracker_socket_is_unavailable_before_any_launch(self):
+        sample = next(sample for sample in skills.workflows_dataset().samples
+            if sample.id == "workflow-investigate-create-issue")
+        for stored_status in (None, {"status":"supported"}):
+            with self.subTest(stored_status=stored_status):
+                state = TaskState(model="stub/model", sample_id=sample.id,
+                    epoch=1, input=sample.input, messages=[])
+                state.metadata = dict(sample.metadata)
+                state.store.set("workspace_baseline", Baseline(status="available", revision="abc"))
+                if stored_status is not None:
+                    state.store.set("workflow_support", stored_status)
+                launcher = AsyncMock()
+                resolver = AsyncMock()
+                with (patch.object(skills, "run_codex", launcher),
+                      patch.object(skills, "FakeTracker") as tracker,
+                      patch.object(skills, "_sandbox_workspace_path", resolver),
+                      patch.object(skills, "bwrap_preflight") as preflight):
+                    if stored_status is None:
+                        await skills.workflow_support_gate()(state, None)
+                    result = await skills.native_codex(with_skills=False, model="stub/model")(state, None)
+                support = result.store.get("workflow_support")
+                self.assertEqual(support["status"], "unavailable")
+                self.assertEqual(support["capabilities"], [])
+                self.assertIn("Unix socket", support["reason"])
+                self.assertIn("denied temporary root", support["reason"])
+                self.assertTrue(result.completed)
+                self.assertEqual(result.output.metadata["workflow_support_status"], "unavailable")
+                launcher.assert_not_awaited()
+                resolver.assert_not_awaited()
+                tracker.assert_not_called()
+                preflight.assert_not_called()
+                score = await skills.workflow_effects()(result, Target("publication"))
+                self.assertTrue(math.isnan(score.value))
+                self.assertEqual(score.metadata["status"], "unavailable")
+                self.assertTrue(score.metadata["acceptance_blocked"])
+
     async def test_workflow_support_gate_blocks_missing_boundary_before_model(self) -> None:
         state = self._workflow_state(forbidden=[])
         with patch.object(
@@ -626,6 +717,274 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
 
         launcher.assert_awaited_once()
         self.assertEqual(result.output.completion, "candidate completion")
+
+
+class ApprovalLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    """Adapter contract evidence only; these mocks are not model/reviewer runs."""
+
+    @staticmethod
+    def _sample():
+        return next(s for s in skills.workflows_dataset()
+                    if s.id == "workflow-native-plan-approved-continuation")
+
+    @classmethod
+    def _state(cls):
+        sample = cls._sample()
+        state = TaskState(model="gpt-6-luna", sample_id=sample.id, epoch=1,
+                          input=sample.input, messages=[], metadata=sample.metadata)
+        state.store.set("workspace_baseline", Baseline(status="available", revision="abc"))
+        state.store.set("workflow_support", {"status": "supported"})
+        return state
+
+    def test_both_arms_receive_identical_frozen_project_facts(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            globals_by_arm = {}
+            catalogs = {}
+            for arm in ("candidate", "baseline"):
+                globals_by_arm[arm] = root / f"{arm}-AGENTS.md"
+                globals_by_arm[arm].write_text(skills.GLOBAL_INSTRUCTIONS.read_text() + f"\n{arm} guidance version\n")
+                catalogs[arm] = root / arm / "skills"
+                (catalogs[arm] / "follow-instructions").mkdir(parents=True)
+                (catalogs[arm] / "follow-instructions/SKILL.md").write_text(f"{arm} instructions")
+            options = dict(native_model="gpt-6-luna", include_behavior_grader=False,
+                           case_ids=[self._sample().id], candidate_skills_root=str(catalogs["candidate"]),
+                           candidate_global_instructions=str(globals_by_arm["candidate"]),
+                           baseline_skills_root=str(catalogs["baseline"]),
+                           baseline_global_instructions=str(globals_by_arm["baseline"]))
+            candidate = skills.workflows(arm="candidate", **options).dataset[0]
+            baseline = skills.workflows(arm="baseline", **options).dataset[0]
+            self.assertNotEqual(candidate.metadata["global_identity"], baseline.metadata["global_identity"])
+            self.assertNotEqual(candidate.metadata["comparison_skills_root"], baseline.metadata["comparison_skills_root"])
+            for field in ("id", "input", "files", "setup"):
+                self.assertEqual(getattr(candidate, field), getattr(baseline, field))
+            for field in ("fixture_contract", "approval_turn", "required_capabilities", "allowed_paths"):
+                self.assertEqual(candidate.metadata[field], baseline.metadata[field])
+
+    async def test_observed_plan_precedes_confirmation_and_same_catalog_resume(self):
+        state = self._state()
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            for path, text in self._sample().files.items():
+                (root / path).write_text(text)
+            package = root / "catalog" / "follow-instructions"
+            package.mkdir(parents=True)
+            instruction = package / "SKILL.md"
+            instruction.write_text("FROZEN_GUIDANCE")
+            loaded_roots = []
+            plan = '<!doctype html><html><head><title>CSV proposal</title></head><body><main>Duplicate headers raise ValueError; interface unchanged.</main></body></html>'
+            events = '{"type":"turn.completed","usage":{"input_tokens":12,"cached_input_tokens":5,"output_tokens":3}}'
+
+            async def launch(prompt, **kwargs):
+                loaded_roots.append(kwargs["skills_root"])
+                self.assertEqual(kwargs["model"], "gpt-6-luna")
+                self.assertEqual(kwargs["effort"], "medium")
+                self.assertEqual((kwargs["skills_root"] / "follow-instructions/SKILL.md").read_text(), "FROZEN_GUIDANCE")
+                self.assertEqual(kwargs["global_rules"], state.metadata["global_rules"])
+                for hidden in ("fixture_contract", "comparison_arm", state.metadata["fixture_contract"]["heldout_test"]):
+                    self.assertNotIn(hidden, prompt)
+                if len(loaded_roots) == 1:
+                    self.assertNotIn("User confirmation:", prompt)
+                    (root / "proposal.html").write_text(plan)
+                    instruction.write_text("CONCURRENT_EDIT")
+                    return "Plan awaiting approval", events
+                self.assertEqual(state.store.get("native_approval")["status"], "ready")
+                self.assertIn(hashlib.sha256(plan.encode()).hexdigest(), prompt)
+                self.assertIn(state.input_text, prompt)
+                (root / "importer.py").write_text(state.metadata["fixture_contract"]["write_content"])
+                return "Local regression passed; independent review unavailable", events
+
+            launcher = AsyncMock(side_effect=launch)
+            observed = Evidence(available=True, status="available", untracked_paths=("proposal.html",), has_changes=True)
+            with (patch.object(skills, "run_codex", launcher),
+                  patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(root, None))),
+                  patch.object(skills, "collect_evidence", return_value=observed)):
+                result = await skills.native_codex(with_skills=True, model="gpt-6-luna", inject_skill=False,
+                                                  skills_root=package.parent)(state, None)
+            self.assertEqual(launcher.await_count, 2)
+            self.assertEqual(loaded_roots[0], loaded_roots[1])
+            self.assertNotEqual(loaded_roots[0], package.parent)
+            self.assertFalse(loaded_roots[0].exists())
+            receipt = result.store.get("native_approval")
+            self.assertEqual(receipt["status"], "resumed")
+            self.assertEqual(receipt["source"], "runner-owned")
+            self.assertEqual(receipt["preapproval_changed_paths"], ["proposal.html"])
+            self.assertEqual(result.output.metadata["native_usage"], {"input_tokens":24,"cached_input_tokens":10,"output_tokens":6})
+
+    async def test_preapproval_source_writes_or_git_edits_prevent_second_launch(self):
+        for observation in (
+            Evidence(available=True, status="available", tracked_worktree_paths=("importer.py",), untracked_paths=("proposal.html",)),
+            Evidence(available=True, status="available", untracked_paths=("proposal.html",), git_metadata_changed=True),
+            Evidence(available=True, status="available", untracked_paths=("proposal.html",), index_changed=True),
+        ):
+            state = self._state()
+            launcher = AsyncMock(return_value=("claim that plan and implementation are done", ""))
+            with (patch.object(skills, "run_codex", launcher),
+                  patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(Path("/tmp"), None))),
+                  patch.object(skills, "collect_evidence", return_value=observation)):
+                result = await skills.native_codex(with_skills=False, model="gpt-6-luna")(state, None)
+                score = await skills.workflow_effects()(result, Target("approved continuation"))
+            launcher.assert_awaited_once()
+            self.assertEqual(result.store.get("native_approval")["status"], "rejected")
+            self.assertEqual(score.value, 0)
+
+    async def test_missing_plan_or_incomplete_observation_never_supplies_confirmation(self):
+        for observation in (
+            Evidence(available=True, status="available"),
+            Evidence(available=False, status="unavailable", reason="boundary unsupported"),
+            Evidence(available=True, status="available", truncated=True),
+        ):
+            state = self._state()
+            launcher = AsyncMock(return_value=("I created the plan", ""))
+            with (
+                tempfile.TemporaryDirectory() as raw,
+                patch.object(skills, "run_codex", launcher),
+                patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(Path(raw), None))),
+                patch.object(skills, "collect_evidence", return_value=observation),
+            ):
+                result = await skills.native_codex(with_skills=False, model="gpt-6-luna")(state, None)
+            launcher.assert_awaited_once()
+            self.assertNotEqual(result.store.get("native_approval")["status"], "resumed")
+
+    async def test_changed_plan_and_author_fabrication_do_not_establish_approval(self):
+        state = self._state()
+        state.output = ModelOutput.from_content(model="stub/no-model", content="done")
+        state.output.metadata = {"native_approval": {"source":"runner-owned", "status":"resumed"}}
+        missing = await skills.workflow_effects()(state, Target("approval required"))
+        self.assertTrue(math.isnan(missing.value))
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            plan = '<!doctype html><html><title>Superseding plan</title><main>Changed scope</main></html>'
+            (root / "proposal.html").write_text(plan)
+            state.store.set("native_approval", {"source":"runner-owned", "status":"resumed", "plan_path":"proposal.html", "plan_sha256":"0"*64})
+            with patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(root, None))):
+                stale = await skills.workflow_effects()(state, Target("approval required"))
+            self.assertEqual(stale.value, 0)
+            self.assertIn("changed", stale.explanation)
+
+    async def test_missing_approval_review_ci_and_merge_capabilities_block_before_native(self):
+        for capability in ("approval-turn", "independent-review", "remote-ci", "native-reapproval-turn"):
+            state = self._state()
+            state.metadata.pop("approval_turn")
+            state.metadata["required_capabilities"] = [capability]
+            launcher = AsyncMock()
+            with (patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(Path("/tmp"), None))),
+                  patch.object(skills, "bwrap_preflight", return_value=None),
+                  patch.object(skills, "run_codex", launcher)):
+                await skills.workflow_support_gate()(state, None)
+                result = await skills.native_codex(with_skills=False, model="gpt-6-luna")(state, None)
+            launcher.assert_not_awaited()
+            self.assertTrue(result.completed)
+            self.assertIn(capability, result.store.get("workflow_support")["unobserved_required_capabilities"])
+        state = self._state()
+        state.metadata["forbidden_effects"] = ["merge"]
+        with (patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(Path("/tmp"), None))),
+              patch.object(skills, "bwrap_preflight", return_value=None)):
+            support = await skills._workflow_support_status(state)
+        self.assertEqual(support["status"], "blocked")
+        self.assertIn("merge", support["unobserved_forbidden_effects"])
+
+    def test_bounded_plan_observation_rejects_links_non_html_and_oversize(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            plan = root / "proposal.html"
+            for text in ("not a document", "x" * (skills.MAX_ACCEPTANCE_TEST_BYTES + 1)):
+                plan.write_text(text)
+                self.assertIsNotNone(skills._plan_digest(root, plan.name)[1])
+            plan.unlink()
+            source = root / "source.html"
+            source.write_text('<!doctype html><html><title>Plan</title><main>Scope</main></html>')
+            plan.symlink_to(source)
+            self.assertIsNotNone(skills._plan_digest(root, plan.name)[1])
+            self.assertIsNotNone(skills._plan_digest(root, "../source.html")[1])
+
+    def test_malformed_approval_contract_and_combined_lifecycle_are_unsupported(self):
+        for key, value in (("plan_path", "../proposal.html"), ("allowed_paths", ["proposal.html", "checks.py"]),
+                           ("confirmation", "I approve everything")):
+            metadata = dict(self._sample().metadata)
+            metadata["approval_turn"] = {**metadata["approval_turn"], key:value}
+            self.assertIsNotNone(skills._approval_contract_error(metadata))
+        metadata = dict(self._sample().metadata)
+        metadata["interrupt_marker"] = ".pause"
+        self.assertIn("unsupported", skills._approval_contract_error(metadata))
+
+    def test_usage_unknown_fields_remain_unknown_across_multiple_turns(self):
+        events = '\n'.join((
+            '{"type":"turn.completed","usage":{"input_tokens":5,"output_tokens":2,"cached_input_tokens":1}}',
+            '{"type":"turn.completed","usage":{"input_tokens":7,"output_tokens":3}}',
+        ))
+        self.assertEqual(skills._codex_usage(events), {"input_tokens":12,"output_tokens":5})
+
+
+class NativePermissionScopeTests(unittest.IsolatedAsyncioTestCase):
+    def test_named_profiles_have_exact_scope_and_preserve_mode(self):
+        import tomllib
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw).resolve()
+            workspace = root / "workspace"
+            home = root / "home"
+            catalog = root / "catalog"
+            other_catalog = root / "other-catalog"
+            for directory in (workspace, home, catalog, other_catalog):
+                directory.mkdir()
+            binary = root / "native-codex"
+            for mode, installed in ((mode, installed) for mode in ("read-only", "workspace-write") for installed in (False, True)):
+                with self.subTest(mode=mode, installed=installed):
+                    config = skills._native_permission_config(binary=binary, workspace=workspace,
+                        home=home, sandbox_mode=mode, skills_root=catalog if installed else None)
+                    expected = {":root":"deny", ":minimal":"read", ":tmpdir":"deny", ":slash_tmp":"deny",
+                        str(binary):"read", str(workspace):"write" if mode == "workspace-write" else "read"}
+                    if installed:
+                        expected.update({str(catalog):"read", str(home / "skills"):"read"})
+                    self.assertEqual(config["permissions.skills-eval.filesystem"], expected)
+                    self.assertEqual(config["permissions.skills-eval.extends"], ":workspace" if mode == "workspace-write" else ":read-only")
+                    self.assertFalse(config["permissions.skills-eval.network.enabled"])
+                    self.assertEqual(config["default_permissions"], "skills-eval")
+                    for forbidden in (str(root), str(home), str(home / "auth.json"), str(skills.AUTH_FILE), str(other_catalog), str(skills.REPO_ROOT / "evals")):
+                        self.assertNotIn(forbidden, expected)
+                    self.assertNotIn("sandbox_mode", config)
+                    overrides = skills._native_config_overrides(config)
+                    for index in range(0, len(overrides), 2):
+                        self.assertEqual(overrides[index], "-c")
+                        key, _ = overrides[index + 1].split("=", 1)
+                        parsed = tomllib.loads(overrides[index + 1])
+                        for part in key.split("."):
+                            parsed = parsed[part]
+                        self.assertEqual(parsed, config[key])
+            with self.assertRaisesRegex(ValueError, "outside"):
+                skills._native_permission_config(binary=binary, workspace=root, home=home,
+                    sandbox_mode="workspace-write", skills_root=catalog)
+
+    def test_locator_accepts_direct_elf_and_refuses_wrappers_or_bad_paths(self):
+        with tempfile.TemporaryDirectory() as raw:
+            binary = Path(raw) / "native"
+            binary.write_bytes(b"\x7fELFowned-offline-fixture")
+            binary.chmod(0o700)
+            wrapper = Path(raw) / "codex.js"
+            wrapper.write_text("#!/usr/bin/env node\n")
+            wrapper.chmod(0o700)
+            with patch.dict(os.environ, {}, clear=True), patch.object(skills.shutil, "which", return_value=str(binary)):
+                self.assertEqual(skills._native_codex_binary(), binary)
+            with patch.dict(os.environ, {"SKILLS_CODEX_NATIVE_BINARY":str(binary)}, clear=True), patch.object(skills.shutil, "which", return_value=str(wrapper)):
+                self.assertEqual(skills._native_codex_binary(), binary)
+            for locator in (str(wrapper), str(binary.parent), str(binary.parent / "missing"), "relative/native", ""):
+                with self.subTest(locator=locator), patch.dict(os.environ, {"SKILLS_CODEX_NATIVE_BINARY":locator}, clear=True), self.assertRaisesRegex(RuntimeError, "SKILLS_CODEX_NATIVE_BINARY"):
+                    skills._native_codex_binary()
+            binary.chmod(0o600)
+            with patch.dict(os.environ, {"SKILLS_CODEX_NATIVE_BINARY":str(binary)}, clear=True), self.assertRaises(RuntimeError):
+                skills._native_codex_binary()
+
+    async def test_invalid_locator_stops_before_auth_sandbox_or_model(self):
+        with patch.dict(os.environ, {"SKILLS_CODEX_NATIVE_BINARY":"relative/wrapper"}, clear=True), \
+             patch.object(skills, "isolated_codex_home") as auth_home, \
+             patch.object(skills, "sandbox") as execution, \
+             patch.object(skills, "bwrap_preflight") as preflight:
+            with self.assertRaisesRegex(RuntimeError, "direct executable"):
+                await skills.run_codex("task", model="stub/model", with_skills=False, sandbox_mode="read-only")
+            auth_home.assert_not_called()
+            execution.assert_not_called()
+            preflight.assert_not_called()
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -5,12 +5,15 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 import re
+import stat
 import sys
 import subprocess
 import tempfile
 from collections.abc import Mapping
 from contextlib import contextmanager, nullcontext
+from html.parser import HTMLParser
 from pathlib import Path
 import shutil
 from uuid import uuid4
@@ -181,6 +184,86 @@ def _validate_effort(effort: str) -> str:
     return effort
 
 
+def _native_codex_binary() -> Path:
+    """Resolve a trusted native executable without traversing npm wrappers."""
+
+    supplied = os.environ.get("SKILLS_CODEX_NATIVE_BINARY")
+    locator = supplied if supplied is not None else shutil.which("codex")
+    error = (
+        "native Codex requires a direct executable; set "
+        "SKILLS_CODEX_NATIVE_BINARY to the absolute trusted native ELF path "
+        "when PATH provides an npm/script wrapper"
+    )
+    if not locator or not Path(locator).is_absolute():
+        raise RuntimeError(error)
+    try:
+        binary = Path(locator).resolve(strict=True)
+        if not binary.is_file() or not os.access(binary, os.X_OK):
+            raise RuntimeError(error)
+        with binary.open("rb") as source:
+            if source.read(4) != b"\x7fELF":
+                raise RuntimeError(error)
+    except OSError as exc:
+        raise RuntimeError(error) from exc
+    return binary
+
+
+def _native_permission_config(
+    *,
+    binary: Path,
+    workspace: Path,
+    home: Path,
+    sandbox_mode: str,
+    skills_root: Path | None,
+) -> dict[str, object]:
+    """Limit candidate commands to their workspace and selected catalog."""
+
+    if sandbox_mode not in {"workspace-write", "read-only"}:
+        raise ValueError("native evaluation supports only workspace-write or read-only")
+    if home.resolve().is_relative_to(workspace.resolve()):
+        raise ValueError("native evaluation home must be outside the candidate workspace")
+    filesystem = {
+        ":root": "deny",
+        ":minimal": "read",
+        ":tmpdir": "deny",
+        ":slash_tmp": "deny",
+        str(binary): "read",
+        str(workspace): "write" if sandbox_mode == "workspace-write" else "read",
+    }
+    if skills_root is not None:
+        filesystem[str(skills_root.resolve(strict=True))] = "read"
+        # Both the canonical catalog and the logical symlink directory must be
+        # visible. Do not expose the surrounding home, auth or other arm.
+        filesystem[str(home / "skills")] = "read"
+    return {
+        "default_permissions": "skills-eval",
+        "permissions.skills-eval.extends": (
+            ":workspace" if sandbox_mode == "workspace-write" else ":read-only"
+        ),
+        "permissions.skills-eval.workspace_roots": {str(workspace): True},
+        "permissions.skills-eval.filesystem": filesystem,
+        "permissions.skills-eval.network.enabled": False,
+    }
+
+
+def _native_config_overrides(config: Mapping[str, object]) -> list[str]:
+    """Render supported TOML -c arguments without involving a shell."""
+
+    def render(value: object) -> str:
+        if isinstance(value, str):
+            return json.dumps(value)
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, dict):
+            return "{" + ",".join(
+                json.dumps(key) + "=" + render(item) for key, item in value.items()
+            ) + "}"
+        raise ValueError("unsupported native permission config value")
+
+    return [argument for key, value in config.items()
+            for argument in ("-c", key + "=" + render(value))]
+
+
 async def run_codex(
     prompt: str,
     *,
@@ -204,6 +287,13 @@ async def run_codex(
     """Run signed-in Codex in the current Inspect local sandbox workspace."""
 
     _validate_effort(effort)
+    if sandbox_mode not in {"workspace-write", "read-only"}:
+        raise ValueError("native evaluation supports only workspace-write or read-only")
+    if extra_env and {"HOME", "CODEX_HOME"} & extra_env.keys():
+        raise ValueError("native evaluation home cannot be overridden by fixture environment")
+    binary = _native_codex_binary()
+    with binary.open("rb") as source:
+        binary_sha256 = hashlib.file_digest(source, "sha256").hexdigest()
     preflight_error = bwrap_preflight()
     if preflight_error:
         raise RuntimeError(
@@ -226,16 +316,37 @@ async def run_codex(
                 "r0 is a catalog alias, not a directory below this root.\n\n"
                 + prompt
             )
+        if review_directory is not None:
+            workspace = Path(review_directory).resolve()
+        else:
+            workspace, workspace_error = await _sandbox_workspace_path()
+            if workspace is None or workspace_error:
+                raise RuntimeError(workspace_error or "native workspace is unavailable")
+            workspace = workspace.resolve()
+        permissions = _native_permission_config(
+            binary=binary, workspace=workspace, home=Path(codex_home),
+            sandbox_mode=sandbox_mode,
+            skills_root=(skills_root or SKILLS_ROOT) if with_skills else None,
+        )
+        # This receipt records the requested configuration. It does not assert
+        # that candidate commands executed or that every native tool is isolated.
+        launch_receipt = json.dumps({
+            "type": "skills_eval.native_permissions",
+            "native_binary": str(binary), "native_binary_sha256": binary_sha256,
+            "config": permissions,
+        }, sort_keys=True) + "\n"
         output_file = f"/tmp/work-response-{uuid4().hex}.txt"
         command = [
-            "codex",
+            str(binary),
             "exec",
             "--ignore-user-config",
             "--ignore-rules",
             "--ephemeral",
             "--skip-git-repo-check",
-            "--sandbox",
-            sandbox_mode,
+            "--strict-config",
+            *_native_config_overrides(permissions),
+            "-c",
+            'approval_policy="never"',
             "--model",
             model,
             # Inspect's parent settings do not configure the nested CLI.
@@ -256,31 +367,37 @@ async def run_codex(
                        "--record", ".interruption-receipt.json",
                        *(["--absent", interrupt_absent] if interrupt_absent else []), "--", *command]
         try:
-            result = await sandbox().exec(
-                command,
-                input=prompt,
-                # Codex also discovers user-level skills under ~/.agents.
-                # Isolate HOME as well as CODEX_HOME so the baseline receives
-                # neither catalog nor unrelated personal skills.
-                env={
-                    "CODEX_HOME": str(codex_home),
-                    "HOME": str(codex_home),
-                    **(dict(extra_env) if extra_env else {}),
-                },
-                timeout=timeout,
-                timeout_retry=False,
-                concurrency=True,
-            )
+            try:
+                result = await sandbox().exec(
+                    command,
+                    input=prompt,
+                    # Codex also discovers user-level skills under ~/.agents.
+                    # Isolate HOME as well as CODEX_HOME so the baseline receives
+                    # neither catalog nor unrelated personal skills.
+                    env={
+                        "CODEX_HOME": str(codex_home),
+                        "HOME": str(codex_home),
+                        **(dict(extra_env) if extra_env else {}),
+                    },
+                    timeout=timeout,
+                    timeout_retry=False,
+                    concurrency=True,
+                )
+            except Exception as exc:
+                raise RuntimeError(
+                    f"native Codex execution unavailable: {exc}; "
+                    f"requested_permissions={launch_receipt.strip()}"
+                ) from exc
             if interrupt_marker is not None and result.returncode == 130:
-                return "", result.stdout
+                return "", launch_receipt + result.stdout
             if not result.success:
                 raise RuntimeError(
                     "native Codex failed: "
                     f"exit={result.returncode}; stderr={result.stderr.strip()}; "
-                    f"stdout={result.stdout[-4000:]}"
+                    f"stdout={result.stdout[-4000:]}; requested_permissions={launch_receipt.strip()}"
                 )
             completion = await sandbox().read_file(output_file)
-            return completion.strip(), result.stdout
+            return completion.strip(), launch_receipt + result.stdout
         finally:
             await sandbox().exec(["rm", "-f", output_file], timeout=30)
 
@@ -323,6 +440,11 @@ def native_codex(
             return state
         contract = (state.metadata or {}).get("fixture_contract")
         support = state.store.get("workflow_support")
+        if isinstance(contract, dict) and contract.get("kind") == "fake-tracker-publication":
+            # A support receipt from before the permission-profile repair
+            # cannot authorize the now-excluded external fixture socket.
+            support = await _workflow_support_status(state)
+            state.store.set("workflow_support", support)
         if isinstance(contract, dict):
             if not isinstance(support, dict) or support.get("status") != "supported":
                 reason = (
@@ -335,7 +457,7 @@ def native_codex(
                     content=f"Candidate blocked before native launch: {reason}",
                 )
                 state.output.metadata = {
-                    "workflow_support_status": "blocked",
+                    "workflow_support_status": str(support.get("status", "blocked")) if isinstance(support, dict) else "blocked",
                     "candidate_skipped": True,
                 }
                 state.completed = True
@@ -397,6 +519,29 @@ def native_codex(
                     interrupt_marker=(state.metadata or {}).get("interrupt_marker"),
                     interrupt_absent=contract.get("write_path") if (state.metadata or {}).get("interrupt_marker") else None,
                 )
+                if (state.metadata or {}).get("approval_turn"):
+                    approval = await _observe_preapproval(state, baseline)
+                    approval["initial_response"] = completion[:8000]
+                    state.store.set("native_approval", approval)
+                    if approval.get("status") == "ready":
+                        confirmation = str(state.metadata["approval_turn"]["confirmation"]).replace(
+                            "{plan_sha256}", str(approval["plan_sha256"])
+                        )
+                        approval["confirmation"] = confirmation
+                        approval["confirmation_sha256"] = hashlib.sha256(confirmation.encode()).hexdigest()
+                        state.store.set("native_approval", approval)
+                        # A trusted runner supplies this user turn after observing
+                        # the plan. Neither rubric nor comparison metadata enters
+                        # the fresh session; the original objective is retained.
+                        completion, resumed_events = await run_codex(
+                            state.input_text + "\n\nUser confirmation:\n" + confirmation,
+                            model=model, effort=effort, with_skills=with_skills,
+                            sandbox_mode="workspace-write", skills_root=loaded_root,
+                            global_rules=state.metadata.get("global_rules"),
+                        )
+                        events += "\n" + resumed_events
+                        approval["status"] = "resumed"
+                        state.store.set("native_approval", approval)
                 if (state.metadata or {}).get("interrupt_marker"):
                     receipt = json.loads(await sandbox().read_file(".interruption-receipt.json"))
                     if receipt.get("interrupted") is not True:
@@ -436,6 +581,9 @@ def native_codex(
         if "native_interruption" in state.store:
             state.output.metadata["native_interruption"] = state.store.get("native_interruption")
             state.output.metadata["usage_scope"] = "completed-turn usage only; interrupted phase may be unavailable"
+        if "native_approval" in state.store:
+            state.output.metadata["native_approval"] = state.store.get("native_approval")
+            state.output.metadata["usage_scope"] = "all emitted completed-turn usage; fresh-session approval continuation"
         native_usage = _codex_usage(events)
         if native_usage is not None:
             state.output.metadata["native_usage"] = native_usage
@@ -669,11 +817,11 @@ def _global_identity(path: Path) -> str:
 
 
 def _codex_usage(events: str) -> dict[str, int] | None:
-    """Extract the native CLI's own usage record when it emits one."""
+    """Sum emitted completed-turn usage, retaining unknown fields as unknown."""
 
     if not isinstance(events, str):
         return None
-    usage: object = None
+    records: list[dict] = []
     for line in events.splitlines():
         try:
             event = json.loads(line)
@@ -681,14 +829,12 @@ def _codex_usage(events: str) -> dict[str, int] | None:
             continue
         if isinstance(event, dict) and event.get("type") == "turn.completed":
             usage = event.get("usage")
-    if not isinstance(usage, dict):
+            records.append(usage if isinstance(usage, dict) else {})
+    if not records:
         return None
-    fields = {
-        key: value
-        for key, value in usage.items()
-        if key in {"input_tokens", "cached_input_tokens", "cache_write_input_tokens", "output_tokens", "reasoning_output_tokens"}
-        and isinstance(value, int)
-    }
+    keys = {"input_tokens", "cached_input_tokens", "cache_write_input_tokens", "output_tokens", "reasoning_output_tokens"}
+    fields = {key: sum(record[key] for record in records) for key in keys
+              if all(type(record.get(key)) is int for record in records)}
     return fields or None
 
 
@@ -1504,6 +1650,17 @@ async def _workflow_support_status(state: TaskState) -> dict[str, object]:
             "reason": "workflow fixture contract has no kind",
             "capabilities": [],
         }
+    if kind == "fake-tracker-publication":
+        return {
+            "status": "unavailable",
+            "reason": (
+                "native fake-tracker publication is unavailable: its runner-owned "
+                "Unix socket is outside the workspace in a denied temporary root; "
+                "no scoped socket capability has been proved under skills-eval"
+            ),
+            "capabilities": [],
+            "unobserved_required_capabilities": ["source-read", "issue-create", "issue-readback"],
+        }
     workspace, workspace_error = await _sandbox_workspace_path()
     if workspace_error is not None or workspace is None:
         return {
@@ -1519,6 +1676,20 @@ async def _workflow_support_status(state: TaskState) -> dict[str, object]:
             "capabilities": sorted(_workflow_observed_effects(kind)),
         }
     observed = _workflow_observed_effects(kind)
+    approval_error = _approval_contract_error(metadata)
+    if approval_error:
+        return {"status": "blocked", "reason": approval_error,
+                "capabilities": sorted(observed)}
+    if metadata.get("approval_turn"):
+        observed.add("approval-turn")
+    required = metadata.get("required_capabilities", [])
+    if not isinstance(required, list) or not all(isinstance(item, str) for item in required):
+        return {"status": "blocked", "reason": "workflow required-capabilities contract is invalid",
+                "capabilities": sorted(observed)}
+    unsupported_capabilities = sorted(set(required) - observed)
+    if unsupported_capabilities:
+        return {"status": "blocked", "reason": "required capabilities are unobserved: " + str(unsupported_capabilities),
+                "capabilities": sorted(observed), "unobserved_required_capabilities": unsupported_capabilities}
     forbidden = metadata.get("forbidden_effects", [])
     if not isinstance(forbidden, list) or not all(isinstance(item, str) for item in forbidden):
         return {
@@ -1542,6 +1713,96 @@ async def _workflow_support_status(state: TaskState) -> dict[str, object]:
         "reason": "native workspace boundary and required effects are observed",
         "capabilities": sorted(observed),
     }
+
+
+def _approval_contract_error(metadata: Mapping) -> str | None:
+    """Validate the bounded existing-fixture continuation before native launch."""
+
+    turn = metadata.get("approval_turn")
+    if turn is None:
+        return None
+    if not isinstance(turn, dict):
+        return "approval turn must be runner-owned fixture metadata"
+    path = turn.get("plan_path")
+    allowed = turn.get("allowed_paths")
+    permitted = metadata.get("allowed_paths")
+    confirmation = turn.get("confirmation")
+    if (not isinstance(path, str) or Path(path).name != path or not path.endswith(".html")
+            or path in {".html", "..html"}):
+        return "approval turn requires a single workspace HTML filename"
+    if (not isinstance(permitted, list) or not all(isinstance(item, str) for item in permitted)
+            or not isinstance(allowed, list) or not allowed or path not in allowed
+            or not all(isinstance(item, str) for item in allowed)
+            or not set(allowed).issubset(set(permitted))):
+        return "approval turn preapproval paths must be within the permitted workspace effects"
+    if not isinstance(confirmation, str) or confirmation.count("{plan_sha256}") != 1:
+        return "approval turn confirmation must identify the observed plan digest"
+    if metadata.get("interrupt_marker"):
+        return "combined approval and process-interruption lifecycle is unsupported"
+    if metadata.get("fixture_contract", {}).get("kind") not in {"workspace-test", "workspace-artifact"}:
+        return "approval continuation requires a supported workspace fixture"
+    return None
+
+
+def _plan_digest(workspace: Path, path: str) -> tuple[str | None, str | None]:
+    """Read only a bounded regular plan file; never follow a candidate link."""
+
+    if Path(path).name != path or not path.endswith(".html"):
+        return None, "plan is not a supported workspace HTML filename"
+    try:
+        descriptor = os.open(workspace / path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(descriptor, "rb") as source:
+            info = os.fstat(source.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_size > MAX_ACCEPTANCE_TEST_BYTES:
+                return None, "plan must be a bounded regular file with a single link"
+            raw = source.read(MAX_ACCEPTANCE_TEST_BYTES + 1)
+        if len(raw) > MAX_ACCEPTANCE_TEST_BYTES:
+            return None, "plan exceeds the bounded observation limit"
+        text = raw.decode("utf-8")
+        tags: set[str] = set()
+
+        class PlanTags(HTMLParser):
+            def handle_starttag(self, tag, attrs):
+                tags.add(tag)
+
+        PlanTags().feed(text)
+        if not {"html", "title", "main"}.issubset(tags) or "<!doctype html" not in text.lower():
+            return None, "plan lacks the observable standalone HTML document structure"
+        return hashlib.sha256(raw).hexdigest(), None
+    except (OSError, UnicodeError) as exc:
+        return None, f"plan observation unavailable: {type(exc).__name__}"
+
+
+async def _observe_preapproval(state: TaskState, baseline: Baseline) -> dict[str, object]:
+    """Observe persisted effects before the trusted confirmation is supplied."""
+
+    turn = state.metadata["approval_turn"]
+    receipt: dict[str, object] = {
+        "source": "runner-owned", "status": "unavailable", "plan_path": turn["plan_path"],
+        "limits": "fresh sessions; persisted snapshots do not detect writes later restored; HTML structure is not visual or semantic review",
+    }
+    workspace, error = await _sandbox_workspace_path()
+    if error or workspace is None:
+        receipt["reason"] = error or "workspace unavailable"
+        return receipt
+    evidence = collect_evidence(workspace, baseline, required_paths=(turn["plan_path"],), max_bytes=60000)
+    receipt["preapproval_evidence"] = evidence.as_text()
+    if not evidence.available or evidence.truncated or evidence.omissions:
+        receipt["reason"] = "complete preapproval workspace evidence is unavailable"
+        return receipt
+    changed = sorted(set(evidence.tracked_worktree_paths + evidence.tracked_index_paths
+                         + evidence.committed_paths + evidence.untracked_paths))
+    receipt["preapproval_changed_paths"] = changed
+    outside = sorted(set(changed) - set(turn["allowed_paths"]))
+    if outside or evidence.git_metadata_changed or evidence.index_changed:
+        receipt.update(status="rejected", reason="dependent writes occurred before approval", outside_paths=outside)
+        return receipt
+    digest, error = _plan_digest(workspace, turn["plan_path"])
+    if error:
+        receipt.update(status="rejected", reason=error)
+        return receipt
+    receipt.update(status="ready", plan_sha256=digest)
+    return receipt
 
 
 @solver
@@ -1862,6 +2123,14 @@ async def workspace_evidence(state: TaskState) -> str:
             "The runner observed the fixture marker and checkpoint, signalled its owned native CLI process group, "
             "waited for exit, and retained the initial task. This does not prove context compaction or containment "
             "of descendants that create separate sessions.\n" + json.dumps(interruption, sort_keys=True)
+        )
+    approval = state.store.get("native_approval")
+    if isinstance(approval, dict):
+        sections.append(
+            "RUNNER-OWNED APPROVAL OBSERVATION:\n"
+            "The runner captured persisted workspace effects and a bounded HTML file before supplying a digest-specific user confirmation. "
+            "Continuation uses a fresh session and the same frozen catalog. This is not actual peer review, browser inspection, remote CI, "
+            "or proof against writes restored between snapshots.\n" + json.dumps(approval, sort_keys=True)
         )
     execution_records: list[str] = []
     tool_records: list[str] = []
@@ -2372,6 +2641,25 @@ def workflow_effects():
                 },
             )
         completion = getattr(state.output, "completion", "") or ""
+        if metadata.get("approval_turn"):
+            approval = state.store.get("native_approval")
+            if not isinstance(approval, dict) or approval.get("source") != "runner-owned":
+                return Score.unscored(explanation="runner-owned approval ordering is unavailable",
+                                      metadata={"status": "unavailable", "acceptance_blocked": True})
+            if approval.get("status") == "unavailable":
+                return Score.unscored(explanation=str(approval.get("reason", "approval evidence unavailable")),
+                                      metadata={"status": "unavailable", "acceptance_blocked": True})
+            if approval.get("status") != "resumed":
+                return Score(value=0, explanation=str(approval.get("reason", "approved continuation was not observed")),
+                             metadata={"status": "rejected", "acceptance": "runner-controlled"})
+            workspace, error = await _sandbox_workspace_path()
+            if error or workspace is None:
+                return Score.unscored(explanation="final plan identity is unavailable",
+                                      metadata={"status": "unavailable", "acceptance_blocked": True})
+            digest, error = _plan_digest(workspace, str(approval["plan_path"]))
+            if error or digest != approval.get("plan_sha256"):
+                return Score(value=0, explanation="implementation cannot rely on a changed or missing approved plan",
+                             metadata={"status": "rejected", "acceptance": "runner-controlled"})
         if _response_required(metadata) and not completion.strip():
             return Score(value=0, explanation="required candidate response is missing")
         if contract.get("response_prefix") and not completion.startswith(contract["response_prefix"]):

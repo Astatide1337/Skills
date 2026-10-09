@@ -417,6 +417,33 @@ class PortableToolsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unsupported"):
                 checkpoint.read(path)
 
+    def test_approved_plan_continuation_uses_existing_fields_and_linked_requirements(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / 'checkpoint.json'
+            task = {
+                'objective': 'Finish the approved parser behavior',
+                'requirements': [{'id': 'quoted', 'description': 'Preserve quoted commas', 'status': 'pending'}],
+                'decisions': ['Plan plan-v1.html sha256=' + 'a' * 64,
+                              'User confirmed plan-v1; source transcript remains approval provenance'],
+                'next_action': 'Run held-out parser checks',
+                'blockers': ['Independent review pending'],
+            }
+            identity = checkpoint.save(path, root, task, None)
+            continued = {**task, 'decisions': task['decisions'] + ['Equivalent dependency repair preserves approved interfaces'],
+                         'next_action': 'Resume affected checks'}
+            checkpoint.save(path, root, continued, identity)
+            resumed, _ = checkpoint.read(path)
+            self.assertEqual(resumed['version'], 1)
+            self.assertEqual(resumed['task']['requirements'], task['requirements'])
+            self.assertEqual(resumed['task']['decisions'], continued['decisions'])
+            changed = {**continued, 'requirements': [{'id': 'quoted', 'description': 'Preserve quoted commas and new delimiter', 'status': 'pending'}],
+                       'decisions': continued['decisions'] + ['Plan-v2 supersedes plan-v1; linked previous checkpoint.json']}
+            new_path = root / 'checkpoint-v2.json'
+            checkpoint.save(new_path, root, changed, None)
+            self.assertEqual(checkpoint.read(path)[0]['task']['requirements'], task['requirements'])
+            self.assertEqual(checkpoint.read(new_path)[0]['task']['requirements'], changed['requirements'])
+
     def test_exact_json_rejects_extra_keys_and_boolean_number_confusion(self):
         boundary.check_json({"allowed": True}, {"allowed": True})
         for value in [{"allowed": 1}, {"allowed": True, "extra": "unexpected"}]:

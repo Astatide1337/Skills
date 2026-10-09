@@ -37,6 +37,9 @@ review is requested or the risk warrants it.
    When repository changes are unavailable, run its existing commands and keep
    results outside the checkout. For supplemental Python/TypeScript correctness
    checks without app configuration changes, use [portable lint](references/portable-lint.md).
+   For approved delivery, include the approved plan identity, behavior,
+   interfaces/owners and raw native, portable-lint and journey evidence. Review
+   the completed feature against that contract, not only its previous behavior.
 2. Check correctness and state ownership first: errors, lifecycle, cancellation,
    retries, compatibility and identity. Verify evidence belongs to the final
    source/artifact and relevant running instance.
@@ -67,8 +70,11 @@ not-run checks; valid artifact-only output need not repeat its bytes in prose.
 
 Apply the canonical
 [review-risk triggers](../follow-instructions/references/principles/authority-and-claims.md#review-risk-triggers).
-For those changes, a separate person or agent must inspect the current diff
-and raw evidence before the integrating owner claims completion or recommends
+Approved nontrivial delivery also requires independent review under the
+[approved-plan contract](../follow-instructions/references/approved-plans.md),
+even when no generic risk trigger applies. For these changes, a separate person
+or agent must inspect the current diff and raw evidence before the integrating
+owner claims completion or recommends
 merge. Start the reviewer in a fresh context with the original request, actual
 artifact and raw check/tool results, with access to affected callers. Withhold
 the author's summary and prior conversation until the reviewer records an
@@ -79,6 +85,10 @@ The reviewer chooses diagnostic checks and expectations independently. A
 different model is optional. The owner resolves material findings
 and verifies the final artifact; green tests and the author's reread do not
 satisfy this gate.
+Assess simplifications against the approved contract. In-contract reductions
+may proceed within authorized implementation; material architecture, interface,
+ownership, scope or verification changes return to the plan owner for renewed
+approval. A reviewer request does not itself grant that authority.
 
 Keep an inspectable result identifying the reviewer, exact artifact, evidence
 inspected and findings. Requested review without a returned result is pending.

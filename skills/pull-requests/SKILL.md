@@ -16,11 +16,15 @@ Treat GitHub pull requests and GitLab merge requests as the same review artifact
 | Review or re-review a PR/MR or coworker's branch | Review | Read source and checks; return private findings/drafts. No source edits or remote writes. |
 | Check/watch/status a PR/MR | Monitor | Read remote state only; no code, push, or retry effect is implied. |
 | Monitor and fix/address named in-scope defects | Monitor-and-fix | Repair only the authorized scope, then verify and push when that lifecycle is authorized. |
+| Deliver an approved feature/issue as a PR/MR ready for human merge | Approved delivery | Create a draft, finish in-scope fixes/commits/pushes and inspect current-head review/CI. Never merge or enable auto-merge. |
 | Post, reply, comment, or suggest on a PR/MR | Communicate | Post that specific checked comment only. |
 | Merge, close, reopen, rebase, or deploy | Separate action | Require explicit authorization for that action. |
 
 "Draft a PR/MR" means draft the copy only. "Open a draft PR/MR" means create
 the remote draft. When a request combines modes, run them in the order above.
+For approved delivery, retain the
+[approved-plan contract](../follow-instructions/references/approved-plans.md)
+and its exact effects. Ordinary review/monitoring remains read-only.
 
 ## Establish the source of truth
 
@@ -140,13 +144,30 @@ The two-team negative test covers both lookup and update paths.
 
 Before a create-mode push, confirm the branch contains the intended committed
 review unit. A create request does not by itself authorize committing preexisting
-uncommitted user work. After creation, report the PR/MR link, base/head, and
+uncommitted user work. Inspect workflows and approved effects before pushing;
+do not trigger container image builds or deployment outside explicit approval.
+After creation, report the PR/MR link, base/head, and
 material review focus only.
 Inspect the final tree and diff at that head. Keep accepted, failed, skipped,
 and not-run checks distinct in the handoff; a draft PR can be reviewable with
 known gaps, but a skipped check is not green. If a create or push response is
 uncertain, read the remote branch and PR by identity before retrying so one
 request cannot create duplicate artifacts.
+
+## Complete approved delivery
+
+Create the PR/MR as a draft while required review or CI is pending. Assess
+current findings against the approved contract, repair in-scope defects,
+refresh affected tests and independent-review coverage, then commit and push
+only the scoped result. A material plan change returns to HTML approval before
+its dependent implementation; continue independent approved work.
+
+Inspect the final pushed head, returned independent review, required-check
+results, unresolved findings and mergeability. Mark the draft ready only when
+these gates are satisfied. Failed, skipped, unavailable or not-run required
+checks keep readiness pending. A local commit, an old green SHA or a requested
+but unreturned review is insufficient. Report the ready review artifact for
+human merge; never merge or enable auto-merge in this workflow.
 
 ## Monitor without scope creep
 

@@ -78,6 +78,18 @@ then read the relevant detail. Source context is optional:
 [case studies](references/case-studies.md), and
 [observed failures](references/failure-to-checks.md).
 
+## Approval and continuation
+
+For nontrivial feature/issue implementation, investigate first and follow the
+[approved-plan contract](references/approved-plans.md): produce the researched
+HTML plan and relevant actual-component prototype before dependent source
+implementation. Record the version-specific confirmation and permitted effects.
+Reuse approval already given for that scope; plan controls never grant it.
+After greenlight, continue the whole approved result through verification,
+independent review and approved delivery. Material discoveries return the
+affected work to design; safe independent work continues. Read-only requests
+and the short path retain their own boundaries.
+
 ## Effort and continuation
 
 Keep only obligations that can change action, order, permission, stopping or
@@ -93,6 +105,8 @@ Use [parallel](playbooks/parallel.md) only when independent ownership, a real
 delegation tool and a benefit justify it. Prove one complete unit first. Use
 [self-reflect](../self-reflect/SKILL.md) when repeated failure or stalled progress
 requires a new observation; ordinary completion needs no extra reflection.
+Self-learning and automatic rule promotion remain paused; proposed durable
+lessons need a separate explicit user decision.
 Across handoff or compaction retain the objective, accepted decisions,
 unfinished gates, next action and exact blockers. Use
 [durable checkpoints](references/durable-checkpoints.md) for expected

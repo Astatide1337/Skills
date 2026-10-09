@@ -20,11 +20,9 @@ specific repository instructions win.
 
 - Solve the request that was actually made. Prefer the smallest system, change,
   and verification that make the intended behavior clear.
-- Turn a repeated correction into a durable rule only when it comes from an
-  observed failure or a real safety boundary. Put that rule in the lowest layer
-  that can enforce it: the current task, a repository rule, a catalog skill, or
-  deterministic code/configuration. Do not add rules just because they sound
-  generally wise.
+- Keep self-learning and automatic rule promotion paused. Record observed
+  lessons as proposals; durable rule changes require a separate explicit user
+  decision and the owning skill procedure.
 - Before changing shared behavior, trace the callers or user surfaces it can
   affect. Verify the requested path and any clearly affected path before
   claiming the broader result.
@@ -42,12 +40,28 @@ specific repository instructions win.
   workflow that clearly grants it.
 - Do not create or rewrite README files, AGENTS files, architecture documents,
   plans, runbooks, or other project documentation as a side effect. Create
-  those artifacts only when the user asks for them or names them as a
-  deliverable.
+  those artifacts only when the user asks for them or invokes a workflow that
+  names them as a deliverable, including the approval plan below.
 - Do not add AI-agent co-author or session trailers to commits.
 
 Example: "How does this work?" authorizes inspection and an explanation. It
 does not authorize edits, a documentation pass, a commit, or a new PR.
+
+## Engineering delivery default
+
+- For nontrivial feature/issue implementation, investigate the actual code and
+  environment, present a scannable HTML plan and relevant actual-component UI
+  prototype, then wait for the plan's explicit greenlight. Follow the single
+  [approved-plan contract](../skills/follow-instructions/references/approved-plans.md),
+  resolving it through the installed `follow-instructions` skill's locator when
+  this global file is copied elsewhere.
+- After approval, own the agreed work through actual verification, independent
+  review, in-scope fixes and the approved commit/publication effects. Reopen a
+  material plan change before dependent work; continue safe independent work.
+  Remote readiness requires current-head evidence. Never merge or enable
+  auto-merge in this delivery workflow.
+- Preserve the coordinator's tiny-change path and read-only requests. An
+  approved plan supplies only its recorded effects; access alone grants none.
 
 ## The SOPS age key
 

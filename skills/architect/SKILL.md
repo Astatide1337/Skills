@@ -6,6 +6,9 @@ description: When implementation boundaries or ownership need design.
 # Architect
 
 Design from the caller inward, then implement against the chosen shape.
+Modularity means an ordinary change, addition or removal has a clear owner and
+does not force unrelated changes. Create an interface to hide a demonstrated
+decision or invariant, not to prepare a framework for imagined features.
 
 For a design-only deliverable, make the contract executable in the reader's
 head. Include: realistic caller usage; public types or signatures; module
@@ -20,7 +23,7 @@ missing ownership decision behind a diagram or generic interface name.
 4. Compare candidates on interface depth, ownership, data access, boundary validation, invariants, state transitions, failure recovery, and likely evolution.
 5. Reject shallow modules, information leakage, temporal decomposition, pass-through layers, and speculative generality.
 6. Record the chosen shape, accepted tradeoffs, rejected alternative, risks,
-   unresolved decisions, and first implementation step.
+   unresolved decisions, purposeful refactors and first implementation step.
 7. Implement against the sketch. Treat repeated deviations as evidence the architecture is wrong; re-ground and redesign instead of adding escape hatches.
 
 Before handing off a design-only result, trace one successful operation and one
@@ -29,7 +32,11 @@ show how work is claimed, acknowledged, failed, and retried, and state which
 transaction can commit independently. Correct any signature that cannot support
 the written sequence.
 
-Pause for approval only when requested or when the choice changes public contracts, data ownership, migration strategy, or other material scope.
+For nontrivial feature/issue delivery, use the coordinator's
+[approved-plan contract](../follow-instructions/references/approved-plans.md).
+Material contract, ownership, architecture or migration changes reopen that
+plan; in-contract simplification can proceed within the existing approval.
+Standalone design and the tiny-change path retain their requested boundaries.
 
 Use `references/rationale-template.md` for the decision record. Read
 `references/design-red-flags.md` when comparing module boundaries or reviewing

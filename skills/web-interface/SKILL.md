@@ -35,7 +35,7 @@ actual work, but do not read the full library by default.
 | Running the shadcn CLI, adding/updating items, changing presets, or working with registries | [shadcn operations](./references/shadcn-operations.md) |
 | An existing React feature crosses multiple UI states, a route, form submission, or shared component boundary | [React feature delivery](./references/react-feature-delivery.md) |
 | Auditing UI code, accessibility, UX, or final interface quality | [Web interface audit](./references/web-audit.md) |
-| The user explicitly wants competing visual directions | [UI prototyping](./references/ui-prototyping.md) |
+| Comparing visual directions or proving a relevant approval-plan UI decision | [UI prototyping](./references/ui-prototyping.md) |
 
 Use the base workflow below for every lane. A React project does not
 automatically make every UI change a performance refactor, and a Tailwind

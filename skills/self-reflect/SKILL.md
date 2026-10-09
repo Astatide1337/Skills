@@ -33,6 +33,11 @@ results, and the last handoff. Reconstruct only what matters:
 2. constraints, authority, target revision, and finite budget;
 3. actual progress since the last checkpoint;
 4. unresolved assumptions, failures, corrections, and missing inputs.
+For approved delivery, retain the
+[approved plan](../follow-instructions/references/approved-plans.md) version and
+confirmation, source delta, failed approaches and unfinished checks. Use the
+existing [checkpoint](../follow-instructions/references/durable-checkpoints.md)
+fields when an interruption or stall needs a durable handoff.
 Keep the active user objective and unfinished verification gates even when a
 tool, branch, or context window changes. An empty task summary is not evidence
 that the objective ended.
@@ -60,9 +65,11 @@ Choose one state from the evidence:
 
 Before choosing blocked, run the smallest safe direct check of the named
 dependency in the current checkout or instance. A failed check is a diagnosis
-input: continue a safe alternative or repair a recoverable setup fault when
-the objective remains authorized. Use blocked only when no meaningful safe
-move remains without user input or an external state change.
+input: inspect supported alternatives, run safe equivalent checks and repair a
+recoverable setup fault within authority. Continue independent authorized work.
+Record what each alternative proves and its remaining gap. Never weaken a check,
+bypass access or chain irreversible changes to remove the blocker. Use blocked
+only when no meaningful safe move remains without a required input or effect.
 
 If the state is unclear, say what observation would distinguish `progressing`
 from `stalled` or `blocked` and obtain that observation before changing course.
@@ -75,22 +82,24 @@ blocker instead of proposing a future implementation sequence.
 
 **Close.** Compare the requested result with the actual artifact and checks.
 State the narrowest supported outcome and one lesson only if it changes a
-future decision. Classify a proposed durable lesson as `adopt`, `defer`, or
-`discard`:
-
-- adopt only a demonstrated, recurring rule or a real safety boundary;
-- defer a plausible improvement that lacks a second signal;
-- discard an anecdote, preference, or lesson contradicted by the evidence.
-
-Do not edit a skill, global instruction, or workflow merely because one session
-was awkward. A durable edit needs the relevant skill-creator procedure and the
-user's approval when it changes future behavior.
+future decision. Keep self-learning and automatic rule promotion paused.
+Record a demonstrated recurring lesson as a proposal, defer an uncertain one
+or discard one contradicted by evidence. Adoption requires a separate explicit
+user decision and the owning skill-creator procedure; reflection does not
+authorize a skill, global instruction or workflow edit.
 
 **Recover.** State the current hypothesis or failed premise, the evidence that
 changed its status, and one next check or replan. Continue when that move is
 within authority and the acceptance target remains clear. Ask one focused
 question when a product choice or missing authority is the blocker. Do not
 silently widen scope or turn a recovery reflection into unrelated cleanup.
+When the same approach fails twice or work produces no new evidence, capture
+the approved plan, failures, changes and checks, then request one fresh
+debugging/review agent when tools and authority permit. Give it the actual
+artifacts and raw evidence before the author's theory; seek one discriminating
+next action. If independent help is unavailable, record that gate and choose a
+bounded safe observation instead of looping or inventing a review. Material
+discoveries follow the approved-plan revision rule before dependent work resumes.
 
 When the evidence shows a stalled task but the current request is read-only,
 make the next move a single discriminating observation (for example, inspect

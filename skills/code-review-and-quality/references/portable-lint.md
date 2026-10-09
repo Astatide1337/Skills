@@ -1,102 +1,135 @@
-# Portable correctness lint
+# Portable correctness and strict type checks
 
-Use for affected Python or TypeScript files when you need supplemental checks
-without changing the application repository. Skills owns these cross-repository
-profiles; an app CLI owns its app's build, domain checks and running resources.
-Run native lint/type/format checks too. This supplement proves neither type
-correctness nor architectural boundaries nor the user journey.
+Skills owns this supplemental profile. App CLIs own native build/domain checks,
+normal application journeys and running resources. Run the project's native
+checks independently. A passing supplement covers its reported files/context;
+it does not prove architecture, every runtime failure, or a user journey.
+React Doctor is absent. No React Compiler, JSX accessibility or universal
+layering preset is installed.
 
-Python checks use pinned Ruff 0.16.10: `F` (Pyflakes), `B012` (control flow in
-finally can hide exceptions) and `B018` (useless expressions). TypeScript uses
-pinned ESLint/typescript-eslint with type information to reject floating and
-misused promises, unsafe `any` assignment/return, narrowing casts and omitted
-union cases in switches (a default fallback does not hide a missing case).
-A bare `void` does not prove rejection handling. Explicit
-catch/await/return can be legitimate; review the actual error semantics.
-Promise rules target unchecked side-effect/lifecycle risks. The additional
-type rules are a P-stack-inspired construction standard, not a claim that each
-historical incident was caused by a cast. Narrowing/unsafe-data checks come
-from [typescript-eslint](https://typescript-eslint.io/rules/no-unsafe-type-assertion/);
-missing-case checks use [switch exhaustiveness](https://typescript-eslint.io/rules/switch-exhaustiveness-check/).
-A lying custom type guard can still pass: run allowed and malformed-input
-regressions. Lint cannot prove a schema or detect every cancellation race.
+## Explicit external setup and read-only doctor
 
-Setup is explicit and installs only into Skills/user tooling. From the Skills
-checkout run `uv sync --frozen` for Python. For TypeScript, reuse a reviewed external runtime with the pinned versions.
-If absent, choose a fresh external runtime directory, copy `assets/portable-lint/package.json` and
-`package-lock.json` from this skill there, then run:
+Use Python 3.10+, uv, and Node 24+ (also Node 22.13+ on the 22  line) with npm.
+Choose a **fresh external directory** whose parent already exists:
 
 ```sh
-npm ci --prefix /absolute/external/runtime --ignore-scripts --no-audit --no-fund
+python /path/to/skill/scripts/setup_portable_lint.py --runtime /external/new-runtime
+python /path/to/skill/scripts/setup_portable_lint.py --doctor --runtime /external/new-runtime
 ```
 
-Do not overwrite another runtime or install into the application. Node 24+
-recommended (Node 22.13+ on the 22 line also supported). The lock includes exact versions and integrity; this is a reviewed
-trusted runtime, not a defense against modified installed packages.
+`--language python` or `--language typescript` provisions/inspects only that
+language. Without a runtime, `--doctor` checks prerequisites. Setup refuses
+existing paths, writes an ownership marker, uses frozen npm integrity and Python
+hash locks, disables npm lifecycle scripts and requires Python wheels. A failed
+partial setup stays visibly incomplete; choose a fresh path after investigating.
+Lint and doctor never install or repair tooling. Runtime files are trusted,
+reviewed tooling; version/lock checks are not a malicious-runtime sandbox.
 
-Run with the Skills Python environment (replace these paths):
+Pins: Ruff 0.16.10, Mypy 2.4.0, ESLint 10.12.0,
+typescript-eslint 8.71.1, TypeScript 6.0.2, official Hooks 7.1.1.
+Python transitive versions/hashes are in `assets/portable-lint/requirements.lock`;
+JavaScript versions/integrity are in its `package-lock.json`.
+
+The installer closes the concrete `code-review-and-quality` → `verify-work`
+helper dependency. An existing incompatible custom helper requires explicit
+selection of its replacement; it is preserved otherwise. `--help` works even
+when the helper is absent; an actual check reports that gap.
+
+## Files, projects, and native configuration
 
 ```sh
-/path/to/Skills/.venv/bin/python /path/to/skill/scripts/portable_lint.py \
-  --language python --workspace /path/to/app --receipt /private/new.json module.py
-/path/to/Skills/.venv/bin/python /path/to/skill/scripts/portable_lint.py \
-  --language typescript --runtime /absolute/external/runtime \
-  --workspace /path/to/app --receipt /private/new-ts.json src/module.ts
+python /path/to/skill/scripts/portable_lint.py --workspace /app \
+  --runtime /external/new-runtime --receipt /external/new-receipt.json src/module.py
+python /path/to/skill/scripts/portable_lint.py --workspace /app \
+  --scope changed --base HEAD --runtime /external/new-runtime \
+  --receipt /external/new-changed.json
 ```
 
-Supply explicit regular relative files, never directories. TypeScript requires
-an existing root `tsconfig.json` and project membership/dependencies; parsing or
-missing-tool failures are unavailable/failed checks, never passing skips. This
-initial profile does not support arbitrary monorepo layouts. Do not invent a
-new app tsconfig merely to make it pass.
+`--language auto|python|typescript` defaults to auto. `--scope explicit` is the
+default; provide unique regular relative files. `tracked` selects Git-tracked
+files; `changed --base REF` selects differences plus nonignored untracked files.
+`--base` selects files only. Git discovery requires the repository root.
+Non-Git workspaces use explicit files or `directory --source-dir RELATIVE_DIR`.
+Discovery reports selected language mapping, excluded/generated directories,
+deleted/unmatched entries and context failures. Empty selection is unavailable.
+Supported selected files never disappear into a passing skip. Symlink/escape
+and credential-like selected paths are refused. Recognized generated/tool
+folders are excluded from automatic discovery; explicitly requested regular
+source files are still checked.
 
-The supplement ignores inline suppressions and app lint configuration so they
-cannot conceal these findings. Native checks retain their own configuration.
-Install `verify-work` alongside this skill: its existing process/receipt helper
-owns command execution. Integration tests use the real tools: with no supplied
-`SKILLS_LINT_RUNTIME`, they install the locked npm tools in a disposable external
-directory and fail if Node/npm/network prerequisites are unavailable.
+TypeScript/JavaScript uses each selected file's nearest native `tsconfig.json`
+or `jsconfig.json`, actual references/membership, aliases, JSX settings,
+module resolution, declarations and dependency context. `--project RELATIVE_FILE`
+selects an existing config. Strict compiler flags are overridden in memory;
+JS uses checkJs in memory. No fallback project, emitted declarations, tsconfig
+or dependency install is invented. Missing config/declarations/modules or
+unsupported symlinks are unavailable. Existing reference outputs must be
+provided by an independently authorized native build. Compiler findings can
+include imported/nonselected files in the actual project.
 
-No autofix, cache or config writes; existing receipt paths are refused. Receipts
-are private and include tools, selected source hashes and raw diagnostics.
-Exit 0 means these selected checks passed on unchanged declared files; exit 3
-retains failure/unavailability, exit 2 is invocation failure. Imported files,
-nested configs and generated types are not all fingerprinted: rerun after
-relevant changes, and use native project checks for broader claims. Existing
-project debt is a finding, not permission to rewrite unrelated files. Do not
-weaken or remove a rule to claim a defect repaired.
+Python uses an isolated, line-preserving snapshot of bounded `.py`/`.pyi`
+source, keeping package layout and root/`src` import bases. Its context is capped
+at 4096 project files/64 MiB and 20000 dependency/stub inputs. Native Ruff/Mypy
+config and Mypy plugins are not loaded. `--python-executable FILE` selects the
+trusted target interpreter for real installed imports; otherwise the tooling
+interpreter is used. The pinned Mypy search query checks actual site/`.pth`
+roots; existing roots outside that interpreter's installed/standard libraries are unavailable
+before their contents are read. Regular `.pth`, interpreter configuration and
+the query helper join the recorded dependency identity. Custom import roots,
+generated/omitted modules, missing
+stubs/dependencies and unsupported dependency layouts require a known context
+or remain unavailable. This is not universal support for every Python build
+system. Python without `--runtime` still works when its executing environment
+contains both exact pinned tools.
 
-Dependency boundaries need the project's actual ownership map and allowed
-imports. No universal layering rule or style policy is installed here.
+## Actual checks and suppressions
 
-## Compare an authorized change with existing debt
+Ruff uses isolated `F,B 012,B 018`, no cache and ignore-noqa. Mypy uses isolated
+strict mode, no incremental cache and actual target-interpreter dependencies.
+The snapshot blanks `# type: ignore...` and `# mypy:...` comments, preserving
+lines/columns and ordinary type comments; imported project source is included.
+Deliberate casts and inaccurate annotations/type guards can still pass.
 
-Full mode remains the default and reports every selected-file violation.
-For an incremental change, choose a separate trusted baseline checkout/snapshot
-before examining candidate diagnostics. Preserve its native project inputs and
-run the same pinned supplemental tools in both workspaces:
+The reviewed typed ESLint set is: no-floating-promises (bare void does not waive
+handling), no-misused-promises, no-unsafe-assignment, no-unsafe-return,
+no-unsafe-type-assertion, switch-exhaustiveness-check (default does not waive a
+missing union case), no-explicit-any, no-unsafe-call, no-unsafe-member-access,
+no-unsafe-argument, await-thenable and no-non-null-assertion. The changing
+strictTypeChecked preset is not inherited wholesale. Hooks adds rules-of-hooks
+and exhaustive-deps; compiler-recommended React rules require separate review.
+JS/JSX still receives applicable lint/Hooks findings when a required typed stage
+is unavailable. ESLint uses allowInlineConfig:false, no app ESLint config and no
+bulk suppression file. Native TypeScript suppression directives are explicitly
+rejected; original source is preserved, not stripped or autofixed.
+
+Receipts version 2 record tool/profile identity, selected coverage, actual
+source/config/import/dependency inputs, raw checks/diagnostics, per-stage
+accepted/failed/unavailable and unchanged inputs. The existing verifier owns
+process-group timeouts; private external temporary files carry raw lint output
+up to 16 MiB rather than truncating it to the 64 KiB JSON envelope. Results remain
+outside target/baseline; existing receipt paths are refused. Exit 0 accepts only
+the stated scope; exit 3 retains failure/unavailability; exit 2 is invocation
+failure. Old receipts can be displayed but cannot prove this stronger profile.
+No autofix, target config/cache writes or installation occurs during a check.
+
+## Compare independently selected snapshots
 
 ```sh
-/path/to/Skills/.venv/bin/python /path/to/skill/scripts/portable_lint.py \
-  --language python --workspace /path/to/current --mode compare \
-  --baseline-workspace /path/to/pre-change --receipt /private/new-comparison.json module.py
+python /path/to/skill/scripts/portable_lint.py --workspace /current \
+  --mode compare --baseline-workspace /pre-change --runtime /external/new-runtime \
+  --receipt /external/new-comparison.json src/module.py
 ```
 
-TypeScript comparison also requires the same external `--runtime` and valid
-project membership/dependencies in both workspaces. Selected files must exist
-in both; absent baseline files (including added files) are unavailable for this
-comparison, so full-check new files separately. No baseline is fabricated.
+Use independently selected separate workspaces with the same profile/tools and
+unchanged nonselected import/config/dependency context. New files receive full
+checks; deleted files are reported by discovery. Native checks remain required.
+Raw full failures remain visible in `full_passed`, checks and diagnostics even
+when incremental comparison accepts existing debt. Consume occurrences
+one-to-one by rule/message, mapped location and unchanged source span; a new
+duplicate or edited/ambiguous span stays new-or-changed. Unique unchanged moved
+lines may match. This attributes spans, not historical authorship.
 
-Receipts retain all current/baseline diagnostics and raw check failures.
-`full_passed` reports the current full result; comparison acceptance means no
-new-or-changed supplemental diagnostics, even if existing debt leaves the full
-check failed. Match occurrences one-to-one using rule, message, location mapping
-and unchanged source spans. A newly duplicated diagnostic remains new. Unique
-unchanged moved lines can match; edited/ambiguous spans conservatively remain
-new-or-changed. This is attribution to source spans, not proof of who introduced
-a bug. Review ambiguous moves rather than suppressing findings.
-
-Missing/incompatible tooling, parser failures, changed inputs and unavailable
-baselines retain `comparison.status: unavailable` and fail the receipt. Exit 0
-in compare mode accepts only that incremental scope; it never waives failed
-project-native checks, proves unrelated debt repaired, or authorizes cleanup.
+Parser, dependency, tool/profile/context mismatch, changed inputs or unavailable
+baseline cannot become preexisting debt. Full-check changed context instead.
+Integration tests invoke real locked tools; missing prerequisites fail rather
+than skip. Use `SKILLS_LINT_RUNTIME=/external/new-runtime` for repeatable tests.

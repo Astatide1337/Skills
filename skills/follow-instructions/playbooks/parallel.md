@@ -14,18 +14,25 @@ bounded. Parallelism is not a replacement process or mandatory committee.
   permitted effects, isolation, and return artifact;
 - interface/data contract, finite budget, failure/cancellation and final
   integration check.
+- approved plan version/digest and confirmation, exclusions, remaining checks
+  and raw evidence links for approved delivery.
 
 ## Steps and decision points
 
 1. For a new task pattern, complete and verify one representative unit end to
    end first. Establish its working contract and checks before considering
-   concurrency for further units of the same pattern.
+   concurrency for further units of the same pattern. This controls safe
+   concurrency, not pilot-first release or partial-workflow evaluation.
 2. Settle shared contracts before splitting further units. Parallelism remains
    optional; split only independent work, and serialize competing state or
    unsettled interfaces.
 3. Delegate no greater authority than the parent has. Isolate ports, data,
    credentials and browser sessions where relevant. Let workers use the
    selected domain skills and surface conflicts instead of overwriting peers.
+   Carry the approved contract, owned files, effects, outstanding checks and
+   evidence into each task. Keep one integration owner; only that owner resolves
+   a cross-worker plan change under the
+   [approved-plan contract](../references/approved-plans.md).
 4. Inspect returned diffs/artifacts and checks yourself. Resolve overlap at
    its owner, integrate coherently, and exercise the affected end-to-end path.
 5. Stop delegation when coordination costs exceed its benefit. If no tool is
@@ -34,9 +41,14 @@ bounded. Parallelism is not a replacement process or mandatory committee.
 ## Failure and recovery
 
 On interruption, retain the last revision, ownership, remaining units and
- evidence in the existing task record. Recheck state on resume. A worker's
- “done” or green branch is not integration proof; retry, reassign, or serialize
- only within the parent authority.
+evidence in the existing task record. Recheck state on resume. A worker's
+"done" or green branch is not integration proof; retry, reassign, or serialize
+only within the parent authority.
+After the same approach fails twice or work yields no new evidence, use
+[self-reflect](../../self-reflect/SKILL.md) and the existing checkpoint to hand
+the actual artifacts to one fresh debugging/review agent for a discriminating
+next action when tools and authority permit. Withhold the author's theory as
+fact; unavailable delegation remains a recorded gate, not invented review.
 
 ## Completion evidence
 

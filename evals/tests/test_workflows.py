@@ -19,6 +19,55 @@ from evals.fake_tracker import FakeTracker, validate_publication
 
 
 class WorkflowContractTests(unittest.TestCase):
+    def test_approval_cases_keep_rubric_and_confirmation_outside_initial_input(self):
+        cases = {s.id: s for s in skills.workflows_dataset()}
+        sample = cases["workflow-native-plan-approved-continuation"]
+        turn = sample.metadata["approval_turn"]
+        self.assertEqual(turn["allowed_paths"], ["proposal.html"])
+        self.assertNotIn(turn["confirmation"], sample.input)
+        self.assertNotIn("approval_turn", sample.input)
+        self.assertNotIn("required_capabilities", sample.input)
+        self.assertNotIn(sample.metadata["fixture_contract"]["heldout_test"], sample.files.values())
+        self.assertNotIn(sample.target, sample.input)
+        blocked = cases["workflow-native-approved-no-merge-boundary"]
+        self.assertEqual(blocked.metadata["required_capabilities"], ["independent-review", "remote-ci"])
+        self.assertIn("merge", blocked.metadata["forbidden_effects"])
+
+    def test_approval_cases_accept_actual_outputs_and_reject_preapproval_writes(self):
+        cases = {s.id: s for s in skills.workflows_dataset()}
+        names = (
+            "workflow-native-plan-preapproval", "workflow-native-plan-material-discovery",
+            "workflow-native-approved-stall-handoff", "workflow-native-stale-plan-approval",
+        )
+        for name in names:
+            sample = cases[name]
+            contract = sample.metadata["fixture_contract"]
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                self._write_case_files(root, sample)
+                (root / contract["write_path"]).write_text(contract["write_content"])
+                accepted = self._run_case_acceptance(sample, root)
+                self.assertEqual(accepted.returncode, 0, accepted.stderr)
+                # A plausible plan cannot compensate for a dependent write
+                # made without confirmation or under superseded approval.
+                (root / "importer.py").write_text("def parse_rows(text):\n    return []\n")
+                rejected = self._run_case_acceptance(sample, root)
+                self.assertNotEqual(rejected.returncode, 0)
+
+    def test_approved_continuation_preserves_heldout_checks_when_visible_test_is_weakened(self):
+        sample = next(s for s in skills.workflows_dataset() if s.id == "workflow-native-plan-approved-continuation")
+        contract = sample.metadata["fixture_contract"]
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self._write_case_files(root, sample)
+            (root / "importer.py").write_text(contract["write_content"])
+            self.assertEqual(self._run_case_acceptance(sample, root).returncode, 0)
+            (root / "importer.py").write_text(sample.files["importer.py"])
+            (root / "checks.py").write_text("print('PASS')\n")
+            visible = subprocess.run(contract["test_command"], cwd=root, capture_output=True)
+            self.assertEqual(visible.returncode, 0)
+            self.assertNotEqual(self._run_case_acceptance(sample, root).returncode, 0)
+
     def test_global_ablation_preserves_repository_layer_and_other_rules(self):
         mandated = skills.workflows_dataset(execution_ready_only=True)
         direct = skills.workflows_dataset(execution_ready_only=True, mandatory_coordinator=False)
@@ -142,7 +191,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            34,
+            43,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -212,6 +261,15 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(
             set(cases),
             {
+                "workflow-native-plan-preapproval",
+                "workflow-native-plan-approved-continuation",
+                "workflow-native-plan-material-discovery",
+                "workflow-native-plan-in-contract-simplification",
+                "workflow-native-approved-safe-recovery",
+                "workflow-native-approved-stall-handoff",
+                "workflow-native-tiny-change-no-approval-cycle",
+                "workflow-native-stale-plan-approval",
+                "workflow-native-approved-no-merge-boundary",
                 "workflow-investigate-create-issue",
                 "workflow-draft-issue",
                 "workflow-fix-open-draft-pr",

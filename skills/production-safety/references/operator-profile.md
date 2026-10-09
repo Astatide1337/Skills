@@ -10,7 +10,22 @@ personalize the workflow without replacing target-specific discovery.
 - Keep diagnosis separate from implementation. A request to inspect or explain
   does not authorize a fix.
 - For a requested change, commit, push, or deployment, perform only that stage
-  and its normal verification; do not silently advance to the next stage.
+  and its normal verification unless the user approved whole-task delivery.
+  [Approved delivery](../../follow-instructions/references/approved-plans.md)
+  continues through its recorded verification, review and publication effects;
+  a read-only or single-stage request does not acquire that authority.
+
+## Disposable verification and infrastructure
+
+- Personal disposable test infrastructure may be used within existing
+  permissions and approved effects. Identify owned processes, ports, data and
+  cleanup before testing; remove only run-owned resources and retain evidence.
+- Rutgers OpenShift operations require a specific approved HTML infrastructure
+  plan. General feature approval or available cluster access does not cover it.
+- Container image builds and workflows that build images require explicit user
+  approval. Inspect workflows before push or dispatch; do not trigger prohibited
+  builds as a side effect of obtaining CI. Preserve existing destructive-operation
+  and deployment approval requirements.
 
 ## VPS and container-hosted services
 

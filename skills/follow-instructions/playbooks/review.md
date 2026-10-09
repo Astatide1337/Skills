@@ -17,11 +17,15 @@ and requested feedback surface; private review does not imply posting.
   authorized fixes;
 - requirements, affected callers/tests/interfaces, security/operational scope,
   and current checks that actually match the head.
+- approved plan identity and behavior/interfaces/owners when reviewing approved
+  delivery; native, portable-lint and real-journey raw evidence where relevant.
 
 ## Steps and decision points
 
 1. Pin the current head and read the diff in context. Inspect ownership,
    callers, state transitions, UX and relevant security/performance effects.
+   For approved delivery, assess the approved contract and final artifact, not
+   only current pre-feature behavior or the author's summary.
 2. Run a targeted counterexample or reproducer when it can distinguish a real
    defect. Classify each item as confirmed defect, hypothesis, preference,
    pre-existing, stale, or scope-expanding; do not invent a comment quota.
@@ -31,6 +35,10 @@ and requested feedback surface; private review does not imply posting.
 4. Decide readiness only from current findings and checks. If publication is
    requested, use [`pull-requests`](../../pull-requests/SKILL.md), submit rather
    than leave pending, and fetch the visible review/threads afterward.
+   Classify proposed simplifications against the
+   [approved-plan contract](../references/approved-plans.md): in-contract
+   reductions may be applied by the authorized author; material architecture,
+   scope, interface or verification changes require a revised plan first.
 
 ## Failure and recovery
 

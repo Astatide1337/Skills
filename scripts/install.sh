@@ -143,6 +143,30 @@ if [[ "$target" == "$skills_root" || "$target" == "$skills_root/"* ]]; then
   exit 2
 fi
 
+# This is the one concrete runtime dependency used by portable_lint.py.
+# Explicitly selecting verify-work keeps the normal replacement semantics.
+needs_profile=false
+profile_selected=false
+for skill in "${requested[@]}"; do
+  [[ "$skill" != code-review-and-quality ]] || needs_profile=true
+  [[ "$skill" != verify-work ]] || profile_selected=true
+done
+if "$needs_profile" && ! "$profile_selected"; then
+  dependency="$target/verify-work"
+  if [[ -e "$dependency" || -L "$dependency" ]]; then
+    helper="$dependency/scripts/check_profile.py"
+    if [[ -L "$dependency" || -L "$dependency/scripts" || -L "$helper" || ! -f "$helper" ]] ||
+       ! cmp -s -- "$skills_root/verify-work/scripts/check_profile.py" "$helper"; then
+      printf '%s\n' 'Existing verify-work helper is incompatible; preserve customizations and select --skill verify-work explicitly to replace it.' >&2
+      exit 2
+    fi
+    printf '%s\n' 'reusing compatible verify-work helper'
+  else
+    requested+=(verify-work)
+    printf '%s\n' 'including required dependency: verify-work'
+  fi
+fi
+
 if [[ -n "$agent_clis_source" ]]; then
   python3 "$repo_root/scripts/install-agent-clis.py" --source "$agent_clis_source"
 fi

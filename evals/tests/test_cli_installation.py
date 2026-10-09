@@ -72,6 +72,68 @@ class CLIReceiptTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "changed"):
             installer.validate_receipt(self.prefix, self.receipt)
 
+    def test_selected_review_install_closes_its_helper_dependency(self):
+        root = Path(__file__).resolve().parents[2]
+        target = self.root / 'selected-skills'
+        result = subprocess.run(['bash', str(root / 'scripts/install.sh'), '--skill',
+                                 'code-review-and-quality', '--target', str(target)],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('including required dependency: verify-work', result.stdout)
+        self.assertTrue((target / 'verify-work/scripts/check_profile.py').is_file())
+        script = target / 'code-review-and-quality/scripts/portable_lint.py'
+        help_result = subprocess.run([os.sys.executable, str(script), '--help'],
+                                     capture_output=True, text=True)
+        self.assertEqual(help_result.returncode, 0, help_result.stderr)
+
+        app = self.root / 'installed-app'
+        app.mkdir()
+        source = 'print(undefined_name)  # noqa: F821\n'
+        (app / 'sample.py').write_text(source)
+        receipt = self.root / 'installed-lint.json'
+        from evals.tests.test_portable_lint import integration_runtime
+        runtime = integration_runtime('python')
+        result = subprocess.run([os.sys.executable, str(script), '--workspace', str(app),
+                                 '--language', 'python', '--runtime', str(runtime), '--receipt', str(receipt), 'sample.py'],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 3, result.stderr)
+        evidence = json.loads(receipt.read_text())
+        self.assertTrue(evidence['diagnostics_available'])
+        self.assertEqual(evidence['diagnostics'][0]['rule'], 'F821')
+        self.assertEqual((app / 'sample.py').read_text(), source)
+
+    def test_custom_dependency_is_preserved_until_explicitly_selected(self):
+        root = Path(__file__).resolve().parents[2]
+        target = self.root / 'custom-skills'
+        helper = target / 'verify-work/scripts/check_profile.py'
+        helper.parent.mkdir(parents=True)
+        helper.write_text('custom helper\n')
+        result = subprocess.run(['bash', str(root / 'scripts/install.sh'), '--skill',
+                                 'code-review-and-quality', '--target', str(target)],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn('incompatible', result.stderr)
+        self.assertEqual(helper.read_text(), 'custom helper\n')
+        self.assertFalse((target / 'code-review-and-quality').exists())
+
+    def test_review_help_works_without_sibling_and_run_records_gap(self):
+        root = Path(__file__).resolve().parents[2]
+        script = self.root / 'skills/code-review-and-quality/scripts/portable_lint.py'
+        script.parent.mkdir(parents=True)
+        shutil.copyfile(root / 'skills/code-review-and-quality/scripts/portable_lint.py', script)
+        help_result = subprocess.run([os.sys.executable, str(script), '--help'],
+                                     capture_output=True, text=True)
+        self.assertEqual(help_result.returncode, 0, help_result.stderr)
+        app = self.root / 'app'; app.mkdir(); (app / 'sample.py').write_text('x = 1\n')
+        receipt = self.root / 'gap.json'
+        result = subprocess.run([os.sys.executable, str(script), '--workspace', str(app),
+                                 '--language', 'python', '--receipt', str(receipt), 'sample.py'],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 3, result.stderr)
+        evidence = json.loads(receipt.read_text())
+        self.assertFalse(evidence['passed'])
+        self.assertIn('verify-work helper', evidence['unavailable'])
+
     def test_empty_receipt_cannot_skip_identity_checks(self):
         receipt = copy.deepcopy(self.receipt)
         receipt["installed_files"] = {}

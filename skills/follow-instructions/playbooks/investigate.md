@@ -35,7 +35,12 @@ external research is requested or needed for an uncertain primary source.
    contradicts the hypothesis, update the explanation rather than forcing the
    result. Use a disposable reproduction only when authorized.
 4. Follow primary source passages, logs, or traces to the requested answer.
-   Compose a later issue or implementation route only when explicitly asked.
+   A diagnosis states the evidenced root cause, intended behavior and remaining
+   causal uncertainty. Exploration gives viable options, a recommendation and
+   material unknowns before asking for a choice. If implementation is requested,
+   hand nontrivial work to [design](design.md) and the
+   [approved-plan contract](../references/approved-plans.md). A read-only
+   diagnosis or requested issue artifact does not authorize a source fix.
 
 ## Failure and recovery
 
@@ -46,8 +51,9 @@ plausible mechanism into a confirmed diagnosis.
 
 ## Completion evidence
 
-Return the direct answer, source locations or observations, the distinguished
-hypotheses, material uncertainty, and the smallest next check. A diagnosis is
+Return the direct answer, source locations or observations, desired behavior,
+the distinguished hypotheses, material uncertainty, and the smallest next check.
+For exploration, include the options and actionable recommendation. A diagnosis is
 not a fix, and a command that exited successfully is not proof of runtime
 behavior. For offline service snapshots, explicitly mark live reachability and
 authentication untested; discovering an interface does not exercise it.
