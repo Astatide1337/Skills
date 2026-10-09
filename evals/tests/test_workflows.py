@@ -141,7 +141,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            28,
+            32,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -239,6 +239,10 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-construction-owner",
                 "workflow-native-construction-discovery",
                 "workflow-native-repository-instructions",
+                "workflow-native-api-contract-provenance",
+                "workflow-native-security-blocked-path",
+                "workflow-native-security-reachable-private-resolution",
+                "workflow-native-security-insufficient-reachability-evidence",
             },
         )
         for sample in cases.values():
@@ -263,7 +267,7 @@ class WorkflowContractTests(unittest.TestCase):
     def test_native_regression_cases_keep_expectations_separate_and_scope_bounded(self) -> None:
         cases = [sample for sample in skills.workflows_dataset().samples
                  if "audit_provenance" in (sample.metadata or {})]
-        self.assertEqual(len(cases), 17)
+        self.assertEqual(len(cases), 21)
         for sample in cases:
             metadata = sample.metadata or {}
             contract = metadata["fixture_contract"]
@@ -298,6 +302,140 @@ class WorkflowContractTests(unittest.TestCase):
                     (root / contract["test_command"][-1]).write_text("pass\n")
                     weakened = subprocess.run(command, cwd=root, capture_output=True)
                     self.assertNotEqual(weakened.returncode, 0, sample.id)
+
+    @staticmethod
+    def _write_case_files(root: Path, sample) -> None:
+        for path, content in (sample.files or {}).items():
+            target = root / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content)
+
+    def _run_case_acceptance(self, sample, root: Path) -> subprocess.CompletedProcess:
+        command, error = skills._runner_acceptance_command(sample.metadata["fixture_contract"])
+        self.assertIsNone(error)
+        self.assertIsNotNone(command)
+        return subprocess.run(command or [], cwd=root, capture_output=True, text=True)
+
+    def test_api_contract_provenance_keeps_the_valid_unit_mock_control(self) -> None:
+        sample = next(s for s in skills.workflows_dataset() if s.id == "workflow-native-api-contract-provenance")
+        contract = sample.metadata["fixture_contract"]
+        evidence = json.loads(sample.files["api-contract.json"])
+        self.assertEqual(evidence["authority_within_fixture"], "normative for the client wire request")
+        self.assertEqual(evidence["method"], "POST")
+        self.assertEqual(evidence["path"], "/v2/items/search")
+        self.assertEqual(evidence["json_body"], {"kind": "record", "includeArchived": False})
+        self.assertNotIn("reference_api.py", sample.files)
+        self.assertIn('expected_method = "POST"', contract["acceptance_test"])
+        self.assertIn("Fabricated permissive API", sample.files["loose_api_mock.py"])
+        self.assertIn("Approved unit double", sample.files["local_unit_mock.py"])
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self._write_case_files(root, sample)
+            baseline_smoke = subprocess.run(contract["test_command"], cwd=root, capture_output=True, text=True)
+            self.assertEqual(baseline_smoke.returncode, 0, baseline_smoke.stderr)
+            baseline_contract = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(baseline_contract.returncode, 0)
+
+            (root / "client.py").write_text(contract["write_content"])
+            fixed_smoke = subprocess.run(contract["test_command"], cwd=root, capture_output=True, text=True)
+            self.assertEqual(fixed_smoke.returncode, 0, fixed_smoke.stderr)
+            fixed_contract = self._run_case_acceptance(sample, root)
+            self.assertEqual(fixed_contract.returncode, 0, fixed_contract.stderr)
+
+            (root / "client.py").write_text(sample.files["client.py"])
+            (root / "checks.py").write_text("print('PASS')\n")
+            (root / "grader.py").write_text("print('PASS')\n")
+            fake_green = subprocess.run(contract["test_command"], cwd=root, capture_output=True, text=True)
+            self.assertEqual(fake_green.returncode, 0, fake_green.stderr)
+            rejected = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(rejected.returncode, 0)
+
+    def test_security_blocked_path_requires_a_correct_artifact_and_runtime_evidence(self) -> None:
+        sample = next(s for s in skills.workflows_dataset() if s.id == "workflow-native-security-blocked-path")
+        self.assertIn("is_private=True, is_loopback=False, is_link_local=False", sample.metadata["fixture_contract"]["acceptance_test"])
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self._write_case_files(root, sample)
+            report = {
+                "assessment": "no_reachable_ssrf",
+                "evidence_ids": [
+                    "unlisted_host_rejected_before_resolution",
+                    "private_resolution_rejected_before_connect",
+                    "validated_addresses_bound_to_connect",
+                ],
+            }
+            (root / "assessment.json").write_text(json.dumps(report))
+            smoke = subprocess.run(["python", "-B", "checks.py"], cwd=root, capture_output=True, text=True)
+            self.assertEqual(smoke.returncode, 0, smoke.stderr)
+            accepted = self._run_case_acceptance(sample, root)
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+            guarded_source = sample.files["fetcher.py"]
+            mutant = guarded_source.replace(" or host not in ALLOWED_HOSTS", "")
+            self.assertNotEqual(mutant, guarded_source)
+            (root / "fetcher.py").write_text(mutant)
+            allowlist_mutant = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(allowlist_mutant.returncode, 0)
+            (root / "fetcher.py").write_text(guarded_source)
+
+            report["assessment"] = "confirmed_ssrf"
+            (root / "assessment.json").write_text(json.dumps(report))
+            (root / "grader.py").write_text("print('PASS')\n")
+            (root / "candidate-output.txt").write_text("No reachable SSRF; PASS\n")
+            rejected = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(rejected.returncode, 0)
+
+    def test_reachable_private_resolution_is_fixed_by_runner_acceptance_not_printed_claims(self) -> None:
+        sample = next(s for s in skills.workflows_dataset() if s.id == "workflow-native-security-reachable-private-resolution")
+        contract = sample.metadata["fixture_contract"]
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self._write_case_files(root, sample)
+            smoke = subprocess.run(contract["test_command"], cwd=root, capture_output=True, text=True)
+            self.assertEqual(smoke.returncode, 0, smoke.stderr)
+
+            baseline_acceptance = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(baseline_acceptance.returncode, 0)
+            (root / "checks.py").write_text("print('PASS')\n")
+            (root / "grader.py").write_text("print('PASS')\n")
+            fake_green = subprocess.run(contract["test_command"], cwd=root, capture_output=True, text=True)
+            self.assertEqual(fake_green.returncode, 0, fake_green.stderr)
+            still_rejected = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(still_rejected.returncode, 0)
+
+            (root / "fetcher.py").write_text(contract["write_content"])
+            fixed_smoke = subprocess.run(contract["test_command"], cwd=root, capture_output=True, text=True)
+            self.assertEqual(fixed_smoke.returncode, 0, fixed_smoke.stderr)
+            fixed_acceptance = self._run_case_acceptance(sample, root)
+            self.assertEqual(fixed_acceptance.returncode, 0, fixed_acceptance.stderr)
+
+    def test_insufficient_security_evidence_inspects_artifact_and_snapshot_completeness(self) -> None:
+        sample = next(s for s in skills.workflows_dataset() if s.id == "workflow-native-security-insufficient-reachability-evidence")
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self._write_case_files(root, sample)
+            report = {
+                "status": "insufficient_evidence",
+                "helper_sink": "callable_in_supplied_snapshot",
+                "attacker_reachability": "not_established",
+                "missing_evidence": ["entrypoint", "caller_path", "deployment_configuration"],
+            }
+            (root / "assessment.json").write_text(json.dumps(report))
+            accepted = self._run_case_acceptance(sample, root)
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+            (root / "grader.py").write_text("print('PASS')\n")
+            (root / "candidate-output.txt").write_text("Insufficient evidence; PASS\n")
+            report["status"] = "confirmed_vulnerability"
+            (root / "assessment.json").write_text(json.dumps(report))
+            printed_claim = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(printed_claim.returncode, 0)
+
+            report["status"] = "insufficient_evidence"
+            (root / "assessment.json").write_text(json.dumps(report))
+            (root / "entrypoint.py").write_text("# candidate-invented caller\n")
+            fabricated_snapshot = self._run_case_acceptance(sample, root)
+            self.assertNotEqual(fabricated_snapshot.returncode, 0)
 
     def test_construction_checks_reject_sorted_output_and_retain_green_design_control(self):
         cases = {sample.id: sample for sample in skills.workflows_dataset().samples

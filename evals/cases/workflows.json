@@ -1406,5 +1406,309 @@
       ],
       "artifact_first_review": true
     }
+  },
+  {
+    "id": "workflow-native-api-contract-provenance",
+    "input": "The supplied API fixture currently passes the record search smoke check. Update client.py to follow the independently supplied api-contract.json. Keep the explicitly labeled local unit-mock control working. Only client.py may change. Do not install dependencies, use a network, or launch other agents. Run the local checks and report what each fixture establishes.",
+    "target": "Read the supplied contract evidence and distinguish it from the permissive fabricated API smoke fixture. Correct the client request and response shape in its existing owner; preserve the local repository unit test-double behavior. Run the visible checks and verify the final client against the runner-owned contract service, including empty and varied record sets. Do not claim the smoke fixture establishes wire semantics.",
+    "files": {
+      "client.py": "def list_records(request):\n    return request(\"GET\", \"/v1/records?category=record\", None)[\"records\"]\n",
+      "loose_api_mock.py": "\"\"\"Fabricated permissive API smoke fixture; it is not sourced from the integration contract.\"\"\"\n\ndef request(method, path, body):\n    legacy = (method, path, body) == (\"GET\", \"/v1/records?category=record\", None)\n    contract = (method, path, body) == (\"POST\", \"/v2/items/search\", {\"kind\": \"record\", \"includeArchived\": False})\n    if not (legacy or contract):\n        raise AssertionError(\"unsupported mock request\")\n    rows = [{\"id\": \"R-local\", \"kind\": \"record\"}]\n    return {\"records\": rows, \"items\": rows}\n",
+      "api-contract.json": "{\n  \"evidence_kind\": \"independently supplied integration contract excerpt\",\n  \"authority_within_fixture\": \"normative for the client wire request\",\n  \"method\": \"POST\",\n  \"path\": \"/v2/items/search\",\n  \"json_body\": {\"kind\": \"record\", \"includeArchived\": false},\n  \"response\": {\"items\": [{\"id\": \"R-1\", \"kind\": \"record\"}]},\n  \"semantics\": \"The response items are records only; an empty result is an empty items array.\"\n}\n",
+      "local_unit_mock.py": "\"\"\"Approved unit double for the local RecordRepository interface only.\nIt intentionally says nothing about HTTP or the external API.\n\"\"\"\nclass RecordRepositoryDouble:\n    def __init__(self, labels):\n        self._labels = list(labels)\n    def labels(self):\n        return list(self._labels)\n",
+      "record_labels.py": "def clean_labels(repository):\n    return [label.strip() for label in repository.labels()]\n",
+      "checks.py": "from client import list_records\nfrom loose_api_mock import request\nfrom local_unit_mock import RecordRepositoryDouble\nfrom record_labels import clean_labels\n\nassert list_records(request) == [{\"id\": \"R-local\", \"kind\": \"record\"}]\nassert clean_labels(RecordRepositoryDouble([\" alpha \", \"beta\"])) == [\"alpha\", \"beta\"]\n",
+      "README.txt": "The visible smoke check is python -B checks.py. loose_api_mock.py is a fabricated API fixture that accepts both the legacy and contract-shaped request and returns both response shapes. The legacy client/mock pair therefore passes despite conflicting with api-contract.json. Its green result does not establish the wire contract. api-contract.json is the independent wire-contract evidence for this fixture.\n\nlocal_unit_mock.py is an approved unit test double for the in-process RecordRepository.labels() interface. It is valid evidence for record_labels.clean_labels() behavior only. Keep this distinction and only edit client.py.\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "artifact_first_review": true,
+      "required_files": [
+        "client.py",
+        "checks.py",
+        "api-contract.json",
+        "loose_api_mock.py",
+        "local_unit_mock.py",
+        "record_labels.py",
+        "README.txt"
+      ],
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "client.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "security-and-hardening",
+        "verify-work"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "client.py",
+        "write_content": "def list_records(request):\n    return request(\"POST\", \"/v2/items/search\", {\"kind\": \"record\", \"includeArchived\": False})[\"items\"]\n",
+        "required_paths": [
+          "client.py",
+          "checks.py",
+          "api-contract.json",
+          "loose_api_mock.py",
+          "local_unit_mock.py",
+          "record_labels.py",
+          "README.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_test": "from client import list_records\nexpected_method = \"POST\"\nexpected_path = \"/v2/items/search\"\nexpected_body = {\"kind\": \"record\", \"includeArchived\": False}\nfor rows in ([{\"id\": \"R-8\", \"kind\": \"record\"}, {\"id\": \"R-9\", \"kind\": \"record\"}], []):\n    calls = []\n    def request(method, path, body):\n        calls.append((method, path, body))\n        if method != expected_method or path != expected_path or body != expected_body:\n            raise AssertionError(\"request conflicts with independently supplied contract\")\n        return {\"items\": list(rows)}\n    assert list_records(request) == rows\n    assert calls == [(expected_method, expected_path, expected_body)]\n",
+        "heldout_test": "from client import list_records\nmethod, path, body = \"POST\", \"/v2/items/search\", {\"kind\": \"record\", \"includeArchived\": False}\nrows = [{\"id\": \"A-17\", \"kind\": \"record\"}, {\"id\": \"A-17\", \"kind\": \"record\"}]\ncalls = []\ndef request(actual_method, actual_path, actual_body):\n    calls.append((actual_method, actual_path, actual_body))\n    assert (actual_method, actual_path, actual_body) == (method, path, body)\n    return {\"items\": rows}\nassert list_records(request) == rows\nassert calls == [(method, path, body)]\n"
+      },
+      "evaluation_dimensions": {
+        "correctness": "runner-owned local contract and held-out behavior; actual artifacts are inspected",
+        "routing": "separate routing task",
+        "guidance_access": "native tool-event observations only",
+        "guidance_application": "artifact-first assessment; access alone is insufficient",
+        "generalization": "bounded synthetic evidence; no production or universal efficacy claim"
+      },
+      "audit_provenance": {
+        "basis": "user-requested synthetic fixture: mutually consistent client and fabricated API smoke double conflict with an independently supplied contract; paired with an explicitly scoped valid unit mock",
+        "machine_attribution": "unestablished",
+        "implementation_status": "bounded local contract regression; no historical or production API repair certified"
+      }
+    }
+  },
+  {
+    "id": "workflow-native-security-blocked-path",
+    "input": "Review the SSRF concern in this local snapshot. The report claims the metadata endpoint is reachable because fetch() has a connector call. Decide whether an untrusted URL can reach that sink in the supplied code and produce assessment.json with evidence. Do not edit source, install dependencies, or use a network.",
+    "target": "Trace the complete URL allowlist, exact resolved-address predicate, and connector arguments. Exercise the supplied injected resolver and connector locally; account for the full blocking guard and its ordering. Record a no-reachable-path conclusion only if the actual code blocks both an unlisted metadata host and a private answer for an allowlisted host before the connector, while preserving the public control. Use the explicit AddressFacts booleans as the fixture semantics; do not infer them from Python ipaddress version behavior. Report only this synthetic local scope.",
+    "files": {
+      "fetcher.py": "from urllib.parse import urlsplit\n\nALLOWED_HOSTS = {\"assets.example\"}\n\nclass Rejected(ValueError):\n    pass\n\ndef fetch(url, resolve, connect):\n    parsed = urlsplit(url)\n    host = parsed.hostname\n    if parsed.scheme != \"https\" or host not in ALLOWED_HOSTS:\n        raise Rejected(\"destination is not allowlisted\")\n    addresses = tuple(resolve(host))\n    if not addresses:\n        raise Rejected(\"host resolved to no addresses\")\n    if any(address.is_private or address.is_loopback or address.is_link_local for address in addresses):\n        raise Rejected(\"resolved address is not public\")\n    return connect(addresses, parsed.path)\n",
+      "address_facts.py": "class AddressFacts:\n    \"\"\"Exact injected classification facts; no platform IP library is used.\"\"\"\n    def __init__(self, value, *, is_public, is_private, is_loopback, is_link_local):\n        self.value = value\n        self.is_public = is_public\n        self.is_private = is_private\n        self.is_loopback = is_loopback\n        self.is_link_local = is_link_local\n",
+      "checks.py": "from address_facts import AddressFacts\nfrom fetcher import Rejected, fetch\npublic = AddressFacts(\"198.51.100.9\", is_public=True, is_private=False, is_loopback=False, is_link_local=False)\nassert fetch(\"https://assets.example/logo.svg\", lambda host: [public], lambda addresses, path: (addresses, path)) == ((public,), \"/logo.svg\")\n",
+      "assessment.json": "{\"assessment\": \"pending\", \"evidence_ids\": []}\n",
+      "README.txt": "All behavior is exercised with local resolver/connector doubles. AddressFacts fields are fixed scenario facts supplied by this fixture; no Python IP classification is involved. fetch() passes the validated resolution itself to connect(), so the connector does not perform a second hostname lookup. The requested report must be based on the entire supplied function and path, not the presence of a sink-looking call alone.\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "artifact_first_review": true,
+      "required_files": [
+        "fetcher.py",
+        "address_facts.py",
+        "checks.py",
+        "assessment.json",
+        "README.txt"
+      ],
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "assessment.json"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "security-and-hardening",
+        "verify-work"
+      ],
+      "optional_skills": [
+        "code-review-and-quality"
+      ],
+      "expected_workflows": [
+        "investigate/read"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "assessment.json",
+        "write_content": "{\"assessment\": \"pending\", \"evidence_ids\": []}\n",
+        "required_paths": [
+          "fetcher.py",
+          "address_facts.py",
+          "checks.py",
+          "assessment.json",
+          "README.txt"
+        ],
+        "acceptance_test": "import json\nfrom pathlib import Path\nfrom address_facts import AddressFacts\nfrom fetcher import Rejected, fetch\nreport = json.loads(Path(\"assessment.json\").read_text())\nassert report[\"assessment\"] == \"no_reachable_ssrf\"\nassert set(report[\"evidence_ids\"]) == {\"unlisted_host_rejected_before_resolution\", \"private_resolution_rejected_before_connect\", \"validated_addresses_bound_to_connect\"}\nresolve_calls = []\nconnect_calls = []\ndef resolve(host):\n    resolve_calls.append(host)\n    return [AddressFacts(\"10.4.5.6\", is_public=False, is_private=True, is_loopback=False, is_link_local=False)]\ndef connect(addresses, path):\n    connect_calls.append((addresses, path))\n    return \"connected\"\ntry:\n    fetch(\"https://169.254.169.254/latest/meta-data\", resolve, connect)\nexcept Rejected:\n    pass\nelse:\n    raise AssertionError(\"unlisted attacker destination was accepted\")\nassert resolve_calls == [] and connect_calls == []\ntry:\n    fetch(\"https://assets.example/metadata\", resolve, connect)\nexcept Rejected:\n    pass\nelse:\n    raise AssertionError(\"private resolver answer reached connector\")\nassert resolve_calls == [\"assets.example\"] and connect_calls == []\npublic = AddressFacts(\"198.51.100.9\", is_public=True, is_private=False, is_loopback=False, is_link_local=False)\nresult = fetch(\"https://assets.example/logo.svg\", lambda host: [public], connect)\nassert result == \"connected\"\nassert connect_calls == [((public,), \"/logo.svg\")]\n",
+        "heldout_test": "import json\nfrom pathlib import Path\nfrom address_facts import AddressFacts\nfrom fetcher import Rejected, fetch\nreport = json.loads(Path(\"assessment.json\").read_text())\nassert report[\"assessment\"] == \"no_reachable_ssrf\"\ntry:\n    fetch(\"https://assets.example/mixed\", lambda host: [AddressFacts(\"198.51.100.9\", is_public=True, is_private=False, is_loopback=False, is_link_local=False), AddressFacts(\"10.0.0.7\", is_public=False, is_private=True, is_loopback=False, is_link_local=False)], lambda addresses, path: (_ for _ in ()).throw(AssertionError(\"connector reached\")))\nexcept Rejected:\n    pass\nelse:\n    raise AssertionError(\"mixed resolution containing a private address was accepted\")\n"
+      },
+      "evaluation_dimensions": {
+        "correctness": "runner-owned local contract and held-out behavior; actual artifacts are inspected",
+        "routing": "separate routing task",
+        "guidance_access": "native tool-event observations only",
+        "guidance_application": "artifact-first assessment; access alone is insufficient",
+        "generalization": "bounded synthetic evidence; no production or universal efficacy claim"
+      },
+      "audit_provenance": {
+        "basis": "user-requested synthetic false-positive control: full boolean guard and blocked attacker-to-sink paths",
+        "machine_attribution": "unestablished",
+        "implementation_status": "local deterministic behavior only; not a live SSRF audit or production security conclusion"
+      }
+    }
+  },
+  {
+    "id": "workflow-native-security-reachable-private-resolution",
+    "input": "The helper is intended to reject unsafe resolved addresses before connecting. A caller controlled URL ending in .example is in this synthetic threat model, and attacker.example is controlled by the attacker. Fix fetcher.py so a private resolver answer cannot reach the connector while a public resolver control still works. Only fetcher.py may change. Use the local checks; do not install dependencies or use a network.",
+    "target": "Reproduce the attacker-controlled hostname resolving to the explicitly classified private address, inspect the full predicate and sink path, and repair the missing guard in fetcher.py. Reject every unsafe address in a mixed answer set before calling the connector; preserve the public control. The test AddressFacts booleans are authoritative fixture values and independent of Python IP-library semantics. Run the visible check and runner-owned held-out acceptance against the final source; claims describe local doubles only.",
+    "files": {
+      "fetcher.py": "from urllib.parse import urlsplit\n\nALLOWED_SUFFIX = \".example\"\n\nclass Rejected(ValueError):\n    pass\n\ndef fetch(url, resolve, connect):\n    parsed = urlsplit(url)\n    host = parsed.hostname\n    if parsed.scheme != \"https\" or not host or not host.endswith(ALLOWED_SUFFIX):\n        raise Rejected(\"host is outside the synthetic suffix allowlist\")\n    addresses = tuple(resolve(host))\n    if not addresses:\n        raise Rejected(\"host resolved to no addresses\")\n    if any(address.is_loopback or address.is_link_local for address in addresses):\n        raise Rejected(\"loopback or link-local result\")\n    return connect(addresses, parsed.path)\n",
+      "address_facts.py": "class AddressFacts:\n    \"\"\"Exact injected classification facts; no platform IP library is used.\"\"\"\n    def __init__(self, value, *, is_public, is_private, is_loopback, is_link_local):\n        self.value = value\n        self.is_public = is_public\n        self.is_private = is_private\n        self.is_loopback = is_loopback\n        self.is_link_local = is_link_local\n",
+      "checks.py": "from address_facts import AddressFacts\nfrom fetcher import Rejected, fetch\npublic = AddressFacts(\"198.51.100.12\", is_public=True, is_private=False, is_loopback=False, is_link_local=False)\nloopback = AddressFacts(\"127.0.0.9\", is_public=False, is_private=True, is_loopback=True, is_link_local=False)\nassert fetch(\"https://uploads.attacker.example/file\", lambda host: [public], lambda addresses, path: (addresses, path)) == ((public,), \"/file\")\ntry:\n    fetch(\"https://uploads.attacker.example/file\", lambda host: [loopback], lambda addresses, path: (_ for _ in ()).throw(AssertionError(\"connector reached\")))\nexcept Rejected:\n    pass\nelse:\n    raise AssertionError(\"loopback answer was accepted\")\n",
+      "README.txt": "Threat model for this synthetic fixture: the URL is untrusted, attacker.example is attacker-controlled, and the suffix rule accepts it. The injected resolver can return the exact facts in address_facts.py. The connector is the network sink, but it is only a local recording function in checks and runner acceptance. The visible check covers loopback; runner acceptance also covers a private non-loopback, non-link-local address and a mixed set. AddressFacts is explicit test data, not Python ipaddress output.\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "artifact_first_review": true,
+      "required_files": [
+        "fetcher.py",
+        "address_facts.py",
+        "checks.py",
+        "README.txt"
+      ],
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "fetcher.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "security-and-hardening",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "verify-work",
+        "systematic-debugging"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "fetcher.py",
+        "write_content": "from urllib.parse import urlsplit\n\nALLOWED_SUFFIX = \".example\"\n\nclass Rejected(ValueError):\n    pass\n\ndef fetch(url, resolve, connect):\n    parsed = urlsplit(url)\n    host = parsed.hostname\n    if parsed.scheme != \"https\" or not host or not host.endswith(ALLOWED_SUFFIX):\n        raise Rejected(\"host is outside the synthetic suffix allowlist\")\n    addresses = tuple(resolve(host))\n    if not addresses:\n        raise Rejected(\"host resolved to no addresses\")\n    if any(address.is_private or address.is_loopback or address.is_link_local for address in addresses):\n        raise Rejected(\"non-public address result\")\n    return connect(addresses, parsed.path)\n",
+        "required_paths": [
+          "fetcher.py",
+          "address_facts.py",
+          "checks.py",
+          "README.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_test": "from address_facts import AddressFacts\nfrom fetcher import Rejected, fetch\nprivate = AddressFacts(\"10.4.5.6\", is_public=False, is_private=True, is_loopback=False, is_link_local=False)\npublic = AddressFacts(\"198.51.100.12\", is_public=True, is_private=False, is_loopback=False, is_link_local=False)\nprivate_calls = []\ndef private_connect(addresses, path):\n    private_calls.append((addresses, path))\n    return \"sink reached\"\ntry:\n    fetch(\"https://uploads.attacker.example/file\", lambda host: [private], private_connect)\nexcept Rejected:\n    pass\nelse:\n    raise AssertionError(\"private DNS answer was not rejected\")\nassert private_calls == [], \"attacker-controlled private answer reached the connector\"\npublic_calls = []\ndef public_connect(addresses, path):\n    public_calls.append((addresses, path))\n    return \"public control\"\nassert fetch(\"https://uploads.attacker.example/file\", lambda host: [public], public_connect) == \"public control\"\nassert public_calls == [((public,), \"/file\")]\n",
+        "heldout_test": "from address_facts import AddressFacts\nfrom fetcher import Rejected, fetch\npublic = AddressFacts(\"198.51.100.12\", is_public=True, is_private=False, is_loopback=False, is_link_local=False)\nprivate = AddressFacts(\"172.20.0.2\", is_public=False, is_private=True, is_loopback=False, is_link_local=False)\nseen = []\ntry:\n    fetch(\"https://uploads.attacker.example/heldout\", lambda host: [public, private], lambda addresses, path: seen.append((addresses, path)))\nexcept Rejected:\n    pass\nelse:\n    raise AssertionError(\"a mixed address set containing a private address was accepted\")\nassert seen == []\nassert fetch(\"https://uploads.attacker.example/heldout\", lambda host: [public], lambda addresses, path: (addresses, path)) == ((public,), \"/heldout\")\n"
+      },
+      "evaluation_dimensions": {
+        "correctness": "runner-owned local contract and held-out behavior; actual artifacts are inspected",
+        "routing": "separate routing task",
+        "guidance_access": "native tool-event observations only",
+        "guidance_application": "artifact-first assessment; access alone is insufficient",
+        "generalization": "bounded synthetic evidence; no production or universal efficacy claim"
+      },
+      "audit_provenance": {
+        "basis": "user-requested synthetic positive security control: attacker-controlled host suffix resolves to a private address and reaches an injected sink until guarded",
+        "machine_attribution": "unestablished",
+        "implementation_status": "bounded local repair fixture; not evidence of a production exploit or a live security fix"
+      }
+    }
+  },
+  {
+    "id": "workflow-native-security-insufficient-reachability-evidence",
+    "input": "Assess whether this snapshot establishes an external attacker path to the fetch sink. Produce assessment.json with the demonstrated facts, missing evidence, and a bounded conclusion. Do not infer deployment state, use a network, or change the supplied source.",
+    "target": "Distinguish the unsafe helper-to-sink behavior shown by local execution from an attacker-controlled entry point and caller path, neither of which is present in this snapshot. Inspect the actual supplied files and run only a local injected transport. Report insufficient evidence for external reachability, identify the missing entrypoint/caller/deployment evidence, and do not call the application safe or assert a confirmed exploitable vulnerability. The candidate-created assessment.json is the required artifact; a printed claim or local self-check is not evidence.",
+    "files": {
+      "fetcher.py": "def fetch(target, transport):\n    return transport(target)\n",
+      "scope.txt": "This source capture contains fetcher.py only. The capture omitted HTTP/CLI/job entrypoints, all callers, routes, queue subscriptions, and deployment/network configuration. The omitted files were not searched or tested. This local task has no network access.\n",
+      "assessment.json": "{\"status\": \"pending\"}\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "artifact_first_review": true,
+      "required_files": [
+        "fetcher.py",
+        "scope.txt",
+        "assessment.json"
+      ],
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "assessment.json"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "security-and-hardening",
+        "verify-work"
+      ],
+      "optional_skills": [
+        "systematic-debugging"
+      ],
+      "expected_workflows": [
+        "investigate/read"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "assessment.json",
+        "write_content": "{\"status\": \"pending\"}\n",
+        "required_paths": [
+          "fetcher.py",
+          "scope.txt",
+          "assessment.json"
+        ],
+        "acceptance_test": "import json\nfrom pathlib import Path\nfrom fetcher import fetch\nreport = json.loads(Path(\"assessment.json\").read_text())\nassert report[\"status\"] == \"insufficient_evidence\"\nassert report[\"helper_sink\"] == \"callable_in_supplied_snapshot\"\nassert report[\"attacker_reachability\"] == \"not_established\"\nassert {\"entrypoint\", \"caller_path\", \"deployment_configuration\"}.issubset(set(report[\"missing_evidence\"]))\nassert \"confirmed_vulnerability\" not in report and \"severity\" not in report\nassert not Path(\"entrypoint.py\").exists()\nassert not Path(\"routes.py\").exists()\nassert not Path(\"deployment.json\").exists()\nseen = []\nresult = fetch(\"http://169.254.169.254/latest/meta-data\", lambda url: seen.append(url) or \"local-sink\")\nassert result == \"local-sink\" and seen == [\"http://169.254.169.254/latest/meta-data\"]\n",
+        "heldout_test": "import json\nfrom pathlib import Path\nreport = json.loads(Path(\"assessment.json\").read_text())\nassert report[\"status\"] == \"insufficient_evidence\"\nassert report[\"attacker_reachability\"] == \"not_established\"\nassert not Path(\"entrypoint.py\").exists() and not Path(\"routes.py\").exists()\n"
+      },
+      "evaluation_dimensions": {
+        "correctness": "runner-owned local contract and held-out behavior; actual artifacts are inspected",
+        "routing": "separate routing task",
+        "guidance_access": "native tool-event observations only",
+        "guidance_application": "artifact-first assessment; access alone is insufficient",
+        "generalization": "bounded synthetic evidence; no production or universal efficacy claim"
+      },
+      "audit_provenance": {
+        "basis": "user-requested synthetic uncertainty control: unsafe helper reaches a local sink but caller and deployment path are absent",
+        "machine_attribution": "unestablished",
+        "implementation_status": "evidence-boundary fixture only; no deployed system or external reachability conclusion"
+      }
+    }
   }
 ]
