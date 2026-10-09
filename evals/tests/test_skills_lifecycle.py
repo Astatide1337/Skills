@@ -21,28 +21,31 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_native_catalog_locator_resolves_frozen_bytes_only_when_installed(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            task_home = root / "task-home"
+            (task_home / ".cache").mkdir(parents=True)
             auth = root / "auth.json"
             auth.write_text("{}")
             package = root / "catalog" / "example"
             package.mkdir(parents=True)
             (package / "SKILL.md").write_text("Frozen candidate instructions")
-            for installed in (True, False):
-                async def execute(command, **kwargs):
-                    if command[0] == "codex":
-                        home = Path(kwargs["env"]["CODEX_HOME"])
-                        prompt = kwargs["input"]
-                        if installed:
-                            self.assertIn(f"Installed catalog filesystem root: {home}/skills/.", prompt)
-                            self.assertEqual((home / "skills/example/SKILL.md").read_text(), "Frozen candidate instructions")
-                            self.assertEqual((home / "skills/.system/example/SKILL.md").read_text(), "Frozen candidate instructions")
-                            self.assertTrue(prompt.endswith("User task"))
-                        else:
-                            self.assertEqual(prompt, "User task")
-                            self.assertFalse((home / "skills").exists())
-                    return SimpleNamespace(success=True, returncode=0, stdout="", stderr="")
-                sandbox = SimpleNamespace(exec=AsyncMock(side_effect=execute), read_file=AsyncMock(return_value="answer"))
-                with patch.object(skills, "AUTH_FILE", auth), patch.object(skills, "bwrap_preflight", return_value=None), patch.object(skills, "sandbox", return_value=sandbox):
-                    await skills.run_codex("User task", model="stub/model", with_skills=installed, sandbox_mode="read-only", skills_root=package.parent)
+            with patch.object(Path, "home", return_value=task_home):
+                for installed in (True, False):
+                    async def execute(command, **kwargs):
+                        if command[0] == "codex":
+                            home = Path(kwargs["env"]["CODEX_HOME"])
+                            prompt = kwargs["input"]
+                            if installed:
+                                self.assertIn(f"Installed catalog filesystem root: {home}/skills/.", prompt)
+                                self.assertEqual((home / "skills/example/SKILL.md").read_text(), "Frozen candidate instructions")
+                                self.assertEqual((home / "skills/.system/example/SKILL.md").read_text(), "Frozen candidate instructions")
+                                self.assertTrue(prompt.endswith("User task"))
+                            else:
+                                self.assertEqual(prompt, "User task")
+                                self.assertFalse((home / "skills").exists())
+                        return SimpleNamespace(success=True, returncode=0, stdout="", stderr="")
+                    sandbox = SimpleNamespace(exec=AsyncMock(side_effect=execute), read_file=AsyncMock(return_value="answer"))
+                    with patch.object(skills, "AUTH_FILE", auth), patch.object(skills, "bwrap_preflight", return_value=None), patch.object(skills, "sandbox", return_value=sandbox):
+                        await skills.run_codex("User task", model="stub/model", with_skills=installed, sandbox_mode="read-only", skills_root=package.parent)
 
     async def test_shipped_routing_has_no_evaluator_hints(self):
         state = TaskState(model='stub/router', sample_id='route', epoch=1, input='Explain this parser.', messages=[])
