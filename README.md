@@ -5,8 +5,12 @@ proportionate playbook, use the existing domain skills, and verify the actual
 result. The catalog is daily-use documentation first; its optional evaluator
 is evidence about contracts, not a product judge.
 
-Each directory in `skills/` is self-contained and portable across compatible
-harnesses.
+The catalog is portable across compatible harnesses. Some skills reference
+sibling procedures or runtime helpers; selected installation must preserve
+those declared dependencies. `code-review-and-quality` needs the compatible
+`verify-work` helper, which the installer includes when missing and checks
+before copying. It refuses an incompatible existing helper unless that skill
+was explicitly selected for replacement.
 
 ```text
 skills/<skill-name>/
@@ -84,6 +88,23 @@ snapshots; do not contact production or create a permanent workflow.
   into a temporary checked sequence and report any blocked input.
 ```
 
+For nontrivial feature/issue work, inspect the actual source and environment,
+present a researched HTML approval plan and relevant clickable prototype using
+the application's actual components, then record the user's version-specific
+greenlight. After approval, own the complete agreed implementation, real
+journeys, independent review, in-scope fixes and approved commit/publication
+effects. Material architecture, scope, contract or verification changes reopen
+the plan; in-contract simplification can continue. See the single
+[approved-plan contract](skills/follow-instructions/references/approved-plans.md).
+Read-only requests and the tiny-change path retain their narrower boundaries.
+
+Approved PR/MR delivery starts in draft and finishes with review and required CI
+at the current head, ready for human merge. It never merges or enables auto-merge.
+Diagnose safe supported alternatives before declaring a blocker; a genuine
+stall retains the plan, failures, changes and checks for a fresh diagnostic
+handoff when available. Use the existing checkpoint schema, not another task
+runtime. Self-learning and automatic rule promotion remain paused.
+
 The first line is the requested outcome; it is not a new command language. The
 coordinator preserves literal prohibitions, uses `pull-requests` for explicit
 publication, and applies `production-safety`/`security-and-hardening` when
@@ -96,6 +117,7 @@ The implemented package map is intentionally small:
 skills/follow-instructions/
   SKILL.md                 entry point, route table, and evidence gates
   references/principles.md principle index and pstack mapping
+  references/approved-plans.md approval and owned-delivery contract
   references/principles/   detailed, selectively loaded decision rules
   references/case-studies.md selectively loaded public contrasts
   examples/jobmark-pagination.md source-grounded worked example
@@ -116,6 +138,46 @@ For the worked application example, read
 The supplied tracker fixture remains a deterministic evaluator-contract
 boundary only. It is not a live tracker integration, and its results are never
 product or agent verification.
+
+## Application verification ownership
+
+Skills owns the judgment: [verify-work](skills/verify-work/SKILL.md) chooses
+independent expectations, interprets accepted, failed, skipped, and not-run
+checks, and decides what evidence must be refreshed. A separate pinned per-app
+CLI may own deterministic startup, actions, assertions, evidence, and cleanup.
+The application owns its types, schemas, lint/import boundaries, CI, and
+committed feature map. Its map pins the CLI version; it must not pin the app's
+own Git HEAD. The CLI records a clean app HEAD and map digest for each run and
+checks them again before claiming the result. See the
+[create](skills/verify-work/references/create-project-verifier.md) and
+[maintain](skills/verify-work/references/maintain-project-verifier.md)
+recipes for app-side adoption and recovery. This catalog does not install a
+per-app CLI by default or supply application-specific expected values. Its
+explicit `--agent-clis-source` installer option builds the reviewed
+`7048e748fd890340bbc03399b0dc1d619091af67` revision and installs the Linktree,
+real Shrunk and shared core packages. Follow
+[installed app CLI discovery](skills/verify-work/references/agent-clis.md):
+Linktree exposes `commands --json` and `COMMAND --help`; Shrunk is the constrained
+service `start` entrypoint used by Linktree, not another command registry. Actual
+app checkouts, dependencies and owned runtime verification remain required.
+
+## Portable lint
+
+Use the [portable lint procedure](skills/code-review-and-quality/references/portable-lint.md)
+for supplemental Python/TypeScript checks without adding app configuration.
+Its setup helper creates an explicitly external locked runtime; the lint runner
+does not install packages or alter target source. The public entrypoints are:
+
+```sh
+python skills/code-review-and-quality/scripts/setup_portable_lint.py --runtime /path/to/fresh-external-runtime
+python skills/code-review-and-quality/scripts/portable_lint.py --workspace /path/to/app --scope changed --base REF --runtime /path/to/external-runtime --receipt /path/to/new-external-receipt.json
+```
+
+Explicit files remain the default, with deliberate changed/tracked/directory
+discovery available. Native checks remain independently required; portable
+coverage and debt comparison have their own evidence boundaries. The owning
+procedure documents exact tools, rules, suppression limits and unavailable
+contexts. React Doctor is not included.
 
 ## Validate and evaluate
 
@@ -150,6 +212,13 @@ not live GitHub/GitLab integration, and must not be reported as product, agent,
 or publication verification. Native comparisons are separate, finite, and must
 use the same model, tools, permissions, and budget for baseline and treatment.
 
+Complete the candidate workflow and deterministic checks before a deliberate
+GPT-6 Luna comparison. Freeze both catalogs, organic tasks, settings, tools,
+budget and held-out acceptance; use the same model/settings in both arms and
+retain actual failures and unavailable outcomes. Installed procedures and
+passing harness tests do not establish improved model efficacy. See the
+[evaluation procedure](skills/skill-creator/references/evaluation.md).
+
 The fake tracker is intentionally limited to those optional publication-contract
 diagnostics. It stays under `evals/`, is not installed with the skills, and is
 not needed for ordinary diagnosis, implementation, review, or issue drafting.
@@ -167,22 +236,24 @@ execution remain unsupported. Contained Git subprocesses do not contain every
 Python read or native-agent operation.
 
 The workflow dataset labels cases as `execution-ready` or `routing-only`.
-Seven supplied execution-ready cases are available: six contract diagnostics
-whose native external effects are intentionally blocked, plus one local-only
-repair with a real workspace/test outcome. The other fourteen are
-classification cases and are reported as behaviorally unmeasured. Run the
-deterministic contract pilot with:
+Execution support is gated separately: an executable fixture is not proof of a
+supported native lifecycle. Historical contract-pilot results cover their
+recorded cases/revisions only; they do not restrict this complete candidate or
+establish its efficacy. The fixture task remains available as a deterministic
+diagnostic:
 
 ```bash
-uv run inspect eval evals/skills.py@workflow_fixture_pilot --max-samples 7
+uv run inspect eval evals/skills.py@workflow_fixture_pilot --max-samples 10
 ```
 
 The native `workflows` task runs a pre-launch boundary gate. A case is
 unscored/blocked when a required effect is outside the runner's observed
-boundary; missing observations are never treated as success. The supported
-native pilot case is `workflow-native-local-repair`, which checks the actual
-edited checkout and runs its supplied regression test. It does not establish
-live tracker, pull-request, deployment, browser, or adversarial behavior.
+boundary; missing observations are never treated as success. The established
+local native case is `workflow-native-local-repair`, which checks the actual
+edited checkout and runs its supplied regression test. New approval/resume
+cases require observed ordering and their own support gate; unsupported peer
+review, real CI and remote effects remain unmeasured. A local workflow does not
+establish live tracker, pull-request, deployment, browser or adversarial behavior.
 
 That local workflow runs candidate supplemental checks first, then a
 runner-controlled copy of the original acceptance regression against the final

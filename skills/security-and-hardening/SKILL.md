@@ -1,6 +1,6 @@
 ---
 name: security-and-hardening
-description: Audit or harden security boundaries in applications and infrastructure.
+description: When auditing or hardening application or infrastructure security.
 ---
 
 # Security and Hardening

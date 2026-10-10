@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: Pressure-test a plan or design before implementation.
+description: When asked to pressure-test a plan or design.
 ---
 
 # Grilling

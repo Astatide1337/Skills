@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 LINK = re.compile(r"\[[^]]*\]\(([^)]+)\)")
+# Local routing budget, not a claimed Codex/Claude harness limit.
+MAX_DESCRIPTION_CHARS = 80
 PLAYBOOK_NAMES = {
     "investigate.md",
     "design.md",
@@ -71,6 +73,16 @@ def fail(message: str) -> None:
     raise ValueError(message)
 
 
+def validate_description(name: str, description: object) -> None:
+    if (not isinstance(description, str) or not description.strip()
+            or len(description) > MAX_DESCRIPTION_CHARS
+            or "\n" in description or "\r" in description):
+        fail(
+            f"description for {name} must be a non-empty, single-line trigger "
+            f"of at most {MAX_DESCRIPTION_CHARS} characters"
+        )
+
+
 def frontmatter(path: Path) -> dict:
     text = path.read_text()
     match = re.match(r"^---\n(.*?)\n---(?:\n|$)", text, re.DOTALL)
@@ -116,8 +128,7 @@ def main() -> None:
             fail(f"invalid skill name in {skill_file.relative_to(ROOT)}")
         if name != skill_file.parent.name or name in names or len(name) > 64:
             fail(f"duplicate or mismatched skill name: {name}")
-        if not isinstance(description, str) or not 1 <= len(description) <= 1024:
-            fail(f"invalid description for {name}")
+        validate_description(name, description)
         names.add(name)
         relative = str(skill_file.relative_to(ROOT))
         if relative not in catalog_paths:
@@ -201,6 +212,13 @@ def main() -> None:
         metadata = case.get("metadata")
         if not isinstance(metadata, dict) or not isinstance(metadata.get("allow_changes"), bool):
             fail(f"workflow case {case_id} needs explicit allow_changes")
+        if "allowed_paths" in metadata:
+            paths = metadata["allowed_paths"]
+            if not isinstance(paths, list) or not paths or not all(
+                isinstance(path, str) and path and not path.startswith("/")
+                and ".." not in Path(path).parts for path in paths
+            ):
+                fail(f"workflow case {case_id} needs bounded allowed_paths")
         expected_skills = metadata.get("expected_skills")
         if not isinstance(expected_skills, list) or not all(
             isinstance(skill, str) and skill in names for skill in expected_skills
@@ -240,6 +258,16 @@ def main() -> None:
         ):
             fail(f"workflow case {case_id} has invalid fixture files")
         execution_mode = metadata.get("execution_mode")
+        if "portable_tools" in metadata and type(metadata["portable_tools"]) is not bool:
+            fail(f"workflow case {case_id} portable_tools must be boolean")
+        if "interrupt_marker" in metadata:
+            marker = metadata["interrupt_marker"]
+            if (execution_mode != "execution-ready" or not isinstance(marker, str)
+                    or not marker or Path(marker).is_absolute() or ".." in Path(marker).parts
+                    or marker in files or not metadata.get("portable_tools")
+                    or not isinstance(metadata.get("resume_prompt"), str)
+                    or not metadata["resume_prompt"].strip()):
+                fail(f"workflow case {case_id} needs a fresh bounded marker, portable tools and resume prompt")
         if execution_mode not in {"routing-only", "execution-ready"}:
             fail(
                 f"workflow case {case_id} needs execution_mode routing-only or execution-ready"
@@ -253,6 +281,8 @@ def main() -> None:
             if execution_mode != "execution-ready" or not isinstance(contract, dict):
                 fail(f"workflow case {case_id} has an invalid fixture contract")
             kind = contract.get("kind")
+            if "response_required" in contract and not isinstance(contract["response_required"], bool):
+                fail(f"workflow case {case_id} response_required must be boolean")
             if kind not in {"fake-tracker-publication", "response-contract", "workspace-test", "workspace-artifact"}:
                 fail(f"workflow case {case_id} has an unknown fixture contract kind")
             if kind == "fake-tracker-publication":

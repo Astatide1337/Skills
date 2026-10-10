@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Rewrite AI-sounding prose into a natural voice without losing meaning.
+description: When prose sounds AI-generated and needs a natural rewrite.
 ---
 
 # Unslop

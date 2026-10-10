@@ -1,140 +1,128 @@
 ---
 name: follow-instructions
-description: Route substantive work through the applicable skills and evidence gates.
+description: When catalog skills apply; choose the smallest required procedure.
 ---
 
 # Follow instructions
 
-Use this skill once as the entry point for substantive engineering work. It
-chooses a playbook, attaches only the domain skills that own the decisions,
-and keeps authority and evidence visible. A leaf skill must not call this
-skill recursively.
+Initialize once when catalog skills apply. Choose the procedure that reaches
+the requested result; leaf skills must not call this coordinator recursively.
+Resolve each relative reference from the directory containing its owning
+`SKILL.md`; use the supplied skill locator rather than guessing directories.
+Read repository guidance and apply the shared
+[execution boundary](references/principles/authority-and-claims.md#execution-boundary).
+A skill supplies procedure, never permission to edit, publish, merge, or deploy.
 
-## Start with a proportionate task record
+## Short task path
 
-Record only items that can change an action, ordering, permission, stop
-condition, or completion claim:
+First inspect the owner, caller and check to classify eligibility; a bug label
+alone does not justify preloading diagnosis or verification skills, while
+explicit skill requests and repository-required procedures apply immediately.
 
-`Outcome / Route / Domains / Effects / Constraints / Done`
+Use this inline procedure for a local task whose owner, intended behavior and
+focused check are clear, provided the
+[review-risk triggers](references/principles/authority-and-claims.md#review-risk-triggers)
+are absent. An obvious pure-function correction can qualify; line count alone
+cannot. Explicitly requested skills and repository-required procedures win.
 
-Read repository guidance and the selected playbook/domain skills before
-substantive work. Reconcile the record when the user changes scope, a
-revision changes, a delegated artifact returns, or the task resumes. A simple
-answer or small explanation does not need a formal record.
+1. Inspect the owner, relevant caller/contract and available check. Establish
+   the expected result before editing. For a bug, observe the original failure.
+2. Make the smallest authorized correction. Preserve existing negative cases.
+3. Run the focused check on the final code and inspect the diff/scope. Exercise
+   the actual requested path: a passing build cannot prove a user journey.
+4. Report the observed result and material limits, then finish. A clean diff
+   reread is author review, not independent review.
 
-## Choose the route
+This path owns routine diagnosis, verification and diff review. Do not load
+full playbooks, principle details or additional owner skills merely to repeat
+these steps. No formal plan, competing hypotheses, durable checkpoint,
+reflection or reviewer is required for this path. Escalate to the route below
+if the cause, ownership or check becomes unclear, a check contradicts the
+explanation, or a consequential boundary appears. Never use the short path to
+skip a required check or silently downgrade a real blocker.
 
-Keep the task outcome, supporting expertise, follow-ons, and permitted effects
-separate. A skill name does not grant an effect. Negative constraints win.
-Missing capability is unavailable, not silently “not applicable.” Use one
-primary route and add a follow-on only for a distinct requested deliverable.
+## Route other work
 
-| Request | Route | Playbook |
+Keep outcome, supporting expertise, follow-ons and permitted effects separate.
+Choose one primary route; add a follow-on for a distinct requested deliverable.
+Read its playbook and only the domain skills owning material decisions.
+
+| Request | Route | Procedure |
 | --- | --- | --- |
-| Read-only diagnosis or explanation | `investigate/read` | [investigate](playbooks/investigate.md) |
-| Architecture decision or plan | `design/plan` | [design](playbooks/design.md) |
-| Authorized disposable experiment | `design/prototype` | [design](playbooks/design.md) |
-| Defect, feature, or behavior-preserving structure change | `implement/bug`, `implement/feature`, or `implement/refactor` | [implement](playbooks/implement.md) |
-| Performance baseline or measured improvement | `performance/measure` or `performance/improve` | [performance](playbooks/performance.md) |
-| Upgrade, migration, release, or incident | `migrate-operate/<mode>` | [migrate-operate](playbooks/migrate-operate.md) |
+| Diagnosis or explanation | `investigate/read` | [investigate](playbooks/investigate.md) |
+| Architecture or authorized prototype | `design/plan` or `design/prototype` | [design](playbooks/design.md) |
+| Bug, feature or refactor | `implement/bug`, `implement/feature`, `implement/refactor` | [implement](playbooks/implement.md) |
+| Measure or improve performance | `performance/measure` or `performance/improve` | [performance](playbooks/performance.md) |
+| Upgrade, migration, release or incident | `migrate-operate/<mode>` | [migrate-operate](playbooks/migrate-operate.md) |
 | Review or re-review | `review/review` or `review/rereview` | [review](playbooks/review.md) |
 | Issue draft/create/update/triage | `issues/<mode>` | [issues](playbooks/issues.md) |
-| PR/MR lifecycle | existing `pull-requests/<mode>` | [pull-requests](../pull-requests/SKILL.md) |
+| PR/MR lifecycle | `pull-requests/<mode>` | [pull-requests](../pull-requests/SKILL.md) |
 | Documentation or teaching | `document-teach/document` or `document-teach/teach` | [document-teach](playbooks/document-teach.md) |
 | Reusable workflow/skill improvement | `workflow-improvement/improve` | [create-workflow](../create-workflow/SKILL.md), [skill-creator](../skill-creator/SKILL.md) |
 | Explicit bespoke composition | `custom/compose` | [custom](playbooks/custom.md) |
+| Establish whether a claim is true | `verify-work/verify` | [verify-work](../verify-work/SKILL.md) |
 
-Use `verify-work/verify` as a primary route when the requested result is to
-establish whether a claim is true. It is a domain package, not an issue or PR
-follow-on. Use [parallel](playbooks/parallel.md) only as a modifier when
-independent work, bounded ownership, and a real delegation tool exist.
+Attach expertise only where it changes a decision: unclear causes use
+[systematic-debugging](../systematic-debugging/SKILL.md); unclear boundaries use
+[architect](../architect/SKILL.md); material review uses
+[code-review-and-quality](../code-review-and-quality/SKILL.md); trust boundaries
+use [security-and-hardening](../security-and-hardening/SKILL.md); production-like
+state or credentials use [production-safety](../production-safety/SKILL.md);
+real UI work uses [web-interface](../web-interface/SKILL.md). Use `how`, `why`,
+`teach`, `deslop`, `unslop`, or [internet-reach](../internet-reach/SKILL.md) for
+the corresponding requested deliverable, not incidental subject words.
 
-Use [self-reflect](../self-reflect/SKILL.md) as a modifier when work is stuck,
-prolonged, or settling. It reassesses the current route from evidence; it does
-not replace the task playbook or grant another effect.
+Use the [principle index](references/principles.md) only for a material choice,
+then read the relevant detail. Source context is optional:
+[provenance](references/principles-background.md),
+[case studies](references/case-studies.md), and
+[observed failures](references/failure-to-checks.md).
 
-Attach expertise only for a material decision:
+## Approval and continuation
 
-- causal bugs: [systematic-debugging](../systematic-debugging/SKILL.md);
-- unclear boundaries: [architect](../architect/SKILL.md);
-- quality/review: [code-review-and-quality](../code-review-and-quality/SKILL.md);
-- secrets, identity, or untrusted data: [security-and-hardening](../security-and-hardening/SKILL.md);
-- production-like state or credentials: [production-safety](../production-safety/SKILL.md);
-- real UI interaction: [web-interface](../web-interface/SKILL.md);
-- generated-code cleanup: [deslop](../deslop/SKILL.md); prose rewrites:
-  [unslop](../unslop/SKILL.md);
-- source flow/history/teaching: `how`, `why`, or `teach` when requested;
-- external primary-source research: [internet-reach](../internet-reach/SKILL.md).
+For nontrivial feature/issue implementation, investigate first and follow the
+[approved-plan contract](references/approved-plans.md): produce the researched
+HTML plan and relevant actual-component prototype before dependent source
+implementation. Record the version-specific confirmation and permitted effects.
+Reuse approval already given for that scope; plan controls never grant it.
+After greenlight, continue the whole approved result through verification,
+independent review and approved delivery. Material discoveries return the
+affected work to design; safe independent work continues. Read-only requests
+and the short path retain their own boundaries.
 
-## Apply principles when their trigger is present
+## Effort and continuation
 
-Read the index in [principles](references/principles.md), then load only the
-linked detailed principle reference(s) whose trigger is present. Load the
-existing owner skill for the decision as well. A principle changes a choice;
-it is not a completion-report checklist.
+Keep only obligations that can change action, order, permission, stopping or
+completion in the task record:
+`Outcome / Route / Domains / Effects / Constraints / Done`.
+A simple answer needs no formal record. Use current CLI/model settings; when
+controls exist, start routine work at the configured ordinary effort and
+escalate for demonstrated uncertainty. Do not change the user's model or quota
+settings without authority, or claim a setting change that the harness cannot
+make. Agree a finite experiment/retry budget for prolonged work.
 
-| Trigger | Decision rule | Owner |
-| --- | --- | --- |
-| Scope or new moving parts | Solve the stated outcome with the simplest sufficient existing shape. | [create-workflow](../create-workflow/SKILL.md) |
-| Shared state or interface | Establish data, callers, lifetime, and ownership before changing the owner. | [architect](../architect/SKILL.md) |
-| Debugging | Preserve the failure, compare hypotheses, and test the responsible mechanism. | [systematic-debugging](../systematic-debugging/SKILL.md) |
-| User/maintainer trade-off | Prefer a smaller understandable result and exercise relevant states. | [web-interface](../web-interface/SKILL.md), [teach](../teach/SKILL.md) |
-| Consequence or uncertainty | Scale investigation, review, recovery, and evidence to the risk. | [production-safety](../production-safety/SKILL.md), [verify-work](../verify-work/SKILL.md) |
-| Independent delegation | Split interfaces and writers first, then inspect and integrate returned work. | [parallel](playbooks/parallel.md) |
-| Repeated failed approach | Revisit the shared premise before adding machinery. | [grilling](../grilling/SKILL.md) |
+Use [parallel](playbooks/parallel.md) only when independent ownership, a real
+delegation tool and a benefit justify it. Prove one complete unit first. Use
+[self-reflect](../self-reflect/SKILL.md) when repeated failure or stalled progress
+requires a new observation; ordinary completion needs no extra reflection.
+Self-learning and automatic rule promotion remain paused; proposed durable
+lessons need a separate explicit user decision.
+Across handoff or compaction retain the objective, accepted decisions,
+unfinished gates, next action and exact blockers. Use
+[durable checkpoints](references/durable-checkpoints.md) for expected
+interruption or work outliving the session, not every edit.
 
-See [public case studies](references/case-studies.md) only when a decision
-matches one of their triggers. They are source-grounded contrasts, not a
-required reading curriculum.
+## Evidence and completion
 
-## Pass the evidence gates
+Inspect the actual owner and authoritative inputs before changing behavior.
+Reuse evidence only while relevant source, environment, requirement, fixture
+and artifact/instance identity are unchanged; rerun affected checks after a
+change. Preserve original reproducers and negative cases. Distinguish accepted,
+failed, skipped and not-run checks. Diagnose safe recovery before declaring a
+capability blocker; missing capability is unavailable, not silently inapplicable.
 
-1. **Inspect.** Identify the exact target/revision, authoritative source,
-   owner, callers, state, identities, and relevant filesystem/API boundary.
-   Label observations, assumptions, and hypotheses separately.
-2. **Causality or design.** State the current mechanism or design choice and
-   one plausible alternative when uncertainty is material. Run the smallest
-   authorized observation that distinguishes them. Do not patch an uninspected
-   owner.
-3. **Mutation.** Confirm exact authorization, affected consumers/writers,
-   sensitive data, rollback, and final scope. Do not broaden secret access to
-   resolve path or ownership uncertainty.
-4. **Publication.** Inspect the complete diff/current revision, run relevant
-   correctness/security/operational checks, and verify the actual remote write
-   when publication was requested. Drafting is not creating; readiness is not
-   merging or deploying.
-5. **Completion.** Name the requested observable result, show evidence at the
-   relevant layer, list material unknowns, and narrow the claim to what the
-   evidence proves. A build, manifest, command exit, or model prose is not
-   runtime proof by itself.
-
-For secrets, multiple processes, production-like state, or a consequential
-external write, report the boundary and effect only to the detail that changes
-the decision. Ordinary publication does not require a fixed “alternatives,
-boundary, and effects” template.
-
-## Work, recover, and hand off
-
-Follow the selected playbook's mode-specific inputs, decisions, recovery, and
-completion evidence. Reuse valid evidence until the relevant code, environment,
-or requirement changes. Preserve original regressions and negative cases. If a
-required input or capability is unavailable, finish independent safe work and
-name the exact blocker; never manufacture evidence or weaken acceptance.
-
-Return the result, changed owner, meaningful design choices, actual checks,
-publication/readback state when requested, and material limitations. Explain
-only the principles that changed a decision. Keep temporary bespoke sequences
-temporary, and stop before unrequested mutation.
-
-## Playbooks
-
-- [investigate](playbooks/investigate.md)
-- [design](playbooks/design.md)
-- [implement](playbooks/implement.md)
-- [performance](playbooks/performance.md)
-- [migrate-operate](playbooks/migrate-operate.md)
-- [review](playbooks/review.md)
-- [issues](playbooks/issues.md)
-- [document-teach](playbooks/document-teach.md)
-- [custom](playbooks/custom.md)
-- [parallel](playbooks/parallel.md)
+Review the final artifact and affected consumers. Required independent review
+must cover that artifact; self-review or a requested-but-unreturned review does
+not satisfy it. Inspect remote results only when publication was requested and
+verify the actual write. Report the result, meaningful decisions, checks and
+material limits at the layer proven. Stop before unrequested effects.

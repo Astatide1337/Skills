@@ -1,6 +1,6 @@
 ---
 name: internet-reach
-description: Search and read requested public web sources with direct links.
+description: When asked to search or read public web sources.
 ---
 
 # Internet reach

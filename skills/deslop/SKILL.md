@@ -1,6 +1,6 @@
 ---
 name: deslop
-description: Clean AI-generated code clutter from a diff without changing behavior.
+description: When a diff contains AI-generated code clutter.
 ---
 
 # Deslop

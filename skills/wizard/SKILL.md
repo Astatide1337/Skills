@@ -1,6 +1,6 @@
 ---
 name: wizard
-description: Design or implement a user-run setup wizard for configuration or onboarding.
+description: When designing or building a user-run setup or onboarding wizard.
 ---
 
 # Wizard

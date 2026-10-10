@@ -5,6 +5,9 @@
 Use for a non-trivial architecture decision, implementation plan, or an
 explicitly authorized isolated prototype. A small known edit does not need a
 ceremonial design route.
+For feature/issue delivery, apply the
+[approved-plan contract](../references/approved-plans.md); it owns plan contents,
+approval identity and materiality rather than duplicating those rules here.
 
 ## Inputs to establish
 
@@ -22,17 +25,22 @@ Use [`security-and-hardening`](../../security-and-hardening/SKILL.md) or
 
 ## Steps and decision points
 
-1. Write a realistic caller/user sequence before naming modules or types.
+1. Inspect the actual owners, conventions, callers, tests and environment, then
+   write a realistic caller/user sequence before naming modules or types.
 2. Compare two structurally distinct viable shapes on ownership, data flow,
    invariants, failure/retry, migration, complexity, and security. Do not
    invent alternatives for a trivial choice.
 3. Resolve the riskiest material uncertainty with source evidence or the
-   smallest authorized disposable experiment. A plan-only request stops before
-   mutation, not before choosing and explaining the recommendation.
+   smallest authorized disposable experiment. A plan-only request permits only
+   its observation and explicitly authorized prototype effects, not dependent
+   implementation; still choose and explain the recommendation.
 4. Choose the simplest shape, name interfaces/state transitions, failure
    behavior, rollback where effects require it, and the first implementation
-   step. Deliver the actionable plan even when implementation is out of scope;
-   keep prototype shortcuts visibly non-production.
+   step, including purposeful refactors. For nontrivial feature/issue delivery,
+   produce and inspect the HTML approval document and relevant actual-component
+   clickable prototype. Present the complete result and wait for version-specific
+   confirmation before dependent implementation. Standalone design uses the
+   requested deliverable. Keep prototype shortcuts visibly non-production.
 
 ## Failure and recovery
 
@@ -46,7 +54,9 @@ an experiment into an unrequested permanent framework.
 Deliver a decision with caller flow, chosen/rejected alternatives, source
 evidence, relevant failure/recovery paths, unresolved decisions, and a
 verifiable next step. A diagram or compile check alone is not evidence that the
-design fits the actual system.
+design fits the actual system. Record the plan/prototype identity, confirmation
+when received and unresolved gates; lack of confirmation means implementation
+is pending, not that investigation or the plan itself is unfinished.
 
 ## Example
 

@@ -1,6 +1,6 @@
 ---
 name: why
-description: Investigate the design rationale and history behind code or architecture.
+description: When asked why code or architecture was designed this way.
 ---
 
 # Why

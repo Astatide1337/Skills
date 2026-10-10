@@ -20,6 +20,7 @@ bounded/truncated status).
 
 from __future__ import annotations
 
+import asyncio
 import os
 import shutil
 import subprocess
@@ -28,11 +29,18 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Callable
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
+
+from inspect_ai.model import ModelOutput
+from inspect_ai.solver import TaskState
+from evals import skills
 
 
 try:
     from evals.workspace_evidence import (
         _read_index_entries,
+        bwrap_preflight,
         capture_baseline,
         collect_evidence,
     )
@@ -53,6 +61,18 @@ GIT_ENV = {
     "GIT_COMMITTER_NAME": "workspace-evidence-fixture",
     "GIT_COMMITTER_EMAIL": "fixture@example.invalid",
 }
+
+
+def setUpModule() -> None:
+    """Fail once on an unsupported host, before fixtures use unavailable baselines."""
+
+    error = bwrap_preflight()
+    if error:
+        raise RuntimeError(
+            f"Workspace integration tests cannot run: {error}. "
+            "Use a Linux host that supports Bubblewrap's user, mount, PID, and "
+            "network namespaces. Keep isolation enabled; this suite has not passed."
+        )
 
 
 def _git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[bytes]:
@@ -184,6 +204,50 @@ def _category_paths(value: object, category: str) -> list[str]:
 
 
 class WorkspaceEvidenceTests(unittest.TestCase):
+    def test_workspace_policy_observes_side_effects_of_supplemental_checks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "module.py").write_text("VALUE = 1\n")
+            (root / "check.py").write_text("from pathlib import Path\nPath('outside.txt').write_text('late effect')\n")
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            subprocess.run(["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                            "commit", "-qm", "baseline"], cwd=root, check=True)
+            state = TaskState(model="stub/no-model", sample_id="late-check-effect", epoch=1,
+                              input="Check module.py only", messages=[])
+            state.metadata = {
+                "allow_changes": True, "allowed_paths": ["module.py"],
+                "fixture_contract": {
+                    "kind": "workspace-test", "required_paths": ["module.py"],
+                    "test_command": ["python", "check.py"],
+                    "acceptance_test": "from module import VALUE\nassert VALUE == 1\n",
+                },
+            }
+            state.output = ModelOutput.from_content(model="stub/no-model", content="checked")
+            state.store.set("workspace_baseline", capture_baseline(root))
+
+            async def execute(command, **kwargs):
+                result = subprocess.run(command, cwd=root, capture_output=True, text=True)
+                return SimpleNamespace(success=result.returncode == 0, returncode=result.returncode,
+                                       stdout=result.stdout, stderr=result.stderr)
+
+            environment = SimpleNamespace(
+                exec=execute, read_file=AsyncMock(side_effect=lambda path: (root / path).read_text()),
+            )
+            with (
+                patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(root, None))),
+                patch.object(skills, "sandbox", return_value=environment),
+            ):
+                self.assertEqual(asyncio.run(skills.workspace_policy()(state, None)).value, 1)
+                self.assertEqual(asyncio.run(skills.workflow_effects()(state, None)).value, 1)
+                acceptance = state.store.get("runner_acceptance")
+                self.assertEqual(acceptance["exit_code"], 0)
+                self.assertEqual(acceptance["stdout"], "")
+                self.assertTrue(acceptance["test_sha256"])
+                after = asyncio.run(skills.workspace_policy()(state, None))
+            self.assertEqual(after.value, 0)
+            self.assertIn("outside.txt", after.explanation)
+
     def test_empty_index_listing_is_valid_including_missing_index_for_empty_commit(self) -> None:
         with tempfile.TemporaryDirectory(prefix="workspace-evidence-empty-index-") as raw:
             parent = Path(raw)
@@ -734,10 +798,15 @@ class WorkspaceEvidenceTests(unittest.TestCase):
             _git(repo, "commit", "-qm", "ignore interpreter cache")
             baseline = capture_baseline(repo)
 
+            import_env = {**os.environ, "PYTHONPATH": str(repo)}
+            # This fixture deliberately creates a real local interpreter cache.
+            # Runner settings must not suppress it or redirect it outside the repo.
+            import_env.pop("PYTHONDONTWRITEBYTECODE", None)
+            import_env.pop("PYTHONPYCACHEPREFIX", None)
             result = subprocess.run(
                 [sys.executable, "-c", "import module; assert module.VALUE == 'baseline'"],
                 cwd=repo,
-                env={**os.environ, "PYTHONPATH": str(repo)},
+                env=import_env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 check=False,

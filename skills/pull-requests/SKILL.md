@@ -1,6 +1,6 @@
 ---
 name: pull-requests
-description: Manage a GitHub PR or GitLab MR from draft through handoff.
+description: When drafting, opening, reviewing, posting on or watching a PR/MR.
 ---
 
 # Pull requests
@@ -13,13 +13,18 @@ Treat GitHub pull requests and GitLab merge requests as the same review artifact
 | --- | --- | --- |
 | Write, prepare, or draft a title, description, reply, or suggestion | Draft | No remote writes. |
 | File, create, or open a PR/MR, including "open a draft PR/MR" | Create | Push the reviewed current branch and create one PR/MR. |
+| Review or re-review a PR/MR or coworker's branch | Review | Read source and checks; return private findings/drafts. No source edits or remote writes. |
 | Check/watch/status a PR/MR | Monitor | Read remote state only; no code, push, or retry effect is implied. |
 | Monitor and fix/address named in-scope defects | Monitor-and-fix | Repair only the authorized scope, then verify and push when that lifecycle is authorized. |
+| Deliver an approved feature/issue as a PR/MR ready for human merge | Approved delivery | Create a draft, finish in-scope fixes/commits/pushes and inspect current-head review/CI. Never merge or enable auto-merge. |
 | Post, reply, comment, or suggest on a PR/MR | Communicate | Post that specific checked comment only. |
 | Merge, close, reopen, rebase, or deploy | Separate action | Require explicit authorization for that action. |
 
 "Draft a PR/MR" means draft the copy only. "Open a draft PR/MR" means create
 the remote draft. When a request combines modes, run them in the order above.
+For approved delivery, retain the
+[approved-plan contract](../follow-instructions/references/approved-plans.md)
+and its exact effects. Ordinary review/monitoring remains read-only.
 
 ## Establish the source of truth
 
@@ -34,6 +39,9 @@ the remote draft. When a request combines modes, run them in the order above.
 4. Treat a preview, pipeline, or deployment as current only when its branch or
    revision matches the current head. A green old SHA, an image build, or an
    assumed preview is not evidence about the reviewed change.
+5. Verify branch protections or required checks from the host before claiming
+   they exist. Do not create or change security-sensitive repository settings
+   without specific authorization.
 
 When the task supplies state for an existing PR/MR, the response order is
 mandatory:
@@ -47,6 +55,40 @@ mandatory:
 Ignore superseded checks; say `Not ready` when a verified unresolved current
 issue remains. Do not omit the status line because the user also asked for copy
 or a comment. It is a review decision, not routine pipeline boilerplate.
+
+## Review a coworker's PR/MR
+
+Use [code-review-and-quality](../code-review-and-quality/SKILL.md) for technical
+judgment. This mode owns the review artifact, feedback and authority; do not
+repeat that skill's checklist here.
+
+- Read the originating issue and current diff in context. Check whether the
+  intended feature is covered, including relevant UI/UX and affected callers.
+  When QA is requested, exercise the actual feature using the existing app
+  verifier and [verify-work](../verify-work/SKILL.md); source inspection or
+  mocked tests do not prove a live journey. Give reproducible steps and useful
+  visual evidence for confirmed UI issues, with unavailable checks explicit.
+- Preserve the coworker's source checkout. Review and QA do not authorize
+  fixes, commits or pushes; use an isolated test setup if running checks would
+  otherwise modify their files. A later explicit local-fix request changes
+  only that authority, not publication authority.
+- Draft short, natural, line-anchored feedback: the observed problem and the
+  requested correction. Keep detailed analysis in the private review; separate
+  blockers from optional coverage or UX improvements. Prefer a small valid host
+  suggestion block when replacement code is requested and verified.
+- “In-file comments on the MR” means review comments attached to diff lines,
+  not editing source files. A host suggestion block proposes a patch; it does
+  not authorize applying it. Cross-cutting concerns can use a general comment
+  when that is the requested surface. Do not replace requested inline feedback
+  with a general review essay.
+- Re-check the new head and original findings when the author adds commits.
+  Return current findings, actual QA results and drafted feedback. Switch to
+  Communicate only for explicitly requested posting; submit the requested
+  review/comments and fetch their visible state before claiming they were sent.
+
+Apply the attribution and comment rules below to any posted feedback. A plain
+review request ends with private findings; no comment, approval or change-request
+review is submitted merely because the review finished.
 
 ## Draft and create the review unit
 
@@ -102,8 +144,30 @@ The two-team negative test covers both lookup and update paths.
 
 Before a create-mode push, confirm the branch contains the intended committed
 review unit. A create request does not by itself authorize committing preexisting
-uncommitted user work. After creation, report the PR/MR link, base/head, and
+uncommitted user work. Inspect workflows and approved effects before pushing;
+do not trigger container image builds or deployment outside explicit approval.
+After creation, report the PR/MR link, base/head, and
 material review focus only.
+Inspect the final tree and diff at that head. Keep accepted, failed, skipped,
+and not-run checks distinct in the handoff; a draft PR can be reviewable with
+known gaps, but a skipped check is not green. If a create or push response is
+uncertain, read the remote branch and PR by identity before retrying so one
+request cannot create duplicate artifacts.
+
+## Complete approved delivery
+
+Create the PR/MR as a draft while required review or CI is pending. Assess
+current findings against the approved contract, repair in-scope defects,
+refresh affected tests and independent-review coverage, then commit and push
+only the scoped result. A material plan change returns to HTML approval before
+its dependent implementation; continue independent approved work.
+
+Inspect the final pushed head, returned independent review, required-check
+results, unresolved findings and mergeability. Mark the draft ready only when
+these gates are satisfied. Failed, skipped, unavailable or not-run required
+checks keep readiness pending. A local commit, an old green SHA or a requested
+but unreturned review is insufficient. Report the ready review artifact for
+human merge; never merge or enable auto-merge in this workflow.
 
 ## Monitor without scope creep
 

@@ -1,6 +1,6 @@
 ---
 name: hillclimb
-description: Improve one measurable outcome through bounded experiments.
+description: When improving a measured outcome through bounded experiments.
 ---
 
 # Hillclimb

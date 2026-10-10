@@ -1,0 +1,120 @@
+{
+  "case_id": "sre-canary-service-degradation",
+  "task": {
+    "intent": "Diagnose the supplied staging incident packet and report the next safe observation.",
+    "execution_mode": "offline-snapshot",
+    "live_mutation_authorized": false,
+    "window_start": "2026-10-09T10:00:00Z",
+    "window_end": "2026-10-09T10:15:00Z"
+  },
+  "pre_incident_baseline": {
+    "state": "not_supplied",
+    "requested_window_start": "2026-10-09T09:45:00Z",
+    "requested_window_end": "2026-10-09T10:00:00Z",
+    "expected_claim": "unknown"
+  },
+  "service": {
+    "name": "payments-api",
+    "environment": "staging",
+    "region": "eu-west-1"
+  },
+  "cohorts": {
+    "canary": {
+      "revision": "release-42",
+      "traffic_percent": 10,
+      "window_start": "2026-10-09T10:00:00Z",
+      "window_end": "2026-10-09T10:15:00Z",
+      "observed_at": "2026-10-09T10:16:00Z",
+      "http_5xx_rate_percent": 8.2,
+      "p99_latency_ms": 1410,
+      "readiness": "ready",
+      "synthetic_user_request": "failed"
+    },
+    "stable": {
+      "revision": "release-41",
+      "traffic_percent": 90,
+      "window_start": "2026-10-09T10:00:00Z",
+      "window_end": "2026-10-09T10:15:00Z",
+      "observed_at": "2026-10-09T10:16:00Z",
+      "http_5xx_rate_percent": 0.3,
+      "p99_latency_ms": 240,
+      "readiness": "ready",
+      "synthetic_user_request": "passed"
+    }
+  },
+  "dependencies": [
+    {
+      "name": "identity-gateway",
+      "state": "healthy",
+      "source": "same-window dependency synthetic",
+      "observed_at": "2026-10-09T10:14:00Z",
+      "scope": "staging/eu-west-1"
+    },
+    {
+      "name": "postgres",
+      "state": "unknown",
+      "source": "dashboard access denied",
+      "observed_at": null,
+      "scope": null
+    }
+  ],
+  "recovery_target": {
+    "revision": "release-41",
+    "last_known_healthy_at": "2026-10-09T07:00:00Z",
+    "artifact_digest": null,
+    "artifact_digest_verified": false,
+    "deployment_method_verified": true,
+    "schema_compatibility_verified": false
+  },
+  "next_observation": {
+    "type": "read-only-check",
+    "check": "Bind a bounded sample of 5xx request records from the incident window to the serving revision; request the missing same-duration baseline for both cohorts.",
+    "window_start": "2026-10-09T10:00:00Z",
+    "window_end": "2026-10-09T10:15:00Z",
+    "expected_outcomes": {
+      "canary_only_errors": {
+        "revision_association_supported": true,
+        "root_cause_confirmed": false
+      },
+      "both_revisions_fail": {
+        "revision_association_supported": false,
+        "next_hypothesis": "shared traffic or dependency"
+      }
+    }
+  },
+  "negative_controls": {
+    "shared_failure_across_revisions": {
+      "service": "payments-api",
+      "environment": "staging",
+      "region": "eu-west-1",
+      "window_start": "2026-10-09T10:00:00Z",
+      "window_end": "2026-10-09T10:15:00Z",
+      "canary_http_5xx_rate_percent": 7.8,
+      "stable_http_5xx_rate_percent": 7.4,
+      "expected_revision_specific_attribution": false
+    },
+    "ready_but_user_path_fails": {
+      "readiness": "ready",
+      "synthetic_user_request": "failed",
+      "expected_user_impact": "degraded"
+    },
+    "unavailable_dependency_signal": {
+      "state": "unknown",
+      "expected_health_claim": "unknown"
+    },
+    "stale_unverified_recovery": {
+      "artifact_digest_verified": false,
+      "last_known_healthy_hours_before_incident": 3,
+      "expected_rollback_safety_claim": false
+    }
+  },
+  "expected": {
+    "revision_cohort_correlation_supported": true,
+    "root_cause_confirmed": false,
+    "user_impact": "degraded",
+    "pre_incident_baseline": "unknown",
+    "postgres_health": "unknown",
+    "rollback_safe": false,
+    "live_mutation_permitted": false
+  }
+}

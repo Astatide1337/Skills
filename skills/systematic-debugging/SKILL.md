@@ -1,11 +1,13 @@
 ---
 name: systematic-debugging
-description: Diagnose the root cause of a bug or failure before fixing it.
+description: When causes are unclear, evidence conflicts or fixes keep failing.
 ---
 
 # Systematic Debugging
 
-Find the cause before fixing the symptom.
+Find the cause before fixing the symptom. An obvious mechanical correction
+with a clear owner and focused reproducer uses `follow-instructions`' short
+path; do not manufacture a multi-hypothesis investigation for it.
 
 ## Workflow
 
@@ -54,6 +56,10 @@ Find the cause before fixing the symptom.
      reproduction.
    - Change only diagnostic state when necessary; avoid behavior-changing fixes at this stage. Mark temporary logs, probes, flags, and fixtures so their removal is verifiable.
    - If evidence contradicts the current explanation, discard the explanation.
+   - If a setup or tool fault is recoverable within scope, repair it and rerun
+     the original check. If an external write has an uncertain result, observe
+     the same object by stable identity before any retry; never infer failure
+     from a timeout alone.
 
 7. **Establish the root cause.**
    - Do not proceed because a hypothesis merely "sounds right."
@@ -72,6 +78,24 @@ Find the cause before fixing the symptom.
      narrowest seam that can assert the broken invariant and explain the gap.
    - Record the prevention follow-up when the failure exposed a missing alert,
      invariant, deployment check, or operational runbook.
+   - Preserve the failing input, observed output, and cleanup evidence. Do not
+     turn a failed assertion into a skip or narrow the expected result merely
+     to obtain a passing check.
+
+For an HTTP/RPC request mismatch or a proposed API contract change, use the
+[API/backend contract procedure](references/api-backend-contracts.md) within
+this workflow. Keep the exact caller path and contract provenance in view; a
+smoke mock alone does not establish wire behavior.
+
+For a Linux, network, or container incident whose failing layer is unclear,
+use the [Linux/network/container procedure](references/linux-network-container-incidents.md)
+to compare name resolution, route, namespace, listener, and protocol evidence.
+
+For a Python persistence, import, pagination, or migration bug, use the
+[Python/data lifecycle procedure](references/python-data-lifecycle.md) to trace
+input through validation, transformation, durable state, and the authoritative
+reader. Keep its transaction and migration decisions aligned with the owning
+repository and environment.
 
 ## Stop conditions
 
@@ -109,12 +133,5 @@ branch) for each material hypothesis.
 
 ## Execution boundary
 
-Match the task's requested mode and the tools it authorizes.
-
-- For prompt-only tasks that explicitly forbid workspace or tool use, use only
-  the supplied text. `Review-only`, `diagnose`, and `do not edit` prohibit
-  mutation, not observation: inspect in-scope supplied files with read-only
-  tools unless the user also forbids that inspection. If required evidence is
-  absent after checking the declared scope, identify the smallest artifact needed.
-- For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
-- Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.
+Apply the shared [execution boundary](../follow-instructions/references/principles/authority-and-claims.md#execution-boundary).
+Keep the task-specific restrictions above; this skill grants no additional effects.

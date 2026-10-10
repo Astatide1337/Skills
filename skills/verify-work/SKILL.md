@@ -1,14 +1,14 @@
 ---
 name: verify-work
-description: Verify the requested observable result before claiming completion.
+description: When proving claims or creating or maintaining app verification.
 ---
 
 # Verify Work
 
 Completion requires current evidence.
 
-For a claim-verification request, make the handoff explicit even when no tools
-are available: **Proven**, **Unknown**, **Next checks**, and **Narrow claim**.
+For a claim-verification request, explain what is proven, what remains unknown,
+the next useful check, and the narrow claim, even when tools are unavailable.
 Name the evidence required at every relevant layer (artifact, environment
 deployment record, running revision or digest, rollout/workload health,
 service/API behavior, and user-visible behavior). Never collapse “not observed”
@@ -23,8 +23,15 @@ into a generic request to verify production.
 - **Maintain a project verifier:** only when the user asks to improve an
   existing verification skill or feature map; then read
   `references/maintain-project-verifier.md`.
+- **User-owned verification:** when application repositories cannot be changed,
+  use [portable profiles](references/portable-profiles.md) to compose existing
+  checks or a pinned app CLI with independent expectations and fresh receipts.
+  If the request or bounded app discovery identifies Linktree, use the installed
+  `linktree-agent` and read its [CLI binding](references/agent-clis.md) for setup
+  and limits. Other apps use their own discovered commands.
 
 Project-local verification skills live at `.agents/skills/verify-<app>/` unless the repository declares another agent-skill location. Do not create platform-specific directories by default.
+The application owns its feature map and pins any separate per-app CLI version; the skill supplies judgment and the CLI performs repeatable operations.
 
 ## Workflow
 
@@ -39,20 +46,30 @@ Project-local verification skills live at `.agents/skills/verify-<app>/` unless 
    - CI proves only the pipeline that actually ran.
    - Deployment state proves only the deployed artifact/state.
    - A real user flow proves the observed user flow.
+   - Choose expected results from the request, app-owned map, or pre-change behavior before seeing candidate output. Do not let the candidate's output define its own oracle.
 
-3. **Run the relevant checks now.**
-   - Do not rely on an earlier run, another agent's report, or an assumed green state.
+3. **Establish current evidence for each relevant check.**
+   - Inspect an earlier result's provenance: source revision, environment,
+     requirement, fixture, artifact or instance identity, check and outcome.
+     Reuse it only when those relevant inputs are unchanged and the result
+     actually covers the claim. A report without inspectable provenance is
+     not evidence. Re-run affected checks when any relevant input changes;
+     do not rerun unrelated checks merely because time passed.
    - Prefer targeted checks first; broaden only when the changed surface requires it.
    - For a bug-fix claim, preserve the original reproducer and compare it on the
      pre-fix revision and the candidate revision. Observe the pre-fix failure
      and candidate success; do not infer the counterfactual from a new unit
      test. If the old revision or reproducer is unavailable, report that
      counterfactual as unknown and do not say the bug is fixed.
+   - Record each required check as accepted, failed, skipped with a reason, or not-run. A skipped or not-run check is not a pass. If a proposed change removes discovery, assertions, scoring, or rule configuration, compare the prior contract and require an explicit reviewed reason plus a violating fixture.
 
 4. **Verify the actual changed behavior.**
    - Exercise the changed path end to end when practical.
    - Check important error/edge states affected by the change.
    - Verify the environment that is part of the user's request.
+   - For cancellation, interrupt before and during the operation, let pending
+     work settle, and check persistence, navigation, and owned resources. A
+     hidden UI does not prove that a save or other side effect was cancelled.
    - When the repository provides a project-local `verify-<app>` skill, use its launch, doctor, drive, evidence, and cleanup contract instead of rediscovering the harness.
 
 5. **For UI or visual work, inspect rendered evidence.**
@@ -78,13 +95,7 @@ Project-local verification skills live at `.agents/skills/verify-<app>/` unless 
    - Confirm only intended files/state changed.
    - Look for accidental, unrelated, generated, or debug artifacts.
    - Confirm the final state still matches the request.
-
-Before writing the completion sentence, record three explicit fields:
-
-- **Proven:** the exact observable result and evidence that supports it.
-- **Unknown:** requested checks or environments that were not exercised.
-- **Claim:** the narrowest completion statement justified by Proven; never
-  promote an Unknown into a success claim.
+   - Check the final tree or artifact identity and, where relevant, the running instance identity. If the final tree differs from the evidenced tree, rerun its affected checks before claiming success. A stale file or old deployment is not current evidence.
 
 9. **Match the completion claim to the evidence.**
    - Say exactly what was verified.
@@ -97,8 +108,8 @@ Before writing the completion sentence, record three explicit fields:
 |---|---|
 | Pure code change | Relevant tests/checks + final diff review |
 | Bug fix | Original reproduction no longer fails + regression check |
-| API/backend | Relevant tests + real request/response when practical |
-| UI | Browser/app interaction + inspected screenshots |
+| API/backend | [API/backend contract procedure](../systematic-debugging/references/api-backend-contracts.md), contract-focused tests + a real request/response when practical |
+| UI | [React feature delivery](../web-interface/references/react-feature-delivery.md), browser/app interaction + inspected screenshots |
 | Motion/animation | UI verification + recorded and watched video |
 | CI | Actual remote pipeline/job result |
 | Deployment | Actual deployed state + health/runtime check |
@@ -119,15 +130,9 @@ Do not claim completion if:
   the claim is that a bug was fixed;
 
 Instead report the strongest verified state and the remaining verification gap.
+When a check fails or cannot run, preserve its input and evidence, diagnose the next safe cause, and rerun after a justified correction. Stop only at a real authority, capability, or safety boundary.
 
 ## Execution boundary
 
-Match the task's requested mode and the tools it authorizes.
-
-- For prompt-only tasks that explicitly forbid workspace or tool use, use only
-  the supplied text. `Review-only`, `diagnose`, and `do not edit` prohibit
-  mutation, not observation: inspect in-scope supplied files with read-only
-  tools unless the user also forbids that inspection. If required evidence is
-  absent after checking the declared scope, identify the smallest artifact needed.
-- For workspace-write requests, read only declared inputs and write only the declared output paths. Do not broaden the scope, probe credentials, inspect evaluator or harness metadata, or use network/MCP unless the task explicitly authorizes it.
-- Never claim that a command, file change, deployment, or verification happened unless it actually happened and is supported by observed evidence.
+Apply the shared [execution boundary](../follow-instructions/references/principles/authority-and-claims.md#execution-boundary).
+Keep the task-specific restrictions above; this skill grants no additional effects.

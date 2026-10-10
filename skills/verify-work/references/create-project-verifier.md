@@ -1,45 +1,33 @@
 # Create a project verifier
 
-Create a repository-specific skill that lets a future agent prove behavior through the same surface a user touches.
+Use this when the user asks for a reusable way to prove one application's user behavior. The result is an application-owned feature map and a short .agents/skills/verify-<app>/SKILL.md that a new agent can execute without guessing.
 
-## Interview the repository
+## Interview the application
 
-Infer these from source and ask only for what cannot be observed:
+Trace one user entry point through source and identify its launch command, readiness signal, data/auth prerequisites, existing browser or CLI driver, observable result, and safe isolation. Read the application's types, schemas, lint/import boundaries, and CI rather than moving those contracts into the shared Skills repository. Check whether a separate per-app executable CLI already supports this application. If it does, consume an exact version pinned by the application; do not copy its process or browser code into the skill. If it does not, use existing project tooling for the requested scope or report the missing capability. A CLI for another app is not a substitute.
 
-- **Surface:** web UI, CLI/TUI, desktop, mobile, API, service, or library.
-- **Launch:** project-native command, prerequisites, ports, environment, seed data, and authentication.
-- **Drive:** existing Playwright/Cypress tests, PTY helpers, request scripts, debug protocols, or other harnesses. Prefer existing machinery.
-- **Observe:** screenshots, recordings, transcripts, responses, logs, exit codes, files, database state, or emitted messages.
-- **Isolate:** ports, profiles, data directories, and whether concurrent instances are safe.
+## Write the app-owned map and skill
 
-Do not document a broken baseline as a working procedure. Fix an in-scope startup problem first or report the blocker precisely.
+The feature map names a real user journey, stable input or seed, independently chosen expected result, failure path, and evidence to retain. Keep it application-owned when repository changes are authorized; otherwise use a user-owned external profile as described in [portable profiles](portable-profiles.md). Pin the CLI version in the application's dependency lock or the external verifier configuration, and reject unsupported map/CLI versions. Do not pin the application's own HEAD inside that map: derive a clean app HEAD at startup, store it in the run manifest, and check it again before and after the drive. A candidate's output cannot supply its own expected value or remove a required check.
+For each feature, record its sub-features, how a user reaches it, how the
+driver acts, the observable end state, and relevant prerequisites. Start with
+only the requested feature files. Do not add a project README or general
+product document.
 
-## Generate `.agents/skills/verify-<app>/`
+The skill must state:
 
-Create a concise `SKILL.md` with valid `name` and `description`, plus these grounded sections:
+1. **Trigger and outcome:** when to invoke it and which user-visible result it can prove.
+2. **Launch and doctor:** exact owned startup/readiness command and how instance identity, app revision, CLI version, and auth/data mode are checked.
+3. **Seed/reset:** isolated test data or stateless input, plus a reset that touches only run-owned state.
+4. **Drive:** exact app actions and named scenarios, using stable semantic selectors and the existing Playwright or agent-browser stack beneath any adapter.
+5. **Assertions and evidence:** required checks, expected values from the app-owned map, screenshots/responses/side effects with revision and instance identity, and reliable JSON/exit-code interpretation. Distinguish accepted, failed, skipped, and not-run checks.
+6. **Recovery and cleanup:** inspect an uncertain write before retry; retain user drafts on conflict; stop only owned processes and preserve evidence after cleanup.
 
-1. **Launch:** exact start/readiness/teardown procedure. Short-lived programs get an isolated session per drive.
-2. **Doctor:** a read-only check that confirms the intended instance, build/version, port, and authentication are usable.
-3. **Drive:** real commands or stable semantic selectors from this repository. Avoid coordinates and tab order.
-4. **Evidence:** capture both action and result. Verify visible state and material side effects. Name the artifact location.
-5. **Cleanup:** stop only processes created by the run and remove only its scratch state. Preserve evidence.
-6. **Helpers:** document every bundled helper invocation and make scripts executable.
+Show the invocation of every bundled helper in the skill and make it
+executable; a reader should not have to reverse-engineer the helper.
 
-Never trust a `dry-run` label without observing what it still changes or contacts.
+Use dry-run only after observing whether it contacts or changes anything. If the baseline cannot launch, repair a recoverable in-scope setup fault or report the exact blocker. Do not document a broken command as working.
 
-## Seed the feature map
+## Prove the cold-reader recipe
 
-Create only the feature-map files needed for the verifier scope the user asked
-for. Do not add a project README or general product documentation. Keep a
-compact index in the verifier's `SKILL.md`; add a feature file only when its
-launch, drive, or evidence recipe cannot stay clear there. Each feature records:
-
-- sub-features;
-- how a user reaches it;
-- how the harness drives it;
-- the observable end state that proves it works;
-- prerequisites and gotchas.
-
-## Prove the verifier
-
-Run launch, doctor, one mapped feature, evidence capture, and cleanup end to end. Confirm the evidence survives cleanup. Clean residue after failed attempts. A verifier that has not executed its own instructions is a draft, not verified infrastructure.
+Execute the written launch, doctor, seed, one mapped real journey, a meaningful negative control, and cleanup from a fresh context. Inspect the captured result and verify the evidence remains after cleanup. Force one failed check and confirm a nonzero exit, a retained failure artifact, and cleanup of only the owned instance. Correct the instructions and run them again; a unit test or mock alone is not application integration evidence.
