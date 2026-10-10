@@ -147,6 +147,38 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(len(dataset), 9)
         self.assertTrue(all(not str(sample.id).startswith("workflow-native-") for sample in dataset))
 
+    def test_recovery_equivalent_reproduces_before_repair_and_retains_acceptance(self):
+        sample = next(s for s in skills.workflows_dataset()
+                      if s.id == "workflow-native-approved-safe-recovery")
+        contract = sample.metadata["fixture_contract"]
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self._write_case_files(root, sample)
+            original_owner = (root / "normalizer.py").read_bytes()
+            original_check = (root / "checks.py").read_bytes()
+            # The available equivalent must expose the original defect before
+            # repair; inspecting its text is not a reproduction receipt.
+            before = subprocess.run(contract["test_command"], cwd=root, capture_output=True)
+            self.assertNotEqual(before.returncode, 0)
+            self.assertIn(b"AssertionError", before.stderr)
+            self.assertEqual((root / "normalizer.py").read_bytes(), original_owner)
+            self.assertEqual((root / "checks.py").read_bytes(), original_check)
+            self.assertNotEqual(self._run_case_acceptance(sample, root).returncode, 0)
+
+            (root / contract["write_path"]).write_text(contract["write_content"])
+            after = subprocess.run(contract["test_command"], cwd=root, capture_output=True)
+            self.assertEqual(after.returncode, 0, after.stderr)
+            self.assertEqual((root / "checks.py").read_bytes(), original_check)
+            self.assertEqual(self._run_case_acceptance(sample, root).returncode, 0)
+
+            # A weakened visible check cannot replace original/held-out
+            # acceptance, even when the resumed worker reports success.
+            (root / "normalizer.py").write_bytes(original_owner)
+            (root / "checks.py").write_text("print('PASS')\n")
+            visible = subprocess.run(contract["test_command"], cwd=root, capture_output=True)
+            self.assertEqual(visible.returncode, 0)
+            self.assertNotEqual(self._run_case_acceptance(sample, root).returncode, 0)
+
     @staticmethod
     def _source_response(content: str = "def lookup():\n    return None\n") -> dict[str, object]:
         raw = content.encode()

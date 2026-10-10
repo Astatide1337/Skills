@@ -93,6 +93,13 @@ changed its status, and one next check or replan. Continue when that move is
 within authority and the acceptance target remains clear. Ask one focused
 question when a product choice or missing authority is the blocker. Do not
 silently widen scope or turn a recovery reflection into unrelated cleanup.
+For an approved bug fix, inspect the available check's coverage and run the
+original or safe equivalent check on the unchanged current owner before editing.
+A previous worker's missing-runner report or reading the check is not a current
+reproduction. Reuse an earlier run only while its source, check and environment
+identity remain valid. Record the command and observed failure; if no equivalent
+can run, retain that counterfactual gap and label the alternative evidence.
+Keep the original acceptance unchanged and run it again on the final bytes.
 When the same approach fails twice or work produces no new evidence, capture
 the approved plan, failures, changes and checks, then request one fresh
 debugging/review agent when tools and authority permit. Give it the actual

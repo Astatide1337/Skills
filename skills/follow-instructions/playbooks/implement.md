@@ -29,6 +29,9 @@ handoff.
    when claiming a bug fix. Record facts separately from assumptions. A feature
    or refactor starts from its own observable contract; it does not need an
    incident reproducer.
+   Recovery from an unavailable historical runner retains this order: inspect
+   a safe available equivalent, reproduce on unchanged code, then repair and
+   rerun the preserved acceptance. Reading checks alone is not reproduction.
 2. For a bug with material causal uncertainty, list competing causes and run
    the cheapest discriminating check; an observed obvious cause needs no invented
    alternatives.
