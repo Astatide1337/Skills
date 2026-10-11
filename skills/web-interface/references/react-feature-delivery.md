@@ -27,6 +27,8 @@ loading/pending, empty, invalid input, server failure, success/populated,
 long content, and disabled or selected states where applicable. Include the
 keyboard/focus result and recovery action for each error state. Do not add
 irrelevant states just to fill a checklist.
+If an action is disabled, establish whether the user's otherwise valid input
+should enable it; expose the unmet prerequisite or recovery when needed.
 4. **Inspect the existing design and component contract.** Read the nearest
 screen, established primitives, tokens, product copy, route patterns, and
 focused tests. Reuse existing controls. For shared components, check native
@@ -69,6 +71,9 @@ to the actual product:
    announcements, clipping/overflow, contrast, console errors, and hydration.
    Capture and inspect screenshots of the relevant states after corrections.
    Source, unit, and DOM tests do not establish rendered visual acceptance.
+   For flows accepting user-authored input, use an independently chosen valid
+   input and inspect its resulting state or persisted effect. A preset, reset,
+   or baseline-only shortcut proves only that shortcut's path.
 8. **Report by evidence layer.** Record the source revision, exact command, and
    inspectable test result. When a supplied packet lacks execution provenance,
    label its result as packet-reported rather than verified. Separate source

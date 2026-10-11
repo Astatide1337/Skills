@@ -27,6 +27,10 @@ Use [`security-and-hardening`](../../security-and-hardening/SKILL.md) or
 
 1. Inspect the actual owners, conventions, callers, tests and environment, then
    write a realistic caller/user sequence before naming modules or types.
+   For a substantial product feature, identify the intended user, their main
+   action, and its observable result from the supplied requirements. Preserve
+   the interaction that makes that result useful when splitting work into
+   components; component completion alone is not the product acceptance.
 2. Compare two structurally distinct viable shapes on ownership, data flow,
    invariants, failure/retry, migration, complexity, and security. Do not
    invent alternatives for a trivial choice.
@@ -34,6 +38,8 @@ Use [`security-and-hardening`](../../security-and-hardening/SKILL.md) or
    smallest authorized disposable experiment. A plan-only request permits only
    its observation and explicitly authorized prototype effects, not dependent
    implementation; still choose and explain the recommendation.
+   When usefulness depends on an interaction, choose a representative complete
+   path for early proof, including its actual input and resulting effect.
 4. Choose the simplest shape, name interfaces/state transitions, failure
    behavior, rollback where effects require it, and the first implementation
    step, including purposeful refactors. For nontrivial feature/issue delivery,

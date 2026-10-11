@@ -223,7 +223,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            43,
+            48,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -293,6 +293,11 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(
             set(cases),
             {
+                "workflow-ui-clutter-regression",
+                "workflow-user-input-shortcut",
+                "workflow-fresh-start-prerequisite",
+                "workflow-product-benefit-claims",
+                "workflow-defining-interaction-plan",
                 "workflow-native-plan-preapproval",
                 "workflow-native-plan-approved-continuation",
                 "workflow-native-plan-material-discovery",

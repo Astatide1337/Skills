@@ -38,6 +38,11 @@ The application owns its feature map and pins any separate per-app CLI version; 
 1. **Restate the acceptance result.**
    - Identify the observable outcome that would prove the user's request is satisfied.
    - Do not substitute implementation details for the requested behavior.
+   - For product work, distinguish implementation correctness, completion of
+     the user's task, and any claimed benefit. An observed task completion does
+     not establish learning, productivity, or competitive superiority; support
+     those claims with relevant outcome evidence or leave them unproven. A
+     small local fix does not require an unrelated user study.
 
 2. **Choose evidence that matches the claim.**
    - Source inspection proves source state.
@@ -67,6 +72,12 @@ The application owns its feature map and pins any separate per-app CLI version; 
    - Exercise the changed path end to end when practical.
    - Check important error/edge states affected by the change.
    - Verify the environment that is part of the user's request.
+   - Start from the intended user's supported entry conditions. If success
+     depends on prepared developer state, establish the supported setup,
+     configuration, or recovery path rather than treating that state as given.
+     When persistence or provisioning changed, check the relevant restart or
+     recreation in an authorized isolated environment; do not erase user state
+     to manufacture a clean start.
    - For cancellation, interrupt before and during the operation, let pending
      work settle, and check persistence, navigation, and owned resources. A
      hidden UI does not prove that a save or other side effect was cancelled.
