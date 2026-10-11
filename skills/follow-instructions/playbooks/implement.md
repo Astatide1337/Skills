@@ -45,6 +45,10 @@ handoff.
    the shared contract before dependent implementation.
 4. Implement one unit at a time. Add a focused regression or acceptance check
    that asserts the outcome, including a relevant negative control.
+   For substantial product work, exercise the representative complete path
+   early, before expanding variants. Carry the accepted interaction and UI
+   constraints through integration; an early working slice does not discharge
+   the remaining approved scope.
 5. Re-run the original path and affected native/supplemental checks; exercise
    the real UI/API/CLI when relevant through its actual tools. Obtain independent
    review of approved nontrivial delivery, fix in-scope findings and refresh

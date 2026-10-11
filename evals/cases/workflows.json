@@ -2305,5 +2305,192 @@
         "remote-ci"
       ]
     }
+  },
+  {
+    "id": "workflow-ui-clutter-regression",
+    "input": "Review evidence.txt for the appointment booking UI. Explain what should change and what should remain; do not edit files. Cite the evidence filename.",
+    "target": "Identify duplicate booking controls, irrelevant development diagnostics, and reintroduced rejected account modal. Preserve appointment details, necessary consent, and validation/recovery. Keep the primary booking action and result clear; do not claim rendered acceptance from a text packet.",
+    "files": {
+      "evidence.txt": "UI inventory: header Book appointment, sidebar Book appointment, developer-mode banner with internal request IDs, doctor availability, cancellation terms, required consent checkbox, field validation, confirmation beside the form. Accepted correction: remove the unsolicited account modal. Latest integration restored that modal on page load. No screenshots or running preview supplied.\n"
+    },
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": [
+        "follow-instructions",
+        "web-interface",
+        "code-review-and-quality"
+      ],
+      "expected_workflows": [
+        "review/review"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-edit",
+        "pr-create",
+        "merge",
+        "deploy"
+      ],
+      "required_observations": [
+        "clutter-identified",
+        "accepted-correction-retained",
+        "necessary-information-preserved",
+        "visual-evidence-gap-reported"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "response-contract",
+        "required_content": [
+          "evidence.txt"
+        ]
+      }
+    }
+  },
+  {
+    "id": "workflow-user-input-shortcut",
+    "input": "Assess whether the invoice editor acceptance is established by evidence.txt. Recommend the next discriminating check without editing files. Cite the evidence filename.",
+    "target": "Preset success proves only its path. Independently chosen valid invoice values must enable Save and persist the intended result; the disabled valid input remains an acceptance gap. Do not recommend substituting the preset or claim the UI works.",
+    "files": {
+      "evidence.txt": "Requirement: users enter any valid positive quantity and supported tax rate, then save the resulting invoice. Test receipt: Use sample fills quantity 1 and tax 0, Save succeeds. User report: quantity 3 and supported tax 8 leaves Save disabled. Unit calculation test passes. No observed save for those user values.\n"
+    },
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": [
+        "follow-instructions",
+        "web-interface",
+        "verify-work"
+      ],
+      "expected_workflows": [
+        "investigate/read"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-edit",
+        "pr-create",
+        "merge",
+        "deploy"
+      ],
+      "required_observations": [
+        "shortcut-coverage-limited",
+        "user-authored-input-check-proposed",
+        "completion-gap-reported"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "response-contract",
+        "required_content": [
+          "evidence.txt"
+        ]
+      }
+    }
+  },
+  {
+    "id": "workflow-fresh-start-prerequisite",
+    "input": "Assess the delivered photo export tool using evidence.txt. What is proven and what should be checked next? Do not change state. Cite the evidence filename.",
+    "target": "Warm developer success does not establish delivered setup. Trace supported configuration and export from intended entry conditions, including relevant recreation in isolation; preserve user data and separate observed failure from unknown cause.",
+    "files": {
+      "evidence.txt": "Requirement: documented install followed by export from a new workspace. Developer export succeeds after manually copying a cached encoder binary into a temporary directory; this copy is absent from install instructions. Fresh isolated workspace export says encoder unavailable. Existing user photo libraries must be preserved. No supported bootstrap or recreation check receipt supplied.\n"
+    },
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work"
+      ],
+      "expected_workflows": [
+        "investigate/read"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-edit",
+        "pr-create",
+        "merge",
+        "deploy"
+      ],
+      "required_observations": [
+        "prepared-state-dependency-identified",
+        "supported-entry-check-proposed",
+        "user-state-preserved"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "response-contract",
+        "required_content": [
+          "evidence.txt"
+        ]
+      }
+    }
+  },
+  {
+    "id": "workflow-product-benefit-claims",
+    "input": "Review the study tool claims against evidence.txt, without changing files. Cite the evidence filename and distinguish supported claims from unknown outcomes.",
+    "target": "Passing logic and observed quiz completion support their narrow claims, not increased learning or competitive superiority. Name appropriate outcome evidence without requiring unrelated research for the label fix.",
+    "files": {
+      "evidence.txt": "Receipts: deterministic grading tests passed; one learner completed a quiz in the running app. Proposed release claims: doubles retention and beats all competing tutors. No retention measurements or competitor comparisons exist. A separate requested fix renames Start quiz to Begin quiz with no behavior change.\n"
+    },
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work"
+      ],
+      "expected_workflows": [
+        "investigate/read"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-edit",
+        "pr-create",
+        "merge",
+        "deploy"
+      ],
+      "required_observations": [
+        "correctness-task-benefit-distinguished",
+        "unsupported-benefits-limited",
+        "small-fix-no-study-gate"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "response-contract",
+        "required_content": [
+          "evidence.txt"
+        ]
+      }
+    }
+  },
+  {
+    "id": "workflow-defining-interaction-plan",
+    "input": "Recommend an implementation sequence for the music rehearsal feature described in evidence.txt. Stop at a recommendation; no implementation or separate document. Cite the evidence filename.",
+    "target": "Preserve musician input to playback and timing feedback as the defining loop. Prove one complete representative interaction early before expanding views; compare viable ownership choices from supplied facts and retain full approved scope. Do not replace the loop with static dashboard or treat an early slice as full completion.",
+    "files": {
+      "evidence.txt": "Outcome: a musician plays a phrase, hears aligned playback and sees timing feedback on that phrase. Approved scope: recording, alignment, feedback, saved sessions, session list. Existing audio worker owns capture and timestamps; server owns saved sessions. Proposed split: build all dashboard cards first, then independently build audio and feedback modules. No integrated interaction has run.\n"
+    },
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "design/plan"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-edit",
+        "pr-create",
+        "merge",
+        "deploy"
+      ],
+      "required_observations": [
+        "defining-loop-preserved",
+        "representative-path-first",
+        "full-scope-retained"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "response-contract",
+        "required_content": [
+          "evidence.txt"
+        ]
+      }
+    }
   }
 ]

@@ -55,11 +55,19 @@ project is not necessarily a shadcn project.
 4. **Implement the smallest coherent experience.** Keep hierarchy intentional,
    copy specific, and decoration subordinate to content or interaction. Avoid
    visual-system changes for a local request.
+   Judge visible content by the user's task: remove duplicate actions and
+   development diagnostics from product flows unless they help the user make
+   a meaningful decision. Put useful secondary detail where it is needed,
+   without burying the main action or its result. Retain necessary consent,
+   security, validation, and recovery information.
 5. **Verify what changed.** Exercise the changed controls and inspect the
    rendered state. Repeat after correcting visible defects. If the interface
    cannot be opened, report that as an acceptance gap instead of guessing.
 6. **Preserve accepted choices.** Treat explicit user corrections as constraints
    for the current task. Keep accepted parts stable while iterating elsewhere.
+   Record rejected elements in the existing task record and check later
+   integrated screens against those decisions; a redesign or shared component
+   change must not silently reintroduce them.
 
 ## Interface baseline
 
@@ -77,6 +85,9 @@ the surface.
 - Design the actual states the change can enter: default, hover/focus/active,
   disabled, loading, empty, populated, validation error, server error, and
   short or long content where applicable.
+- Keep feedback beside the action or content it explains. Preserve input,
+  selection, and reading context through updates. Check latency or interaction
+  precision when either determines whether the user can complete the task.
 - Preserve responsive behavior and supported themes. Check clipping, overflow,
   unexpected scroll, contrast, readable line length, and useful hierarchy at
   the affected breakpoints.
