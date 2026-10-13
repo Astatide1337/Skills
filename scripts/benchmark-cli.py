@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Plan pinned Harbor comparisons without copying auth or executing model calls."""
+"""Freeze catalog experiments and plan optional pinned Harbor comparisons."""
 
 import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -162,6 +163,52 @@ def plan(args):
     return result
 
 
+def ablate(args):
+    """Freeze one-component removal without editing the source or installed skills."""
+    source_arg = Path(args.skills_root).expanduser()
+    if source_arg.is_symlink():
+        raise ValueError("Catalog root cannot be a symlink")
+    source = source_arg.resolve()
+    if not source.is_dir() or not list(source.glob("*/SKILL.md")):
+        raise ValueError("Expected an explicit catalog directory")
+    if not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", args.component):
+        raise ValueError("Component must be one skill directory name")
+    if not (source / args.component / "SKILL.md").is_file():
+        raise ValueError("Selected component is not in this catalog")
+    before = digest(source)
+    global_source = Path(args.globals).expanduser()
+    global_hashes = digest(global_source)
+    target = output_path(args.output)
+    if target.is_relative_to(source):
+        raise ValueError("Output cannot be inside the source catalog")
+    target.mkdir(parents=True)
+    full = target / "full/skills"
+    without = target / "without/skills"
+    shutil.copytree(source, full)
+    if digest(full) != before:
+        raise ValueError("Catalog changed during snapshot; preserve this failed attempt")
+    shutil.copytree(full, without)
+    shutil.rmtree(without / args.component)
+    expected = {name: value for name, value in before.items()
+                if not name.startswith(args.component + "/")}
+    if digest(without) != expected:
+        raise ValueError("Ablation changed more than the selected component")
+    globals_copy = target / "AGENTS.md"
+    shutil.copyfile(global_source, globals_copy)
+    if hashlib.sha256(globals_copy.read_bytes()).hexdigest() != next(iter(global_hashes.values())):
+        raise ValueError("Globals changed during snapshot; preserve this failed attempt")
+    receipt = {
+        "status": "frozen-not-executed", "removed_component": args.component,
+        "full_skills_root": str(full), "ablated_skills_root": str(without),
+        "global_instructions": str(globals_copy), "global_sha256": next(iter(global_hashes.values())),
+        "full_hashes": before, "ablated_hashes": expected,
+        "scope": "Only the copied component directory was removed; source and installed catalogs unchanged.",
+        "limits": "Retained references are unchanged; native fallback and missing-reference overhead are part of this removal treatment.",
+    }
+    (target / "ablation.json").write_text(json.dumps(receipt, indent=2) + "\n")
+    return receipt
+
+
 def doctor():
     checks = {
         "uv": shutil.which("uvx") is not None,
@@ -201,12 +248,17 @@ def main():
     )
     p.add_argument("--attempts", type=int, default=2)
     p.add_argument("--timeout", type=int, default=600)
+    a = sub.add_parser("ablate", help="Freeze full catalog and one-component-absent control")
+    for flag in ["skills-root", "component", "globals", "output"]:
+        a.add_argument("--" + flag, required=True)
     args = parser.parse_args()
     try:
         if args.action == "plan":
             if not 30 <= args.timeout <= 3600:
                 raise ValueError("Timeout must be between 30 and 3600 seconds")
             result = plan(args)
+        elif args.action == "ablate":
+            result = ablate(args)
         elif args.action == "doctor":
             result = doctor()
         else:

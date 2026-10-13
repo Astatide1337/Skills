@@ -99,6 +99,40 @@ class BenchmarkCLI(unittest.TestCase):
         with self.assertRaises(ValueError):
             cli.plan(args)
 
+class CatalogAblationTests(unittest.TestCase):
+    def test_removes_only_frozen_component_preserves_source_and_globals(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary); source = base / "source"; source.mkdir()
+            for name in ["review", "router"]:
+                (source / name).mkdir()
+                (source / name / "SKILL.md").write_text(name)
+                (source / name / "reference.py").write_text("content")
+            globals_path = base / "AGENTS.md"; globals_path.write_text("shared rules")
+            output = base / "frozen"
+            args = argparse.Namespace(skills_root=str(source), component="review",
+                globals=str(globals_path), output=str(output))
+            before = cli.digest(source)
+            with patch.object(cli, "output_path", return_value=output):
+                result = cli.ablate(args)
+            self.assertEqual(cli.digest(source), before)
+            self.assertEqual(cli.digest(Path(result["full_skills_root"])), before)
+            self.assertFalse((Path(result["ablated_skills_root"]) / "review").exists())
+            self.assertEqual((Path(result["ablated_skills_root"]) / "router/SKILL.md").read_text(), "router")
+            self.assertEqual(Path(result["global_instructions"]).read_text(), "shared rules")
+            self.assertEqual(json.loads((output / "ablation.json").read_text())["status"], "frozen-not-executed")
+
+    def test_rejects_component_traversal_and_source_links_before_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary); source = base / "source"; (source / "review").mkdir(parents=True)
+            (source / "review/SKILL.md").write_text("review")
+            globals_path = base / "AGENTS.md"; globals_path.write_text("shared")
+            args = argparse.Namespace(skills_root=str(source), component="../review", globals=str(globals_path), output=str(base / "out"))
+            with self.assertRaises(ValueError): cli.ablate(args)
+            args.component = "review"
+            (source / "review/outside").symlink_to(globals_path)
+            with self.assertRaises(ValueError): cli.ablate(args)
+            self.assertFalse((base / "out").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

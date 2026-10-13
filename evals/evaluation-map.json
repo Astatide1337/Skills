@@ -25,7 +25,8 @@
       "command exit failures",
       "agent message items",
       "observed guidance references",
-      "Inspect elapsed timestamps"
+      "Inspect elapsed timestamps",
+      "conditional executable-review precision, recall, unsubstantiated findings, duplicates and missed known defects"
     ],
     "descriptive_only": [
       "changed-file count",
@@ -39,7 +40,7 @@
       "regressions outside defined test corpus",
       "unnecessary complexity",
       "claim accuracy",
-      "review precision and recall"
+      "semantic review correctness and proof authenticity"
     ],
     "unknown": [
       "monetary subscription cost",
@@ -199,7 +200,8 @@
     "production-engineering": {
       "local_suites": [
         "engineering_workflows",
-        "harder_workflows"
+        "harder_workflows",
+        "review_workflows"
       ],
       "external": [
         "terminal-bench",

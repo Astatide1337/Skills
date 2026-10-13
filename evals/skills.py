@@ -101,6 +101,7 @@ ROUTING_CASES = Path(__file__).parent / "cases" / "routing.json"
 WORKFLOW_CASES = Path(__file__).parent / "cases" / "workflows.json"
 COMPARISON_CASES = Path(__file__).parent / "cases" / "skills-comparison.json"
 HARDER_CASES = Path(__file__).parent / "cases" / "harder.json"
+REVIEWS_CASES = Path(__file__).parent / "cases" / "reviews.json"
 ENGINEERING_CASES = Path(__file__).parent / "cases" / "engineering.json"
 GLOBAL_INSTRUCTIONS = REPO_ROOT / "global-instructions" / "AGENTS.md"
 GRADE_SCHEMA = Path(__file__).parent / "grade-schema.json"
@@ -361,6 +362,7 @@ async def run_codex(
     # investigation). Keep a finite bound while avoiding false evaluation
     # failures caused solely by the old 900-second cap.
     timeout: int = 1800,
+    review_artifacts: bool = False,
     interrupt_marker: str | None = None,
     interrupt_absent: str | None = None,
 ) -> tuple[str, str]:
@@ -412,6 +414,15 @@ async def run_codex(
             sandbox_mode=sandbox_mode,
             skills_root=(skills_root or SKILLS_ROOT) if with_skills else None,
         )
+        if review_artifacts:
+            filesystem = permissions["permissions.skills-eval.filesystem"]
+            # Native writable roots are directories; writable file roots cause
+            # startup to synthesize descendants under files. Keep the workspace
+            # writable and mount every baseline source/control entry read-only.
+            # New paths remain subject to the existing artifact-only scope gate.
+            for entry in workspace.iterdir():
+                if entry.name not in {"review.json", "evidence.py"}:
+                    filesystem[str(entry)] = "read"
         skill_config, startup = await _native_skill_startup(binary=binary, workspace=workspace,
             home=Path(codex_home), permissions=permissions)
         permissions.update(skill_config)
@@ -603,6 +614,7 @@ def native_codex(
                     effort=effort,
                     with_skills=with_skills,
                     sandbox_mode="workspace-write",
+                    review_artifacts=isinstance(contract, dict) and isinstance(contract.get("review_acceptance"), dict),
                     extra_env=tracker.environment() if tracker is not None else None,
                     skills_root=loaded_root,
                     global_rules=state.metadata.get("global_rules"),
@@ -798,7 +810,8 @@ def workflows_dataset(
         comparison_dataset = json_dataset(str(COMPARISON_CASES))
         harder_dataset = json_dataset(str(HARDER_CASES))
         engineering_samples = json_dataset(str(ENGINEERING_CASES)).samples if ENGINEERING_CASES.exists() else []
-        all_samples = (*dataset.samples, *comparison_dataset.samples, *harder_dataset.samples, *engineering_samples)
+        review_samples = json_dataset(str(REVIEWS_CASES)).samples if REVIEWS_CASES.exists() else []
+        all_samples = (*dataset.samples, *comparison_dataset.samples, *harder_dataset.samples, *engineering_samples, *review_samples)
         by_id = {sample.id: sample for sample in all_samples}
         if len(by_id) != len(all_samples):
             raise ValueError("workflow case IDs must be unique across fixture files")
@@ -2820,6 +2833,30 @@ def workflow_effects():
                 ),
                 metadata={"status": "shape-observed", "semantic_acceptance": "unmeasured"},
             )
+        if "review_acceptance" in contract:
+            policy = contract["review_acceptance"]
+            workspace, error = await _sandbox_workspace_path()
+            if error or workspace is None:
+                calibration = {"status": "unavailable", "reason": error or "workspace unavailable"}
+            else:
+                code = ("import sys,json; from pathlib import Path; "
+                        + "sys.path.insert(0," + repr(str(REPO_ROOT)) + "); "
+                        + "from evals.review_calibration import classify_review; "
+                        + "print(json.dumps(classify_review(Path(" + repr(str(workspace)) + "),"
+                        + repr(policy) + ")))" )
+                try:
+                    probe = await sandbox().exec(["python", "-S", "-B", "-c", code],
+                                                 timeout=55, timeout_retry=False)
+                    calibration = json.loads(probe.stdout) if probe.success else {
+                        "status": "unavailable", "reason": probe.stderr[-2000:]}
+                except Exception as exc:  # noqa: BLE001 - infrastructure stays unscored
+                    calibration = {"status": "unavailable", "reason": str(exc)}
+            state.store.set("review_calibration", calibration)
+            if calibration.get("status") == "unavailable":
+                return Score.unscored(explanation="review calibration unavailable", metadata=calibration)
+            return Score(value=int(calibration.get("complete_review", False)),
+                         explanation="Objective proof calibration; description semantics unmeasured",
+                         metadata={"review_calibration": calibration})
         if kind in {"workspace-test", "workspace-artifact"}:
             if "workspace-delete" in forbidden_effects:
                 evidence = await _workspace_evidence_value(state)
@@ -3767,7 +3804,7 @@ def engineering_observations():
             "acceptance_groups": receipts,
         }
         metadata = state.metadata or {}
-        if metadata.get("evaluation_suite") == "engineering-workflows" and metadata.get("execution_scope") == "trusted-synthetic-local":
+        if metadata.get("evaluation_suite") in {"engineering-workflows", "review-workflows"} and metadata.get("execution_scope") == "trusted-synthetic-local":
             workspace = state.store.get("runner_workspace_location")
             if isinstance(workspace, str) and evidence.available:
                 observations["source_artifacts"] = _engineering_artifacts(
@@ -3799,4 +3836,35 @@ def engineering_workflows(
         split, case_ids, include_behavior_grader,
     )
     result.scorer.append(engineering_observations())
+    return result
+
+
+@scorer(metrics={"precision": [mean()], "recall": [mean()],
+                 "schema_valid": [accuracy()], "clean_no_findings": [accuracy()],
+                 "complete_review": [accuracy()]})
+def review_quality():
+    """Separate objective review metrics; raw counts are descriptive only."""
+    async def score(state: TaskState, target: Target) -> Score:
+        calibration = state.store.get("review_calibration", {"status": "unavailable"})
+        unavailable = calibration.get("status") == "unavailable"
+        values = {key: float("nan") if unavailable else float(calibration.get(key, False))
+                  for key in ("precision", "recall", "schema_valid", "clean_no_findings", "complete_review")}
+        return Score(value=values, explanation="Independent description accuracy remains unmeasured",
+                     metadata=calibration)
+    return score
+
+
+@task
+def review_workflows(
+    native_model: str, native_effort: str, arm: str = "candidate",
+    candidate_skills_root: str = str(SKILLS_ROOT), baseline_skills_root: str | None = None,
+    global_instructions: str = str(GLOBAL_INSTRUCTIONS), split: str = "development",
+    case_ids: list[str] | None = None,
+) -> Task:
+    result = _challenge_workflows(REVIEWS_CASES, "review-workflows", native_model,
+        native_effort, arm, candidate_skills_root, baseline_skills_root,
+        global_instructions, split, case_ids, False)
+    for sample in result.dataset.samples:
+        sample.metadata["artifact_paths"] = sorted(set(sample.metadata["artifact_paths"]) | {"review.json", "evidence.py"})
+    result.scorer.extend([review_quality(), engineering_observations()])
     return result

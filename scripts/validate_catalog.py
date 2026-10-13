@@ -202,7 +202,7 @@ def validate_workflow_cases(
                 if not isinstance(values, list) or not values or not all(isinstance(value, str) and value for value in values):
                     fail(f"workflow case {case_id} response contract needs required_content")
             else:
-                if not all(isinstance(contract.get(field), str) and contract[field] for field in ("write_path", "write_content")):
+                if "review_acceptance" not in contract and not all(isinstance(contract.get(field), str) and contract[field] for field in ("write_path", "write_content")):
                     fail(f"workflow case {case_id} workspace contract needs bounded output")
                 groups = contract.get("acceptance_groups", {})
                 if not isinstance(groups, dict) or len(groups) > 24 or not all(
@@ -219,6 +219,17 @@ def validate_workflow_cases(
                     command = contract.get("test_command")
                     if not isinstance(command, list) or not command or not all(isinstance(item, str) and item for item in command):
                         fail(f"workflow case {case_id} workspace-test contract needs test_command")
+        if isinstance(contract, dict) and "review_acceptance" in contract:
+            sys.path.insert(0, str(ROOT))
+            from evals.review_calibration import validate_policy
+            validate_policy(contract["review_acceptance"])
+            if (contract.get("kind") != "workspace-artifact"
+                    or metadata.get("allowed_paths") != ["review.json", "evidence.py"]
+                    or not metadata.get("allow_changes")):
+                fail(f"review case {case_id} must allow only review artifacts")
+            sources = contract["review_acceptance"]["source_paths"]
+            if not all(path in files and len(files[path].encode()) <= 60000 for path in sources):
+                fail(f"review case {case_id} needs bounded source fixtures")
         setup = case.get("setup")
         if setup is not None and (not isinstance(setup, str) or (not setup.strip() and not allow_empty_setup)):
             fail(f"workflow case {case_id} has invalid setup")
@@ -327,7 +338,7 @@ def main() -> None:
     covered = [row.get("skill") for row in coverage]
     if not all(isinstance(name, str) for name in covered) or len(covered) != len(names) or set(covered) != names:
         fail("evaluation map must cover each catalog skill exactly once")
-    allowed_suites = {"catalog", "routing", "workflows", "harder_workflows", "engineering_workflows"}
+    allowed_suites = {"catalog", "routing", "workflows", "harder_workflows", "engineering_workflows", "review_workflows"}
     families = evaluation_map.get("families")
     if not isinstance(families, dict):
         fail("evaluation map needs task families")
@@ -350,7 +361,7 @@ def main() -> None:
     workflow_ids: set[str] = set()
     validate_workflow_cases(workflow_cases, names, workflow_ids)
     extra_workflow_count = 0
-    for filename in ("skills-comparison.json", "harder.json", "engineering.json"):
+    for filename in ("skills-comparison.json", "harder.json", "engineering.json", "reviews.json"):
         extra_cases = json.loads((ROOT / "evals/cases" / filename).read_text())
         if not isinstance(extra_cases, list) or not extra_cases:
             fail(f"{filename} must be a non-empty JSON array")
@@ -359,7 +370,7 @@ def main() -> None:
             extra_cases, names, workflow_ids,
             allow_empty_setup=filename == "skills-comparison.json",
         )
-        if filename in {"harder.json", "engineering.json"}:
+        if filename in {"harder.json", "engineering.json", "reviews.json"}:
             for case in extra_cases:
                 metadata = case["metadata"]
                 if metadata.get("split") not in {"development", "holdout"}:

@@ -1,0 +1,399 @@
+[
+  {
+    "id": "reviews-export-development",
+    "input": "Review this export-job repository for correctness and security against README.md. Inspect the caller and worker boundaries and failure behavior. Keep all source files read-only. Record actionable findings in review.json and runnable behavioral unittest proofs in evidence.py using the documented schema. Report only supported issues; an empty findings list is valid. Use local stdlib checks, no external services or dependencies.",
+    "target": "Supported behavioral findings with calibrated precision, recall and proof corroboration; preserve source scope.",
+    "files": {
+      "README.md": "Export job service\n\nAll IDs, tenant names and keys are opaque strings. Project IDs are globally unique;\njob keys are tenant-scoped. Calls start without an active SQLite transaction.\nsubmit(db, tenant, project, key) requires a currently existing project owned by\nthat tenant BEFORE any job persistence or replay. Otherwise raise PermissionError\nwith no writes. An existing tenant/key with the same project returns its stored\n(project,status,output); a different authorized project raises ValueError without\nwrites. New jobs commit as (project,'queued',None).\nrun(db, tenant, key, checkpoint=lambda: None) raises KeyError for a missing job.\nDone jobs return stored output without invoking checkpoint. Queued jobs must check\nCURRENT project existence and tenant ownership, even after ownership changed since\nenqueue; deny with PermissionError and preserve the queued row. Export output is\ncurrent project body.upper(). Success atomically commits status done and output.\ncheckpoint runs after the tentative update and before commit. It may only raise;\nit must not mutate database, ownership, or external state. If it raises any\nexception, propagate that identical exception, roll back all operation writes,\nleave the job queued with no output and no open transaction, and permit retry.\nNo concurrent writers are modeled. Python stdlib only; storage is local synthetic.\n\nReview source without changing it. Write review.json as {\"findings\": [...]} with\neach finding containing file, positive integer line, title, description, and proof.\nproof names one unittest selector in evidence.py, e.g. ReviewProof.test_behavior.\nEach proof must assert the documented behavior through the public API, failing on\nthe reviewed defect and passing when that defect alone is repaired. Avoid probes\nof source text. Empty findings are appropriate when no defect is supported.\nOnly review.json and evidence.py may change. Run python -B -m unittest evidence.\n",
+      "models.py": "from dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass Request:\n    tenant: str\n    project: str\n    key: str\n",
+      "store.py": "import sqlite3\n\ndef connect():\n    db = sqlite3.connect(':memory:')\n    db.executescript(\"\"\"\n        CREATE TABLE projects(id TEXT PRIMARY KEY, tenant TEXT NOT NULL, body TEXT NOT NULL);\n        CREATE TABLE jobs(tenant TEXT, key TEXT, project TEXT NOT NULL, status TEXT NOT NULL,\n                          output TEXT, PRIMARY KEY(tenant, key));\n    \"\"\")\n    return db\n\ndef owner(db, project):\n    row = db.execute('SELECT tenant FROM projects WHERE id=?', (project,)).fetchone()\n    return None if row is None else row[0]\n\ndef job(db, tenant, key):\n    return db.execute('SELECT project,status,output FROM jobs WHERE tenant=? AND key=?',\n                      (tenant, key)).fetchone()\n",
+      "service.py": "from store import owner, job\n\ndef enqueue(db, request):\n    if owner(db, request.project) is None:\n        raise PermissionError('project unavailable')\n    old = job(db, request.tenant, request.key)\n    if old is not None:\n        if old[0] != request.project:\n            raise ValueError('key conflict')\n        return old\n    with db:\n        db.execute('INSERT INTO jobs VALUES (?,?,?,?,?)',\n                   (request.tenant, request.key, request.project, 'queued', None))\n    return job(db, request.tenant, request.key)\n",
+      "worker.py": "from store import owner, job\n\ndef execute(db, tenant, key, checkpoint=lambda: None):\n    old = job(db, tenant, key)\n    if old is None:\n        raise KeyError(key)\n    project, status, output = old\n    if status == 'done':\n        return output\n    if owner(db, project) is None:\n        raise PermissionError('project unavailable')\n    with db:\n        body = db.execute('SELECT body FROM projects WHERE id=?', (project,)).fetchone()[0]\n        output = body.upper()\n        db.execute('UPDATE jobs SET status=?,output=? WHERE tenant=? AND key=?',\n                   ('done', output, tenant, key))\n        db.commit()\n        checkpoint()\n    return output\n",
+      "api.py": "from models import Request\nfrom service import enqueue\nfrom worker import execute\n\ndef submit(db, tenant, project, key):\n    return enqueue(db, Request(tenant, project, key))\n\ndef run(db, tenant, key, checkpoint=lambda: None):\n    return execute(db, tenant, key, checkpoint)\n",
+      "review.json": "{}\n",
+      "evidence.py": "import unittest\n\nclass ReviewProof(unittest.TestCase):\n    pass\n\nif __name__ == \"__main__\": unittest.main()\n"
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- . && git commit -qm 'frozen fixture baseline'",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "review.json",
+        "evidence.py"
+      ],
+      "required_files": [
+        "README.md",
+        "models.py",
+        "store.py",
+        "service.py",
+        "worker.py",
+        "api.py",
+        "review.json",
+        "evidence.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "code-review-and-quality",
+        "verify-work",
+        "security-and-hardening"
+      ],
+      "expected_workflows": [
+        "review/review"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "calibrated-review-repository",
+      "difficulty": "hard",
+      "split": "development",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true,
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "required_paths": [
+          "README.md",
+          "models.py",
+          "store.py",
+          "service.py",
+          "worker.py",
+          "api.py",
+          "review.json",
+          "evidence.py"
+        ],
+        "review_acceptance": {
+          "source_paths": [
+            "models.py",
+            "store.py",
+            "service.py",
+            "worker.py",
+            "api.py"
+          ],
+          "defects": [
+            {
+              "id": "enqueue-ownership",
+              "files": [
+                "service.py"
+              ],
+              "fixes": {
+                "service.py": "from store import owner, job\n\ndef enqueue(db, request):\n    if owner(db, request.project) != request.tenant:\n        raise PermissionError('project unavailable')\n    old = job(db, request.tenant, request.key)\n    if old is not None:\n        if old[0] != request.project:\n            raise ValueError('key conflict')\n        return old\n    with db:\n        db.execute('INSERT INTO jobs VALUES (?,?,?,?,?)',\n                   (request.tenant, request.key, request.project, 'queued', None))\n    return job(db, request.tenant, request.key)\n"
+              }
+            },
+            {
+              "id": "execution-ownership",
+              "files": [
+                "worker.py"
+              ],
+              "fixes": {
+                "worker.py": "from store import owner, job\n\ndef execute(db, tenant, key, checkpoint=lambda: None):\n    old = job(db, tenant, key)\n    if old is None:\n        raise KeyError(key)\n    project, status, output = old\n    if status == 'done':\n        return output\n    if owner(db, project) != tenant:\n        raise PermissionError('project unavailable')\n    with db:\n        body = db.execute('SELECT body FROM projects WHERE id=?', (project,)).fetchone()[0]\n        output = body.upper()\n        db.execute('UPDATE jobs SET status=?,output=? WHERE tenant=? AND key=?',\n                   ('done', output, tenant, key))\n        db.commit()\n        checkpoint()\n    return output\n"
+              }
+            },
+            {
+              "id": "checkpoint-atomicity",
+              "files": [
+                "worker.py"
+              ],
+              "fixes": {
+                "worker.py": "from store import owner, job\n\ndef execute(db, tenant, key, checkpoint=lambda: None):\n    old = job(db, tenant, key)\n    if old is None:\n        raise KeyError(key)\n    project, status, output = old\n    if status == 'done':\n        return output\n    if owner(db, project) is None:\n        raise PermissionError('project unavailable')\n    with db:\n        body = db.execute('SELECT body FROM projects WHERE id=?', (project,)).fetchone()[0]\n        output = body.upper()\n        db.execute('UPDATE jobs SET status=?,output=? WHERE tenant=? AND key=?',\n                   ('done', output, tenant, key))\n        checkpoint()\n    return output\n"
+              }
+            }
+          ],
+          "report_path": "review.json",
+          "evidence_path": "evidence.py",
+          "max_findings": 5,
+          "probe_timeout": 2
+        }
+      },
+      "review_controls": {
+        "gold_report": {
+          "findings": [
+            {
+              "file": "service.py",
+              "line": 4,
+              "title": "Foreign project accepted at enqueue",
+              "description": "Submitting alice with bob project persists a queued job instead of rejecting it before persistence.",
+              "proof": "ReviewProof.test_tenant"
+            },
+            {
+              "file": "worker.py",
+              "line": 10,
+              "title": "Ownership changes are not reauthorized",
+              "description": "A project transferred from alice to bob after enqueue remains exportable by alice; worker must require current ownership.",
+              "proof": "ReviewProof.test_reauthorize"
+            },
+            {
+              "file": "worker.py",
+              "line": 17,
+              "title": "Checkpoint failure persists completion",
+              "description": "Commit occurs before checkpoint; an exception leaves done/output persisted and retry bypasses the failed checkpoint.",
+              "proof": "ReviewProof.test_checkpoint"
+            }
+          ]
+        },
+        "gold_evidence": "import unittest\nfrom api import submit, run\nfrom store import connect, job\n\nclass ReviewProof(unittest.TestCase):\n    def setUp(self):\n        self.db = connect()\n        self.addCleanup(self.db.close)\n        self.db.executemany('INSERT INTO projects VALUES (?,?,?)',\n                            [('alpha', 'alice', 'first'), ('beta', 'bob', 'second')])\n        self.db.commit()\n\n    def test_tenant(self):\n        with self.assertRaises(PermissionError):\n            submit(self.db, 'alice', 'beta', 'request')\n        self.assertIsNone(job(self.db, 'alice', 'request'))\n\n    def test_reauthorize(self):\n        submit(self.db, 'alice', 'alpha', 'request')\n        self.db.execute('UPDATE projects SET tenant=? WHERE id=?', ('bob', 'alpha'))\n        self.db.commit()\n        with self.assertRaises(PermissionError):\n            run(self.db, 'alice', 'request')\n        self.assertEqual(job(self.db, 'alice', 'request'), ('alpha', 'queued', None))\n\n    def test_checkpoint(self):\n        submit(self.db, 'alice', 'alpha', 'request')\n        error = RuntimeError('checkpoint failure')\n        def fail():\n            raise error\n        with self.assertRaises(RuntimeError) as caught:\n            run(self.db, 'alice', 'request', fail)\n        self.assertIs(caught.exception, error)\n        self.assertEqual(job(self.db, 'alice', 'request'), ('alpha', 'queued', None))\n        self.assertFalse(self.db.in_transaction)\n        self.assertEqual(run(self.db, 'alice', 'request'), 'FIRST')\n\nif __name__ == '__main__':\n    unittest.main()\n",
+        "public_regressions": "import unittest\nfrom api import submit, run\nfrom store import connect, job\n\nclass PublicRegression(unittest.TestCase):\n    def setUp(self):\n        self.db = connect()\n        self.addCleanup(self.db.close)\n        self.db.executemany('INSERT INTO projects VALUES (?,?,?)',\n                            [('alpha', 'alice', 'first'), ('beta', 'bob', 'second')])\n        self.db.commit()\n\n    def test_tenant(self):\n        with self.assertRaises(PermissionError):\n            submit(self.db, 'alice', 'beta', 'request')\n        self.assertIsNone(job(self.db, 'alice', 'request'))\n\n    def test_reauthorize(self):\n        submit(self.db, 'alice', 'alpha', 'request')\n        self.db.execute('UPDATE projects SET tenant=? WHERE id=?', ('bob', 'alpha'))\n        self.db.commit()\n        with self.assertRaises(PermissionError):\n            run(self.db, 'alice', 'request')\n        self.assertEqual(job(self.db, 'alice', 'request'), ('alpha', 'queued', None))\n\n    def test_checkpoint(self):\n        submit(self.db, 'alice', 'alpha', 'request')\n        error = RuntimeError('checkpoint failure')\n        def fail():\n            raise error\n        with self.assertRaises(RuntimeError) as caught:\n            run(self.db, 'alice', 'request', fail)\n        self.assertIs(caught.exception, error)\n        self.assertEqual(job(self.db, 'alice', 'request'), ('alpha', 'queued', None))\n        self.assertFalse(self.db.in_transaction)\n        self.assertEqual(run(self.db, 'alice', 'request'), 'FIRST')\n\n\nclass Compatibility(unittest.TestCase):\n    def test_success_and_replay(self):\n        db = connect()\n        self.addCleanup(db.close)\n        db.execute('INSERT INTO projects VALUES (?,?,?)', ('p', 't', 'hello'))\n        db.commit()\n        self.assertEqual(submit(db, 't', 'p', 'k'), ('p', 'queued', None))\n        self.assertEqual(submit(db, 't', 'p', 'k'), ('p', 'queued', None))\n        self.assertEqual(run(db, 't', 'k'), 'HELLO')\n        def fail(): raise RuntimeError('should not run')\n        self.assertEqual(run(db, 't', 'k', fail), 'HELLO')\n        self.assertEqual(submit(db, 't', 'p', 'k'), ('p', 'done', 'HELLO'))\n        with self.assertRaises(KeyError): run(db, 't', 'missing')\n        with self.assertRaises(PermissionError): submit(db, 't', 'missing', 'new')\n        db.execute('INSERT INTO projects VALUES (?,?,?)', ('q', 't', 'world'))\n        db.commit()\n        with self.assertRaises(ValueError): submit(db, 't', 'q', 'k')\n        self.assertEqual(submit(db, 't', 'q', 'other'), ('q', 'queued', None))\n        db.execute('DELETE FROM projects WHERE id=?', ('q',))\n        db.commit()\n        with self.assertRaises(PermissionError): run(db, 't', 'other')\n        self.assertEqual(job(db, 't', 'other'), ('q', 'queued', None))\n\nclass TenantAndFailureContracts(unittest.TestCase):\n    def test_tenant_scoped_key_and_replay_authorization(self):\n        db = connect()\n        self.addCleanup(db.close)\n        db.executemany('INSERT INTO projects VALUES (?,?,?)', [('a','alice','a'),('b','bob','b')])\n        db.commit()\n        submit(db,'alice','a','same')\n        submit(db,'bob','b','same')\n        self.assertEqual(run(db,'alice','same'),'A')\n        self.assertEqual(run(db,'bob','same'),'B')\n        db.execute('UPDATE projects SET tenant=? WHERE id=?',('bob','a'))\n        db.commit()\n        with self.assertRaises(PermissionError): submit(db,'alice','a','same')\n        self.assertEqual(run(db,'alice','same'),'A')\n\n    def test_base_exception_rolls_back(self):\n        db = connect()\n        self.addCleanup(db.close)\n        db.execute('INSERT INTO projects VALUES (?,?,?)',('a','alice','a'))\n        db.commit()\n        submit(db,'alice','a','key')\n        error = KeyboardInterrupt('cancelled')\n        def fail(): raise error\n        with self.assertRaises(KeyboardInterrupt) as caught: run(db,'alice','key',fail)\n        self.assertIs(caught.exception,error)\n        self.assertEqual(job(db,'alice','key'),('a','queued',None))\n        self.assertFalse(db.in_transaction)\n        self.assertEqual(run(db,'alice','key'),'A')\n\nif __name__ == '__main__': unittest.main()\n",
+        "all_fixed_sources": {
+          "service.py": "from store import owner, job\n\ndef enqueue(db, request):\n    if owner(db, request.project) != request.tenant:\n        raise PermissionError('project unavailable')\n    old = job(db, request.tenant, request.key)\n    if old is not None:\n        if old[0] != request.project:\n            raise ValueError('key conflict')\n        return old\n    with db:\n        db.execute('INSERT INTO jobs VALUES (?,?,?,?,?)',\n                   (request.tenant, request.key, request.project, 'queued', None))\n    return job(db, request.tenant, request.key)\n",
+          "worker.py": "from store import owner, job\n\ndef execute(db, tenant, key, checkpoint=lambda: None):\n    old = job(db, tenant, key)\n    if old is None:\n        raise KeyError(key)\n    project, status, output = old\n    if status == 'done':\n        return output\n    if owner(db, project) != tenant:\n        raise PermissionError('project unavailable')\n    with db:\n        body = db.execute('SELECT body FROM projects WHERE id=?', (project,)).fetchone()[0]\n        output = body.upper()\n        db.execute('UPDATE jobs SET status=?,output=? WHERE tenant=? AND key=?',\n                   ('done', output, tenant, key))\n        checkpoint()\n    return output\n"
+        }
+      }
+    }
+  },
+  {
+    "id": "reviews-export-clean",
+    "input": "Review this export-job repository for correctness and security against README.md. Inspect the caller and worker boundaries and failure behavior. Keep all source files read-only. Record actionable findings in review.json and runnable behavioral unittest proofs in evidence.py using the documented schema. Report only supported issues; an empty findings list is valid. Use local stdlib checks, no external services or dependencies.",
+    "target": "Supported behavioral findings with calibrated precision, recall and proof corroboration; preserve source scope.",
+    "files": {
+      "README.md": "Export job service\n\nAll IDs, tenant names and keys are opaque strings. Project IDs are globally unique;\njob keys are tenant-scoped. Calls start without an active SQLite transaction.\nsubmit(db, tenant, project, key) requires a currently existing project owned by\nthat tenant BEFORE any job persistence or replay. Otherwise raise PermissionError\nwith no writes. An existing tenant/key with the same project returns its stored\n(project,status,output); a different authorized project raises ValueError without\nwrites. New jobs commit as (project,'queued',None).\nrun(db, tenant, key, checkpoint=lambda: None) raises KeyError for a missing job.\nDone jobs return stored output without invoking checkpoint. Queued jobs must check\nCURRENT project existence and tenant ownership, even after ownership changed since\nenqueue; deny with PermissionError and preserve the queued row. Export output is\ncurrent project body.upper(). Success atomically commits status done and output.\ncheckpoint runs after the tentative update and before commit. It may only raise;\nit must not mutate database, ownership, or external state. If it raises any\nexception, propagate that identical exception, roll back all operation writes,\nleave the job queued with no output and no open transaction, and permit retry.\nNo concurrent writers are modeled. Python stdlib only; storage is local synthetic.\n\nReview source without changing it. Write review.json as {\"findings\": [...]} with\neach finding containing file, positive integer line, title, description, and proof.\nproof names one unittest selector in evidence.py, e.g. ReviewProof.test_behavior.\nEach proof must assert the documented behavior through the public API, failing on\nthe reviewed defect and passing when that defect alone is repaired. Avoid probes\nof source text. Empty findings are appropriate when no defect is supported.\nOnly review.json and evidence.py may change. Run python -B -m unittest evidence.\n",
+      "models.py": "from dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass Request:\n    tenant: str\n    project: str\n    key: str\n",
+      "store.py": "import sqlite3\n\ndef connect():\n    db = sqlite3.connect(':memory:')\n    db.executescript(\"\"\"\n        CREATE TABLE projects(id TEXT PRIMARY KEY, tenant TEXT NOT NULL, body TEXT NOT NULL);\n        CREATE TABLE jobs(tenant TEXT, key TEXT, project TEXT NOT NULL, status TEXT NOT NULL,\n                          output TEXT, PRIMARY KEY(tenant, key));\n    \"\"\")\n    return db\n\ndef owner(db, project):\n    row = db.execute('SELECT tenant FROM projects WHERE id=?', (project,)).fetchone()\n    return None if row is None else row[0]\n\ndef job(db, tenant, key):\n    return db.execute('SELECT project,status,output FROM jobs WHERE tenant=? AND key=?',\n                      (tenant, key)).fetchone()\n",
+      "service.py": "from store import owner, job\n\ndef enqueue(db, request):\n    if owner(db, request.project) != request.tenant:\n        raise PermissionError('project unavailable')\n    old = job(db, request.tenant, request.key)\n    if old is not None:\n        if old[0] != request.project:\n            raise ValueError('key conflict')\n        return old\n    with db:\n        db.execute('INSERT INTO jobs VALUES (?,?,?,?,?)',\n                   (request.tenant, request.key, request.project, 'queued', None))\n    return job(db, request.tenant, request.key)\n",
+      "worker.py": "from store import owner, job\n\ndef execute(db, tenant, key, checkpoint=lambda: None):\n    old = job(db, tenant, key)\n    if old is None:\n        raise KeyError(key)\n    project, status, output = old\n    if status == 'done':\n        return output\n    if owner(db, project) != tenant:\n        raise PermissionError('project unavailable')\n    with db:\n        body = db.execute('SELECT body FROM projects WHERE id=?', (project,)).fetchone()[0]\n        output = body.upper()\n        db.execute('UPDATE jobs SET status=?,output=? WHERE tenant=? AND key=?',\n                   ('done', output, tenant, key))\n        checkpoint()\n    return output\n",
+      "api.py": "from models import Request\nfrom service import enqueue\nfrom worker import execute\n\ndef submit(db, tenant, project, key):\n    return enqueue(db, Request(tenant, project, key))\n\ndef run(db, tenant, key, checkpoint=lambda: None):\n    return execute(db, tenant, key, checkpoint)\n",
+      "review.json": "{}\n",
+      "evidence.py": "import unittest\n\nclass ReviewProof(unittest.TestCase):\n    pass\n\nif __name__ == \"__main__\": unittest.main()\n"
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- . && git commit -qm 'frozen fixture baseline'",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "review.json",
+        "evidence.py"
+      ],
+      "required_files": [
+        "README.md",
+        "models.py",
+        "store.py",
+        "service.py",
+        "worker.py",
+        "api.py",
+        "review.json",
+        "evidence.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "code-review-and-quality",
+        "verify-work",
+        "security-and-hardening"
+      ],
+      "expected_workflows": [
+        "review/review"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "calibrated-review-repository",
+      "difficulty": "hard",
+      "split": "development",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true,
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "required_paths": [
+          "README.md",
+          "models.py",
+          "store.py",
+          "service.py",
+          "worker.py",
+          "api.py",
+          "review.json",
+          "evidence.py"
+        ],
+        "review_acceptance": {
+          "source_paths": [
+            "models.py",
+            "store.py",
+            "service.py",
+            "worker.py",
+            "api.py"
+          ],
+          "defects": [],
+          "report_path": "review.json",
+          "evidence_path": "evidence.py",
+          "max_findings": 5,
+          "probe_timeout": 2
+        }
+      },
+      "review_controls": {
+        "gold_report": {
+          "findings": []
+        },
+        "gold_evidence": "import unittest\nfrom api import submit, run\nfrom store import connect, job\n\nclass ReviewProof(unittest.TestCase):\n    def setUp(self):\n        self.db = connect()\n        self.addCleanup(self.db.close)\n        self.db.executemany('INSERT INTO projects VALUES (?,?,?)',\n                            [('alpha', 'alice', 'first'), ('beta', 'bob', 'second')])\n        self.db.commit()\n\n    def test_tenant(self):\n        with self.assertRaises(PermissionError):\n            submit(self.db, 'alice', 'beta', 'request')\n        self.assertIsNone(job(self.db, 'alice', 'request'))\n\n    def test_reauthorize(self):\n        submit(self.db, 'alice', 'alpha', 'request')\n        self.db.execute('UPDATE projects SET tenant=? WHERE id=?', ('bob', 'alpha'))\n        self.db.commit()\n        with self.assertRaises(PermissionError):\n            run(self.db, 'alice', 'request')\n        self.assertEqual(job(self.db, 'alice', 'request'), ('alpha', 'queued', None))\n\n    def test_checkpoint(self):\n        submit(self.db, 'alice', 'alpha', 'request')\n        error = RuntimeError('checkpoint failure')\n        def fail():\n            raise error\n        with self.assertRaises(RuntimeError) as caught:\n            run(self.db, 'alice', 'request', fail)\n        self.assertIs(caught.exception, error)\n        self.assertEqual(job(self.db, 'alice', 'request'), ('alpha', 'queued', None))\n        self.assertFalse(self.db.in_transaction)\n        self.assertEqual(run(self.db, 'alice', 'request'), 'FIRST')\n\nif __name__ == '__main__':\n    unittest.main()\n",
+        "public_regressions": "import unittest\nfrom api import submit, run\nfrom store import connect, job\n\nclass PublicRegression(unittest.TestCase):\n    def setUp(self):\n        self.db = connect()\n        self.addCleanup(self.db.close)\n        self.db.executemany('INSERT INTO projects VALUES (?,?,?)',\n                            [('alpha', 'alice', 'first'), ('beta', 'bob', 'second')])\n        self.db.commit()\n\n    def test_tenant(self):\n        with self.assertRaises(PermissionError):\n            submit(self.db, 'alice', 'beta', 'request')\n        self.assertIsNone(job(self.db, 'alice', 'request'))\n\n    def test_reauthorize(self):\n        submit(self.db, 'alice', 'alpha', 'request')\n        self.db.execute('UPDATE projects SET tenant=? WHERE id=?', ('bob', 'alpha'))\n        self.db.commit()\n        with self.assertRaises(PermissionError):\n            run(self.db, 'alice', 'request')\n        self.assertEqual(job(self.db, 'alice', 'request'), ('alpha', 'queued', None))\n\n    def test_checkpoint(self):\n        submit(self.db, 'alice', 'alpha', 'request')\n        error = RuntimeError('checkpoint failure')\n        def fail():\n            raise error\n        with self.assertRaises(RuntimeError) as caught:\n            run(self.db, 'alice', 'request', fail)\n        self.assertIs(caught.exception, error)\n        self.assertEqual(job(self.db, 'alice', 'request'), ('alpha', 'queued', None))\n        self.assertFalse(self.db.in_transaction)\n        self.assertEqual(run(self.db, 'alice', 'request'), 'FIRST')\n\n\nclass Compatibility(unittest.TestCase):\n    def test_success_and_replay(self):\n        db = connect()\n        self.addCleanup(db.close)\n        db.execute('INSERT INTO projects VALUES (?,?,?)', ('p', 't', 'hello'))\n        db.commit()\n        self.assertEqual(submit(db, 't', 'p', 'k'), ('p', 'queued', None))\n        self.assertEqual(submit(db, 't', 'p', 'k'), ('p', 'queued', None))\n        self.assertEqual(run(db, 't', 'k'), 'HELLO')\n        def fail(): raise RuntimeError('should not run')\n        self.assertEqual(run(db, 't', 'k', fail), 'HELLO')\n        self.assertEqual(submit(db, 't', 'p', 'k'), ('p', 'done', 'HELLO'))\n        with self.assertRaises(KeyError): run(db, 't', 'missing')\n        with self.assertRaises(PermissionError): submit(db, 't', 'missing', 'new')\n        db.execute('INSERT INTO projects VALUES (?,?,?)', ('q', 't', 'world'))\n        db.commit()\n        with self.assertRaises(ValueError): submit(db, 't', 'q', 'k')\n        self.assertEqual(submit(db, 't', 'q', 'other'), ('q', 'queued', None))\n        db.execute('DELETE FROM projects WHERE id=?', ('q',))\n        db.commit()\n        with self.assertRaises(PermissionError): run(db, 't', 'other')\n        self.assertEqual(job(db, 't', 'other'), ('q', 'queued', None))\n\nclass TenantAndFailureContracts(unittest.TestCase):\n    def test_tenant_scoped_key_and_replay_authorization(self):\n        db = connect()\n        self.addCleanup(db.close)\n        db.executemany('INSERT INTO projects VALUES (?,?,?)', [('a','alice','a'),('b','bob','b')])\n        db.commit()\n        submit(db,'alice','a','same')\n        submit(db,'bob','b','same')\n        self.assertEqual(run(db,'alice','same'),'A')\n        self.assertEqual(run(db,'bob','same'),'B')\n        db.execute('UPDATE projects SET tenant=? WHERE id=?',('bob','a'))\n        db.commit()\n        with self.assertRaises(PermissionError): submit(db,'alice','a','same')\n        self.assertEqual(run(db,'alice','same'),'A')\n\n    def test_base_exception_rolls_back(self):\n        db = connect()\n        self.addCleanup(db.close)\n        db.execute('INSERT INTO projects VALUES (?,?,?)',('a','alice','a'))\n        db.commit()\n        submit(db,'alice','a','key')\n        error = KeyboardInterrupt('cancelled')\n        def fail(): raise error\n        with self.assertRaises(KeyboardInterrupt) as caught: run(db,'alice','key',fail)\n        self.assertIs(caught.exception,error)\n        self.assertEqual(job(db,'alice','key'),('a','queued',None))\n        self.assertFalse(db.in_transaction)\n        self.assertEqual(run(db,'alice','key'),'A')\n\nif __name__ == '__main__': unittest.main()\n",
+        "all_fixed_sources": {
+          "service.py": "from store import owner, job\n\ndef enqueue(db, request):\n    if owner(db, request.project) != request.tenant:\n        raise PermissionError('project unavailable')\n    old = job(db, request.tenant, request.key)\n    if old is not None:\n        if old[0] != request.project:\n            raise ValueError('key conflict')\n        return old\n    with db:\n        db.execute('INSERT INTO jobs VALUES (?,?,?,?,?)',\n                   (request.tenant, request.key, request.project, 'queued', None))\n    return job(db, request.tenant, request.key)\n",
+          "worker.py": "from store import owner, job\n\ndef execute(db, tenant, key, checkpoint=lambda: None):\n    old = job(db, tenant, key)\n    if old is None:\n        raise KeyError(key)\n    project, status, output = old\n    if status == 'done':\n        return output\n    if owner(db, project) != tenant:\n        raise PermissionError('project unavailable')\n    with db:\n        body = db.execute('SELECT body FROM projects WHERE id=?', (project,)).fetchone()[0]\n        output = body.upper()\n        db.execute('UPDATE jobs SET status=?,output=? WHERE tenant=? AND key=?',\n                   ('done', output, tenant, key))\n        checkpoint()\n    return output\n"
+        }
+      }
+    }
+  },
+  {
+    "id": "reviews-export-holdout",
+    "input": "Review this export-job repository for correctness and security against README.md. Inspect the caller and worker boundaries and failure behavior. Keep all source files read-only. Record actionable findings in review.json and runnable behavioral unittest proofs in evidence.py using the documented schema. Report only supported issues; an empty findings list is valid. Use local stdlib checks, no external services or dependencies.",
+    "target": "Supported behavioral findings with calibrated precision, recall and proof corroboration; preserve source scope.",
+    "files": {
+      "README.md": "Export job service\n\nAll IDs, tenant names and keys are opaque strings. Project IDs are globally unique;\njob keys are tenant-scoped. Calls start without an active SQLite transaction.\nsubmit(db, tenant, project, key) requires a currently existing project owned by\nthat tenant BEFORE any job persistence or replay. Otherwise raise PermissionError\nwith no writes. An existing tenant/key with the same project returns its stored\n(project,status,output); a different authorized project raises ValueError without\nwrites. New jobs commit as (project,'queued',None).\nrun(db, tenant, key, checkpoint=lambda: None) raises KeyError for a missing job.\nDone jobs return stored output without invoking checkpoint. Queued jobs must check\nCURRENT project existence and tenant ownership, even after ownership changed since\nenqueue; deny with PermissionError and preserve the queued row. Export output is\ncurrent project body.lower(). Success atomically commits status done and output.\ncheckpoint runs after the tentative update and before commit. It may only raise;\nit must not mutate database, ownership, or external state. If it raises any\nexception, propagate that identical exception, roll back all operation writes,\nleave the job queued with no output and no open transaction, and permit retry.\nNo concurrent writers are modeled. Python stdlib only; storage is local synthetic.\n\nReview source without changing it. Write review.json as {\"findings\": [...]} with\neach finding containing file, positive integer line, title, description, and proof.\nproof names one unittest selector in evidence.py, e.g. ReviewProof.test_behavior.\nEach proof must assert the documented behavior through the public API, failing on\nthe reviewed defect and passing when that defect alone is repaired. Avoid probes\nof source text. Empty findings are appropriate when no defect is supported.\nOnly review.json and evidence.py may change. Run python -B -m unittest evidence.\n",
+      "models.py": "from dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass Request:\n    tenant: str\n    project: str\n    key: str\n",
+      "store.py": "import sqlite3\n\ndef connect():\n    db = sqlite3.connect(':memory:')\n    db.executescript(\"\"\"\n        CREATE TABLE projects(id TEXT PRIMARY KEY, tenant TEXT NOT NULL, body TEXT NOT NULL);\n        CREATE TABLE jobs(tenant TEXT, key TEXT, project TEXT NOT NULL, status TEXT NOT NULL,\n                          output TEXT, PRIMARY KEY(tenant, key));\n    \"\"\")\n    return db\n\ndef owner(db, project):\n    row = db.execute('SELECT tenant FROM projects WHERE id=?', (project,)).fetchone()\n    return None if row is None else row[0]\n\ndef job(db, tenant, key):\n    return db.execute('SELECT project,status,output FROM jobs WHERE tenant=? AND key=?',\n                      (tenant, key)).fetchone()\n",
+      "service.py": "from store import owner, job\n\ndef enqueue(db, request):\n    if owner(db, request.project) is None:\n        raise PermissionError('project unavailable')\n    old = job(db, request.tenant, request.key)\n    if old is not None:\n        if old[0] != request.project:\n            raise ValueError('key conflict')\n        return old\n    with db:\n        db.execute('INSERT INTO jobs VALUES (?,?,?,?,?)',\n                   (request.tenant, request.key, request.project, 'queued', None))\n    return job(db, request.tenant, request.key)\n",
+      "worker.py": "from store import owner, job\n\ndef execute(db, tenant, key, checkpoint=lambda: None):\n    old = job(db, tenant, key)\n    if old is None:\n        raise KeyError(key)\n    project, status, output = old\n    if status == 'done':\n        return output\n    if owner(db, project) is None:\n        raise PermissionError('project unavailable')\n    with db:\n        body = db.execute('SELECT body FROM projects WHERE id=?', (project,)).fetchone()[0]\n        output = body.lower()\n        db.execute('UPDATE jobs SET status=?,output=? WHERE tenant=? AND key=?',\n                   ('done', output, tenant, key))\n        db.commit()\n        checkpoint()\n    return output\n",
+      "api.py": "from models import Request\nfrom service import enqueue\nfrom worker import execute\n\ndef submit(db, tenant, project, key):\n    return enqueue(db, Request(tenant, project, key))\n\ndef run(db, tenant, key, checkpoint=lambda: None):\n    return execute(db, tenant, key, checkpoint)\n",
+      "review.json": "{}\n",
+      "evidence.py": "import unittest\n\nclass ReviewProof(unittest.TestCase):\n    pass\n\nif __name__ == \"__main__\": unittest.main()\n"
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- . && git commit -qm 'frozen fixture baseline'",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "review.json",
+        "evidence.py"
+      ],
+      "required_files": [
+        "README.md",
+        "models.py",
+        "store.py",
+        "service.py",
+        "worker.py",
+        "api.py",
+        "review.json",
+        "evidence.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "code-review-and-quality",
+        "verify-work",
+        "security-and-hardening"
+      ],
+      "expected_workflows": [
+        "review/review"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "calibrated-review-repository",
+      "difficulty": "hard",
+      "split": "holdout",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true,
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "required_paths": [
+          "README.md",
+          "models.py",
+          "store.py",
+          "service.py",
+          "worker.py",
+          "api.py",
+          "review.json",
+          "evidence.py"
+        ],
+        "review_acceptance": {
+          "source_paths": [
+            "models.py",
+            "store.py",
+            "service.py",
+            "worker.py",
+            "api.py"
+          ],
+          "defects": [
+            {
+              "id": "enqueue-ownership",
+              "files": [
+                "service.py"
+              ],
+              "fixes": {
+                "service.py": "from store import owner, job\n\ndef enqueue(db, request):\n    if owner(db, request.project) != request.tenant:\n        raise PermissionError('project unavailable')\n    old = job(db, request.tenant, request.key)\n    if old is not None:\n        if old[0] != request.project:\n            raise ValueError('key conflict')\n        return old\n    with db:\n        db.execute('INSERT INTO jobs VALUES (?,?,?,?,?)',\n                   (request.tenant, request.key, request.project, 'queued', None))\n    return job(db, request.tenant, request.key)\n"
+              }
+            },
+            {
+              "id": "execution-ownership",
+              "files": [
+                "worker.py"
+              ],
+              "fixes": {
+                "worker.py": "from store import owner, job\n\ndef execute(db, tenant, key, checkpoint=lambda: None):\n    old = job(db, tenant, key)\n    if old is None:\n        raise KeyError(key)\n    project, status, output = old\n    if status == 'done':\n        return output\n    if owner(db, project) != tenant:\n        raise PermissionError('project unavailable')\n    with db:\n        body = db.execute('SELECT body FROM projects WHERE id=?', (project,)).fetchone()[0]\n        output = body.lower()\n        db.execute('UPDATE jobs SET status=?,output=? WHERE tenant=? AND key=?',\n                   ('done', output, tenant, key))\n        db.commit()\n        checkpoint()\n    return output\n"
+              }
+            },
+            {
+              "id": "checkpoint-atomicity",
+              "files": [
+                "worker.py"
+              ],
+              "fixes": {
+                "worker.py": "from store import owner, job\n\ndef execute(db, tenant, key, checkpoint=lambda: None):\n    old = job(db, tenant, key)\n    if old is None:\n        raise KeyError(key)\n    project, status, output = old\n    if status == 'done':\n        return output\n    if owner(db, project) is None:\n        raise PermissionError('project unavailable')\n    with db:\n        body = db.execute('SELECT body FROM projects WHERE id=?', (project,)).fetchone()[0]\n        output = body.lower()\n        db.execute('UPDATE jobs SET status=?,output=? WHERE tenant=? AND key=?',\n                   ('done', output, tenant, key))\n        checkpoint()\n    return output\n"
+              }
+            }
+          ],
+          "report_path": "review.json",
+          "evidence_path": "evidence.py",
+          "max_findings": 5,
+          "probe_timeout": 2
+        }
+      },
+      "review_controls": {
+        "gold_report": {
+          "findings": [
+            {
+              "file": "service.py",
+              "line": 4,
+              "title": "Foreign project accepted at enqueue",
+              "description": "Submitting alice with bob project persists a queued job instead of rejecting it before persistence.",
+              "proof": "ReviewProof.test_tenant"
+            },
+            {
+              "file": "worker.py",
+              "line": 10,
+              "title": "Ownership changes are not reauthorized",
+              "description": "A project transferred from alice to bob after enqueue remains exportable by alice; worker must require current ownership.",
+              "proof": "ReviewProof.test_reauthorize"
+            },
+            {
+              "file": "worker.py",
+              "line": 17,
+              "title": "Checkpoint failure persists completion",
+              "description": "Commit occurs before checkpoint; an exception leaves done/output persisted and retry bypasses the failed checkpoint.",
+              "proof": "ReviewProof.test_checkpoint"
+            }
+          ]
+        },
+        "gold_evidence": "import unittest\nfrom api import submit, run\nfrom store import connect, job\n\nclass ReviewProof(unittest.TestCase):\n    def setUp(self):\n        self.db = connect()\n        self.addCleanup(self.db.close)\n        self.db.executemany('INSERT INTO projects VALUES (?,?,?)',\n                            [('alpha', 'alice', 'first'), ('beta', 'bob', 'second')])\n        self.db.commit()\n\n    def test_tenant(self):\n        with self.assertRaises(PermissionError):\n            submit(self.db, 'alice', 'beta', 'request')\n        self.assertIsNone(job(self.db, 'alice', 'request'))\n\n    def test_reauthorize(self):\n        submit(self.db, 'alice', 'alpha', 'request')\n        self.db.execute('UPDATE projects SET tenant=? WHERE id=?', ('bob', 'alpha'))\n        self.db.commit()\n        with self.assertRaises(PermissionError):\n            run(self.db, 'alice', 'request')\n        self.assertEqual(job(self.db, 'alice', 'request'), ('alpha', 'queued', None))\n\n    def test_checkpoint(self):\n        submit(self.db, 'alice', 'alpha', 'request')\n        error = RuntimeError('checkpoint failure')\n        def fail():\n            raise error\n        with self.assertRaises(RuntimeError) as caught:\n            run(self.db, 'alice', 'request', fail)\n        self.assertIs(caught.exception, error)\n        self.assertEqual(job(self.db, 'alice', 'request'), ('alpha', 'queued', None))\n        self.assertFalse(self.db.in_transaction)\n        self.assertEqual(run(self.db, 'alice', 'request'), 'first')\n\nif __name__ == '__main__':\n    unittest.main()\n",
+        "public_regressions": "import unittest\nfrom api import submit, run\nfrom store import connect, job\n\nclass PublicRegression(unittest.TestCase):\n    def setUp(self):\n        self.db = connect()\n        self.addCleanup(self.db.close)\n        self.db.executemany('INSERT INTO projects VALUES (?,?,?)',\n                            [('alpha', 'alice', 'first'), ('beta', 'bob', 'second')])\n        self.db.commit()\n\n    def test_tenant(self):\n        with self.assertRaises(PermissionError):\n            submit(self.db, 'alice', 'beta', 'request')\n        self.assertIsNone(job(self.db, 'alice', 'request'))\n\n    def test_reauthorize(self):\n        submit(self.db, 'alice', 'alpha', 'request')\n        self.db.execute('UPDATE projects SET tenant=? WHERE id=?', ('bob', 'alpha'))\n        self.db.commit()\n        with self.assertRaises(PermissionError):\n            run(self.db, 'alice', 'request')\n        self.assertEqual(job(self.db, 'alice', 'request'), ('alpha', 'queued', None))\n\n    def test_checkpoint(self):\n        submit(self.db, 'alice', 'alpha', 'request')\n        error = RuntimeError('checkpoint failure')\n        def fail():\n            raise error\n        with self.assertRaises(RuntimeError) as caught:\n            run(self.db, 'alice', 'request', fail)\n        self.assertIs(caught.exception, error)\n        self.assertEqual(job(self.db, 'alice', 'request'), ('alpha', 'queued', None))\n        self.assertFalse(self.db.in_transaction)\n        self.assertEqual(run(self.db, 'alice', 'request'), 'first')\n\n\nclass Compatibility(unittest.TestCase):\n    def test_success_and_replay(self):\n        db = connect()\n        self.addCleanup(db.close)\n        db.execute('INSERT INTO projects VALUES (?,?,?)', ('p', 't', 'hello'))\n        db.commit()\n        self.assertEqual(submit(db, 't', 'p', 'k'), ('p', 'queued', None))\n        self.assertEqual(submit(db, 't', 'p', 'k'), ('p', 'queued', None))\n        self.assertEqual(run(db, 't', 'k'), 'hello')\n        def fail(): raise RuntimeError('should not run')\n        self.assertEqual(run(db, 't', 'k', fail), 'hello')\n        self.assertEqual(submit(db, 't', 'p', 'k'), ('p', 'done', 'hello'))\n        with self.assertRaises(KeyError): run(db, 't', 'missing')\n        with self.assertRaises(PermissionError): submit(db, 't', 'missing', 'new')\n        db.execute('INSERT INTO projects VALUES (?,?,?)', ('q', 't', 'world'))\n        db.commit()\n        with self.assertRaises(ValueError): submit(db, 't', 'q', 'k')\n        self.assertEqual(submit(db, 't', 'q', 'other'), ('q', 'queued', None))\n        db.execute('DELETE FROM projects WHERE id=?', ('q',))\n        db.commit()\n        with self.assertRaises(PermissionError): run(db, 't', 'other')\n        self.assertEqual(job(db, 't', 'other'), ('q', 'queued', None))\n\nclass TenantAndFailureContracts(unittest.TestCase):\n    def test_tenant_scoped_key_and_replay_authorization(self):\n        db = connect()\n        self.addCleanup(db.close)\n        db.executemany('INSERT INTO projects VALUES (?,?,?)', [('a','alice','a'),('b','bob','b')])\n        db.commit()\n        submit(db,'alice','a','same')\n        submit(db,'bob','b','same')\n        self.assertEqual(run(db,'alice','same'),'a')\n        self.assertEqual(run(db,'bob','same'),'b')\n        db.execute('UPDATE projects SET tenant=? WHERE id=?',('bob','a'))\n        db.commit()\n        with self.assertRaises(PermissionError): submit(db,'alice','a','same')\n        self.assertEqual(run(db,'alice','same'),'a')\n\n    def test_base_exception_rolls_back(self):\n        db = connect()\n        self.addCleanup(db.close)\n        db.execute('INSERT INTO projects VALUES (?,?,?)',('a','alice','a'))\n        db.commit()\n        submit(db,'alice','a','key')\n        error = KeyboardInterrupt('cancelled')\n        def fail(): raise error\n        with self.assertRaises(KeyboardInterrupt) as caught: run(db,'alice','key',fail)\n        self.assertIs(caught.exception,error)\n        self.assertEqual(job(db,'alice','key'),('a','queued',None))\n        self.assertFalse(db.in_transaction)\n        self.assertEqual(run(db,'alice','key'),'a')\n\nif __name__ == '__main__': unittest.main()\n",
+        "all_fixed_sources": {
+          "service.py": "from store import owner, job\n\ndef enqueue(db, request):\n    if owner(db, request.project) != request.tenant:\n        raise PermissionError('project unavailable')\n    old = job(db, request.tenant, request.key)\n    if old is not None:\n        if old[0] != request.project:\n            raise ValueError('key conflict')\n        return old\n    with db:\n        db.execute('INSERT INTO jobs VALUES (?,?,?,?,?)',\n                   (request.tenant, request.key, request.project, 'queued', None))\n    return job(db, request.tenant, request.key)\n",
+          "worker.py": "from store import owner, job\n\ndef execute(db, tenant, key, checkpoint=lambda: None):\n    old = job(db, tenant, key)\n    if old is None:\n        raise KeyError(key)\n    project, status, output = old\n    if status == 'done':\n        return output\n    if owner(db, project) != tenant:\n        raise PermissionError('project unavailable')\n    with db:\n        body = db.execute('SELECT body FROM projects WHERE id=?', (project,)).fetchone()[0]\n        output = body.lower()\n        db.execute('UPDATE jobs SET status=?,output=? WHERE tenant=? AND key=?',\n                   ('done', output, tenant, key))\n        checkpoint()\n    return output\n"
+        }
+      }
+    }
+  }
+]
