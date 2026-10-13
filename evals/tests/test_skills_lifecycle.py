@@ -488,6 +488,26 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
             launcher.assert_not_awaited()
             self.assertEqual(list((home / ".cache").iterdir()), [])
 
+    async def test_changed_catalog_arm_stops_before_native_launch(self):
+        from contextlib import nullcontext
+        with tempfile.TemporaryDirectory() as raw:
+            catalog = Path(raw) / "catalog"
+            package = catalog / "example"
+            package.mkdir(parents=True)
+            path = package / "SKILL.md"
+            path.write_text("frozen instructions")
+            expected = skills._skills_identity(catalog)
+            path.write_text("changed between samples")
+            state = self._workflow_state(forbidden=[])
+            state.metadata = {"comparison_skills_identity": expected}
+            launcher = AsyncMock()
+            with (patch.object(skills, "frozen_skills", return_value=nullcontext(catalog)),
+                  patch.object(skills, "_revision_identity", return_value="fixture"),
+                  patch.object(skills, "run_codex", launcher),
+                  self.assertRaisesRegex(RuntimeError, "identity changed")):
+                await skills.native_codex(with_skills=True, model="stub/model", skills_root=catalog)(state, None)
+            launcher.assert_not_awaited()
+
     def test_catalog_identity_covers_references_and_rejects_external_links(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "skills"

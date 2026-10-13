@@ -10,7 +10,6 @@ from pathlib import Path
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -205,6 +204,14 @@ def validate_workflow_cases(
             else:
                 if not all(isinstance(contract.get(field), str) and contract[field] for field in ("write_path", "write_content")):
                     fail(f"workflow case {case_id} workspace contract needs bounded output")
+                groups = contract.get("acceptance_groups", {})
+                if not isinstance(groups, dict) or len(groups) > 24 or not all(
+                    isinstance(name, str) and re.fullmatch(r"[a-z][a-z0-9_]{0,63}", name)
+                    and isinstance(code, str) and code.strip() for name, code in groups.items()
+                ):
+                    fail(f"workflow case {case_id} has invalid acceptance_groups")
+                if sum(len(code.encode("utf-8")) for code in groups.values()) > 60000:
+                    fail(f"workflow case {case_id} acceptance_groups exceed bounded limit")
                 paths = contract.get("required_paths")
                 if not isinstance(paths, list) or not paths or not all(isinstance(path, str) and path for path in paths):
                     fail(f"workflow case {case_id} workspace contract needs required_paths")
@@ -308,6 +315,34 @@ def main() -> None:
             fail(f"routing case {case_id} needs route_kind")
         routing_ids.add(case_id)
 
+    evaluation_map = json.loads((ROOT / "evals/evaluation-map.json").read_text())
+    if not isinstance(evaluation_map, dict):
+        fail("evaluation map must be an object")
+    policy = evaluation_map.get("policy", {})
+    if not isinstance(policy, dict) or policy.get("publish_results") is not False:
+        fail("evaluation map must keep publish_results false")
+    coverage = evaluation_map.get("skill_coverage")
+    if not isinstance(coverage, list) or not all(isinstance(row, dict) for row in coverage):
+        fail("evaluation map needs skill_coverage rows")
+    covered = [row.get("skill") for row in coverage]
+    if not all(isinstance(name, str) for name in covered) or len(covered) != len(names) or set(covered) != names:
+        fail("evaluation map must cover each catalog skill exactly once")
+    allowed_suites = {"catalog", "routing", "workflows", "harder_workflows", "engineering_workflows"}
+    families = evaluation_map.get("families")
+    if not isinstance(families, dict):
+        fail("evaluation map needs task families")
+    catalog_profiles = {Path(entry["exported_path"]).parent.name: entry["profile"] for entry in entries}
+    for row in coverage:
+        profile = row.get("profile")
+        if not isinstance(profile, str) or profile not in families or profile != catalog_profiles[row["skill"]]:
+            fail(f"evaluation map skill {row['skill']} has unknown or mismatched profile")
+    for profile, family in families.items():
+        suites = family.get("local_suites") if isinstance(family, dict) else None
+        if not isinstance(suites, list) or not all(isinstance(name, str) and name in allowed_suites for name in suites):
+            fail(f"evaluation map family {profile} has unknown local suite")
+        if len(suites) != len(set(suites)):
+            fail(f"evaluation map family {profile} repeats a local suite")
+
     workflows_path = ROOT / "evals/cases/workflows.json"
     workflow_cases = json.loads(workflows_path.read_text())
     if not isinstance(workflow_cases, list) or not workflow_cases:
@@ -315,7 +350,7 @@ def main() -> None:
     workflow_ids: set[str] = set()
     validate_workflow_cases(workflow_cases, names, workflow_ids)
     extra_workflow_count = 0
-    for filename in ("skills-comparison.json", "harder.json"):
+    for filename in ("skills-comparison.json", "harder.json", "engineering.json"):
         extra_cases = json.loads((ROOT / "evals/cases" / filename).read_text())
         if not isinstance(extra_cases, list) or not extra_cases:
             fail(f"{filename} must be a non-empty JSON array")
@@ -324,7 +359,7 @@ def main() -> None:
             extra_cases, names, workflow_ids,
             allow_empty_setup=filename == "skills-comparison.json",
         )
-        if filename == "harder.json":
+        if filename in {"harder.json", "engineering.json"}:
             for case in extra_cases:
                 metadata = case["metadata"]
                 if metadata.get("split") not in {"development", "holdout"}:

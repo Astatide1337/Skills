@@ -7,5 +7,5 @@ __pycache__/
 *.py[cod]
 *.log
 logs/*.eval
-evals/results/**/*.eval
+evals/results/
 .DS_Store

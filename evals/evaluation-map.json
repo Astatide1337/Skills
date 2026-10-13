@@ -1,0 +1,248 @@
+{
+  "version": 1,
+  "policy": {
+    "primary_engineering_suite": "engineering_workflows",
+    "preserve_small_checks_for": "routing, mechanics, regression localization",
+    "publish_results": false,
+    "results_directory": "evals/results",
+    "compare": "frozen matched catalogs; single-component ablation after observed gap",
+    "holdout": "explicit selection only after candidate frozen",
+    "promotion": "Freeze acceptance and budget before trial; require behavior/authority gates, independently reviewed artifacts, improvement across matched cases and repetitions, and unchanged heldout confirmation. A quality tie is no demonstrated quality gain; do not rank individual skills from whole-catalog runs.",
+    "next_experiment": "Trial one component against an observed gap, then complementary pairs and leave-one-out removal; no automatic promotion from a saturated pilot."
+  },
+  "tiers": {
+    "smoke": "mechanics and narrow boundary checks",
+    "challenge": "multi-module executable contracts and named behavioral groups",
+    "external": "upstream CLI benchmarks with frozen tasks and catalogs",
+    "artifact-review": "independent blinded assessment where semantics cannot be checked deterministically"
+  },
+  "metrics": {
+    "measured": [
+      "named behavioral acceptance",
+      "workspace scope",
+      "native input/cached/output/reasoning tokens",
+      "completed command items",
+      "command exit failures",
+      "agent message items",
+      "observed guidance references",
+      "Inspect elapsed timestamps"
+    ],
+    "descriptive_only": [
+      "changed-file count",
+      "guidance references",
+      "command counts"
+    ],
+    "requires_new_evidence": [
+      "true repair-attempt count",
+      "first verified success timestamp",
+      "human correction count",
+      "regressions outside defined test corpus",
+      "unnecessary complexity",
+      "claim accuracy",
+      "review precision and recall"
+    ],
+    "unknown": [
+      "monetary subscription cost",
+      "provider internal effort settings",
+      "unobserved effects"
+    ]
+  },
+  "skill_coverage": [
+    {
+      "skill": "follow-instructions",
+      "profile": "agent-workflows"
+    },
+    {
+      "skill": "self-reflect",
+      "profile": "agent-workflows"
+    },
+    {
+      "skill": "web-interface",
+      "profile": "web-engineering"
+    },
+    {
+      "skill": "html-artifacts",
+      "profile": "web-engineering"
+    },
+    {
+      "skill": "grilling",
+      "profile": "agent-workflows"
+    },
+    {
+      "skill": "writing-for-agents",
+      "profile": "agent-workflows"
+    },
+    {
+      "skill": "wizard",
+      "profile": "agent-workflows"
+    },
+    {
+      "skill": "how",
+      "profile": "agent-workflows"
+    },
+    {
+      "skill": "architect",
+      "profile": "agent-workflows"
+    },
+    {
+      "skill": "teach",
+      "profile": "agent-workflows"
+    },
+    {
+      "skill": "unslop",
+      "profile": "agent-workflows"
+    },
+    {
+      "skill": "deslop",
+      "profile": "agent-workflows"
+    },
+    {
+      "skill": "why",
+      "profile": "agent-workflows"
+    },
+    {
+      "skill": "pull-requests",
+      "profile": "agent-workflows"
+    },
+    {
+      "skill": "internet-reach",
+      "profile": "internet-research"
+    },
+    {
+      "skill": "code-review-and-quality",
+      "profile": "production-engineering"
+    },
+    {
+      "skill": "security-and-hardening",
+      "profile": "production-engineering"
+    },
+    {
+      "skill": "production-safety",
+      "profile": "production-engineering"
+    },
+    {
+      "skill": "systematic-debugging",
+      "profile": "production-engineering"
+    },
+    {
+      "skill": "verify-work",
+      "profile": "production-engineering"
+    },
+    {
+      "skill": "create-workflow",
+      "profile": "workflow-automation"
+    },
+    {
+      "skill": "hillclimb",
+      "profile": "workflow-automation"
+    },
+    {
+      "skill": "skill-creator",
+      "profile": "catalog-admin"
+    }
+  ],
+  "sources": [
+    {
+      "name": "Inspect SWE-bench",
+      "url": "https://github.com/UKGovernmentBEIS/inspect_evals/blob/main/src/inspect_evals/swe_bench/README.md"
+    },
+    {
+      "name": "Harbor",
+      "url": "https://www.harborframework.com/"
+    }
+  ],
+  "families": {
+    "agent-workflows": {
+      "local_suites": [
+        "engineering_workflows",
+        "catalog",
+        "routing"
+      ],
+      "external": [
+        "terminal-bench"
+      ],
+      "signals": [
+        "complete-task-success",
+        "scope",
+        "guidance-access",
+        "resource-use"
+      ],
+      "gap": "Architecture, teaching, prose, and critique require blinded artifact assessment; skill access is not skill efficacy."
+    },
+    "web-engineering": {
+      "local_suites": [
+        "catalog",
+        "workflows"
+      ],
+      "external": [
+        "terminal-bench"
+      ],
+      "signals": [
+        "user-flow-completion",
+        "keyboard-access",
+        "responsive-behavior"
+      ],
+      "gap": "Current native local runner cannot prove browser interaction; require an actual supported browser benchmark before comparison."
+    },
+    "internet-research": {
+      "local_suites": [
+        "catalog"
+      ],
+      "external": [],
+      "signals": [
+        "source-accuracy",
+        "claim-support",
+        "coverage"
+      ],
+      "gap": "Fresh web research needs live source access and independent citation review; synthetic fixtures are insufficient."
+    },
+    "production-engineering": {
+      "local_suites": [
+        "engineering_workflows",
+        "harder_workflows"
+      ],
+      "external": [
+        "terminal-bench",
+        "swe-bench"
+      ],
+      "signals": [
+        "end-to-end",
+        "recovery",
+        "isolation",
+        "regressions",
+        "scope",
+        "resource-use"
+      ],
+      "gap": "Calibrated defect and clean reviews need semantic artifact review; local tasks do not cover live production."
+    },
+    "workflow-automation": {
+      "local_suites": [
+        "engineering_workflows",
+        "catalog"
+      ],
+      "external": [
+        "terminal-bench"
+      ],
+      "signals": [
+        "repeatability",
+        "failure-recovery",
+        "bounded-experiment",
+        "resource-use"
+      ],
+      "gap": "Benchmark scenario selection must actually exercise workflow/optimization behavior, not incidental routing."
+    },
+    "catalog-admin": {
+      "local_suites": [
+        "catalog",
+        "routing"
+      ],
+      "external": [],
+      "signals": [
+        "trigger-precision",
+        "trigger-recall",
+        "heldout-generalization"
+      ],
+      "gap": "Catalog structural validity is not behavior efficacy; evaluate skill changes on the affected task family."
+    }
+  }
+}

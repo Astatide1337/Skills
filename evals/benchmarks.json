@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "runner": {
+    "package": "harbor",
+    "version": "0.24.0",
+    "source_revision": "bf8996ef6d97d014924dc1a5e4acc7e9b19b27a1",
+    "source_url": "https://github.com/harbor-framework/harbor/tree/v0.24.0",
+    "docs_url": "https://github.com/harbor-framework/docs/blob/main/guides/running-evaluations.mdx"
+  },
+  "codex_version": "0.162.1",
+  "datasets": [
+    {
+      "name": "aider-polyglot",
+      "version": "1.0",
+      "description": "A polyglot coding benchmark that evaluates AI agents' ability to perform code editing and generation tasks across multiple programming languages.",
+      "tasks": [
+        {
+          "name": "polyglot_java_zipper",
+          "git_url": "https://github.com/laude-institute/harbor-datasets.git",
+          "git_commit_id": "f30b14415dd733c83627204bad0af69a89ceb46f",
+          "path": "datasets/aider_polyglot/polyglot_java_zipper"
+        },
+        {
+          "name": "polyglot_java_zebra-puzzle",
+          "git_url": "https://github.com/laude-institute/harbor-datasets.git",
+          "git_commit_id": "f30b14415dd733c83627204bad0af69a89ceb46f",
+          "path": "datasets/aider_polyglot/polyglot_java_zebra-puzzle"
+        },
+        {
+          "name": "polyglot_java_wordy",
+          "git_url": "https://github.com/laude-institute/harbor-datasets.git",
+          "git_commit_id": "f30b14415dd733c83627204bad0af69a89ceb46f",
+          "path": "datasets/aider_polyglot/polyglot_java_wordy"
+        },
+        {
+          "name": "polyglot_java_word-search",
+          "git_url": "https://github.com/laude-institute/harbor-datasets.git",
+          "git_commit_id": "f30b14415dd733c83627204bad0af69a89ceb46f",
+          "path": "datasets/aider_polyglot/polyglot_java_word-search"
+        }
+      ],
+      "upstream_task_count": 225,
+      "selection": "Explicit seed subset for bounded integration; not representative benchmark score."
+    },
+    {
+      "name": "swebench-verified",
+      "version": "1.0",
+      "description": "A human-validated subset of 500 SWE-bench tasks",
+      "tasks": [
+        {
+          "name": "django__django-15098",
+          "git_url": "https://github.com/laude-institute/harbor-datasets.git",
+          "git_commit_id": "86723674f04e4209ac479d0fb75d9d9f44b4377e",
+          "path": "datasets/swebench-verified/django__django-15098"
+        },
+        {
+          "name": "sphinx-doc__sphinx-8593",
+          "git_url": "https://github.com/laude-institute/harbor-datasets.git",
+          "git_commit_id": "86723674f04e4209ac479d0fb75d9d9f44b4377e",
+          "path": "datasets/swebench-verified/sphinx-doc__sphinx-8593"
+        },
+        {
+          "name": "sympy__sympy-13852",
+          "git_url": "https://github.com/laude-institute/harbor-datasets.git",
+          "git_commit_id": "86723674f04e4209ac479d0fb75d9d9f44b4377e",
+          "path": "datasets/swebench-verified/sympy__sympy-13852"
+        },
+        {
+          "name": "pydata__xarray-3095",
+          "git_url": "https://github.com/laude-institute/harbor-datasets.git",
+          "git_commit_id": "86723674f04e4209ac479d0fb75d9d9f44b4377e",
+          "path": "datasets/swebench-verified/pydata__xarray-3095"
+        }
+      ],
+      "upstream_task_count": 500,
+      "selection": "Explicit seed subset for bounded integration; not representative benchmark score."
+    },
+    {
+      "name": "terminal-bench",
+      "version": "2.0",
+      "description": "Version 2.0 of Terminal-Bench, a benchmark for testing agents in terminal environments. More tasks, harder, and higher quality than 1.0.",
+      "tasks": [
+        {
+          "name": "adaptive-rejection-sampler",
+          "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+          "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+          "path": "adaptive-rejection-sampler"
+        },
+        {
+          "name": "bn-fit-modify",
+          "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+          "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+          "path": "bn-fit-modify"
+        },
+        {
+          "name": "break-filter-js-from-html",
+          "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+          "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+          "path": "break-filter-js-from-html"
+        },
+        {
+          "name": "build-cython-ext",
+          "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+          "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+          "path": "build-cython-ext"
+        }
+      ],
+      "upstream_task_count": 89,
+      "selection": "Explicit seed subset for bounded integration; not representative benchmark score."
+    }
+  ],
+  "registry_url": "https://raw.githubusercontent.com/harbor-framework/harbor/v0.24.0/registry.json",
+  "limitations": [
+    "Seed tasks are an integration subset, not a representative published score.",
+    "These benchmarks primarily measure coding and terminal behavior; they do not cover all catalog skills.",
+    "No candidate execution is performed by this CLI; emitted commands use upstream Harbor Docker isolation."
+  ]
+}

@@ -6,27 +6,28 @@ import asyncio
 import hashlib
 import importlib.util
 import json
+import math
 import os
 import re
+import shutil
 import signal
 import stat
-import sys
 import subprocess
+import sys
 import tempfile
 from collections.abc import Mapping
 from contextlib import contextmanager, nullcontext
 from html.parser import HTMLParser
 from pathlib import Path
-import shutil
 from uuid import uuid4
 
+import yaml
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset, Sample, json_dataset
 from inspect_ai.model import ModelOutput
 from inspect_ai.scorer import Score, Target, accuracy, mean, scorer
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.util import sandbox
-import yaml
 
 try:
     from evals.fake_tracker import FakeTracker, validate_publication
@@ -100,6 +101,7 @@ ROUTING_CASES = Path(__file__).parent / "cases" / "routing.json"
 WORKFLOW_CASES = Path(__file__).parent / "cases" / "workflows.json"
 COMPARISON_CASES = Path(__file__).parent / "cases" / "skills-comparison.json"
 HARDER_CASES = Path(__file__).parent / "cases" / "harder.json"
+ENGINEERING_CASES = Path(__file__).parent / "cases" / "engineering.json"
 GLOBAL_INSTRUCTIONS = REPO_ROOT / "global-instructions" / "AGENTS.md"
 GRADE_SCHEMA = Path(__file__).parent / "grade-schema.json"
 ROUTE_SCHEMA = Path(__file__).parent / "route-schema.json"
@@ -582,6 +584,9 @@ def native_codex(
             )
             with prepared as loaded_root:
                 loaded_identity = _skills_identity(loaded_root) if with_skills else None
+                expected_identity = (state.metadata or {}).get("comparison_skills_identity")
+                if with_skills and expected_identity is not None and loaded_identity != expected_identity:
+                    raise RuntimeError("catalog identity changed after comparison construction; candidate not launched")
                 prompt = state.input_text
                 if with_skills and inject_skill:
                     skill = (state.metadata or {}).get("skill")
@@ -792,7 +797,8 @@ def workflows_dataset(
             raise ValueError("case_ids must be a non-empty list without duplicates")
         comparison_dataset = json_dataset(str(COMPARISON_CASES))
         harder_dataset = json_dataset(str(HARDER_CASES))
-        all_samples = (*dataset.samples, *comparison_dataset.samples, *harder_dataset.samples)
+        engineering_samples = json_dataset(str(ENGINEERING_CASES)).samples if ENGINEERING_CASES.exists() else []
+        all_samples = (*dataset.samples, *comparison_dataset.samples, *harder_dataset.samples, *engineering_samples)
         by_id = {sample.id: sample for sample in all_samples}
         if len(by_id) != len(all_samples):
             raise ValueError("workflow case IDs must be unique across fixture files")
@@ -1484,6 +1490,26 @@ def _runner_acceptance_command(
     # The working directory remains the candidate workspace so the regression
     # imports the candidate implementation, not a copied source tree.
     return ["python", "-S", "-B", "-c", acceptance_test], None
+
+
+def _runner_acceptance_groups(contract: Mapping[str, object]) -> tuple[dict[str, list[str]], str | None]:
+    """Validate fixed named checks; each runs in a fresh interpreter."""
+    groups = contract.get("acceptance_groups", {})
+    if not isinstance(groups, dict) or len(groups) > 24:
+        return {}, "runner acceptance_groups must be a bounded mapping"
+    commands = {}
+    total = 0
+    for name, code in groups.items():
+        if not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", name):
+            return {}, "runner acceptance group name is invalid"
+        command, error = _runner_acceptance_command({"acceptance_test": code})
+        if error or command is None:
+            return {}, error or "runner acceptance group is missing"
+        total += len(code.encode("utf-8"))
+        commands[name] = command
+    if total > MAX_ACCEPTANCE_TEST_BYTES:
+        return {}, "runner acceptance groups exceed the bounded test limit"
+    return commands, None
 
 
 def _normalized_words(value: object) -> list[str]:
@@ -2869,6 +2895,8 @@ def workflow_effects():
                     },
                 )
             acceptance_command, acceptance_error = _runner_acceptance_command(contract)
+            acceptance_groups, group_error = _runner_acceptance_groups(contract)
+            acceptance_error = acceptance_error or group_error
             if acceptance_error is not None:
                 return Score(
                     value=0,
@@ -2913,6 +2941,28 @@ def workflow_effects():
                     return Score(value=0, explanation=f"workspace fixture output missing: {path}")
                 if fragment not in content:
                     return Score(value=0, explanation=f"workspace fixture output is incorrect: {path}")
+            group_receipts = {}
+            for group_name, group_command in acceptance_groups.items():
+                if "workspace_evidence" in state.store:
+                    state.store.delete("workspace_evidence")
+                try:
+                    result = await sandbox().exec(group_command, timeout=30, timeout_retry=False)
+                except Exception as exc:  # noqa: BLE001 - infrastructure errors stay unscored
+                    group_receipts[group_name] = {"source": "runner-owned", "exit_code": None,
+                        "execution_error": f"{type(exc).__name__}: {exc}",
+                        "test_sha256": hashlib.sha256(group_command[-1].encode()).hexdigest()}
+                    continue
+                group_receipts[group_name] = {
+                    "source": "runner-owned", "test_sha256": hashlib.sha256(group_command[-1].encode()).hexdigest(),
+                    "exit_code": result.returncode, "stdout": result.stdout[-8000:], "stderr": result.stderr[-8000:],
+                }
+            state.store.set("acceptance_groups", group_receipts)
+            if any(receipt["exit_code"] is None for receipt in group_receipts.values()):
+                return Score.unscored(explanation="runner acceptance group execution unavailable",
+                                      metadata={"acceptance_groups": group_receipts})
+            if any(receipt["exit_code"] != 0 for receipt in group_receipts.values()):
+                return Score(value=0, explanation="runner-controlled acceptance groups failed",
+                             metadata={"status": "rejected", "acceptance_groups": group_receipts})
             if acceptance_command is not None:
                 if "workspace_evidence" in state.store:
                     state.store.delete("workspace_evidence")
@@ -3556,8 +3606,9 @@ def workflows(
     )
 
 
-@task
-def harder_workflows(
+def _challenge_workflows(
+    cases_path: Path,
+    suite_name: str,
     native_model: str,
     native_effort: str,
     arm: str = "candidate",
@@ -3575,17 +3626,17 @@ def harder_workflows(
     Holdouts require an explicit split and must not drive iterative tuning.
     """
     if not native_model.strip():
-        raise ValueError("harder workflows require an explicit native_model")
+        raise ValueError("challenge workflows require an explicit native_model")
     _validate_effort(native_effort)
     if split not in {"development", "holdout"}:
         raise ValueError("split must be development or holdout")
-    rows = json.loads(HARDER_CASES.read_text())
+    rows = json.loads(cases_path.read_text())
     available = {row["id"]: row for row in rows}
     selected = case_ids if case_ids is not None else [
         row["id"] for row in rows if row["metadata"].get("split") == split
     ]
     if not selected or len(selected) != len(set(selected)):
-        raise ValueError("harder case_ids must be non-empty without duplicates")
+        raise ValueError("challenge case_ids must be non-empty without duplicates")
     for case_id in selected:
         if case_id not in available:
             raise ValueError(f"unknown harder case ID: {case_id}")
@@ -3600,10 +3651,13 @@ def harder_workflows(
         baseline_global_instructions=global_instructions,
         case_ids=selected, include_behavior_grader=include_behavior_grader,
     )
+    dimensions = sorted({name for case_id in selected for name in available[case_id]["metadata"].get("fixture_contract", {}).get("acceptance_groups", {})})
     for sample in result.dataset.samples:
         sample.metadata = {
             **(sample.metadata or {}),
-            "evaluation_suite": "harder-workflows",
+            "evaluation_dimensions": dimensions,
+            "artifact_paths": [name for name in (sample.files or {}) if name.endswith(".py") or name == "README.md"],
+            "evaluation_suite": suite_name,
             "evaluation_split": split,
             "native_model_requested": native_model,
             "native_effort_requested": native_effort,
@@ -3615,4 +3669,134 @@ def harder_workflows(
             "user_interruptions_observation": "unknown",
             "currency_cost_observation": "unknown",
         }
+    return result
+
+
+@task
+def harder_workflows(
+    native_model: str,
+    native_effort: str,
+    arm: str = "candidate",
+    candidate_skills_root: str = str(SKILLS_ROOT),
+    baseline_skills_root: str | None = None,
+    global_instructions: str = str(GLOBAL_INSTRUCTIONS),
+    split: str = "development",
+    case_ids: list[str] | None = None,
+    include_behavior_grader: bool = False,
+) -> Task:
+    return _challenge_workflows(
+        HARDER_CASES, "harder-workflows", native_model, native_effort, arm,
+        candidate_skills_root, baseline_skills_root, global_instructions,
+        split, case_ids, include_behavior_grader,
+    )
+
+
+def _engineering_artifacts(workspace: Path, paths: list[str], output_root: Path) -> dict:
+    """Keep private source artifacts for review before local sandbox cleanup."""
+    workspace = workspace.resolve()
+    output_root.mkdir(parents=True, exist_ok=True)
+    destination = Path(tempfile.mkdtemp(prefix="candidate-", dir=output_root))
+    destination.chmod(0o700)
+    hashes, omissions = {}, {}
+    for name in paths:
+        relative = Path(name)
+        if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+            raise ValueError("artifact path must remain inside its fixture")
+        source = workspace / relative
+        if source.is_symlink() or not source.resolve().is_relative_to(workspace):
+            omissions[name] = "symlink or escaped path"
+            continue
+        try:
+            if not stat.S_ISREG(source.lstat().st_mode):
+                omissions[name] = "not a regular source file"
+                continue
+            descriptor = os.open(source, os.O_RDONLY | os.O_NOFOLLOW)
+            with os.fdopen(descriptor, "rb") as stream:
+                content = stream.read(100001)
+            if len(content) > 100000:
+                omissions[name] = "source exceeds capture limit"
+                continue
+            target = destination / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
+            target.chmod(0o600)
+            hashes[name] = hashlib.sha256(content).hexdigest()
+        except OSError as exc:
+            omissions[name] = type(exc).__name__
+    return {"directory": str(destination), "sha256": hashes, "omissions": omissions,
+            "scope": "private local fixture sources only; never credentials or arbitrary workspace files"}
+
+
+@scorer(metrics={"*": [accuracy()]})
+def engineering_observations():
+    """Report separate behavioral dimensions and descriptive resource evidence."""
+    async def score(state: TaskState, target: Target) -> Score:
+        receipts = state.store.get("acceptance_groups", {})
+        values = {}
+        contract = (state.metadata or {}).get("fixture_contract", {})
+        for name in contract.get("acceptance_groups", {}):
+            receipt = receipts.get(name) if isinstance(receipts, dict) else None
+            values[name] = (int(receipt["exit_code"] == 0) if isinstance(receipt, dict) and type(receipt.get("exit_code")) is int else float("nan"))
+        if values:
+            observed = all(not math.isnan(value) for value in values.values())
+            values["complete_group_acceptance"] = int(all(value == 1 for value in values.values())) if observed else float("nan")
+            regression = [value for name, value in values.items() if name.startswith("regression_")]
+            values["regression_preservation"] = (int(all(value == 1 for value in regression))
+                if regression and all(not math.isnan(value) for value in regression) else float("nan"))
+        for name in (state.metadata or {}).get("evaluation_dimensions", []):
+            values.setdefault(name, float("nan"))
+        output_metadata = state.output.metadata or {}
+        evidence = await _workspace_evidence_value(state)
+        paths = set(evidence.tracked_paths) | set(evidence.untracked_paths) | set(evidence.committed_paths)
+        observations = {
+            "native_usage": output_metadata.get("native_usage"),
+            "usage_scope": output_metadata.get("usage_scope", "completed turns only"),
+            "token_accounting": "cached input is a subset of input; reasoning output may be a subset of output; never sum subsets",
+            "execution_metrics": output_metadata.get("execution_metrics"),
+            "guidance_access": output_metadata.get("guidance_access"),
+            "changed_file_count": len(paths) if evidence.available else None,
+            "changed_paths": sorted(paths) if evidence.available else None,
+            "diff_size_observation": "bounded diff text only; exact changed line count unavailable",
+            "repair_attempts": None,
+            "repair_attempts_reason": "failed commands include useful reproductions and cannot establish unsuccessful repairs",
+            "human_interventions": None,
+            "time_to_first_verified_success": None,
+            "claim_accuracy": None,
+            "unnecessary_complexity": None,
+            "independent_review": "required for claim accuracy and unnecessary complexity; not graded by command counts",
+            "acceptance_groups": receipts,
+        }
+        metadata = state.metadata or {}
+        if metadata.get("evaluation_suite") == "engineering-workflows" and metadata.get("execution_scope") == "trusted-synthetic-local":
+            workspace = state.store.get("runner_workspace_location")
+            if isinstance(workspace, str) and evidence.available:
+                observations["source_artifacts"] = _engineering_artifacts(
+                    Path(workspace), metadata.get("artifact_paths", []),
+                    REPO_ROOT / "evals/results/candidate-artifacts",
+                )
+        state.store.set("engineering_observations", observations)
+        return Score(value=values or {"acceptance_unavailable": float("nan")},
+                     explanation="Separate fixed acceptance dimensions; resource counts are descriptive, not quality scores",
+                     metadata=observations)
+    return score
+
+
+@task
+def engineering_workflows(
+    native_model: str,
+    native_effort: str,
+    arm: str = "candidate",
+    candidate_skills_root: str = str(SKILLS_ROOT),
+    baseline_skills_root: str | None = None,
+    global_instructions: str = str(GLOBAL_INSTRUCTIONS),
+    split: str = "development",
+    case_ids: list[str] | None = None,
+    include_behavior_grader: bool = False,
+) -> Task:
+    result = _challenge_workflows(
+        ENGINEERING_CASES, "engineering-workflows", native_model, native_effort, arm,
+        candidate_skills_root, baseline_skills_root, global_instructions,
+        split, case_ids, include_behavior_grader,
+    )
+    result.scorer.append(engineering_observations())
     return result

@@ -1,0 +1,320 @@
+[
+  {
+    "id": "engineering-durable-jobs",
+    "input": "Finish our local durable job endpoint. Requests currently look successful but retries and worker failures leave misleading status and totals; make the full API-to-worker flow reliable. Read README.md for the supported public contracts. Preserve the teammate draft and interfaces. Only api.py, service.py, worker.py may change. Use Python stdlib and no external services or package installation. Run appropriate checks and explain what actually passed.",
+    "target": "Complete documented cross-module behavior, failure recovery, existing compatibility, and scope.",
+    "files": {
+      "README.md": "Public contract: api.submit(db,tenant,key,payload) returns (201,{key,status}) for first submission, (200,{key,status}) for identical repeats, including done jobs. Tenant/key must be nonempty strings; payload is exactly {amount: positive integer}, excluding bool. Invalid requests and same-tenant/key conflicting payload raise ValueError without persistent writes. Idempotency is tenant scoped. api.status returns (200,{key,status,attempts,error}) or (404,{error:'not found'}). store.connect(path) opens/reopens durable SQLite state, and store.snapshot keeps its signature and result shape.\nworker.run(db,tenant,key,checkpoint=lambda:None) applies the payload to that tenant's total exactly once and returns True; already done returns False without checkpoint. Unknown job raises KeyError. checkpoint occurs after total update and may raise any BaseException: propagate the identical object, roll back total/done writes, persist one failed attempt with status pending and error equal to exception class name, and permit retry even after reopening. Successful attempt increments attempts and clears error. No connection remains in a transaction after either outcome. Calls start with no active transaction; no concurrent-worker contract is required.\nPreserve interfaces across api/service/store/worker/models. Smoke command python -B checks.py is intentionally minimal; add meaningful checks locally without weakening the contract.\nStorage domain: payload amounts are in [1, 2**63-1]. Reject larger amounts with ValueError before any job write. If a worker attempt would raise the tenant total above 2**63-1, raise ValueError, preserve the exact integer total and persist a failed pending attempt using the same recovery contract. Never silently convert integer accounting to floating point.\n",
+      "store.py": "import sqlite3\ndef connect(path):\n    db=sqlite3.connect(path)\n    db.execute('PRAGMA foreign_keys=ON')\n    db.executescript('CREATE TABLE IF NOT EXISTS jobs(tenant TEXT, request_key TEXT, payload TEXT, status TEXT, attempts INTEGER, error TEXT, PRIMARY KEY(tenant, request_key)); CREATE TABLE IF NOT EXISTS totals(tenant TEXT PRIMARY KEY, amount INTEGER NOT NULL);')\n    return db\ndef snapshot(db,tenant,key):\n    row=db.execute('SELECT payload,status,attempts,error FROM jobs WHERE tenant=? AND request_key=?',(tenant,key)).fetchone()\n    if row is None: return None\n    return dict(zip(('payload','status','attempts','error'),row))\n",
+      "models.py": "import json\ndef encode(payload):\n    if not isinstance(payload,dict) or set(payload)!={'amount'} or type(payload['amount']) is not int or payload['amount']<=0:\n        raise ValueError('payload must contain a positive integer amount')\n    return json.dumps(payload,sort_keys=True,separators=(',',':'))\n",
+      "api.py": "import service\nfrom store import snapshot\ndef submit(db,tenant,key,payload):\n    created=service.submit(db,tenant,key,payload)\n    return 201, {'key':key,'status':snapshot(db,tenant,key)['status']}\ndef status(db,tenant,key):\n    job=snapshot(db,tenant,key)\n    if job is None: return 404, {'error':'not found'}\n    return 200, {'key':key,'status':job['status'],'attempts':job['attempts'],'error':job['error']}\n",
+      "service.py": "from models import encode\nfrom store import snapshot\ndef submit(db,tenant,key,payload):\n    serialized=encode(payload)\n    if not isinstance(tenant,str) or not tenant or not isinstance(key,str) or not key:\n        raise ValueError('tenant and key required')\n    with db:\n        old=snapshot(db,tenant,key)\n        if old is not None:\n            pass\n            return False\n        db.execute('INSERT INTO jobs VALUES (?,?,?,?,?,?)',(tenant,key,serialized,'pending',0,None))\n    return True\n",
+      "worker.py": "import json\nfrom store import snapshot\ndef run(db,tenant,key,checkpoint=lambda: None):\n    old=snapshot(db,tenant,key)\n    if old is None: raise KeyError(key)\n    if old['status']=='done': return False\n    try:\n        with db:\n            amount=json.loads(old['payload'])['amount']\n            db.execute('INSERT INTO totals VALUES (?,?) ON CONFLICT(tenant) DO UPDATE SET amount=amount+excluded.amount',(tenant,amount))\n            db.commit()\n            checkpoint()\n            db.execute(\"UPDATE jobs SET status='done', attempts=attempts+1,error=NULL WHERE tenant=? AND request_key=?\",(tenant,key))\n    except Exception as error:\n        with db:\n            db.execute(\"UPDATE jobs SET status='pending',attempts=attempts+1,error=? WHERE tenant=? AND request_key=?\",(type(error).__name__,tenant,key))\n        raise\n    return True\n",
+      "checks.py": "import api\nprint(\"public import smoke passed\")\n",
+      "coworker_notes.txt": "Teammate draft: preserve byte-for-byte.\n"
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- README.md store.py models.py api.py service.py worker.py checks.py coworker_notes.txt && git commit -qm 'frozen fixture baseline'",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "api.py",
+        "service.py",
+        "worker.py"
+      ],
+      "required_files": [
+        "README.md",
+        "store.py",
+        "models.py",
+        "api.py",
+        "service.py",
+        "worker.py",
+        "checks.py",
+        "coworker_notes.txt"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging",
+        "deslop",
+        "architect"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "engineering-stdlib-repository",
+      "difficulty": "complex",
+      "skill_dimensions": [
+        "integration",
+        "durability",
+        "idempotency",
+        "atomicity",
+        "failure-recovery",
+        "tenant-isolation"
+      ],
+      "split": "development",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true,
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "api.py",
+        "write_content": "import service\nfrom store import snapshot\ndef submit(db,tenant,key,payload):\n    created=service.submit(db,tenant,key,payload)\n    return (201 if created else 200), {'key':key,'status':snapshot(db,tenant,key)['status']}\ndef status(db,tenant,key):\n    job=snapshot(db,tenant,key)\n    if job is None: return 404, {'error':'not found'}\n    return 200, {'key':key,'status':job['status'],'attempts':job['attempts'],'error':job['error']}\n",
+        "golden_files": {
+          "api.py": "import service\nfrom store import snapshot\ndef submit(db,tenant,key,payload):\n    created=service.submit(db,tenant,key,payload)\n    return (201 if created else 200), {'key':key,'status':snapshot(db,tenant,key)['status']}\ndef status(db,tenant,key):\n    job=snapshot(db,tenant,key)\n    if job is None: return 404, {'error':'not found'}\n    return 200, {'key':key,'status':job['status'],'attempts':job['attempts'],'error':job['error']}\n",
+          "service.py": "from models import encode\nfrom store import snapshot\ndef submit(db,tenant,key,payload):\n    serialized=encode(payload)\n    if payload['amount']>2**63-1: raise ValueError('amount out of range')\n    if not isinstance(tenant,str) or not tenant or not isinstance(key,str) or not key:\n        raise ValueError('tenant and key required')\n    with db:\n        old=snapshot(db,tenant,key)\n        if old is not None:\n            if old['payload']!=serialized: raise ValueError('idempotency conflict')\n            return False\n        db.execute('INSERT INTO jobs VALUES (?,?,?,?,?,?)',(tenant,key,serialized,'pending',0,None))\n    return True\n",
+          "worker.py": "import json\nfrom store import snapshot\ndef run(db,tenant,key,checkpoint=lambda: None):\n    old=snapshot(db,tenant,key)\n    if old is None: raise KeyError(key)\n    if old['status']=='done': return False\n    try:\n        with db:\n            amount=json.loads(old['payload'])['amount']\n            previous=db.execute('SELECT amount FROM totals WHERE tenant=?',(tenant,)).fetchone()\n            if amount+(previous[0] if previous else 0)>2**63-1: raise ValueError('total overflow')\n            db.execute('INSERT INTO totals VALUES (?,?) ON CONFLICT(tenant) DO UPDATE SET amount=amount+excluded.amount',(tenant,amount))\n            checkpoint()\n            db.execute(\"UPDATE jobs SET status='done', attempts=attempts+1,error=NULL WHERE tenant=? AND request_key=?\",(tenant,key))\n    except BaseException as error:\n        with db:\n            db.execute(\"UPDATE jobs SET status='pending',attempts=attempts+1,error=? WHERE tenant=? AND request_key=?\",(type(error).__name__,tenant,key))\n        raise\n    return True\n"
+        },
+        "required_paths": [
+          "README.md",
+          "store.py",
+          "models.py",
+          "api.py",
+          "service.py",
+          "worker.py",
+          "checks.py",
+          "coworker_notes.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_groups": {
+          "feature_durable_idempotency": "import tempfile\nfrom pathlib import Path\nimport api,worker\nfrom store import connect\ntmp=tempfile.TemporaryDirectory(); path=Path(tmp.name)/'jobs.sqlite'\ndb=connect(path)\nassert api.submit(db,'a','k',{'amount':7})==(201,{'key':'k','status':'pending'})\ndb.close(); db=connect(path)\nassert api.submit(db,'a','k',{'amount':7})==(200,{'key':'k','status':'pending'})\nbefore=db.execute('SELECT * FROM jobs').fetchall()\ntry: api.submit(db,'a','k',{'amount':8})\nexcept ValueError: pass\nelse: raise AssertionError('conflicting repeat accepted')\nassert db.execute('SELECT * FROM jobs').fetchall()==before\nassert worker.run(db,'a','k') is True\nassert worker.run(db,'a','k',lambda: (_ for _ in ()).throw(AssertionError('repeated checkpoint'))) is False\nassert api.submit(db,'a','k',{'amount':7})==(200,{'key':'k','status':'done'})\nassert api.status(db,'a','k')==(200,{'key':'k','status':'done','attempts':1,'error':None})\nassert db.execute('SELECT * FROM totals').fetchall()==[('a',7)]\n",
+          "feature_failure_recovery": "import tempfile\nfrom pathlib import Path\nimport api,worker\nfrom store import connect\ntmp=tempfile.TemporaryDirectory(); path=Path(tmp.name)/'jobs.sqlite'\ndb=connect(path)\nclass Cancelled(BaseException): pass\nfor number,error in enumerate((RuntimeError('cut'),Cancelled('cancel'))):\n    key='retry'+str(number); api.submit(db,'a',key,{'amount':11})\n    before=db.execute('SELECT * FROM totals').fetchall()\n    def fail(): raise error\n    try: worker.run(db,'a',key,fail)\n    except BaseException as caught: assert caught is error\n    else: raise AssertionError('failure swallowed')\n    assert db.execute('SELECT * FROM totals').fetchall()==before\n    assert api.status(db,'a',key)[1]=={'key':key,'status':'pending','attempts':1,'error':type(error).__name__}\n    assert not db.in_transaction\n    db.close(); db=connect(path)\n    assert worker.run(db,'a',key) is True\n    assert api.status(db,'a',key)[1]=={'key':key,'status':'done','attempts':2,'error':None}\nassert db.execute('SELECT * FROM totals').fetchall()==[('a',22)]\n",
+          "regression_tenant_and_validation": "import tempfile\nfrom pathlib import Path\nimport api,worker\nfrom store import connect\ntmp=tempfile.TemporaryDirectory(); path=Path(tmp.name)/'jobs.sqlite'\ndb=connect(path)\nfor tenant,amount in [('a',3),('b',19)]:\n    assert api.submit(db,tenant,'same',{'amount':amount})[0]==201\n    assert worker.run(db,tenant,'same') is True\nassert db.execute('SELECT * FROM totals ORDER BY tenant').fetchall()==[('a',3),('b',19)]\nassert api.status(db,'c','same')==(404,{'error':'not found'})\nfor tenant,key,payload in [('a','bad',{'amount':True}),('a','bad',{'amount':0}),('a','bad',{'amount':-1}),('a','bad',{'amount':1,'extra':2}),('','bad',{'amount':1}),('a','',{'amount':1})]:\n    before=db.execute('SELECT * FROM jobs').fetchall()\n    try: api.submit(db,tenant,key,payload)\n    except ValueError: pass\n    else: raise AssertionError('invalid request accepted')\n    assert db.execute('SELECT * FROM jobs').fetchall()==before\ntry: worker.run(db,'c','same')\nexcept KeyError: pass\nelse: raise AssertionError('unknown worker job accepted')\n",
+          "regression_numeric_domain": "import api,worker,store\nmaximum=2**63-1\ndb=store.connect(':memory:')\ntry: api.submit(db,'a','bad',{'amount':maximum+1})\nexcept ValueError: pass\nelse: raise AssertionError('unbounded amount accepted')\nassert db.execute('SELECT count(*) FROM jobs').fetchone()[0]==0\napi.submit(db,'a','max',{'amount':maximum}); assert worker.run(db,'a','max') is True\napi.submit(db,'a','overflow',{'amount':1})\ntry: worker.run(db,'a','overflow')\nexcept ValueError: pass\nelse: raise AssertionError('overflow must reject')\nassert db.execute('SELECT amount,typeof(amount) FROM totals WHERE tenant=?',('a',)).fetchone()==(maximum,'integer')\nassert api.status(db,'a','overflow')[1]=={'key':'overflow','status':'pending','attempts':1,'error':'ValueError'}\nassert not db.in_transaction\n"
+        },
+        "heldout_test": "assert True\n"
+      }
+    }
+  },
+  {
+    "id": "engineering-tenant-sync-incident",
+    "input": "Investigate the dashboard incident: one tenant sees another tenant\u2019s values, refresh can silently discard records, and subsequent attempts sometimes remain stuck. Fix the underlying interaction rather than patching the displayed total. Read README.md for the supported public contracts. Preserve the teammate draft and interfaces. Only api.py, transport.py, cache.py, repository.py may change. Use Python stdlib and no external services or package installation. Run appropriate checks and explain what actually passed.",
+    "target": "Complete documented cross-module behavior, failure recovery, existing compatibility, and scope.",
+    "files": {
+      "README.md": "Sync.refresh(tenant,fetch,checkpoint=lambda:None,max_pages=5) retrieves a full replacement snapshot and returns row count. fetch(tenant,cursor) starts at None and returns {rows:[{id,value}],next:token_or_None}. Empty intermediate pages are valid. Preserve row order during traversal; repeated nonterminal cursors or exhausting max_pages raise PageError, with at most max_pages calls. Each row has exactly nonempty string id and integer value excluding bool; duplicate ids in a snapshot raise ValueError. Invalid pages, fetch failures, and checkpoint exceptions leave stored rows and the previously cached report unchanged. checkpoint runs after deleting the tenant's old rows inside the replacement transaction. Propagate its identical exception and fully rollback. Successful refresh invalidates that tenant's cache only, including empty snapshots.\nSync.report(tenant) returns {count,sum,rows} with rows sorted by id. Returned rows may be mutated by consumers without changing future reports or stored rows. Tenant data never crosses boundaries. Cache.get(key,load) caches empty results, permits retry after any BaseException with ownership released, raises RuntimeError for recursive loads of same key, and returns a fresh list. Cache.invalidate only removes that key. No concurrency contract. Calls start without active transaction. Preserve public signatures and classes in api/cache/transport/repository.\nStorage domain: row values are signed 64-bit integers in [-2**63, 2**63-1]; reject out-of-range values with ValueError before changing rows or cache. Report sums use exact Python integer arithmetic and may exceed that range. Nonterminal cursors are opaque strings.\n",
+      "api.py": "from transport import walk\nimport repository\nclass Sync:\n    def __init__(self,db,cache): self.db=db; self.cache=cache\n    def refresh(self,tenant,fetch,checkpoint=lambda:None,max_pages=5):\n        rows=walk(fetch,tenant,max_pages=max_pages)\n        repository.replace(self.db,tenant,rows,checkpoint)\n        pass\n        return len(rows)\n    def report(self,tenant):\n        rows=self.cache.get(\"dashboard\",lambda:repository.read(self.db,tenant))\n        return {'count':len(rows),'sum':sum(row['value'] for row in rows),'rows':[dict(row) for row in rows]}\n",
+      "transport.py": "class PageError(RuntimeError): pass\ndef walk(fetch,tenant,start=None,max_pages=5):\n    token=start; seen=set(); rows=[]\n    for _ in range(max_pages):\n        if token in seen: raise PageError('cursor repeated')\n        seen.add(token)\n        page=fetch(tenant,token)\n        rows.extend(page['rows'])\n        if not page['rows']: return rows\n        token=page['next']\n        if token is None: return rows\n    raise PageError('page limit')\n",
+      "cache.py": "class Cache:\n    def __init__(self): self.values={}; self.active=set()\n    def get(self,key,load):\n        if self.values.get(key): return list(self.values[key])\n        if key in self.active: raise RuntimeError('recursive load')\n        self.active.add(key)\n        try:\n            value=list(load()); self.values[key]=tuple(value); return list(value)\n        except Exception:\n            self.active.remove(key)\n            raise\n        self.active.remove(key)\n    def invalidate(self,key): self.values.pop(key,None)\n",
+      "repository.py": "import sqlite3\ndef connect():\n    db=sqlite3.connect(':memory:')\n    db.execute('CREATE TABLE records(tenant TEXT,id TEXT,value INTEGER,PRIMARY KEY(tenant,id))')\n    return db\ndef replace(db,tenant,rows,checkpoint=lambda:None):\n    seen=set()\n    for row in rows:\n        if set(row)!={'id','value'} or not isinstance(row['id'],str) or not row['id'] or type(row['value']) is not int or row['id'] in seen:\n            raise ValueError('invalid rows')\n        seen.add(row['id'])\n    with db:\n        db.execute('DELETE FROM records WHERE tenant=?',(tenant,))\n        db.commit()\n        checkpoint()\n        db.executemany('INSERT INTO records VALUES (?,?,?)',[(tenant,row['id'],row['value']) for row in rows])\ndef read(db,tenant):\n    return [{'id':row[0],'value':row[1]} for row in db.execute('SELECT id,value FROM records WHERE tenant=? ORDER BY id',(tenant,))]\n",
+      "checks.py": "import api\nprint(\"public import smoke passed\")\n",
+      "coworker_notes.txt": "Teammate draft: preserve byte-for-byte.\n"
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- README.md api.py transport.py cache.py repository.py checks.py coworker_notes.txt && git commit -qm 'frozen fixture baseline'",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "api.py",
+        "transport.py",
+        "cache.py",
+        "repository.py"
+      ],
+      "required_files": [
+        "README.md",
+        "api.py",
+        "transport.py",
+        "cache.py",
+        "repository.py",
+        "checks.py",
+        "coworker_notes.txt"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging",
+        "deslop",
+        "architect"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "engineering-stdlib-repository",
+      "difficulty": "complex",
+      "skill_dimensions": [
+        "ambiguous-diagnosis",
+        "integration",
+        "tenant-isolation",
+        "cache-ownership",
+        "pagination",
+        "atomicity"
+      ],
+      "split": "development",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true,
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "api.py",
+        "write_content": "from transport import walk\nimport repository\nclass Sync:\n    def __init__(self,db,cache): self.db=db; self.cache=cache\n    def refresh(self,tenant,fetch,checkpoint=lambda:None,max_pages=5):\n        rows=walk(fetch,tenant,max_pages=max_pages)\n        repository.replace(self.db,tenant,rows,checkpoint)\n        self.cache.invalidate(tenant)\n        return len(rows)\n    def report(self,tenant):\n        rows=self.cache.get(tenant,lambda:repository.read(self.db,tenant))\n        return {'count':len(rows),'sum':sum(row['value'] for row in rows),'rows':[dict(row) for row in rows]}\n",
+        "golden_files": {
+          "api.py": "from transport import walk\nimport repository\nclass Sync:\n    def __init__(self,db,cache): self.db=db; self.cache=cache\n    def refresh(self,tenant,fetch,checkpoint=lambda:None,max_pages=5):\n        rows=walk(fetch,tenant,max_pages=max_pages)\n        repository.replace(self.db,tenant,rows,checkpoint)\n        self.cache.invalidate(tenant)\n        return len(rows)\n    def report(self,tenant):\n        rows=self.cache.get(tenant,lambda:repository.read(self.db,tenant))\n        return {'count':len(rows),'sum':sum(row['value'] for row in rows),'rows':[dict(row) for row in rows]}\n",
+          "transport.py": "class PageError(RuntimeError): pass\ndef walk(fetch,tenant,start=None,max_pages=5):\n    token=start; seen=set(); rows=[]\n    for _ in range(max_pages):\n        if token in seen: raise PageError('cursor repeated')\n        seen.add(token)\n        page=fetch(tenant,token)\n        if not isinstance(page,dict) or not isinstance(page.get('rows'),list) or 'next' not in page or (page['next'] is not None and not isinstance(page['next'],str)):\n            raise PageError('invalid page')\n        rows.extend(page['rows'])\n        token=page['next']\n        if token is None: return rows\n    raise PageError('page limit')\n",
+          "cache.py": "class Cache:\n    def __init__(self): self.values={}; self.active=set()\n    def get(self,key,load):\n        if key in self.values: return list(self.values[key])\n        if key in self.active: raise RuntimeError('recursive load')\n        self.active.add(key)\n        try:\n            value=list(load()); self.values[key]=tuple(value); return list(value)\n        finally: self.active.remove(key)\n    def invalidate(self,key): self.values.pop(key,None)\n",
+          "repository.py": "import sqlite3\ndef connect():\n    db=sqlite3.connect(':memory:')\n    db.execute('CREATE TABLE records(tenant TEXT,id TEXT,value INTEGER,PRIMARY KEY(tenant,id))')\n    return db\ndef replace(db,tenant,rows,checkpoint=lambda:None):\n    seen=set()\n    for row in rows:\n        if set(row)!={'id','value'} or not isinstance(row['id'],str) or not row['id'] or type(row['value']) is not int or not -2**63<=row['value']<=2**63-1 or row['id'] in seen:\n            raise ValueError('invalid rows')\n        seen.add(row['id'])\n    with db:\n        db.execute('DELETE FROM records WHERE tenant=?',(tenant,))\n        checkpoint()\n        db.executemany('INSERT INTO records VALUES (?,?,?)',[(tenant,row['id'],row['value']) for row in rows])\ndef read(db,tenant):\n    return [{'id':row[0],'value':row[1]} for row in db.execute('SELECT id,value FROM records WHERE tenant=? ORDER BY id',(tenant,))]\n"
+        },
+        "required_paths": [
+          "README.md",
+          "api.py",
+          "transport.py",
+          "cache.py",
+          "repository.py",
+          "checks.py",
+          "coworker_notes.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_groups": {
+          "feature_complete_refresh": "import api,repository\nfrom cache import Cache\nfrom transport import PageError\ndb=repository.connect(); cache=Cache(); app=api.Sync(db,cache)\nrepository.replace(db,'a',[{'id':'old','value':4}]); repository.replace(db,'b',[{'id':'old','value':99}])\nassert app.report('a')['sum']==4 and app.report('b')['sum']==99\ncalls=[]\npages={None:{'rows':[{'id':'z','value':2}],'next':'one'},'one':{'rows':[],'next':'two'},'two':{'rows':[{'id':'q','value':-3}],'next':None}}\ndef fetch(tenant,cursor): calls.append((tenant,cursor)); return pages[cursor]\nassert app.refresh('a',fetch)==2\nassert calls==[('a',None),('a','one'),('a','two')]\nassert app.report('a')=={'count':2,'sum':-1,'rows':[{'id':'q','value':-3},{'id':'z','value':2}]}\nassert app.report('b')['sum']==99\nresult=app.report('a'); result['rows'][0]['value']=500\nassert app.report('a')['sum']==-1\nassert app.refresh('a',lambda *args:{'rows':[],'next':None})==0\nassert app.report('a')=={'count':0,'sum':0,'rows':[]}\n",
+          "feature_failed_refresh_preservation": "import api,repository\nfrom cache import Cache\nfrom transport import PageError\ndb=repository.connect(); cache=Cache(); app=api.Sync(db,cache)\nrepository.replace(db,'a',[{'id':'old','value':4}]); repository.replace(db,'b',[{'id':'old','value':99}])\nbefore=app.report('a'); error=RuntimeError('disk hook')\ndef fail(): raise error\ntry: app.refresh('a',lambda *args:{'rows':[{'id':'new','value':8}],'next':None},fail)\nexcept RuntimeError as caught: assert caught is error\nelse: raise AssertionError('failure swallowed')\nassert repository.read(db,'a')==before['rows'] and app.report('a')==before and not db.in_transaction\nfor pages in [{None:{'rows':[],'next':'r'},'r':{'rows':[],'next':'r'}},{None:{'rows':[{'id':'x','value':1}],'next':'r'},'r':{'rows':[{'id':'x','value':1}],'next':None}}]:\n    try: app.refresh('a',lambda tenant,cursor:pages[cursor])\n    except (PageError,ValueError): pass\n    else: raise AssertionError('invalid snapshot accepted')\n    assert repository.read(db,'a')==before['rows'] and app.report('a')==before\ncalls=[]\ndef endless(tenant,cursor): calls.append(cursor); return {'rows':[],'next':str(len(calls))}\ntry: app.refresh('a',endless,max_pages=3)\nexcept PageError: pass\nelse: raise AssertionError('unbounded traversal accepted')\nassert len(calls)==3 and app.report('a')==before\n",
+          "regression_cache_ownership": "import api,repository\nfrom cache import Cache\nfrom transport import PageError\ndb=repository.connect(); cache=Cache(); app=api.Sync(db,cache)\nrepository.replace(db,'a',[{'id':'old','value':4}]); repository.replace(db,'b',[{'id':'old','value':99}])\nclass Cancelled(BaseException): pass\nc=Cache(); error=Cancelled()\ndef fail(): raise error\ntry: c.get('t',fail)\nexcept Cancelled as caught: assert caught is error\nelse: raise AssertionError('cancel swallowed')\nassert not c.active and not c.values\ncalls=[]\nassert c.get('t',lambda: calls.append(1) or [])==[]\nassert c.get('t',lambda: (_ for _ in ()).throw(AssertionError('empty reload')))==[]\nassert calls==[1]\nc.invalidate('t'); assert c.get('t',lambda:[1])==[1]\ndef recursive(): return c.get('r',lambda:[1])\ntry: c.get('r',recursive)\nexcept RuntimeError: pass\nelse: raise AssertionError('recursive ownership not guarded')\nassert 'r' not in c.active and 'r' not in c.values\n\nc=Cache()\nassert c.get('a',lambda:[1]) == [1]\nassert c.get('b',lambda:[2]) == [2]\nc.invalidate('a')\nassert c.get('b',lambda: (_ for _ in ()).throw(AssertionError('foreign key evicted'))) == [2]\nassert c.get('a',lambda:[3]) == [3]\n",
+          "regression_numeric_domain": "import api,repository\nfrom cache import Cache\ndb=repository.connect(); app=api.Sync(db,Cache())\napp.refresh('a',lambda tenant,cursor:{'rows':[{'id':'old','value':1}],'next':None})\nbefore=app.report('a')\nfor value in [2**63,-2**63-1]:\n try: app.refresh('a',lambda tenant,cursor:{'rows':[{'id':'bad','value':value}],'next':None})\n except ValueError: pass\n else: raise AssertionError('out of range not rejected')\n assert repository.read(db,'a')==before['rows']\n assert app.report('a')==before and not db.in_transaction\napp.refresh('a',lambda tenant,cursor:{'rows':[{'id':'max','value':2**63-1},{'id':'more','value':2**63-1}],'next':None})\nassert app.report('a')['sum']==2*(2**63-1) and type(app.report('a')['sum']) is int\n\napp.refresh('a',lambda tenant,cursor:{'rows':[{'id':'min','value':-2**63}],'next':None})\nassert repository.read(db,'a')==[{'id':'min','value':-2**63}]\nassert app.report('a')['sum']==-2**63\n",
+          "regression_invalid_page_shape": "import api,repository\nfrom cache import Cache\nfrom transport import PageError\ndb=repository.connect(); app=api.Sync(db,Cache())\napp.refresh('a',lambda tenant,cursor:{'rows':[{'id':'old','value':7}],'next':None})\nbefore=app.report('a')\nfor page in [{'rows':[],'next':3},{'rows':[],'next':[]},{'rows':{},'next':None},{'rows':None,'next':None},{'rows':[]}]:\n calls=[]\n def fetch(tenant,cursor):\n  calls.append(cursor)\n  return page if len(calls)==1 else {'rows':[],'next':None}\n try: app.refresh('a',fetch)\n except Exception: pass\n else: raise AssertionError('invalid page accepted')\n assert calls==[None]\n assert repository.read(db,'a')==before['rows'] and app.report('a')==before\n assert not db.in_transaction\n"
+        },
+        "heldout_test": "assert True\n"
+      }
+    }
+  },
+  {
+    "id": "engineering-stream-export-compatibility",
+    "input": "Our export refactor now changes customer CSV behavior. Restore the existing public contract across parsing, normalization, aggregation and rendering, keeping the implementation straightforward. Read README.md for the supported public contracts. Preserve the teammate draft and interfaces. Only parser.py, normalize.py, render.py, pipeline.py may change. Use Python stdlib and no external services or package installation. Run appropriate checks and explain what actually passed.",
+    "target": "Complete documented cross-module behavior, failure recovery, existing compatibility, and scope.",
+    "files": {
+      "README.md": "api.export(text,tenant) returns {tenant:tenant,labels:pipeline.summarize(text,tenant)}. Input CSV header is exactly tenant,name,count in order; CSV quoting must work. parser.parse returns a single-pass iterator of raw dictionaries and raises ValueError for missing/extra columns or wrong header. normalize.normalize strips all three fields, requires nonempty tenant/name, and accepts only ASCII decimal nonnegative counts (leading zeros allowed; no signs, floats, Unicode digits). It returns (tenant,name,int_count). Validate every row, including rows belonging to other tenants, before returning the final result.\nSummarize only the requested exact tenant, sum counts for repeated names, retain each name's first occurrence order, and include zero totals. No state leaks between calls. render.label uses singular only for count==1 and otherwise appends s to the unchanged name; render.output returns a list preserving input order. Empty data produces empty labels. Preserve public signatures across api/parser/normalize/pipeline/render; no new formatting rules or dependencies.\n",
+      "api.py": "from pipeline import summarize\ndef export(text,tenant):\n    return {'tenant':tenant,'labels':summarize(text,tenant)}\n",
+      "parser.py": "import csv,io\ndef parse(text):\n    reader=csv.DictReader(io.StringIO(text.replace(',', '|')),delimiter='|')\n    if reader.fieldnames!=['tenant','name','count']: raise ValueError('header')\n    for row in reader:\n        if None in row or any(value is None for value in row.values()): raise ValueError('columns')\n        yield row\n",
+      "normalize.py": "def normalize(row):\n    tenant=row['tenant'].strip(); name=row['name'].strip(); raw=row['count'].strip()\n    if not tenant or not name or not raw.isdecimal(): raise ValueError('record')\n    return tenant,name,int(raw)\n",
+      "render.py": "def label(name,count):\n    return f'{count} {name}' + ('' if count==1 else 's')\ndef output(records):\n    return sorted(label(name,count) for name,count in records if count)\n",
+      "pipeline.py": "from parser import parse\nfrom normalize import normalize\nfrom render import output\ndef summarize(text,tenant):\n    records=[]; positions={}\n    for raw in parse(text):\n        if raw['tenant'].strip()!=tenant: continue\n        owner,name,count=normalize(raw)\n        if owner!=tenant: continue\n        if name in positions:\n            index=positions[name]; records[index]=(name,records[index][1]+count)\n        else:\n            positions[name]=len(records); records.append((name,count))\n    return output(records)\n",
+      "checks.py": "import api\nprint(\"public import smoke passed\")\n",
+      "coworker_notes.txt": "Teammate draft: preserve byte-for-byte.\n"
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- README.md api.py parser.py normalize.py render.py pipeline.py checks.py coworker_notes.txt && git commit -qm 'frozen fixture baseline'",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "parser.py",
+        "normalize.py",
+        "render.py",
+        "pipeline.py"
+      ],
+      "required_files": [
+        "README.md",
+        "api.py",
+        "parser.py",
+        "normalize.py",
+        "render.py",
+        "pipeline.py",
+        "checks.py",
+        "coworker_notes.txt"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging",
+        "deslop",
+        "architect"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "engineering-stdlib-repository",
+      "difficulty": "complex",
+      "skill_dimensions": [
+        "compatibility",
+        "streaming",
+        "integration",
+        "refactor",
+        "validation"
+      ],
+      "split": "holdout",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true,
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "parser.py",
+        "write_content": "import csv,io\ndef parse(text):\n    reader=csv.DictReader(io.StringIO(text))\n    if reader.fieldnames!=['tenant','name','count']: raise ValueError('header')\n    for row in reader:\n        if None in row or any(value is None for value in row.values()): raise ValueError('columns')\n        yield row\n",
+        "golden_files": {
+          "parser.py": "import csv,io\ndef parse(text):\n    reader=csv.DictReader(io.StringIO(text))\n    if reader.fieldnames!=['tenant','name','count']: raise ValueError('header')\n    for row in reader:\n        if None in row or any(value is None for value in row.values()): raise ValueError('columns')\n        yield row\n",
+          "normalize.py": "def normalize(row):\n    tenant=row['tenant'].strip(); name=row['name'].strip(); raw=row['count'].strip()\n    if not tenant or not name or not raw.isascii() or not raw.isdecimal(): raise ValueError('record')\n    return tenant,name,int(raw)\n",
+          "render.py": "def label(name,count):\n    return f'{count} {name}' + ('' if count==1 else 's')\ndef output(records):\n    return [label(name,count) for name,count in records]\n",
+          "pipeline.py": "from parser import parse\nfrom normalize import normalize\nfrom render import output\ndef summarize(text,tenant):\n    records=[]; positions={}\n    for raw in parse(text):\n        owner,name,count=normalize(raw)\n        if owner!=tenant: continue\n        if name in positions:\n            index=positions[name]; records[index]=(name,records[index][1]+count)\n        else:\n            positions[name]=len(records); records.append((name,count))\n    return output(records)\n"
+        },
+        "required_paths": [
+          "README.md",
+          "api.py",
+          "parser.py",
+          "normalize.py",
+          "render.py",
+          "pipeline.py",
+          "checks.py",
+          "coworker_notes.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_groups": {
+          "regression_quoted_csv_and_order": "import api\ntext='tenant,name,count\\na,\"widget, blue\",1\\nb,alien,99\\na,zero,0\\na,\"widget, blue\",2\\na,late,1\\n'\nassert api.export(text,'a')=={'tenant':'a','labels':['3 widget, blues','0 zeros','1 late']}\nassert api.export(text,'b')=={'tenant':'b','labels':['99 aliens']}\nassert api.export('tenant,name,count\\n','a')=={'tenant':'a','labels':[]}\nassert api.export('tenant,name,count\\na,x,0001\\na,y,0\\n','a')['labels']==['1 x','0 ys']\n",
+          "feature_validate_complete_input": "import api\nbad=['tenant,name,count\\na,x,1\\nb,bad,-1\\n','tenant,name,count\\na,x,+1\\n','tenant,name,count\\na,x,1.0\\n','tenant,name,count\\na,x,\uff11\\n','tenant,name,count\\na,x,1,extra\\n','tenant,name,count\\na,x\\n','tenant,name,count\\na, ,1\\n','tenant,name,count\\n ,x,1\\n','name,tenant,count\\nx,a,1\\n']\nfor text in bad:\n    try: api.export(text,'a')\n    except ValueError: pass\n    else: raise AssertionError('malformed whole input accepted: '+repr(text))\n",
+          "regression_streaming_and_statelessness": "import api\nfrom parser import parse\nfrom pipeline import summarize\nrows=parse('tenant,name,count\\na,x,1\\na,y,2\\n')\nassert iter(rows) is rows and next(rows)=={'tenant':'a','name':'x','count':'1'}\nassert list(rows)==[{'tenant':'a','name':'y','count':'2'}]\nfor n in (1,2,0,17):\n    assert summarize(f'tenant,name,count\\\\na,item,{n}\\\\n'.replace('\\\\n','\\n'),'a')==[str(n)+' item'+('' if n==1 else 's')]\nassert summarize('tenant,name,count\\na,x,1\\na,x,1\\n','a')==['2 xs']\n"
+        },
+        "heldout_test": "assert True\n"
+      }
+    }
+  }
+]
