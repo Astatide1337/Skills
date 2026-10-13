@@ -268,5 +268,51 @@ if expected:
                     self.assertIn('skills_eval.tool_receipt', skills._tool_value_receipts(output))
 
 
+
+class ToolScratchIntegrationTests(unittest.TestCase):
+    @unittest.skipUnless(os.environ.get('SKILLS_CODEX_NATIVE_BINARY') and os.environ.get('SKILLS_LINT_RUNTIME'),
+                         'set native ELF and locked runtime for real sandbox integration')
+    def test_zsh_heredoc_uses_owned_scratch_without_widening_access(self):
+        import subprocess
+        binary = skills._native_codex_binary()
+        cache = skills._native_ephemeral_cache()
+        with tempfile.TemporaryDirectory(prefix='scratch-test-', dir=cache) as raw, tempfile.TemporaryDirectory(prefix='tool-value-', dir=cache) as out:
+            root = Path(raw)
+            workspace = root / 'workspace'
+            workspace.mkdir()
+            home = root / 'home'
+            home.mkdir()
+            output = Path(out)
+            for mode in (None, 'baseline', 'available', 'conditional'):
+                config = skills._native_permission_config(binary=binary, workspace=workspace,
+                    home=home, sandbox_mode='workspace-write', skills_root=skills.SKILLS_ROOT)
+                if mode is None:
+                    skills._native_scratch_permissions(config, output)
+                else:
+                    skills._tool_value_permissions(config,
+                        skills._ToolValueConfig(mode, Path(os.environ['SKILLS_LINT_RUNTIME'])), output, home, skills.SKILLS_ROOT)
+                command = [str(binary), 'sandbox', *skills._native_config_overrides(config), '--',
+                           '/usr/bin/zsh', '-lc', "python3 - <<'CHECK'\nprint('HEREDOC_OK')\nCHECK\n"]
+                env = {**os.environ, 'HOME': str(home), 'CODEX_HOME': str(home), 'TMPDIR': str(output)}
+                env.pop('TMPPREFIX', None)
+                broken = subprocess.run(command, cwd=workspace, env=env, capture_output=True, text=True, timeout=20, check=False)
+                self.assertNotEqual(broken.returncode, 0)
+                self.assertIn("can't create temp file", broken.stderr)
+                env['TMPPREFIX'] = str(output / 'zsh')
+                fixed = subprocess.run(command, cwd=workspace, env=env, capture_output=True, text=True, timeout=20, check=False)
+                self.assertEqual(fixed.returncode, 0, fixed.stderr)
+                self.assertEqual(fixed.stdout.strip(), 'HEREDOC_OK')
+                outside = root / 'outside.txt'
+                outside.write_text('protected host canary\n')
+                denied = command[:-1] + [f'cat {outside}']
+                result = subprocess.run(denied, cwd=workspace, env=env, capture_output=True, text=True, timeout=20, check=False)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn('protected host canary', result.stdout)
+                # Mount scaffolding may allow shadow writes; it must not change host state.
+                shadow = command[:-1] + [f'echo escape > {outside}']
+                subprocess.run(shadow, cwd=workspace, env=env, capture_output=True, text=True, timeout=20, check=False)
+                self.assertEqual(outside.read_text(), 'protected host canary\n')
+
+
 if __name__ == '__main__':
     unittest.main()

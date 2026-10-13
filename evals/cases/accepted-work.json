@@ -1,0 +1,335 @@
+[
+  {
+    "id": "accepted-filtered-feed",
+    "input": "feature: Read README.md and implement its documented contract across the repository. Preserve interfaces and the teammate draft. Only policy.py, feed.py, transport.py may change. No dependencies or external services. Run appropriate checks and explain observed results.",
+    "target": "Documented behavior, regression preservation and scope.",
+    "files": {
+      "README.md": "Add the requested visible event feed. api.feed(client,tenant,limit) returns at most limit visible event dictionaries for that tenant, in remote order, retaining duplicates. tenant is a nonempty string and limit is a positive exact int (not bool). Validate before any client calls. client.fetch(tenant,cursor) returns {events:list,next:None or nonempty string}; each event is exactly {tenant:str,id:str,visible:bool}, tenant/id nonempty. Validate every event, including other tenants and invisible events, before using a page. Continue through empty or filtered pages; stop once enough visible matches exist without fetching another page. Reject malformed pages and repeated next cursors with ValueError, and cap traversal at 16 pages (ValueError if still more data and insufficient matches). Never swallow client errors. All calls use the requested tenant. Helpers must preserve their existing signatures.\n",
+      "api.py": "from feed import collect\nfrom policy import validate\ndef feed(client,tenant,limit):\n    validate(tenant,limit)\n    return collect(client,tenant,limit)\n",
+      "policy.py": "def validate(tenant,limit):\n    if not tenant or limit < 1: raise ValueError(\"invalid request\")\ndef visible(event,tenant):\n    return event[\"visible\"] and event[\"tenant\"]==tenant\n",
+      "feed.py": "from policy import visible\nfrom transport import page\ndef collect(client,tenant,limit):\n    events,next_cursor=page(client,tenant,None)\n    return [e for e in events if visible(e,tenant)][:limit]\n",
+      "transport.py": "def page(client,tenant,cursor):\n    data=client.fetch(tenant,cursor)\n    return data[\"events\"],data[\"next\"]\n",
+      "checks.py": "import api\nprint(\"API import passed\")\n",
+      "coworker_notes.txt": "Preserve this teammate draft byte-for-byte.\n"
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "policy.py",
+        "feed.py",
+        "transport.py"
+      ],
+      "required_files": [
+        "README.md",
+        "api.py",
+        "policy.py",
+        "feed.py",
+        "transport.py",
+        "checks.py",
+        "coworker_notes.txt"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging",
+        "deslop",
+        "architect"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "accepted-work-stdlib-repository",
+      "difficulty": "complex",
+      "skill_dimensions": [
+        "feature"
+      ],
+      "split": "development",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true,
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "policy.py",
+        "write_content": "def validate(tenant,limit):\n    if not isinstance(tenant,str) or not tenant or type(limit) is not int or limit<1: raise ValueError(\"invalid request\")\ndef visible(event,tenant):\n    return event[\"visible\"] and event[\"tenant\"]==tenant\n",
+        "golden_files": {
+          "policy.py": "def validate(tenant,limit):\n    if not isinstance(tenant,str) or not tenant or type(limit) is not int or limit<1: raise ValueError(\"invalid request\")\ndef visible(event,tenant):\n    return event[\"visible\"] and event[\"tenant\"]==tenant\n",
+          "feed.py": "from policy import visible\nfrom transport import page\ndef collect(client,tenant,limit):\n    result=[]; cursor=None; seen=set()\n    for _ in range(16):\n        events,next_cursor=page(client,tenant,cursor)\n        result.extend(e for e in events if visible(e,tenant))\n        if len(result)>=limit: return result[:limit]\n        if next_cursor is None: return result\n        if next_cursor in seen: raise ValueError(\"cursor cycle\")\n        seen.add(next_cursor); cursor=next_cursor\n    raise ValueError(\"page bound\")\n",
+          "transport.py": "def page(client,tenant,cursor):\n    data=client.fetch(tenant,cursor)\n    if not isinstance(data,dict) or set(data)!={\"events\",\"next\"} or not isinstance(data[\"events\"],list) or (data[\"next\"] is not None and (not isinstance(data[\"next\"],str) or not data[\"next\"])): raise ValueError(\"page\")\n    for event in data[\"events\"]:\n        if not isinstance(event,dict) or set(event)!={\"tenant\",\"id\",\"visible\"} or any(not isinstance(event[k],str) or not event[k] for k in (\"tenant\",\"id\")) or type(event[\"visible\"]) is not bool: raise ValueError(\"event\")\n    return data[\"events\"],data[\"next\"]\n"
+        },
+        "required_paths": [
+          "README.md",
+          "api.py",
+          "policy.py",
+          "feed.py",
+          "transport.py",
+          "checks.py",
+          "coworker_notes.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_groups": {
+          "feature_filtered_pages": "import api\nclass Client:\n def __init__(self): self.calls=[]\n def fetch(self,tenant,cursor):\n  self.calls.append((tenant,cursor))\n  e={'tenant':'a','id':'x','visible':True}\n  return {None:{'events':[],'next':'b'},'b':{'events':[dict(e,tenant='other'),dict(e,visible=False)],'next':'c'},'c':{'events':[e,e],'next':'d'}}[cursor]\nc=Client(); assert api.feed(c,'a',2)==[{'tenant':'a','id':'x','visible':True}]*2\nassert c.calls==[('a',None),('a','b'),('a','c')]\n",
+          "regression_validation_and_bound": "import api\nclass Client:\n def __init__(self,data): self.data=data; self.calls=0\n def fetch(self,t,c): self.calls+=1; return self.data(self.calls)\ndef reject(c,t='a',n=2):\n try: api.feed(c,t,n)\n except ValueError: pass\n else: raise AssertionError('invalid accepted')\nfor t,n in [('',1),(1,1),('a',True),('a',1.2),('a',0)]:\n c=Client(lambda _: None); reject(c,t,n); assert c.calls==0\nfor data in [{'events':[],'next':''},{'events':[{'tenant':'other','id':'x','visible':1}],'next':None},{'events':(),'next':None}]: reject(Client(lambda _,d=data:d))\nc=Client(lambda _: {'events':[],'next':'same'}); reject(c); assert c.calls==2\nc=Client(lambda i: {'events':[],'next':str(i)}); reject(c); assert c.calls==16\nc=Client(lambda _: {'events':[],'next':None}); assert api.feed(c,'a',1)==[]\nerror=RuntimeError('network')\nclass Broken:\n def fetch(self,t,c): raise error\ntry: api.feed(Broken(),'a',1)\nexcept RuntimeError as caught: assert caught is error\nelse: raise AssertionError('swallowed')\n"
+        }
+      },
+      "task_family": "feature",
+      "provenance": {
+        "origin": "locally authored controlled repository fixture",
+        "imported": false,
+        "limitations": "Not sampled from production issues; stdlib Python only"
+      },
+      "calibration_mutants": [
+        [
+          "feed.py",
+          "if next_cursor is None: return result",
+          "if not events: return result"
+        ],
+        [
+          "policy.py",
+          "type(limit) is not int",
+          "not isinstance(limit,int)"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "accepted-client-v2",
+    "input": "migration: Read README.md and implement its documented contract across the repository. Preserve interfaces and the teammate draft. Only adapter.py, money.py, api.py may change. No dependencies or external services. Run appropriate checks and explain observed results.",
+    "target": "Documented behavior, regression preservation and scope.",
+    "files": {
+      "README.md": "Migrate the order adapter from the old list_orders API to supplied sdk_v2.Client.search(*,account,page_token). Its response is a Response object with .items tuple and .next_token, not a dictionary. api.orders(client,account) returns (id,total) pairs in remote order, preserving duplicates, including zero totals. account must be a nonempty string, validated before network calls. Row IDs are nonempty strings, total_cents is a nonnegative exact integer excluding bool; convert cents to Decimal dollars with exact precision even for large integers. Validate all rows, continue empty pages, reject repeated non-None tokens and malformed tokens (empty or nonstring). Bound to 12 pages, raise ValueError if still more. Propagate SDK errors unchanged. api.grand_total returns exact Decimal sum using the same validation. Never call list_orders or mutate SDK code.\n",
+      "sdk_v2.py": "from dataclasses import dataclass\n@dataclass(frozen=True)\nclass Response:\n    items: tuple\n    next_token: str | None\nclass Client:\n    def search(self, *, account, page_token):\n        raise NotImplementedError\n",
+      "api.py": "from adapter import collect\nfrom money import dollars\ndef orders(client,account):\n    return [(row[\"id\"],dollars(row[\"total_cents\"])) for row in collect(client,account)]\ndef grand_total(client,account):\n    return sum(value for _,value in orders(client,account))\n",
+      "adapter.py": "def collect(client,account):\n    response=client.list_orders(account)\n    return response[\"items\"]\n",
+      "money.py": "def dollars(cents):\n    return cents/100\n",
+      "checks.py": "import api\nprint(\"API import passed\")\n",
+      "coworker_notes.txt": "Preserve this teammate draft byte-for-byte.\n"
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "adapter.py",
+        "money.py",
+        "api.py"
+      ],
+      "required_files": [
+        "README.md",
+        "sdk_v2.py",
+        "api.py",
+        "adapter.py",
+        "money.py",
+        "checks.py",
+        "coworker_notes.txt"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging",
+        "deslop",
+        "architect"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "accepted-work-stdlib-repository",
+      "difficulty": "complex",
+      "skill_dimensions": [
+        "migration"
+      ],
+      "split": "development",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true,
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "adapter.py",
+        "write_content": "def collect(client,account):\n    if not isinstance(account,str) or not account: raise ValueError(\"account\")\n    result=[]; token=None; seen=set()\n    for _ in range(12):\n        response=client.search(account=account,page_token=token)\n        for row in response.items:\n            if not isinstance(row,dict) or not isinstance(row.get(\"id\"),str) or not row[\"id\"] or type(row.get(\"total_cents\")) is not int or row[\"total_cents\"]<0: raise ValueError(\"row\")\n            result.append(row)\n        token=response.next_token\n        if token is None: return result\n        if not isinstance(token,str) or not token or token in seen: raise ValueError(\"token\")\n        seen.add(token)\n    raise ValueError(\"page bound\")\n",
+        "golden_files": {
+          "adapter.py": "def collect(client,account):\n    if not isinstance(account,str) or not account: raise ValueError(\"account\")\n    result=[]; token=None; seen=set()\n    for _ in range(12):\n        response=client.search(account=account,page_token=token)\n        for row in response.items:\n            if not isinstance(row,dict) or not isinstance(row.get(\"id\"),str) or not row[\"id\"] or type(row.get(\"total_cents\")) is not int or row[\"total_cents\"]<0: raise ValueError(\"row\")\n            result.append(row)\n        token=response.next_token\n        if token is None: return result\n        if not isinstance(token,str) or not token or token in seen: raise ValueError(\"token\")\n        seen.add(token)\n    raise ValueError(\"page bound\")\n",
+          "money.py": "from decimal import Decimal\ndef dollars(cents):\n    if type(cents) is not int or cents<0: raise ValueError(\"cents\")\n    parts=Decimal(cents).as_tuple()\n    return Decimal((parts.sign,parts.digits,-2))\n",
+          "api.py": "from adapter import collect\nfrom money import dollars\nfrom decimal import Decimal, localcontext\ndef orders(client,account):\n    return [(row[\"id\"],dollars(row[\"total_cents\"])) for row in collect(client,account)]\ndef grand_total(client,account):\n    rows=orders(client,account)\n    with localcontext() as ctx:\n        ctx.prec=max([28]+[len(value.as_tuple().digits) for _,value in rows])+len(str(len(rows)))+2\n        return sum((value for _,value in rows),Decimal(\"0.00\"))\n"
+        },
+        "required_paths": [
+          "README.md",
+          "sdk_v2.py",
+          "api.py",
+          "adapter.py",
+          "money.py",
+          "checks.py",
+          "coworker_notes.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_groups": {
+          "feature_v2_wire_contract": "import api\nfrom sdk_v2 import Response\nfrom decimal import Decimal\nclass Client:\n def __init__(self): self.calls=[]\n def search(self,*,account,page_token):\n  self.calls.append((account,page_token))\n  return {None:Response((),'p'), 'p':Response(({'id':'x','total_cents':0},{'id':'x','total_cents':123}),None)}[page_token]\nc=Client(); assert api.orders(c,'a')==[('x',Decimal('0.00')),('x',Decimal('1.23'))]; assert c.calls==[('a',None),('a','p')]\nassert api.grand_total(Client(),'a')==Decimal('1.23')\n",
+          "regression_exactness_errors": "import api\nfrom sdk_v2 import Response\nfrom decimal import Decimal\nclass C:\n def __init__(self,fn): self.fn=fn; self.calls=0\n def search(self,*,account,page_token): self.calls+=1; return self.fn(self.calls)\ndef reject(c,a='a'):\n try: api.orders(c,a)\n except ValueError: pass\n else: raise AssertionError('invalid accepted')\nfor account in ['',None,4]:\n c=C(lambda _:None); reject(c,account); assert c.calls==0\nfor row in [{'id':'x','total_cents':True},{'id':'','total_cents':1},{'id':'x','total_cents':-1}]: reject(C(lambda _,r=row:Response((r,),None)))\nfor token in ['',1,'repeat']:\n c=C(lambda _:Response((),token)); reject(c); assert c.calls<=2\nc=C(lambda i:Response((),str(i))); reject(c); assert c.calls==12\nlarge=10**40+1\nc=C(lambda _:Response(({'id':'large','total_cents':large},{'id':'one','total_cents':1}),None))\nassert api.orders(c,'a')[0][1]==Decimal(str(large//100)+'.01')\nassert api.grand_total(c,'a')==Decimal(str(large//100)+'.02')\nerror=RuntimeError('sdk')\nclass Broken:\n def search(self,**kwargs): raise error\ntry: api.orders(Broken(),'a')\nexcept RuntimeError as caught: assert caught is error\nelse: raise AssertionError('swallowed')\n"
+        }
+      },
+      "task_family": "migration",
+      "provenance": {
+        "origin": "locally authored controlled repository fixture",
+        "imported": false,
+        "limitations": "Not sampled from production issues; stdlib Python only"
+      },
+      "calibration_mutants": [
+        [
+          "adapter.py",
+          "if token is None: return result",
+          "if not response.items: return result"
+        ],
+        [
+          "money.py",
+          "return Decimal((parts.sign,parts.digits,-2))",
+          "return Decimal(cents/100)"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "accepted-policy-simplification",
+    "input": "simplification: Read README.md and implement its documented contract across the repository. Preserve interfaces and the teammate draft. Only api.py, audit.py may change. No dependencies or external services. Run appropriate checks and explain observed results.",
+    "target": "Documented behavior, regression preservation and scope.",
+    "files": {
+      "README.md": "Simplify duplicated permission decisions: api.allowed and audit.describe must derive their permission decisions from policy.can, preserving public signatures and all behavior. Roles: owner may read/write/delete; editor read/write; viewer read; all other role/action values deny (including unhashable values). Suspended users deny every action; nonempty tenant equality is required. api.allowed returns bool. audit.describe returns {allowed:bool, reason:'allowed' or 'denied'}, with no sensitive user fields. User is a dictionary with role, tenant, suspended; missing fields deny. Preserve behavior for all combinations and caller paths. Remove duplication by making both callers use policy.can; do not add new policy layers, dependencies, or unrelated cleanup.\n",
+      "api.py": "def allowed(user,tenant,action):\n    if user.get(\"suspended\",True) or not tenant or user.get(\"tenant\")!=tenant: return False\n    role=user.get(\"role\")\n    if role==\"owner\": return action in (\"read\",\"write\",\"delete\")\n    if role==\"editor\": return action in (\"read\",\"write\")\n    if role==\"viewer\": return action==\"read\"\n    return False\n",
+      "audit.py": "def describe(user,tenant,action):\n    result=False\n    if not user.get(\"suspended\",True) and tenant and user.get(\"tenant\")==tenant:\n        role=user.get(\"role\")\n        if role==\"owner\": result=action in (\"read\",\"write\",\"delete\")\n        elif role==\"editor\": result=action in (\"read\",\"write\")\n        elif role==\"viewer\": result=action==\"read\"\n    return {\"allowed\":bool(result),\"reason\":\"allowed\" if result else \"denied\"}\n",
+      "policy.py": "def can(user,tenant,action):\n    if user.get(\"suspended\",True) or not tenant or user.get(\"tenant\")!=tenant: return False\n    role=user.get(\"role\")\n    if role==\"owner\": return action in (\"read\",\"write\",\"delete\")\n    if role==\"editor\": return action in (\"read\",\"write\")\n    if role==\"viewer\": return action==\"read\"\n    return False\n",
+      "cli.py": "import api,audit\ndef run(user,tenant,action):\n    return api.allowed(user,tenant,action),audit.describe(user,tenant,action)\n",
+      "checks.py": "import api\nprint(\"API import passed\")\n",
+      "coworker_notes.txt": "Preserve this teammate draft byte-for-byte.\n"
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "api.py",
+        "audit.py"
+      ],
+      "required_files": [
+        "README.md",
+        "api.py",
+        "audit.py",
+        "policy.py",
+        "cli.py",
+        "checks.py",
+        "coworker_notes.txt"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging",
+        "deslop",
+        "architect"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "accepted-work-stdlib-repository",
+      "difficulty": "complex",
+      "skill_dimensions": [
+        "simplification"
+      ],
+      "split": "development",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true,
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "api.py",
+        "write_content": "import policy\ndef allowed(user,tenant,action):\n    return policy.can(user,tenant,action)\n",
+        "golden_files": {
+          "api.py": "import policy\ndef allowed(user,tenant,action):\n    return policy.can(user,tenant,action)\n",
+          "audit.py": "import policy\ndef describe(user,tenant,action):\n    result=policy.can(user,tenant,action)\n    return {\"allowed\":result,\"reason\":\"allowed\" if result else \"denied\"}\n"
+        },
+        "required_paths": [
+          "README.md",
+          "api.py",
+          "audit.py",
+          "policy.py",
+          "cli.py",
+          "checks.py",
+          "coworker_notes.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_groups": {
+          "regression_permission_matrix": "import itertools,cli\nfor role,action,suspended,tenant in itertools.product(['owner','editor','viewer','unknown',None,[]],['read','write','delete','other',None,[]],[True,False],['a','b','']):\n u={'role':role,'tenant':'a','suspended':suspended,'secret':'private'}\n expected=not suspended and tenant=='a' and ((role=='owner' and action in ('read','write','delete')) or (role=='editor' and action in ('read','write')) or (role=='viewer' and action=='read'))\n assert cli.run(u,tenant,action)==(expected,{'allowed':expected,'reason':'allowed' if expected else 'denied'})\nassert cli.run({},'a','read')==(False,{'allowed':False,'reason':'denied'})\n",
+          "feature_shared_policy": "import ast\nfor name in ['api.py','audit.py']:\n tree=ast.parse(open(name).read())\n # Explicit requested ownership, allowing import aliases or direct imports.\n imports={}\n for n in ast.walk(tree):\n  if isinstance(n,ast.Import):\n   for a in n.names:\n    if a.name=='policy': imports[a.asname or a.name]='module'\n  if isinstance(n,ast.ImportFrom) and n.module=='policy':\n   for a in n.names:\n    if a.name=='can': imports[a.asname or a.name]='function'\n binding = name=='api.py' and (imports.get('allowed')=='function' or any(\n  isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='allowed' for t in n.targets) and\n  ((isinstance(n.value,ast.Name) and imports.get(n.value.id)=='function') or\n   (isinstance(n.value,ast.Attribute) and n.value.attr=='can' and isinstance(n.value.value,ast.Name) and imports.get(n.value.value.id)=='module'))\n  for n in ast.walk(tree)))\n assert binding or any(isinstance(n,ast.Call) and ((isinstance(n.func,ast.Name) and imports.get(n.func.id)=='function') or (isinstance(n.func,ast.Attribute) and n.func.attr=='can' and isinstance(n.func.value,ast.Name) and imports.get(n.func.value.id)=='module')) for n in ast.walk(tree))\n assert not any(isinstance(n,ast.Constant) and n.value in ('owner','editor','viewer') for n in ast.walk(tree))\n"
+        },
+        "grader_revision": 2
+      },
+      "task_family": "simplification",
+      "provenance": {
+        "origin": "locally authored controlled repository fixture",
+        "imported": false,
+        "limitations": "Not sampled from production issues; stdlib Python only"
+      },
+      "calibration_mutants": [
+        [
+          "api.py",
+          "return policy.can(user,tenant,action)",
+          "return False"
+        ]
+      ]
+    }
+  }
+]

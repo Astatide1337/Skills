@@ -338,7 +338,7 @@ def main() -> None:
     covered = [row.get("skill") for row in coverage]
     if not all(isinstance(name, str) for name in covered) or len(covered) != len(names) or set(covered) != names:
         fail("evaluation map must cover each catalog skill exactly once")
-    allowed_suites = {"catalog", "routing", "workflows", "harder_workflows", "engineering_workflows", "review_workflows", "tool_value_workflows"}
+    allowed_suites = {"catalog", "routing", "workflows", "harder_workflows", "engineering_workflows", "review_workflows", "tool_value_workflows", "accepted_workflows"}
     families = evaluation_map.get("families")
     if not isinstance(families, dict):
         fail("evaluation map needs task families")
@@ -361,7 +361,7 @@ def main() -> None:
     workflow_ids: set[str] = set()
     validate_workflow_cases(workflow_cases, names, workflow_ids)
     extra_workflow_count = 0
-    for filename in ("skills-comparison.json", "harder.json", "engineering.json", "reviews.json", "tool-value.json"):
+    for filename in ("skills-comparison.json", "harder.json", "engineering.json", "reviews.json", "tool-value.json", "accepted-work.json"):
         extra_cases = json.loads((ROOT / "evals/cases" / filename).read_text())
         if not isinstance(extra_cases, list) or not extra_cases:
             fail(f"{filename} must be a non-empty JSON array")
@@ -370,7 +370,7 @@ def main() -> None:
             extra_cases, names, workflow_ids,
             allow_empty_setup=filename == "skills-comparison.json",
         )
-        if filename in {"harder.json", "engineering.json", "reviews.json", "tool-value.json"}:
+        if filename in {"harder.json", "engineering.json", "reviews.json", "tool-value.json", "accepted-work.json"}:
             for case in extra_cases:
                 metadata = case["metadata"]
                 if metadata.get("split") not in {"development", "holdout"}:

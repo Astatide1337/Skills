@@ -104,6 +104,7 @@ COMPARISON_CASES = Path(__file__).parent / "cases" / "skills-comparison.json"
 HARDER_CASES = Path(__file__).parent / "cases" / "harder.json"
 REVIEWS_CASES = Path(__file__).parent / "cases" / "reviews.json"
 TOOL_VALUE_CASES = Path(__file__).parent / "cases" / "tool-value.json"
+ACCEPTED_WORK_CASES = Path(__file__).parent / "cases" / "accepted-work.json"
 ENGINEERING_CASES = Path(__file__).parent / "cases" / "engineering.json"
 GLOBAL_INSTRUCTIONS = REPO_ROOT / "global-instructions" / "AGENTS.md"
 GRADE_SCHEMA = Path(__file__).parent / "grade-schema.json"
@@ -348,7 +349,7 @@ async def _native_skill_startup(
 
 
 
-_ToolValueConfig = namedtuple("_ToolValueConfig", ("mode", "runtime"))
+_ToolValueConfig = namedtuple("_ToolValueConfig", ("mode", "runtime", "timeout"), defaults=(1800,))
 
 
 def _validate_tool_runtime(value: str | Path) -> Path:
@@ -384,11 +385,8 @@ def _validate_tool_runtime(value: str | Path) -> Path:
     return runtime
 
 
-def _tool_value_permissions(permissions: dict, config: _ToolValueConfig,
-                            output: Path, home: Path, skills_root: Path) -> None:
-    if not isinstance(config, _ToolValueConfig) or config.mode not in {"baseline", "available", "assisted"}:
-        raise ValueError("invalid internal tool configuration")
-    _validate_tool_runtime(config.runtime)
+def _native_scratch_permissions(permissions: dict, output: Path) -> None:
+    """Grant only a runner-owned external scratch directory, retaining host denials."""
     if (output.is_symlink() or not output.is_dir() or output.stat().st_uid != os.getuid()
             or output.resolve() != output or output.is_relative_to(REPO_ROOT)
             or output.parent != _native_ephemeral_cache().resolve()
@@ -396,17 +394,27 @@ def _tool_value_permissions(permissions: dict, config: _ToolValueConfig,
             or stat.S_IMODE(output.stat().st_mode) != 0o700):
         raise ValueError("tool output must be an owned ephemeral external directory")
     filesystem = permissions["permissions.skills-eval.filesystem"]
-    access = "deny" if config.mode == "baseline" else "read"
-    filesystem[str(config.runtime)] = access
-    for root in (skills_root.resolve(strict=True), home / "skills"):
-        filesystem[str(root / "code-review-and-quality/scripts")] = access
-
     filesystem[str(output)] = "write"
     # :tmpdir resolves from the launch environment. With TMPDIR set to the
     # owned output directory its deny alias overrides the exact write rule.
     # Root denial and :slash_tmp denial retain host-path exclusions. Native
     # synthetic mount scaffolding may permit nonpersistent shadow files.
     filesystem.pop(":tmpdir")
+
+
+def _tool_value_permissions(permissions: dict, config: _ToolValueConfig,
+                            output: Path, home: Path, skills_root: Path) -> None:
+    if not isinstance(config, _ToolValueConfig) or config.mode not in {"baseline", "available", "assisted", "conditional"}:
+        raise ValueError("invalid internal tool configuration")
+    _validate_tool_runtime(config.runtime)
+    _native_scratch_permissions(permissions, output)
+    filesystem = permissions["permissions.skills-eval.filesystem"]
+    access = "deny" if config.mode == "baseline" else "read"
+    filesystem[str(config.runtime)] = access
+    for root in (skills_root.resolve(strict=True), home / "skills"):
+        filesystem[str(root / "code-review-and-quality/scripts")] = access
+
+
 
 
 def _tool_value_receipts(directory: Path) -> str:
@@ -538,7 +546,7 @@ async def run_codex(
         )
         if isolate_workspace else nullcontext(None) as review_directory,
         tempfile.TemporaryDirectory(prefix="tool-value-", dir=str(_native_ephemeral_cache()))
-        if _tool_config is not None else nullcontext(None) as tool_directory,
+        as tool_directory,
     ):
         if global_rules is not None:
             (Path(codex_home) / "AGENTS.md").write_text(global_rules)
@@ -564,6 +572,8 @@ async def run_codex(
             sandbox_mode=sandbox_mode,
             skills_root=(skills_root or SKILLS_ROOT) if with_skills else None,
         )
+        if _tool_config is None:
+            _native_scratch_permissions(permissions, Path(tool_directory).resolve(strict=True))
         if _tool_config is not None:
             tool_output = Path(tool_directory).resolve(strict=True)
             _tool_value_permissions(permissions, _tool_config, tool_output, Path(codex_home), skills_root or SKILLS_ROOT)
@@ -574,6 +584,11 @@ async def run_codex(
             )
             if _tool_config.mode == "assisted":
                 tool_statement += " Run portable lint diagnostics before repairing the source."
+            if _tool_config.mode == "conditional":
+                tool_statement += (" Use only when an unresolved correctness question in relevant Python files "
+                    "is covered by Ruff or type analysis and existing checks do not already answer it. "
+                    "Inspect project checks first; target relevant files. Skip redundant clean verification "
+                    "and diagnostics unrelated to the requested behavior. Findings are leads, not acceptance.")
             prompt = tool_statement + "\n\n" + prompt
         if review_artifacts:
             filesystem = permissions["permissions.skills-eval.filesystem"]
@@ -637,9 +652,10 @@ async def run_codex(
                         "CODEX_HOME": str(codex_home),
                         "HOME": str(codex_home),
                         **(dict(extra_env) if extra_env else {}),
-                        **({"TMPDIR": tool_directory, "PYTHONDONTWRITEBYTECODE": "1"} if tool_directory else {}),
+                        **({"TMPDIR": tool_directory, "TMPPREFIX": str(Path(tool_directory) / "zsh"),
+                            "PYTHONDONTWRITEBYTECODE": "1"} if tool_directory else {}),
                     },
-                    timeout=timeout,
+                    timeout=min(timeout, _tool_config.timeout) if _tool_config else timeout,
                     timeout_retry=False,
                     concurrency=True,
                 )
@@ -657,7 +673,7 @@ async def run_codex(
                     f"stdout={result.stdout[-4000:]}; requested_permissions={launch_receipt.strip()}"
                 )
             completion = await sandbox().read_file(output_file)
-            return completion.strip(), launch_receipt + result.stdout + ("\n" + _tool_value_receipts(Path(tool_directory)) if tool_directory else "")
+            return completion.strip(), launch_receipt + result.stdout + ("\n" + _tool_value_receipts(Path(tool_directory)) if _tool_config is not None and tool_directory else "")
         finally:
             await sandbox().exec(["rm", "-f", output_file], timeout=30)
 
@@ -978,7 +994,8 @@ def workflows_dataset(
         engineering_samples = json_dataset(str(ENGINEERING_CASES)).samples if ENGINEERING_CASES.exists() else []
         review_samples = json_dataset(str(REVIEWS_CASES)).samples if REVIEWS_CASES.exists() else []
         tool_samples = json_dataset(str(TOOL_VALUE_CASES)).samples if TOOL_VALUE_CASES.exists() else []
-        all_samples = (*dataset.samples, *comparison_dataset.samples, *harder_dataset.samples, *engineering_samples, *review_samples, *tool_samples)
+        accepted_samples = json_dataset(str(ACCEPTED_WORK_CASES)).samples
+        all_samples = (*accepted_samples, *dataset.samples, *comparison_dataset.samples, *harder_dataset.samples, *engineering_samples, *review_samples, *tool_samples)
         by_id = {sample.id: sample for sample in all_samples}
         if len(by_id) != len(all_samples):
             raise ValueError("workflow case IDs must be unique across fixture files")
@@ -3813,7 +3830,7 @@ def workflows(
 
 
 def _challenge_workflows(
-    cases_path: Path,
+    cases_path: Path | list[Path],
     suite_name: str,
     native_model: str,
     native_effort: str,
@@ -3837,7 +3854,8 @@ def _challenge_workflows(
     _validate_effort(native_effort)
     if split not in {"development", "holdout"}:
         raise ValueError("split must be development or holdout")
-    rows = json.loads(cases_path.read_text())
+    paths = cases_path if isinstance(cases_path, list) else [cases_path]
+    rows = [row for path in paths for row in json.loads(path.read_text())]
     available = {row["id"]: row for row in rows}
     selected = case_ids if case_ids is not None else [
         row["id"] for row in rows if row["metadata"].get("split") == split
@@ -3975,7 +3993,7 @@ def engineering_observations():
             "acceptance_groups": receipts,
         }
         metadata = state.metadata or {}
-        if metadata.get("evaluation_suite") in {"engineering-workflows", "review-workflows", "tool-value-workflows"} and metadata.get("execution_scope") == "trusted-synthetic-local":
+        if metadata.get("evaluation_suite") in {"engineering-workflows", "review-workflows", "tool-value-workflows", "accepted-work-workflows"} and metadata.get("execution_scope") == "trusted-synthetic-local":
             workspace = state.store.get("runner_workspace_location")
             if isinstance(workspace, str) and evidence.available:
                 observations["source_artifacts"] = _engineering_artifacts(
@@ -4055,8 +4073,8 @@ def tool_value_workflows(
     case_ids: list[str] | None = None,
 ) -> Task:
     """Compare portable lint access with identical catalog, globals and fixtures."""
-    if tool_mode not in {"baseline", "available", "assisted"}:
-        raise ValueError("tool_mode must be baseline, available, or assisted")
+    if tool_mode not in {"baseline", "available", "assisted", "conditional"}:
+        raise ValueError("tool_mode must be baseline, available, assisted, or conditional")
     runtime = _validate_tool_runtime(tool_runtime)
     result = _challenge_workflows(TOOL_VALUE_CASES, "tool-value-workflows", native_model,
         native_effort, "candidate", skills_root, None, global_instructions, split, case_ids, False,
@@ -4066,4 +4084,39 @@ def tool_value_workflows(
         sample.metadata["tool_runtime"] = str(runtime)
         sample.metadata["tool_comparison"] = "same catalog and fixtures; tool access/activation only"
     result.scorer.append(engineering_observations())
+    return result
+
+
+@task
+def accepted_workflows(
+    native_model: str, native_effort: str, tool_mode: str, tool_runtime: str,
+    skills_root: str = str(SKILLS_ROOT), global_instructions: str = str(GLOBAL_INSTRUCTIONS),
+    split: str = "development", case_ids: list[str] | None = None,
+) -> Task:
+    """Diverse calibration; behavioral gates are not human acceptance."""
+    if tool_mode not in {"baseline", "available", "conditional"}:
+        raise ValueError("accepted work mode must be baseline, available, or conditional")
+    if split not in {"development", "holdout"}:
+        raise ValueError("split must be development or holdout")
+    plan = json.loads((REPO_ROOT / "evals/accepted-work-plan.json").read_text())
+    selected = case_ids if case_ids is not None else plan["cases"][split]
+    if not set(selected) <= set(plan["cases"][split]):
+        raise ValueError("case outside declared accepted-work split")
+    result = _challenge_workflows(
+        [ACCEPTED_WORK_CASES, ENGINEERING_CASES, REVIEWS_CASES], "accepted-work-workflows",
+        native_model, native_effort, "candidate", skills_root, None,
+        global_instructions, split, selected, False,
+        _tool_config=_ToolValueConfig(tool_mode, _validate_tool_runtime(tool_runtime), plan["budget"]["per_sample_seconds"]),
+    )
+    for sample in result.dataset.samples:
+        sample.input = ("The owner has already approved the implementation plan and all edits within the "
+            "stated allowed paths for this task. Complete the authorized work autonomously in this "
+            "single session; no additional plan greenlight is needed. For review tasks, approval "
+            "covers only the requested review artifacts and executable proofs; keep source read-only.\n\n"
+            + sample.input)
+        sample.metadata["authorization_contract"] = "explicit prior scoped approval; review source remains read-only"
+        sample.metadata["tool_mode"] = tool_mode
+        sample.metadata["artifact_paths"] = sorted(set(sample.metadata["artifact_paths"]) | {"review.json", "evidence.py"})
+        sample.metadata["human_acceptance"] = "not observed"
+    result.scorer.extend([review_quality(), engineering_observations()])
     return result

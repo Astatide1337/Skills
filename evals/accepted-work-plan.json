@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "objective": "Correct maintainable work with less human supervision and rework; automated behavioral acceptance is only one gate.",
+  "cases": {
+    "development": ["engineering-durable-jobs", "accepted-filtered-feed", "accepted-client-v2", "reviews-export-development", "reviews-export-clean", "accepted-policy-simplification"],
+    "holdout": ["engineering-stream-export-compatibility", "reviews-export-holdout"]
+  },
+  "families": {"engineering-durable-jobs":"durable-integration", "accepted-filtered-feed":"feature", "accepted-client-v2":"migration", "reviews-export-development":"export-review", "reviews-export-clean":"export-review", "accepted-policy-simplification":"simplification", "engineering-stream-export-compatibility":"export-compatibility", "reviews-export-holdout":"export-review"},
+  "arms": ["baseline", "available", "conditional"],
+  "budget": {"calibration_calls":18, "conditional_finalist_calls":12, "conditional_holdout_calls":4, "maximum_calls":34, "per_sample_seconds":240, "paid_grader_calls":0, "candidate_retries":0},
+  "orders": [["baseline","available","conditional"],["available","conditional","baseline"],["conditional","baseline","available"]],
+  "gates": ["fixed behavioral tests", "scope and protected checks", "security regressions", "artifact maintainability review", "truthful claims"],
+  "human_metrics": "Actual acceptance, specifying/supervising/review/rework/verification minutes, interventions and request-to-acceptance elapsed time require human records; unknown is null, never inferred from calls.",
+  "diagnostics": ["diagnostic to decision to artifact to accepted outcome", "false alarms", "unnecessary calls and edits", "tokens", "commands", "sample elapsed time"],
+  "stop_rules": ["Freeze hashes and validate gold, originals and incomplete controls before calls", "Stop on infrastructure or containment failure; retain every attempt", "If baseline saturates or no meaningful paired outcome difference, stop without promotion", "Repeat baseline and finalist only for a new accepted task with preserved gates or at least 20% lower sample elapsed time without acceptance loss; confirm on untouched holdout before adoption", "Expand toward 20-30 independent repository cases only after calibration exposes useful variation; do not count clean and defective review as independent families"],
+  "adoption": "No installed/global skill change from calibration. Human acceptance and maintenance cost remain required for productivity claims. Small ties are inconclusive, not equivalence.",
+  "uncertainty": "Report paired case and family outcomes; with few families do not claim precise population intervals. Repeated finalists measure consistency, not additional independent tasks.",
+  "ablations": "Compact output and path-focused navigation only after traces identify a bottleneck; not part of this pilot.",
+  "provenance": "Local controlled Python repositories, no imported public tasks. Audit any future import for revision/license, prompt-test agreement, gold validity, incomplete repairs, leakage and dependencies before execution.",
+  "sources": ["https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents", "https://openai.com/index/separating-signal-from-noise-coding-evaluations/", "https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/"]
+}
