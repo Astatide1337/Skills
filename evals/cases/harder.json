@@ -1,0 +1,383 @@
+[
+  {
+    "id": "harder-ledger-atomic-retry",
+    "input": "Read README.md and the supplied modules. Repair the documented behavior across the complete operation, including failure paths. Preserve the teammate draft. Add no dependencies. Only ledger.py may change. Run the checks you need and report what you actually verified.",
+    "target": "Meet the documented contract, runner-owned behavioral checks, and exact workspace scope.",
+    "files": {
+      "README.md": "transfer(db, tenant, key, source, target, amount, checkpoint=lambda: None) transfers positive integer funds between distinct accounts in one tenant. Accounts and transfers use composite tenant keys. Return the recorded transfer amount. Idempotency is tenant-scoped: same key and identical arguments returns original amount without another checkpoint or writes; conflicting arguments raise ValueError. Missing account, nonpositive/noninteger amount (including bool), same account, or insufficient funds raises ValueError with no persistent changes. checkpoint runs after debit and may raise: propagate the identical exception, roll back all operation writes, and permit retry. Commit successful operations. Calls start with no active transaction.\nAll transport and storage are local synthetic fixtures. Use only Python stdlib. Preserve public interfaces. Run python -B checks.py; only ledger.py may change. Do not install packages or use external services.\n",
+      "ledger.py": "from schema import initialize\n\ndef transfer(db, tenant, key, source, target, amount, checkpoint=lambda: None):\n    old = db.execute('SELECT amount FROM transfers WHERE request_key=?', (key,)).fetchone()\n    if old:\n        return old[0]\n    db.execute('UPDATE accounts SET balance=balance-? WHERE account=?', (amount, source))\n    db.commit()\n    checkpoint()\n    db.execute('UPDATE accounts SET balance=balance+? WHERE account=?', (amount, target))\n    db.execute('INSERT INTO transfers VALUES (?,?,?,?,?,?)', (tenant,key,source,target,amount,'done'))\n    db.commit()\n    return amount\n",
+      "checks.py": "print(\"Smoke import\")\nimport ledger\n",
+      "coworker_notes.txt": "Uncommitted teammate draft: KEEP THIS EXACT TEXT\n",
+      "schema.py": "def initialize(db):\n    db.executescript('CREATE TABLE accounts(tenant TEXT, account TEXT, balance INTEGER, PRIMARY KEY(tenant,account)); CREATE TABLE transfers(tenant TEXT, request_key TEXT, source TEXT, target TEXT, amount INTEGER, status TEXT, PRIMARY KEY(tenant,request_key));')\n"
+    },
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "ledger.py"
+      ],
+      "required_files": [
+        "README.md",
+        "ledger.py",
+        "checks.py",
+        "coworker_notes.txt",
+        "schema.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging",
+        "deslop"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "harder-stdlib-repository",
+      "difficulty": "hard",
+      "skill_dimensions": [
+        "atomicity",
+        "idempotency",
+        "tenant-isolation",
+        "failure-recovery"
+      ],
+      "construction_rubric": {
+        "task_scope": "local synthetic repository",
+        "comparison_limit": "paired identical inputs; isolated outcome does not establish general skill efficacy",
+        "quality_review": {
+          "required": "Assess affected code and call paths independently of author claims; do not award structural quality solely for green checks.",
+          "criteria": [
+            "correctness across documented failure paths",
+            "clear ownership and minimal necessary state",
+            "preserved public compatibility and unrelated teammate changes",
+            "no unnecessary abstraction or dependency"
+          ],
+          "limitation": "Deterministic acceptance measures documented behavior; maintainability judgment remains subjective and requires a separate blinded review."
+        }
+      },
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "ledger.py",
+        "write_content": "from schema import initialize\n\ndef transfer(db, tenant, key, source, target, amount, checkpoint=lambda: None):\n    if type(amount) is not int or amount <= 0 or source == target:\n        raise ValueError('invalid transfer')\n    with db:\n        old = db.execute('SELECT source,target,amount FROM transfers WHERE tenant=? AND request_key=?', (tenant,key)).fetchone()\n        if old:\n            if old != (source,target,amount):\n                raise ValueError('key conflict')\n            return old[2]\n        balances = {}\n        for account in (source,target):\n            row=db.execute('SELECT balance FROM accounts WHERE tenant=? AND account=?',(tenant,account)).fetchone()\n            if row is None:\n                raise ValueError('missing account')\n            balances[account]=row[0]\n        if balances[source] < amount:\n            raise ValueError('insufficient funds')\n        db.execute('UPDATE accounts SET balance=balance-? WHERE tenant=? AND account=?',(amount,tenant,source))\n        checkpoint()\n        db.execute('UPDATE accounts SET balance=balance+? WHERE tenant=? AND account=?',(amount,tenant,target))\n        db.execute('INSERT INTO transfers VALUES (?,?,?,?,?,?)',(tenant,key,source,target,amount,'done'))\n    return amount\n",
+        "required_paths": [
+          "README.md",
+          "ledger.py",
+          "checks.py",
+          "coworker_notes.txt",
+          "schema.py"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_test": "import sqlite3\nfrom ledger import transfer\nfrom schema import initialize\n\ndef database():\n    db=sqlite3.connect(':memory:'); initialize(db)\n    db.executemany('INSERT INTO accounts VALUES (?,?,?)', [('a','x',100),('a','y',20),('b','x',80),('b','y',5)])\n    db.commit(); return db\n\ndef state(db):\n    return (db.execute('SELECT * FROM accounts ORDER BY tenant,account').fetchall(), db.execute('SELECT * FROM transfers ORDER BY tenant,request_key').fetchall())\ndb=database(); before=state(db); error=RuntimeError('injected write failure')\ndef fail(): raise error\ntry: transfer(db,'a','retry','x','y',17,fail)\nexcept RuntimeError as caught: assert caught is error\nelse: raise AssertionError('failure swallowed')\nassert state(db)==before and not db.in_transaction\nassert transfer(db,'a','retry','x','y',17)==17\nsnapshot=state(db)\nassert transfer(db,'a','retry','x','y',17,fail)==17 and state(db)==snapshot\nassert transfer(db,'b','retry','x','y',8)==8\nfor args in [('retry','x','y',18),('bad','x','y',999),('bad','x','absent',1),('bad','x','x',1),('bad','x','y',True),('bad','x','y',0)]:\n    before=state(db)\n    try: transfer(db,'a',*args)\n    except ValueError: pass\n    else: raise AssertionError(args)\n    assert state(db)==before\n",
+        "heldout_test": "db=database()\nfor amount in [1,7,31]:\n    assert transfer(db,'a','seed-'+str(amount),'x','y',amount)==amount\nassert db.execute(\"SELECT balance FROM accounts WHERE tenant='a' ORDER BY account\").fetchall()==[(61,),(59,)]\nassert db.execute(\"SELECT balance FROM accounts WHERE tenant='b' ORDER BY account\").fetchall()==[(80,),(5,)]\n"
+      },
+      "split": "development",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- README.md ledger.py checks.py coworker_notes.txt schema.py && git commit -qm 'frozen fixture baseline'"
+  },
+  {
+    "id": "harder-pagination-progress",
+    "input": "Read README.md and the supplied modules. Repair the documented behavior across the complete operation, including failure paths. Preserve the teammate draft. Add no dependencies. Only client.py may change. Run the checks you need and report what you actually verified.",
+    "target": "Meet the documented contract, runner-owned behavioral checks, and exact workspace scope.",
+    "files": {
+      "README.md": "collect(request, owner, max_pages=20) returns all rows in server order including duplicates. request(method,path,body) must receive POST, /v4/search and exactly {owner: owner, token: token, limit: 3}; initial token is None. Response is {rows: list, next: token_or_None}. Empty pages with next must continue. Return only when next is None. Raise PaginationError before sending an already-used token, or after max_pages responses if more remain. max_pages must be positive int (not bool); reject invalid bounds before transport. Preserve transport exception identity. All calls use the injected transport.\nAll transport and storage are local synthetic fixtures. Use only Python stdlib. Preserve public interfaces. Run python -B checks.py; only client.py may change. Do not install packages or use external services.\n",
+      "client.py": "from errors import PaginationError\n\ndef collect(request, owner, max_pages=20):\n    rows=[]; token=None\n    for _ in range(max_pages):\n        page=request('GET','/v4/search',{'owner':owner,'token':token})\n        rows.extend(page['rows'])\n        if not page['rows']: break\n        token=page['next']\n        if token is None: break\n    return rows\n",
+      "checks.py": "print(\"Smoke import\")\nimport client\n",
+      "coworker_notes.txt": "Uncommitted teammate draft: KEEP THIS EXACT TEXT\n",
+      "errors.py": "class PaginationError(RuntimeError):\n    pass\n"
+    },
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "client.py"
+      ],
+      "required_files": [
+        "README.md",
+        "client.py",
+        "checks.py",
+        "coworker_notes.txt",
+        "errors.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging",
+        "deslop"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "harder-stdlib-repository",
+      "difficulty": "hard",
+      "skill_dimensions": [
+        "contract-reading",
+        "pagination",
+        "bounded-progress",
+        "exception-identity"
+      ],
+      "construction_rubric": {
+        "task_scope": "local synthetic repository",
+        "comparison_limit": "paired identical inputs; isolated outcome does not establish general skill efficacy",
+        "quality_review": {
+          "required": "Assess affected code and call paths independently of author claims; do not award structural quality solely for green checks.",
+          "criteria": [
+            "correctness across documented failure paths",
+            "clear ownership and minimal necessary state",
+            "preserved public compatibility and unrelated teammate changes",
+            "no unnecessary abstraction or dependency"
+          ],
+          "limitation": "Deterministic acceptance measures documented behavior; maintainability judgment remains subjective and requires a separate blinded review."
+        }
+      },
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "client.py",
+        "write_content": "from errors import PaginationError\n\ndef collect(request, owner, max_pages=20):\n    if type(max_pages) is not int or max_pages < 1:\n        raise ValueError('invalid bound')\n    rows=[]; token=None; seen=set()\n    for _ in range(max_pages):\n        if token in seen:\n            raise PaginationError('cursor cycle')\n        seen.add(token)\n        page=request('POST','/v4/search',{'owner':owner,'token':token,'limit':3})\n        rows.extend(page['rows'])\n        token=page['next']\n        if token is None:\n            return rows\n    raise PaginationError('page bound exceeded')\n",
+        "required_paths": [
+          "README.md",
+          "client.py",
+          "checks.py",
+          "coworker_notes.txt",
+          "errors.py"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_test": "from client import collect\nfrom errors import PaginationError\n\ndef run(pages,bound=20):\n    calls=[]\n    def request(method,path,body):\n        assert method=='POST' and path=='/v4/search'\n        assert body=={'owner':'team','token':body['token'],'limit':3}\n        calls.append(body['token'])\n        assert len(calls)<=bound\n        return pages[body['token']]\n    return collect(request,'team',bound),calls\nrows,calls=run({None:{'rows':[3,3],'next':'a'},'a':{'rows':[],'next':'b'},'b':{'rows':[1],'next':None}})\nassert rows==[3,3,1] and calls==[None,'a','b']\nassert run({None:{'rows':[],'next':None}},1)==([],[None])\nfor pages,bound in [({None:{'rows':[],'next':'a'},'a':{'rows':[1],'next':'a'}},5),({None:{'rows':[1],'next':'a'}},1)]:\n    try: run(pages,bound)\n    except PaginationError: pass\n    else: raise AssertionError('progress limit ignored')\nfor bound in [0,-1,True,1.5]:\n    try: collect(lambda *a: (_ for _ in ()).throw(AssertionError('transport called')), 'team',bound)\n    except ValueError: pass\n    else: raise AssertionError('invalid bound accepted')\nfailure=OSError('transport failure')\ndef fail(*args): raise failure\ntry: collect(fail,'team')\nexcept OSError as caught: assert caught is failure\nelse: raise AssertionError('transport failure swallowed')\n",
+        "heldout_test": "for n in range(1,8):\n    pages={None:{'rows':[],'next':'0'}}\n    for i in range(n): pages[str(i)]={'rows':[i,i], 'next':str(i+1) if i<n-1 else None}\n    result,calls=run(pages,n+1)\n    assert result==[x for i in range(n) for x in (i,i)] and len(calls)==n+1\n\ntry:\n    run({None:{\"rows\":[],\"next\":\"a\"},\"a\":{\"rows\":[1],\"next\":\"b\"},\"b\":{\"rows\":[],\"next\":\"a\"}},5)\nexcept PaginationError:\n    pass\nelse:\n    raise AssertionError(\"multi-token cycle accepted\")\n"
+      },
+      "split": "development",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- README.md client.py checks.py coworker_notes.txt errors.py && git commit -qm 'frozen fixture baseline'"
+  },
+  {
+    "id": "harder-cache-cancellation",
+    "input": "Read README.md and the supplied modules. Repair the documented behavior across the complete operation, including failure paths. Preserve the teammate draft. Add no dependencies. Only cache.py may change. Run the checks you need and report what you actually verified.",
+    "target": "Meet the documented contract, runner-owned behavioral checks, and exact workspace scope.",
+    "files": {
+      "README.md": "Cache(loader) exposes get(key) and invalidate(key). It caches successful values (including None). invalidate removes a key if present. Failed or cancelled loads propagate the identical BaseException and are not cached; subsequent get retries. A recursive get of the same key during its load raises BusyError. Loads of different keys remain permitted. Always clear in-flight state, including on BaseException, without invalidating other cached keys. Tests use deterministic injected loaders, not timing or threads.\nAll transport and storage are local synthetic fixtures. Use only Python stdlib. Preserve public interfaces. Run python -B checks.py; only cache.py may change. Do not install packages or use external services.\n",
+      "cache.py": "from errors import BusyError\nclass Cache:\n    def __init__(self,loader): self.loader=loader; self.values={}; self.busy=set()\n    def get(self,key):\n        if self.values.get(key) is not None: return self.values[key]\n        if key in self.busy: raise BusyError(key)\n        self.busy.add(key)\n        try: self.values[key]=self.loader(key)\n        except Exception:\n            self.busy.remove(key)\n            raise\n        self.busy.remove(key)\n        return self.values[key]\n    def invalidate(self,key): self.values.pop(key,None)\n",
+      "checks.py": "print(\"Smoke import\")\nimport cache\n",
+      "coworker_notes.txt": "Uncommitted teammate draft: KEEP THIS EXACT TEXT\n",
+      "errors.py": "class BusyError(RuntimeError):\n    pass\n"
+    },
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "cache.py"
+      ],
+      "required_files": [
+        "README.md",
+        "cache.py",
+        "checks.py",
+        "coworker_notes.txt",
+        "errors.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging",
+        "deslop"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "harder-stdlib-repository",
+      "difficulty": "hard",
+      "skill_dimensions": [
+        "cancellation",
+        "state-lifecycle",
+        "retry",
+        "reentrancy"
+      ],
+      "construction_rubric": {
+        "task_scope": "local synthetic repository",
+        "comparison_limit": "paired identical inputs; isolated outcome does not establish general skill efficacy",
+        "quality_review": {
+          "required": "Assess affected code and call paths independently of author claims; do not award structural quality solely for green checks.",
+          "criteria": [
+            "correctness across documented failure paths",
+            "clear ownership and minimal necessary state",
+            "preserved public compatibility and unrelated teammate changes",
+            "no unnecessary abstraction or dependency"
+          ],
+          "limitation": "Deterministic acceptance measures documented behavior; maintainability judgment remains subjective and requires a separate blinded review."
+        }
+      },
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "cache.py",
+        "write_content": "from errors import BusyError\nclass Cache:\n    def __init__(self,loader): self.loader=loader; self.values={}; self.busy=set()\n    def get(self,key):\n        if key in self.values: return self.values[key]\n        if key in self.busy: raise BusyError(key)\n        self.busy.add(key)\n        try:\n            value=self.loader(key)\n            self.values[key]=value\n            return value\n        finally:\n            self.busy.remove(key)\n    def invalidate(self,key): self.values.pop(key,None)\n",
+        "required_paths": [
+          "README.md",
+          "cache.py",
+          "checks.py",
+          "coworker_notes.txt",
+          "errors.py"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_test": "from cache import Cache\nfrom errors import BusyError\nclass Cancel(BaseException): pass\ncancel=Cancel('cancel'); calls=[]\ndef load(key):\n    calls.append(key)\n    if key=='fail' and calls.count(key)==1: raise cancel\n    return None if key=='none' else key\ncache=Cache(load)\nassert cache.get('ok')=='ok'\ntry: cache.get('fail')\nexcept Cancel as caught: assert caught is cancel\nelse: raise AssertionError('cancel swallowed')\nassert cache.get('fail')=='fail' and cache.get('ok')=='ok' and calls.count('ok')==1\nassert cache.get('none') is None and cache.get('none') is None and calls.count('none')==1\ncache.invalidate('none'); cache.get('none'); assert calls.count('none')==2\ncache.invalidate('missing')\ndef recurse(key):\n    if key=='outer': return recursive.get('inner')\n    if key=='inner': return 12\n    return recursive.get(key)\nrecursive=Cache(recurse)\nassert recursive.get('outer')==12\nfor _ in range(2):\n    try: recursive.get('loop')\n    except BusyError: pass\n    else: raise AssertionError('recursion not bounded')\n",
+        "heldout_test": "error=RuntimeError('failed'); attempt=[0]\ndef flaky(key):\n    attempt[0]+=1\n    if attempt[0]==1: raise error\n    return False\nother=Cache(flaky)\ntry: other.get('retry')\nexcept RuntimeError as caught: assert caught is error\nassert other.get('retry') is False and other.get('retry') is False and attempt[0]==2\n"
+      },
+      "split": "development",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- README.md cache.py checks.py coworker_notes.txt errors.py && git commit -qm 'frozen fixture baseline'"
+  },
+  {
+    "id": "harder-public-contract-compatibility",
+    "input": "Read README.md and the supplied modules. Repair the documented public API behavior, including validation, ordering, duplicates, and single-use iterators. Preserve every public interface and the teammate draft. Add no dependencies. Only labels.py may change. Run the checks you need and report what you actually verified.",
+    "target": "Repair the documented public compatibility contract and preserve exact workspace scope.",
+    "files": {
+      "README.md": "Repair labels.py without changing its public interface. label_count(count, noun='record') requires a nonnegative exact int (bool rejected with ValueError); singular only for 1. summarize(items, noun='record') consumes iterable exactly once and returns {'count': n, 'label': label_count(n,noun)}. Items may be falsey; each counts. format_counts(counts,noun='record') returns labels in supplied order and applies the same validation; counts may be a generator. Existing exports Builder, label_count, summarize, format_counts are public; Builder(noun).build(count) equals label_count(count,noun). Keep teammate draft byte-for-byte. Preserve the public API; no new dependency.\nAll transport and storage are local synthetic fixtures. Use only Python stdlib. Preserve public interfaces. Run python -B checks.py; only labels.py may change. Do not install packages or use external services.\n",
+      "labels.py": "class Builder:\n    def __init__(self,noun='record'): self.noun=noun\n    def build(self,count):\n        if isinstance(count,int) and count>=0:\n            return str(count)+' '+self.noun+('' if count==1 else 's')\n        raise ValueError('invalid count')\ndef label_count(count,noun='record'): return Builder(noun).build(count)\ndef summarize(items,noun='record'):\n    count=len([item for item in items if item])\n    return {'count':count,'label':label_count(count,noun)}\ndef format_counts(counts,noun='record'): return list(set(label_count(c,noun) for c in counts))\n",
+      "checks.py": "print(\"Smoke import\")\nimport labels\n",
+      "coworker_notes.txt": "Uncommitted teammate draft: KEEP THIS EXACT TEXT\n"
+    },
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "labels.py"
+      ],
+      "required_files": [
+        "README.md",
+        "labels.py",
+        "checks.py",
+        "coworker_notes.txt"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging",
+        "deslop"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "harder-stdlib-repository",
+      "difficulty": "hard",
+      "skill_dimensions": [
+        "public-compatibility",
+        "iterator-semantics",
+        "validation",
+        "scope-preservation"
+      ],
+      "construction_rubric": {
+        "task_scope": "local synthetic repository",
+        "comparison_limit": "paired identical inputs; isolated outcome does not establish general skill efficacy",
+        "quality_review": {
+          "required": "Assess affected code and call paths independently of author claims; do not award structural quality solely for green checks.",
+          "criteria": [
+            "correctness across documented failure paths",
+            "clear ownership and minimal necessary state",
+            "preserved public compatibility and unrelated teammate changes",
+            "no unnecessary abstraction or dependency"
+          ],
+          "limitation": "Deterministic acceptance measures documented compatibility behavior; maintainability judgment remains subjective and requires a separate blinded review."
+        }
+      },
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "labels.py",
+        "write_content": "def label_count(count,noun='record'):\n    if type(count) is not int or count<0: raise ValueError('invalid count')\n    return f\"{count} {noun}{'' if count==1 else 's'}\"\nclass Builder:\n    def __init__(self,noun='record'): self.noun=noun\n    def build(self,count): return label_count(count,self.noun)\ndef summarize(items,noun='record'):\n    count=sum(1 for _ in items)\n    return {'count':count,'label':label_count(count,noun)}\ndef format_counts(counts,noun='record'): return [label_count(c,noun) for c in counts]\n",
+        "required_paths": [
+          "README.md",
+          "labels.py",
+          "checks.py",
+          "coworker_notes.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_test": "from labels import Builder,label_count,summarize,format_counts\nassert format_counts(iter([2,1,2,0]),'task')==['2 tasks','1 task','2 tasks','0 tasks']\nfor invalid in [True,False,-1,1.2,'2']:\n    for call in [lambda:label_count(invalid),lambda:Builder().build(invalid),lambda:format_counts([invalid])]:\n        try: call()\n        except ValueError: pass\n        else: raise AssertionError('validation changed')\nclass Once:\n    def __init__(self): self.used=False\n    def __iter__(self):\n        assert not self.used\n        self.used=True\n        yield from [0,False,None,'']\nassert summarize(Once(),'event')=={'count':4,'label':'4 events'}\nassert summarize(iter([]))=={'count':0,'label':'0 records'}\nassert Builder('task').build(1)=='1 task'\n",
+        "heldout_test": "for n in range(25):\n    assert summarize((None for _ in range(n)),'item')=={'count':n,'label':str(n)+' item'+('' if n==1 else 's')}\n    assert format_counts(iter([n,n]))==[label_count(n),label_count(n)]\n"
+      },
+      "split": "holdout",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- README.md labels.py checks.py coworker_notes.txt && git commit -qm 'frozen fixture baseline'"
+  }
+]

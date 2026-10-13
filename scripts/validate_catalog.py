@@ -108,101 +108,11 @@ def validate_links(path: Path) -> None:
             fail(f"broken link in {path.relative_to(ROOT)}: {raw}")
 
 
-def main() -> None:
-    catalog = yaml.safe_load((ROOT / "catalog.yaml").read_text())
-    entries = catalog.get("skills") if isinstance(catalog, dict) else None
-    if not isinstance(entries, list):
-        fail("catalog.yaml needs a skills list")
 
-    skill_files = sorted(SKILLS.glob("*/SKILL.md"))
-    if len(entries) != len(skill_files):
-        fail(f"catalog has {len(entries)} skills but filesystem has {len(skill_files)}")
-
-    names: set[str] = set()
-    catalog_paths = {entry.get("exported_path") for entry in entries}
-    for skill_file in skill_files:
-        data = frontmatter(skill_file)
-        name = data.get("name")
-        description = data.get("description")
-        if not isinstance(name, str) or not NAME.fullmatch(name):
-            fail(f"invalid skill name in {skill_file.relative_to(ROOT)}")
-        if name != skill_file.parent.name or name in names or len(name) > 64:
-            fail(f"duplicate or mismatched skill name: {name}")
-        validate_description(name, description)
-        names.add(name)
-        relative = str(skill_file.relative_to(ROOT))
-        if relative not in catalog_paths:
-            fail(f"skill missing from catalog: {relative}")
-
-    for path in ROOT.glob("skills/**/*.md"):
-        validate_links(path)
-
-    coordinator = SKILLS / "follow-instructions"
-    playbooks = {path.name for path in (coordinator / "playbooks").glob("*.md")}
-    if playbooks != PLAYBOOK_NAMES:
-        fail(
-            "follow-instructions playbooks must be exactly "
-            f"{sorted(PLAYBOOK_NAMES)}, found {sorted(playbooks)}"
-        )
-    for name in sorted(PLAYBOOK_NAMES):
-        path = coordinator / "playbooks" / name
-        text = path.read_text()
-        missing_sections = [section for section in PLAYBOOK_SECTIONS if section not in text]
-        if missing_sections:
-            fail(f"playbook {path.relative_to(ROOT)} missing sections: {missing_sections}")
-
-    cases = json.loads((ROOT / "evals/cases/catalog.json").read_text())
-    if not isinstance(cases, list) or not cases:
-        fail("Inspect dataset must be a non-empty JSON array")
-    case_ids: set[str] = set()
-    covered_skills: set[str] = set()
-    for case in cases:
-        case_id = case.get("id") if isinstance(case, dict) else None
-        if not isinstance(case_id, str) or not NAME.fullmatch(case_id) or case_id in case_ids:
-            fail(f"invalid or duplicate eval case id: {case_id!r}")
-        if not all(isinstance(case.get(key), str) and case[key].strip() for key in ("input", "target")):
-            fail(f"eval case {case_id} needs input and target")
-        metadata = case.get("metadata")
-        if not isinstance(metadata, dict) or not isinstance(metadata.get("allow_changes"), bool):
-            fail(f"eval case {case_id} needs explicit allow_changes")
-        skill = metadata.get("skill")
-        if not isinstance(skill, str) or skill not in names:
-            fail(f"eval case {case_id} names an unknown skill: {skill!r}")
-        if skill in covered_skills:
-            fail(f"skill has more than one primary eval case: {skill}")
-        covered_skills.add(skill)
-        case_ids.add(case_id)
-
-    missing_coverage = names - covered_skills
-    if missing_coverage:
-        fail(f"skills missing primary eval coverage: {sorted(missing_coverage)}")
-
-    routing_path = ROOT / "evals/cases/routing.json"
-    routing_cases = json.loads(routing_path.read_text())
-    if not isinstance(routing_cases, list) or not routing_cases:
-        fail("routing eval dataset must be a non-empty JSON array")
-    routing_ids: set[str] = set()
-    for case in routing_cases:
-        case_id = case.get("id") if isinstance(case, dict) else None
-        if not isinstance(case_id, str) or not NAME.fullmatch(case_id) or case_id in routing_ids:
-            fail(f"invalid or duplicate routing case id: {case_id!r}")
-        if not isinstance(case.get("input"), str) or not case["input"].strip():
-            fail(f"routing case {case_id} needs input")
-        metadata = case.get("metadata")
-        expected = metadata.get("expected_skills") if isinstance(metadata, dict) else None
-        if not isinstance(expected, list) or not all(
-            isinstance(skill, str) and skill in names for skill in expected
-        ):
-            fail(f"routing case {case_id} needs known expected_skills")
-        if metadata.get("route_kind") not in {"positive", "negative"}:
-            fail(f"routing case {case_id} needs route_kind")
-        routing_ids.add(case_id)
-
-    workflows_path = ROOT / "evals/cases/workflows.json"
-    workflow_cases = json.loads(workflows_path.read_text())
-    if not isinstance(workflow_cases, list) or not workflow_cases:
-        fail("workflow eval dataset must be a non-empty JSON array")
-    workflow_ids: set[str] = set()
+def validate_workflow_cases(
+    workflow_cases: list, names: set[str], workflow_ids: set[str],
+    *, allow_empty_setup: bool = False,
+) -> None:
     for case in workflow_cases:
         case_id = case.get("id") if isinstance(case, dict) else None
         if not isinstance(case_id, str) or not NAME.fullmatch(case_id) or case_id in workflow_ids:
@@ -303,13 +213,133 @@ def main() -> None:
                     if not isinstance(command, list) or not command or not all(isinstance(item, str) and item for item in command):
                         fail(f"workflow case {case_id} workspace-test contract needs test_command")
         setup = case.get("setup")
-        if setup is not None and (not isinstance(setup, str) or not setup.strip()):
+        if setup is not None and (not isinstance(setup, str) or (not setup.strip() and not allow_empty_setup)):
             fail(f"workflow case {case_id} has invalid setup")
         workflow_ids.add(case_id)
 
+
+def main() -> None:
+    catalog = yaml.safe_load((ROOT / "catalog.yaml").read_text())
+    entries = catalog.get("skills") if isinstance(catalog, dict) else None
+    if not isinstance(entries, list):
+        fail("catalog.yaml needs a skills list")
+
+    skill_files = sorted(SKILLS.glob("*/SKILL.md"))
+    if len(entries) != len(skill_files):
+        fail(f"catalog has {len(entries)} skills but filesystem has {len(skill_files)}")
+
+    names: set[str] = set()
+    catalog_paths = {entry.get("exported_path") for entry in entries}
+    for skill_file in skill_files:
+        data = frontmatter(skill_file)
+        name = data.get("name")
+        description = data.get("description")
+        if not isinstance(name, str) or not NAME.fullmatch(name):
+            fail(f"invalid skill name in {skill_file.relative_to(ROOT)}")
+        if name != skill_file.parent.name or name in names or len(name) > 64:
+            fail(f"duplicate or mismatched skill name: {name}")
+        validate_description(name, description)
+        names.add(name)
+        relative = str(skill_file.relative_to(ROOT))
+        if relative not in catalog_paths:
+            fail(f"skill missing from catalog: {relative}")
+
+    for path in ROOT.glob("skills/**/*.md"):
+        validate_links(path)
+
+    coordinator = SKILLS / "follow-instructions"
+    playbooks = {path.name for path in (coordinator / "playbooks").glob("*.md")}
+    if playbooks != PLAYBOOK_NAMES:
+        fail(
+            "follow-instructions playbooks must be exactly "
+            f"{sorted(PLAYBOOK_NAMES)}, found {sorted(playbooks)}"
+        )
+    for name in sorted(PLAYBOOK_NAMES):
+        path = coordinator / "playbooks" / name
+        text = path.read_text()
+        missing_sections = [section for section in PLAYBOOK_SECTIONS if section not in text]
+        if missing_sections:
+            fail(f"playbook {path.relative_to(ROOT)} missing sections: {missing_sections}")
+
+    cases = json.loads((ROOT / "evals/cases/catalog.json").read_text())
+    if not isinstance(cases, list) or not cases:
+        fail("Inspect dataset must be a non-empty JSON array")
+    case_ids: set[str] = set()
+    covered_skills: set[str] = set()
+    for case in cases:
+        case_id = case.get("id") if isinstance(case, dict) else None
+        if not isinstance(case_id, str) or not NAME.fullmatch(case_id) or case_id in case_ids:
+            fail(f"invalid or duplicate eval case id: {case_id!r}")
+        if not all(isinstance(case.get(key), str) and case[key].strip() for key in ("input", "target")):
+            fail(f"eval case {case_id} needs input and target")
+        metadata = case.get("metadata")
+        if not isinstance(metadata, dict) or not isinstance(metadata.get("allow_changes"), bool):
+            fail(f"eval case {case_id} needs explicit allow_changes")
+        skill = metadata.get("skill")
+        if not isinstance(skill, str) or skill not in names:
+            fail(f"eval case {case_id} names an unknown skill: {skill!r}")
+        if skill in covered_skills:
+            fail(f"skill has more than one primary eval case: {skill}")
+        covered_skills.add(skill)
+        case_ids.add(case_id)
+
+    missing_coverage = names - covered_skills
+    if missing_coverage:
+        fail(f"skills missing primary eval coverage: {sorted(missing_coverage)}")
+
+    routing_path = ROOT / "evals/cases/routing.json"
+    routing_cases = json.loads(routing_path.read_text())
+    if not isinstance(routing_cases, list) or not routing_cases:
+        fail("routing eval dataset must be a non-empty JSON array")
+    routing_ids: set[str] = set()
+    for case in routing_cases:
+        case_id = case.get("id") if isinstance(case, dict) else None
+        if not isinstance(case_id, str) or not NAME.fullmatch(case_id) or case_id in routing_ids:
+            fail(f"invalid or duplicate routing case id: {case_id!r}")
+        if not isinstance(case.get("input"), str) or not case["input"].strip():
+            fail(f"routing case {case_id} needs input")
+        metadata = case.get("metadata")
+        expected = metadata.get("expected_skills") if isinstance(metadata, dict) else None
+        if not isinstance(expected, list) or not all(
+            isinstance(skill, str) and skill in names for skill in expected
+        ):
+            fail(f"routing case {case_id} needs known expected_skills")
+        if metadata.get("route_kind") not in {"positive", "negative"}:
+            fail(f"routing case {case_id} needs route_kind")
+        routing_ids.add(case_id)
+
+    workflows_path = ROOT / "evals/cases/workflows.json"
+    workflow_cases = json.loads(workflows_path.read_text())
+    if not isinstance(workflow_cases, list) or not workflow_cases:
+        fail("workflow eval dataset must be a non-empty JSON array")
+    workflow_ids: set[str] = set()
+    validate_workflow_cases(workflow_cases, names, workflow_ids)
+    extra_workflow_count = 0
+    for filename in ("skills-comparison.json", "harder.json"):
+        extra_cases = json.loads((ROOT / "evals/cases" / filename).read_text())
+        if not isinstance(extra_cases, list) or not extra_cases:
+            fail(f"{filename} must be a non-empty JSON array")
+        extra_workflow_count += len(extra_cases)
+        validate_workflow_cases(
+            extra_cases, names, workflow_ids,
+            allow_empty_setup=filename == "skills-comparison.json",
+        )
+        if filename == "harder.json":
+            for case in extra_cases:
+                metadata = case["metadata"]
+                if metadata.get("split") not in {"development", "holdout"}:
+                    fail(f"harder case {case['id']} needs development/holdout split")
+                if metadata.get("execution_mode") != "execution-ready":
+                    fail(f"harder case {case['id']} must be execution-ready")
+                required = metadata.get("required_capabilities")
+                if not isinstance(required, list) or not required or not all(
+                    isinstance(value, str) and value for value in required
+                ):
+                    fail(f"harder case {case['id']} needs required_capabilities")
+
     print(
         f"validated {len(skill_files)} skills, {len(cases)} behavior cases, "
-        f"{len(routing_cases)} routing cases, and {len(workflow_cases)} workflow cases"
+        f"{len(routing_cases)} routing cases, and {len(workflow_cases) + extra_workflow_count} workflow cases"
     )
 
 

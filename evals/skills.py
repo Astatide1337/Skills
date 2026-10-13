@@ -99,6 +99,7 @@ CASES = Path(__file__).parent / "cases" / "catalog.json"
 ROUTING_CASES = Path(__file__).parent / "cases" / "routing.json"
 WORKFLOW_CASES = Path(__file__).parent / "cases" / "workflows.json"
 COMPARISON_CASES = Path(__file__).parent / "cases" / "skills-comparison.json"
+HARDER_CASES = Path(__file__).parent / "cases" / "harder.json"
 GLOBAL_INSTRUCTIONS = REPO_ROOT / "global-instructions" / "AGENTS.md"
 GRADE_SCHEMA = Path(__file__).parent / "grade-schema.json"
 ROUTE_SCHEMA = Path(__file__).parent / "route-schema.json"
@@ -790,8 +791,10 @@ def workflows_dataset(
         if not case_ids or len(case_ids) != len(set(case_ids)):
             raise ValueError("case_ids must be a non-empty list without duplicates")
         comparison_dataset = json_dataset(str(COMPARISON_CASES))
-        by_id = {sample.id: sample for sample in (*dataset.samples, *comparison_dataset.samples)}
-        if len(by_id) != len(dataset.samples) + len(comparison_dataset.samples):
+        harder_dataset = json_dataset(str(HARDER_CASES))
+        all_samples = (*dataset.samples, *comparison_dataset.samples, *harder_dataset.samples)
+        by_id = {sample.id: sample for sample in all_samples}
+        if len(by_id) != len(all_samples):
             raise ValueError("workflow case IDs must be unique across fixture files")
         missing = [case_id for case_id in case_ids if case_id not in by_id]
         if missing:
@@ -1797,7 +1800,7 @@ async def _workflow_support_status(state: TaskState) -> dict[str, object]:
         return {
             "status": "blocked",
             "reason": (
-                "native candidate requires effects outside the supported observed "
+                "cannot observe absence of prohibited effects outside the supported "
                 f"boundary: {unsupported}"
             ),
             "capabilities": sorted(observed),
@@ -3551,3 +3554,65 @@ def workflows(
         sandbox="local",
         score_on_error=True,
     )
+
+
+@task
+def harder_workflows(
+    native_model: str,
+    native_effort: str,
+    arm: str = "candidate",
+    candidate_skills_root: str = str(SKILLS_ROOT),
+    baseline_skills_root: str | None = None,
+    global_instructions: str = str(GLOBAL_INSTRUCTIONS),
+    split: str = "development",
+    case_ids: list[str] | None = None,
+    include_behavior_grader: bool = False,
+) -> Task:
+    """Controlled harder fixtures using the existing native workflow runner.
+
+    Repetitions are Inspect epochs, not duplicated fixture IDs. Both catalog
+    arms share globals and tools; no-catalog is a separately labeled diagnostic.
+    Holdouts require an explicit split and must not drive iterative tuning.
+    """
+    if not native_model.strip():
+        raise ValueError("harder workflows require an explicit native_model")
+    _validate_effort(native_effort)
+    if split not in {"development", "holdout"}:
+        raise ValueError("split must be development or holdout")
+    rows = json.loads(HARDER_CASES.read_text())
+    available = {row["id"]: row for row in rows}
+    selected = case_ids if case_ids is not None else [
+        row["id"] for row in rows if row["metadata"].get("split") == split
+    ]
+    if not selected or len(selected) != len(set(selected)):
+        raise ValueError("harder case_ids must be non-empty without duplicates")
+    for case_id in selected:
+        if case_id not in available:
+            raise ValueError(f"unknown harder case ID: {case_id}")
+        if available[case_id]["metadata"].get("split") != split:
+            raise ValueError(f"case {case_id} is outside explicit split {split}")
+    result = workflows(
+        native_model=native_model, native_effort=native_effort, arm=arm,
+        with_skills=arm != "no-catalog-diagnostic",
+        candidate_skills_root=candidate_skills_root,
+        candidate_global_instructions=global_instructions,
+        baseline_skills_root=baseline_skills_root,
+        baseline_global_instructions=global_instructions,
+        case_ids=selected, include_behavior_grader=include_behavior_grader,
+    )
+    for sample in result.dataset.samples:
+        sample.metadata = {
+            **(sample.metadata or {}),
+            "evaluation_suite": "harder-workflows",
+            "evaluation_split": split,
+            "native_model_requested": native_model,
+            "native_effort_requested": native_effort,
+            "catalog_available": arm != "no-catalog-diagnostic",
+            "comparison_skills_identity": (
+                _skills_identity(Path(sample.metadata["comparison_skills_root"]))
+                if arm != "no-catalog-diagnostic" else None
+            ),
+            "user_interruptions_observation": "unknown",
+            "currency_cost_observation": "unknown",
+        }
+    return result
