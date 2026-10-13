@@ -1,0 +1,431 @@
+[
+  {
+    "id": "tool-value-import-development",
+    "input": "Inspect the batch importer and repair any violations of its documented correctness contract. Read README.md, preserve public interfaces and already correct behavior, and leave the coworker draft untouched. Only models.py, transform.py, and api.py may change. Use Python stdlib without package installation. Run appropriate checks and report what passed.",
+    "target": "Meet the documented importer contract while preserving correct code.",
+    "files": {
+      "README.md": "Batch importer public contract\n\nKeys and prefixes are strings; batches, records, policies and callbacks use the\ndeclared structural types. Non-string keys/prefixes and arbitrary malformed objects\nare outside this contract. Amount/multiplier validation still includes wrong\nnumeric types and booleans, which must raise ValueError as documented below.\n\nmodels.Record(key, amount) and Policy(multiplier=1, prefix=\"\") are immutable.\nKeys must be nonempty and already stripped; duplicate keys are invalid. Amounts\nand multipliers are nonnegative integers excluding bool, with no upper bound.\nPrefixes must be already stripped. Invalid records or policies raise ValueError\nbefore callbacks. None selects the identity policy, including for empty batches.\ntransform.convert returns fresh records in input order, applying prefix and\nmultiplier without changing its input. summarize returns an exact integer total.\nfind returns a matching Record or None; amount_for returns its integer amount\n(including zero) or raises KeyError whose argument is the requested key.\napi.preview returns normalized keys as a tuple and invokes no callbacks.\napi.import_batch validates and converts the whole batch, calls observer once per\nnormalized record in order, and returns the total of successfully observed records.\nAn observer failure of any BaseException stops traversal and propagates the identical\nobject. audit runs exactly once after traversal, with the total of observations that\nreturned successfully (excluding a failed observation). Empty batches audit zero.\nAudit failures propagate; if both callbacks fail, the audit failure takes precedence.\nDefault callbacks have no effects. Preserve public signatures and immutable models.\n\nRun python -B checks.py for the existing import smoke. It is intentionally narrow;\nthe public contract applies to all batches, including invalid and empty inputs.\n",
+      "models.py": "\"\"\"Immutable input records for a small batch importer.\"\"\"\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Record:\n    key: str\n    amount: int\n\n\n@dataclass(frozen=True)\nclass Policy:\n    multiplier: int = 1\n    prefix: str = \"\"\n\n\ndef validate(records: list[Record]) -> None:\n    \"\"\"Validate the complete batch before any observer is invoked.\"\"\"\n    seen: set[str] = set()\n    for record in records:\n        if not record.key or record.key != record.key.strip():\n            raise ValueError(\"invalid key\")\n        if record.key in seen:\n            raise ValueError(\"duplicate key\")\n        if type(record.amount) is not int or record.amount < 0:\n            raise ValueError(\"invalid amount\")\n        seen.add(record.key)\n\n\ndef validate_policy(policy: Policy) -> None:\n    \"\"\"Zero is a legitimate multiplier; booleans are not integers here.\"\"\"\n    if type(policy.multiplier) is not int or policy.multiplier < 0:\n        raise ValueError(\"invalid multiplier\")\n    if policy.prefix != policy.prefix.strip():\n        raise ValueError(\"invalid prefix\")\n",
+      "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return policy\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.prefix + record.key, record.amount * selected.multiplier)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large amounts.\"\"\"\n    return sum(record.amount for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef amount_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(missing_key)\n    return record.amount\n",
+      "api.py": "\"\"\"Batch import entry point with explicit observer and audit boundaries.\"\"\"\nfrom collections.abc import Callable\nfrom models import Policy, Record\nfrom transform import convert, summarize\n\nObserver = Callable[[Record], None]\nAudit = Callable[[int], None]\n\n\ndef ignore_record(record: Record) -> None:\n    \"\"\"Default observer accepts every normalized record.\"\"\"\n    pass\n\n\ndef ignore_total(total: int) -> None:\n    \"\"\"Default audit has no side effects.\"\"\"\n    pass\n\n\ndef import_batch(\n    records: list[Record],\n    policy: Policy | None = None,\n    observer: Observer = ignore_record,\n    audit: Audit = ignore_total,\n) -> int:\n    \"\"\"Normalize first, observe in order, and always audit observed progress.\"\"\"\n    normalized = convert(records, policy)\n    completed: list[Record] = []\n    try:\n        for record in normalized:\n            observer(record)\n            completed.append(record)\n    finally:\n        audit(summarize(completed))\n        return summarize(completed)\n\n\ndef preview(records: list[Record], policy: Policy | None = None) -> tuple[str, ...]:\n    \"\"\"Preview performs the same validation without observer or audit calls.\"\"\"\n    return tuple(record.key for record in convert(records, policy))\n",
+      "checks.py": "import api\nprint(\"public import smoke passed\")\n",
+      "coworker_notes.txt": "Teammate draft: preserve byte-for-byte.\n"
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- README.md models.py transform.py api.py checks.py coworker_notes.txt && git commit -qm 'frozen fixture baseline'",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "models.py",
+        "transform.py",
+        "api.py"
+      ],
+      "required_files": [
+        "README.md",
+        "models.py",
+        "transform.py",
+        "api.py",
+        "checks.py",
+        "coworker_notes.txt"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "engineering-stdlib-repository",
+      "difficulty": "complex",
+      "skill_dimensions": [
+        "integration",
+        "callback-failure",
+        "typed-defaults",
+        "edge-validation"
+      ],
+      "split": "development",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true,
+      "tool_value_controls": {
+        "all_fixed_sources": {
+          "models.py": "\"\"\"Immutable input records for a small batch importer.\"\"\"\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Record:\n    key: str\n    amount: int\n\n\n@dataclass(frozen=True)\nclass Policy:\n    multiplier: int = 1\n    prefix: str = \"\"\n\n\ndef validate(records: list[Record]) -> None:\n    \"\"\"Validate the complete batch before any observer is invoked.\"\"\"\n    seen: set[str] = set()\n    for record in records:\n        if not record.key or record.key != record.key.strip():\n            raise ValueError(\"invalid key\")\n        if record.key in seen:\n            raise ValueError(\"duplicate key\")\n        if type(record.amount) is not int or record.amount < 0:\n            raise ValueError(\"invalid amount\")\n        seen.add(record.key)\n\n\ndef validate_policy(policy: Policy) -> None:\n    \"\"\"Zero is a legitimate multiplier; booleans are not integers here.\"\"\"\n    if type(policy.multiplier) is not int or policy.multiplier < 0:\n        raise ValueError(\"invalid multiplier\")\n    if policy.prefix != policy.prefix.strip():\n        raise ValueError(\"invalid prefix\")\n",
+          "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return Policy()\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.prefix + record.key, record.amount * selected.multiplier)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large amounts.\"\"\"\n    return sum(record.amount for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef amount_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(key)\n    return record.amount\n",
+          "api.py": "\"\"\"Batch import entry point with explicit observer and audit boundaries.\"\"\"\nfrom collections.abc import Callable\nfrom models import Policy, Record\nfrom transform import convert, summarize\n\nObserver = Callable[[Record], None]\nAudit = Callable[[int], None]\n\n\ndef ignore_record(record: Record) -> None:\n    \"\"\"Default observer accepts every normalized record.\"\"\"\n    pass\n\n\ndef ignore_total(total: int) -> None:\n    \"\"\"Default audit has no side effects.\"\"\"\n    pass\n\n\ndef import_batch(\n    records: list[Record],\n    policy: Policy | None = None,\n    observer: Observer = ignore_record,\n    audit: Audit = ignore_total,\n) -> int:\n    \"\"\"Normalize first, observe in order, and always audit observed progress.\"\"\"\n    normalized = convert(records, policy)\n    completed: list[Record] = []\n    try:\n        for record in normalized:\n            observer(record)\n            completed.append(record)\n    finally:\n        audit(summarize(completed))\n    return summarize(completed)\n\n\ndef preview(records: list[Record], policy: Policy | None = None) -> tuple[str, ...]:\n    \"\"\"Preview performs the same validation without observer or audit calls.\"\"\"\n    return tuple(record.key for record in convert(records, policy))\n"
+        },
+        "single_fix_matrix": {
+          "missing_key": {
+            "sources": {
+              "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return policy\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.prefix + record.key, record.amount * selected.multiplier)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large amounts.\"\"\"\n    return sum(record.amount for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef amount_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(key)\n    return record.amount\n"
+            },
+            "passing_groups": [
+              "feature_missing_key",
+              "regression_contract"
+            ],
+            "failing_groups": [
+              "feature_callback_error",
+              "feature_default_policy"
+            ]
+          },
+          "callback_error": {
+            "sources": {
+              "api.py": "\"\"\"Batch import entry point with explicit observer and audit boundaries.\"\"\"\nfrom collections.abc import Callable\nfrom models import Policy, Record\nfrom transform import convert, summarize\n\nObserver = Callable[[Record], None]\nAudit = Callable[[int], None]\n\n\ndef ignore_record(record: Record) -> None:\n    \"\"\"Default observer accepts every normalized record.\"\"\"\n    pass\n\n\ndef ignore_total(total: int) -> None:\n    \"\"\"Default audit has no side effects.\"\"\"\n    pass\n\n\ndef import_batch(\n    records: list[Record],\n    policy: Policy | None = None,\n    observer: Observer = ignore_record,\n    audit: Audit = ignore_total,\n) -> int:\n    \"\"\"Normalize first, observe in order, and always audit observed progress.\"\"\"\n    normalized = convert(records, policy)\n    completed: list[Record] = []\n    try:\n        for record in normalized:\n            observer(record)\n            completed.append(record)\n    finally:\n        audit(summarize(completed))\n    return summarize(completed)\n\n\ndef preview(records: list[Record], policy: Policy | None = None) -> tuple[str, ...]:\n    \"\"\"Preview performs the same validation without observer or audit calls.\"\"\"\n    return tuple(record.key for record in convert(records, policy))\n"
+            },
+            "passing_groups": [
+              "feature_callback_error",
+              "regression_contract"
+            ],
+            "failing_groups": [
+              "feature_missing_key",
+              "feature_default_policy"
+            ]
+          },
+          "default_policy": {
+            "sources": {
+              "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return Policy()\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.prefix + record.key, record.amount * selected.multiplier)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large amounts.\"\"\"\n    return sum(record.amount for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef amount_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(missing_key)\n    return record.amount\n"
+            },
+            "passing_groups": [
+              "feature_default_policy",
+              "regression_contract"
+            ],
+            "failing_groups": [
+              "feature_missing_key",
+              "feature_callback_error"
+            ]
+          }
+        }
+      },
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "checks.py",
+        "write_content": "import api\nprint(\"public import smoke passed\")\n",
+        "golden_files": {
+          "models.py": "\"\"\"Immutable input records for a small batch importer.\"\"\"\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Record:\n    key: str\n    amount: int\n\n\n@dataclass(frozen=True)\nclass Policy:\n    multiplier: int = 1\n    prefix: str = \"\"\n\n\ndef validate(records: list[Record]) -> None:\n    \"\"\"Validate the complete batch before any observer is invoked.\"\"\"\n    seen: set[str] = set()\n    for record in records:\n        if not record.key or record.key != record.key.strip():\n            raise ValueError(\"invalid key\")\n        if record.key in seen:\n            raise ValueError(\"duplicate key\")\n        if type(record.amount) is not int or record.amount < 0:\n            raise ValueError(\"invalid amount\")\n        seen.add(record.key)\n\n\ndef validate_policy(policy: Policy) -> None:\n    \"\"\"Zero is a legitimate multiplier; booleans are not integers here.\"\"\"\n    if type(policy.multiplier) is not int or policy.multiplier < 0:\n        raise ValueError(\"invalid multiplier\")\n    if policy.prefix != policy.prefix.strip():\n        raise ValueError(\"invalid prefix\")\n",
+          "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return Policy()\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.prefix + record.key, record.amount * selected.multiplier)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large amounts.\"\"\"\n    return sum(record.amount for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef amount_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(key)\n    return record.amount\n",
+          "api.py": "\"\"\"Batch import entry point with explicit observer and audit boundaries.\"\"\"\nfrom collections.abc import Callable\nfrom models import Policy, Record\nfrom transform import convert, summarize\n\nObserver = Callable[[Record], None]\nAudit = Callable[[int], None]\n\n\ndef ignore_record(record: Record) -> None:\n    \"\"\"Default observer accepts every normalized record.\"\"\"\n    pass\n\n\ndef ignore_total(total: int) -> None:\n    \"\"\"Default audit has no side effects.\"\"\"\n    pass\n\n\ndef import_batch(\n    records: list[Record],\n    policy: Policy | None = None,\n    observer: Observer = ignore_record,\n    audit: Audit = ignore_total,\n) -> int:\n    \"\"\"Normalize first, observe in order, and always audit observed progress.\"\"\"\n    normalized = convert(records, policy)\n    completed: list[Record] = []\n    try:\n        for record in normalized:\n            observer(record)\n            completed.append(record)\n    finally:\n        audit(summarize(completed))\n    return summarize(completed)\n\n\ndef preview(records: list[Record], policy: Policy | None = None) -> tuple[str, ...]:\n    \"\"\"Preview performs the same validation without observer or audit calls.\"\"\"\n    return tuple(record.key for record in convert(records, policy))\n"
+        },
+        "required_paths": [
+          "README.md",
+          "models.py",
+          "transform.py",
+          "api.py",
+          "checks.py",
+          "coworker_notes.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_groups": {
+          "feature_missing_key": "from models import Record\nfrom transform import amount_for\nfor records in ([], [Record(\"a\", 0)], [Record(\"a\", 10**80), Record(\"b\", 2)]):\n    for key in (\"absent\", \"A\", \"\"):\n        try: amount_for(records, key)\n        except KeyError as error: assert error.args == (key,)\n        else: raise AssertionError(\"missing key accepted\")\nassert amount_for([Record(\"a\", 0)], \"a\") == 0\n",
+          "feature_callback_error": "from api import import_batch\nfrom models import Record, Policy\nclass Stop(BaseException): pass\nfor error in (RuntimeError(\"observer\"), Stop(\"cancel\")):\n    seen = []; audits = []\n    def observe(record):\n        seen.append(record)\n        if record.key == \"xb\": raise error\n    try: import_batch([Record(\"a\", 3), Record(\"b\", 5), Record(\"c\", 7)], Policy(2,\"x\"), observe, audits.append)\n    except BaseException as caught: assert caught is error\n    else: raise AssertionError(\"callback failure suppressed\")\n    assert seen == [Record(\"xa\",6), Record(\"xb\",10)]\n    assert audits == [6]\n",
+          "feature_default_policy": "from models import Record\nfrom transform import convert\nfrom api import import_batch, preview\nfor records in ([], [Record(\"a\",0)], [Record(\"a\",4),Record(\"b\",10**70)]):\n    assert convert(records) == records\n    assert preview(records) == tuple(r.key for r in records)\n    assert import_batch(records) == sum(r.amount for r in records)\n",
+          "regression_contract": "from models import Record, Policy\nfrom transform import convert, amount_for\nfrom api import import_batch, preview\nrecords=[Record(\"b\",3),Record(\"a\",0)]\nseen=[]; audits=[]\nassert import_batch(records, Policy(2,\"x\"), seen.append, audits.append)==6\nassert seen==[Record(\"xb\",6),Record(\"xa\",0)] and audits==[6]\nassert records==[Record(\"b\",3),Record(\"a\",0)]\nassert convert(records,Policy(0))==[Record(\"b\",0),Record(\"a\",0)]\nassert preview(records,Policy(1,\"p\"))==(\"pb\",\"pa\")\nfor bad in ([Record(\"\",1)],[Record(\" a\",1)],[Record(\"a\",-1)],[Record(\"a\",True)],[Record(\"a\",1),Record(\"a\",2)]):\n    seen=[]; audits=[]\n    try: import_batch(bad,Policy(),seen.append,audits.append)\n    except ValueError: pass\n    else: raise AssertionError(\"invalid batch\")\n    assert seen==[] and audits==[]\nfor bad in (Policy(-1),Policy(True),Policy(1,\" x\")):\n    try: convert(records,bad)\n    except ValueError: pass\n    else: raise AssertionError(\"invalid policy\")\nerror=RuntimeError(\"audit\")\ndef fail(total): raise error\ntry: import_batch(records,Policy(),audit=fail)\nexcept RuntimeError as caught: assert caught is error\nelse: raise AssertionError(\"audit error suppressed\")\n"
+        },
+        "heldout_test": "assert True\n"
+      }
+    }
+  },
+  {
+    "id": "tool-value-import-clean",
+    "input": "Inspect the batch importer and repair any violations of its documented correctness contract. Read README.md, preserve public interfaces and already correct behavior, and leave the coworker draft untouched. Only models.py, transform.py, and api.py may change. Use Python stdlib without package installation. Run appropriate checks and report what passed.",
+    "target": "Meet the documented importer contract while preserving correct code.",
+    "files": {
+      "README.md": "Batch importer public contract\n\nKeys and prefixes are strings; batches, records, policies and callbacks use the\ndeclared structural types. Non-string keys/prefixes and arbitrary malformed objects\nare outside this contract. Amount/multiplier validation still includes wrong\nnumeric types and booleans, which must raise ValueError as documented below.\n\nmodels.Record(key, amount) and Policy(multiplier=1, prefix=\"\") are immutable.\nKeys must be nonempty and already stripped; duplicate keys are invalid. Amounts\nand multipliers are nonnegative integers excluding bool, with no upper bound.\nPrefixes must be already stripped. Invalid records or policies raise ValueError\nbefore callbacks. None selects the identity policy, including for empty batches.\ntransform.convert returns fresh records in input order, applying prefix and\nmultiplier without changing its input. summarize returns an exact integer total.\nfind returns a matching Record or None; amount_for returns its integer amount\n(including zero) or raises KeyError whose argument is the requested key.\napi.preview returns normalized keys as a tuple and invokes no callbacks.\napi.import_batch validates and converts the whole batch, calls observer once per\nnormalized record in order, and returns the total of successfully observed records.\nAn observer failure of any BaseException stops traversal and propagates the identical\nobject. audit runs exactly once after traversal, with the total of observations that\nreturned successfully (excluding a failed observation). Empty batches audit zero.\nAudit failures propagate; if both callbacks fail, the audit failure takes precedence.\nDefault callbacks have no effects. Preserve public signatures and immutable models.\n\nRun python -B checks.py for the existing import smoke. It is intentionally narrow;\nthe public contract applies to all batches, including invalid and empty inputs.\n",
+      "models.py": "\"\"\"Immutable input records for a small batch importer.\"\"\"\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Record:\n    key: str\n    amount: int\n\n\n@dataclass(frozen=True)\nclass Policy:\n    multiplier: int = 1\n    prefix: str = \"\"\n\n\ndef validate(records: list[Record]) -> None:\n    \"\"\"Validate the complete batch before any observer is invoked.\"\"\"\n    seen: set[str] = set()\n    for record in records:\n        if not record.key or record.key != record.key.strip():\n            raise ValueError(\"invalid key\")\n        if record.key in seen:\n            raise ValueError(\"duplicate key\")\n        if type(record.amount) is not int or record.amount < 0:\n            raise ValueError(\"invalid amount\")\n        seen.add(record.key)\n\n\ndef validate_policy(policy: Policy) -> None:\n    \"\"\"Zero is a legitimate multiplier; booleans are not integers here.\"\"\"\n    if type(policy.multiplier) is not int or policy.multiplier < 0:\n        raise ValueError(\"invalid multiplier\")\n    if policy.prefix != policy.prefix.strip():\n        raise ValueError(\"invalid prefix\")\n",
+      "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return Policy()\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.prefix + record.key, record.amount * selected.multiplier)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large amounts.\"\"\"\n    return sum(record.amount for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef amount_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(key)\n    return record.amount\n",
+      "api.py": "\"\"\"Batch import entry point with explicit observer and audit boundaries.\"\"\"\nfrom collections.abc import Callable\nfrom models import Policy, Record\nfrom transform import convert, summarize\n\nObserver = Callable[[Record], None]\nAudit = Callable[[int], None]\n\n\ndef ignore_record(record: Record) -> None:\n    \"\"\"Default observer accepts every normalized record.\"\"\"\n    pass\n\n\ndef ignore_total(total: int) -> None:\n    \"\"\"Default audit has no side effects.\"\"\"\n    pass\n\n\ndef import_batch(\n    records: list[Record],\n    policy: Policy | None = None,\n    observer: Observer = ignore_record,\n    audit: Audit = ignore_total,\n) -> int:\n    \"\"\"Normalize first, observe in order, and always audit observed progress.\"\"\"\n    normalized = convert(records, policy)\n    completed: list[Record] = []\n    try:\n        for record in normalized:\n            observer(record)\n            completed.append(record)\n    finally:\n        audit(summarize(completed))\n    return summarize(completed)\n\n\ndef preview(records: list[Record], policy: Policy | None = None) -> tuple[str, ...]:\n    \"\"\"Preview performs the same validation without observer or audit calls.\"\"\"\n    return tuple(record.key for record in convert(records, policy))\n",
+      "checks.py": "import api\nprint(\"public import smoke passed\")\n",
+      "coworker_notes.txt": "Teammate draft: preserve byte-for-byte.\n"
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- README.md models.py transform.py api.py checks.py coworker_notes.txt && git commit -qm 'frozen fixture baseline'",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "models.py",
+        "transform.py",
+        "api.py"
+      ],
+      "required_files": [
+        "README.md",
+        "models.py",
+        "transform.py",
+        "api.py",
+        "checks.py",
+        "coworker_notes.txt"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "engineering-stdlib-repository",
+      "difficulty": "complex",
+      "skill_dimensions": [
+        "integration",
+        "callback-failure",
+        "typed-defaults",
+        "edge-validation"
+      ],
+      "split": "development",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true,
+      "tool_value_controls": {
+        "all_fixed_sources": {
+          "models.py": "\"\"\"Immutable input records for a small batch importer.\"\"\"\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Record:\n    key: str\n    amount: int\n\n\n@dataclass(frozen=True)\nclass Policy:\n    multiplier: int = 1\n    prefix: str = \"\"\n\n\ndef validate(records: list[Record]) -> None:\n    \"\"\"Validate the complete batch before any observer is invoked.\"\"\"\n    seen: set[str] = set()\n    for record in records:\n        if not record.key or record.key != record.key.strip():\n            raise ValueError(\"invalid key\")\n        if record.key in seen:\n            raise ValueError(\"duplicate key\")\n        if type(record.amount) is not int or record.amount < 0:\n            raise ValueError(\"invalid amount\")\n        seen.add(record.key)\n\n\ndef validate_policy(policy: Policy) -> None:\n    \"\"\"Zero is a legitimate multiplier; booleans are not integers here.\"\"\"\n    if type(policy.multiplier) is not int or policy.multiplier < 0:\n        raise ValueError(\"invalid multiplier\")\n    if policy.prefix != policy.prefix.strip():\n        raise ValueError(\"invalid prefix\")\n",
+          "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return Policy()\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.prefix + record.key, record.amount * selected.multiplier)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large amounts.\"\"\"\n    return sum(record.amount for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef amount_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(key)\n    return record.amount\n",
+          "api.py": "\"\"\"Batch import entry point with explicit observer and audit boundaries.\"\"\"\nfrom collections.abc import Callable\nfrom models import Policy, Record\nfrom transform import convert, summarize\n\nObserver = Callable[[Record], None]\nAudit = Callable[[int], None]\n\n\ndef ignore_record(record: Record) -> None:\n    \"\"\"Default observer accepts every normalized record.\"\"\"\n    pass\n\n\ndef ignore_total(total: int) -> None:\n    \"\"\"Default audit has no side effects.\"\"\"\n    pass\n\n\ndef import_batch(\n    records: list[Record],\n    policy: Policy | None = None,\n    observer: Observer = ignore_record,\n    audit: Audit = ignore_total,\n) -> int:\n    \"\"\"Normalize first, observe in order, and always audit observed progress.\"\"\"\n    normalized = convert(records, policy)\n    completed: list[Record] = []\n    try:\n        for record in normalized:\n            observer(record)\n            completed.append(record)\n    finally:\n        audit(summarize(completed))\n    return summarize(completed)\n\n\ndef preview(records: list[Record], policy: Policy | None = None) -> tuple[str, ...]:\n    \"\"\"Preview performs the same validation without observer or audit calls.\"\"\"\n    return tuple(record.key for record in convert(records, policy))\n"
+        },
+        "single_fix_matrix": {
+          "missing_key": {
+            "sources": {
+              "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return Policy()\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.prefix + record.key, record.amount * selected.multiplier)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large amounts.\"\"\"\n    return sum(record.amount for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef amount_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(key)\n    return record.amount\n"
+            },
+            "passing_groups": [
+              "feature_missing_key",
+              "feature_callback_error",
+              "feature_default_policy",
+              "regression_contract"
+            ],
+            "failing_groups": []
+          },
+          "callback_error": {
+            "sources": {
+              "api.py": "\"\"\"Batch import entry point with explicit observer and audit boundaries.\"\"\"\nfrom collections.abc import Callable\nfrom models import Policy, Record\nfrom transform import convert, summarize\n\nObserver = Callable[[Record], None]\nAudit = Callable[[int], None]\n\n\ndef ignore_record(record: Record) -> None:\n    \"\"\"Default observer accepts every normalized record.\"\"\"\n    pass\n\n\ndef ignore_total(total: int) -> None:\n    \"\"\"Default audit has no side effects.\"\"\"\n    pass\n\n\ndef import_batch(\n    records: list[Record],\n    policy: Policy | None = None,\n    observer: Observer = ignore_record,\n    audit: Audit = ignore_total,\n) -> int:\n    \"\"\"Normalize first, observe in order, and always audit observed progress.\"\"\"\n    normalized = convert(records, policy)\n    completed: list[Record] = []\n    try:\n        for record in normalized:\n            observer(record)\n            completed.append(record)\n    finally:\n        audit(summarize(completed))\n    return summarize(completed)\n\n\ndef preview(records: list[Record], policy: Policy | None = None) -> tuple[str, ...]:\n    \"\"\"Preview performs the same validation without observer or audit calls.\"\"\"\n    return tuple(record.key for record in convert(records, policy))\n"
+            },
+            "passing_groups": [
+              "feature_missing_key",
+              "feature_callback_error",
+              "feature_default_policy",
+              "regression_contract"
+            ],
+            "failing_groups": []
+          },
+          "default_policy": {
+            "sources": {
+              "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return Policy()\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.prefix + record.key, record.amount * selected.multiplier)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large amounts.\"\"\"\n    return sum(record.amount for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef amount_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(key)\n    return record.amount\n"
+            },
+            "passing_groups": [
+              "feature_missing_key",
+              "feature_callback_error",
+              "feature_default_policy",
+              "regression_contract"
+            ],
+            "failing_groups": []
+          }
+        }
+      },
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "checks.py",
+        "write_content": "import api\nprint(\"public import smoke passed\")\n",
+        "golden_files": {
+          "models.py": "\"\"\"Immutable input records for a small batch importer.\"\"\"\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Record:\n    key: str\n    amount: int\n\n\n@dataclass(frozen=True)\nclass Policy:\n    multiplier: int = 1\n    prefix: str = \"\"\n\n\ndef validate(records: list[Record]) -> None:\n    \"\"\"Validate the complete batch before any observer is invoked.\"\"\"\n    seen: set[str] = set()\n    for record in records:\n        if not record.key or record.key != record.key.strip():\n            raise ValueError(\"invalid key\")\n        if record.key in seen:\n            raise ValueError(\"duplicate key\")\n        if type(record.amount) is not int or record.amount < 0:\n            raise ValueError(\"invalid amount\")\n        seen.add(record.key)\n\n\ndef validate_policy(policy: Policy) -> None:\n    \"\"\"Zero is a legitimate multiplier; booleans are not integers here.\"\"\"\n    if type(policy.multiplier) is not int or policy.multiplier < 0:\n        raise ValueError(\"invalid multiplier\")\n    if policy.prefix != policy.prefix.strip():\n        raise ValueError(\"invalid prefix\")\n",
+          "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return Policy()\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.prefix + record.key, record.amount * selected.multiplier)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large amounts.\"\"\"\n    return sum(record.amount for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef amount_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(key)\n    return record.amount\n",
+          "api.py": "\"\"\"Batch import entry point with explicit observer and audit boundaries.\"\"\"\nfrom collections.abc import Callable\nfrom models import Policy, Record\nfrom transform import convert, summarize\n\nObserver = Callable[[Record], None]\nAudit = Callable[[int], None]\n\n\ndef ignore_record(record: Record) -> None:\n    \"\"\"Default observer accepts every normalized record.\"\"\"\n    pass\n\n\ndef ignore_total(total: int) -> None:\n    \"\"\"Default audit has no side effects.\"\"\"\n    pass\n\n\ndef import_batch(\n    records: list[Record],\n    policy: Policy | None = None,\n    observer: Observer = ignore_record,\n    audit: Audit = ignore_total,\n) -> int:\n    \"\"\"Normalize first, observe in order, and always audit observed progress.\"\"\"\n    normalized = convert(records, policy)\n    completed: list[Record] = []\n    try:\n        for record in normalized:\n            observer(record)\n            completed.append(record)\n    finally:\n        audit(summarize(completed))\n    return summarize(completed)\n\n\ndef preview(records: list[Record], policy: Policy | None = None) -> tuple[str, ...]:\n    \"\"\"Preview performs the same validation without observer or audit calls.\"\"\"\n    return tuple(record.key for record in convert(records, policy))\n"
+        },
+        "required_paths": [
+          "README.md",
+          "models.py",
+          "transform.py",
+          "api.py",
+          "checks.py",
+          "coworker_notes.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_groups": {
+          "feature_missing_key": "from models import Record\nfrom transform import amount_for\nfor records in ([], [Record(\"a\", 0)], [Record(\"a\", 10**80), Record(\"b\", 2)]):\n    for key in (\"absent\", \"A\", \"\"):\n        try: amount_for(records, key)\n        except KeyError as error: assert error.args == (key,)\n        else: raise AssertionError(\"missing key accepted\")\nassert amount_for([Record(\"a\", 0)], \"a\") == 0\n",
+          "feature_callback_error": "from api import import_batch\nfrom models import Record, Policy\nclass Stop(BaseException): pass\nfor error in (RuntimeError(\"observer\"), Stop(\"cancel\")):\n    seen = []; audits = []\n    def observe(record):\n        seen.append(record)\n        if record.key == \"xb\": raise error\n    try: import_batch([Record(\"a\", 3), Record(\"b\", 5), Record(\"c\", 7)], Policy(2,\"x\"), observe, audits.append)\n    except BaseException as caught: assert caught is error\n    else: raise AssertionError(\"callback failure suppressed\")\n    assert seen == [Record(\"xa\",6), Record(\"xb\",10)]\n    assert audits == [6]\n",
+          "feature_default_policy": "from models import Record\nfrom transform import convert\nfrom api import import_batch, preview\nfor records in ([], [Record(\"a\",0)], [Record(\"a\",4),Record(\"b\",10**70)]):\n    assert convert(records) == records\n    assert preview(records) == tuple(r.key for r in records)\n    assert import_batch(records) == sum(r.amount for r in records)\n",
+          "regression_contract": "from models import Record, Policy\nfrom transform import convert, amount_for\nfrom api import import_batch, preview\nrecords=[Record(\"b\",3),Record(\"a\",0)]\nseen=[]; audits=[]\nassert import_batch(records, Policy(2,\"x\"), seen.append, audits.append)==6\nassert seen==[Record(\"xb\",6),Record(\"xa\",0)] and audits==[6]\nassert records==[Record(\"b\",3),Record(\"a\",0)]\nassert convert(records,Policy(0))==[Record(\"b\",0),Record(\"a\",0)]\nassert preview(records,Policy(1,\"p\"))==(\"pb\",\"pa\")\nfor bad in ([Record(\"\",1)],[Record(\" a\",1)],[Record(\"a\",-1)],[Record(\"a\",True)],[Record(\"a\",1),Record(\"a\",2)]):\n    seen=[]; audits=[]\n    try: import_batch(bad,Policy(),seen.append,audits.append)\n    except ValueError: pass\n    else: raise AssertionError(\"invalid batch\")\n    assert seen==[] and audits==[]\nfor bad in (Policy(-1),Policy(True),Policy(1,\" x\")):\n    try: convert(records,bad)\n    except ValueError: pass\n    else: raise AssertionError(\"invalid policy\")\nerror=RuntimeError(\"audit\")\ndef fail(total): raise error\ntry: import_batch(records,Policy(),audit=fail)\nexcept RuntimeError as caught: assert caught is error\nelse: raise AssertionError(\"audit error suppressed\")\n"
+        },
+        "heldout_test": "assert True\n"
+      }
+    }
+  },
+  {
+    "id": "tool-value-import-holdout",
+    "input": "Inspect the batch importer and repair any violations of its documented correctness contract. Read README.md, preserve public interfaces and already correct behavior, and leave the coworker draft untouched. Only models.py, transform.py, and api.py may change. Use Python stdlib without package installation. Run appropriate checks and report what passed.",
+    "target": "Meet the documented importer contract while preserving correct code.",
+    "files": {
+      "README.md": "Batch importer public contract\n\nKeys and prefixes are strings; batches, records, policies and callbacks use the\ndeclared structural types. Non-string keys/prefixes and arbitrary malformed objects\nare outside this contract. Amount/multiplier validation still includes wrong\nnumeric types and booleans, which must raise ValueError as documented below.\n\nmodels.Record(key, units) and Policy(factor=1, namespace=\"\") are immutable.\nKeys must be nonempty and already stripped; duplicate keys are invalid. Amounts\nand factors are nonnegative integers excluding bool, with no upper bound.\nPrefixes must be already stripped. Invalid records or policies raise ValueError\nbefore callbacks. None selects the identity policy, including for empty batches.\ntransform.convert returns fresh records in input order, applying namespace and\nfactor without changing its input. summarize returns an exact integer total.\nfind returns a matching Record or None; units_for returns its integer units\n(including zero) or raises KeyError whose argument is the requested key.\napi.preview returns normalized keys as a tuple and invokes no callbacks.\napi.import_batch validates and converts the whole batch, calls observer once per\nnormalized record in order, and returns the total of successfully observed records.\nAn observer failure of any BaseException stops traversal and propagates the identical\nobject. audit runs exactly once after traversal, with the total of observations that\nreturned successfully (excluding a failed observation). Empty batches audit zero.\nAudit failures propagate; if both callbacks fail, the audit failure takes precedence.\nDefault callbacks have no effects. Preserve public signatures and immutable models.\n\nRun python -B checks.py for the existing import smoke. It is intentionally narrow;\nthe public contract applies to all batches, including invalid and empty inputs.\n",
+      "models.py": "\"\"\"Immutable input records for a small batch importer.\"\"\"\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Record:\n    key: str\n    units: int\n\n\n@dataclass(frozen=True)\nclass Policy:\n    factor: int = 1\n    namespace: str = \"\"\n\n\ndef validate(records: list[Record]) -> None:\n    \"\"\"Validate the complete batch before any observer is invoked.\"\"\"\n    seen: set[str] = set()\n    for record in records:\n        if not record.key or record.key != record.key.strip():\n            raise ValueError(\"invalid key\")\n        if record.key in seen:\n            raise ValueError(\"duplicate key\")\n        if type(record.units) is not int or record.units < 0:\n            raise ValueError(\"invalid units\")\n        seen.add(record.key)\n\n\ndef validate_policy(policy: Policy) -> None:\n    \"\"\"Zero is a legitimate factor; booleans are not integers here.\"\"\"\n    if type(policy.factor) is not int or policy.factor < 0:\n        raise ValueError(\"invalid factor\")\n    if policy.namespace != policy.namespace.strip():\n        raise ValueError(\"invalid namespace\")\n",
+      "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return policy\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.namespace + record.key, record.units * selected.factor)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large unitss.\"\"\"\n    return sum(record.units for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef units_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(missing_key)\n    return record.units\n",
+      "api.py": "\"\"\"Batch import entry point with explicit observer and audit boundaries.\"\"\"\nfrom collections.abc import Callable\nfrom models import Policy, Record\nfrom transform import convert, summarize\n\nObserver = Callable[[Record], None]\nAudit = Callable[[int], None]\n\n\ndef ignore_record(record: Record) -> None:\n    \"\"\"Default observer accepts every normalized record.\"\"\"\n    pass\n\n\ndef ignore_total(total: int) -> None:\n    \"\"\"Default audit has no side effects.\"\"\"\n    pass\n\n\ndef import_batch(\n    records: list[Record],\n    policy: Policy | None = None,\n    observer: Observer = ignore_record,\n    audit: Audit = ignore_total,\n) -> int:\n    \"\"\"Normalize first, observe in order, and always audit observed progress.\"\"\"\n    normalized = convert(records, policy)\n    completed: list[Record] = []\n    try:\n        for record in normalized:\n            observer(record)\n            completed.append(record)\n    finally:\n        audit(summarize(completed))\n        return summarize(completed)\n\n\ndef preview(records: list[Record], policy: Policy | None = None) -> tuple[str, ...]:\n    \"\"\"Preview performs the same validation without observer or audit calls.\"\"\"\n    return tuple(record.key for record in convert(records, policy))\n",
+      "checks.py": "import api\nprint(\"public import smoke passed\")\n",
+      "coworker_notes.txt": "Teammate draft: preserve byte-for-byte.\n"
+    },
+    "setup": "git init -q && git config user.name 'Synthetic Fixture' && git config user.email 'fixture@example.invalid' && git add -- README.md models.py transform.py api.py checks.py coworker_notes.txt && git commit -qm 'frozen fixture baseline'",
+    "metadata": {
+      "allow_changes": true,
+      "response_required": true,
+      "allowed_paths": [
+        "models.py",
+        "transform.py",
+        "api.py"
+      ],
+      "required_files": [
+        "README.md",
+        "models.py",
+        "transform.py",
+        "api.py",
+        "checks.py",
+        "coworker_notes.txt"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "optional_skills": [
+        "systematic-debugging"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "current-inputs-inspected",
+        "claim-matches-observed-outcome"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_kind": "engineering-stdlib-repository",
+      "difficulty": "complex",
+      "skill_dimensions": [
+        "integration",
+        "callback-failure",
+        "typed-defaults",
+        "edge-validation"
+      ],
+      "split": "holdout",
+      "required_capabilities": [
+        "workspace-read",
+        "workspace-edit",
+        "test-run"
+      ],
+      "artifact_first_review": true,
+      "tool_value_controls": {
+        "all_fixed_sources": {
+          "models.py": "\"\"\"Immutable input records for a small batch importer.\"\"\"\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Record:\n    key: str\n    units: int\n\n\n@dataclass(frozen=True)\nclass Policy:\n    factor: int = 1\n    namespace: str = \"\"\n\n\ndef validate(records: list[Record]) -> None:\n    \"\"\"Validate the complete batch before any observer is invoked.\"\"\"\n    seen: set[str] = set()\n    for record in records:\n        if not record.key or record.key != record.key.strip():\n            raise ValueError(\"invalid key\")\n        if record.key in seen:\n            raise ValueError(\"duplicate key\")\n        if type(record.units) is not int or record.units < 0:\n            raise ValueError(\"invalid units\")\n        seen.add(record.key)\n\n\ndef validate_policy(policy: Policy) -> None:\n    \"\"\"Zero is a legitimate factor; booleans are not integers here.\"\"\"\n    if type(policy.factor) is not int or policy.factor < 0:\n        raise ValueError(\"invalid factor\")\n    if policy.namespace != policy.namespace.strip():\n        raise ValueError(\"invalid namespace\")\n",
+          "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return Policy()\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.namespace + record.key, record.units * selected.factor)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large unitss.\"\"\"\n    return sum(record.units for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef units_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(key)\n    return record.units\n",
+          "api.py": "\"\"\"Batch import entry point with explicit observer and audit boundaries.\"\"\"\nfrom collections.abc import Callable\nfrom models import Policy, Record\nfrom transform import convert, summarize\n\nObserver = Callable[[Record], None]\nAudit = Callable[[int], None]\n\n\ndef ignore_record(record: Record) -> None:\n    \"\"\"Default observer accepts every normalized record.\"\"\"\n    pass\n\n\ndef ignore_total(total: int) -> None:\n    \"\"\"Default audit has no side effects.\"\"\"\n    pass\n\n\ndef import_batch(\n    records: list[Record],\n    policy: Policy | None = None,\n    observer: Observer = ignore_record,\n    audit: Audit = ignore_total,\n) -> int:\n    \"\"\"Normalize first, observe in order, and always audit observed progress.\"\"\"\n    normalized = convert(records, policy)\n    completed: list[Record] = []\n    try:\n        for record in normalized:\n            observer(record)\n            completed.append(record)\n    finally:\n        audit(summarize(completed))\n    return summarize(completed)\n\n\ndef preview(records: list[Record], policy: Policy | None = None) -> tuple[str, ...]:\n    \"\"\"Preview performs the same validation without observer or audit calls.\"\"\"\n    return tuple(record.key for record in convert(records, policy))\n"
+        },
+        "single_fix_matrix": {
+          "missing_key": {
+            "sources": {
+              "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return policy\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.namespace + record.key, record.units * selected.factor)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large unitss.\"\"\"\n    return sum(record.units for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef units_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(key)\n    return record.units\n"
+            },
+            "passing_groups": [
+              "feature_missing_key",
+              "regression_contract"
+            ],
+            "failing_groups": [
+              "feature_callback_error",
+              "feature_default_policy"
+            ]
+          },
+          "callback_error": {
+            "sources": {
+              "api.py": "\"\"\"Batch import entry point with explicit observer and audit boundaries.\"\"\"\nfrom collections.abc import Callable\nfrom models import Policy, Record\nfrom transform import convert, summarize\n\nObserver = Callable[[Record], None]\nAudit = Callable[[int], None]\n\n\ndef ignore_record(record: Record) -> None:\n    \"\"\"Default observer accepts every normalized record.\"\"\"\n    pass\n\n\ndef ignore_total(total: int) -> None:\n    \"\"\"Default audit has no side effects.\"\"\"\n    pass\n\n\ndef import_batch(\n    records: list[Record],\n    policy: Policy | None = None,\n    observer: Observer = ignore_record,\n    audit: Audit = ignore_total,\n) -> int:\n    \"\"\"Normalize first, observe in order, and always audit observed progress.\"\"\"\n    normalized = convert(records, policy)\n    completed: list[Record] = []\n    try:\n        for record in normalized:\n            observer(record)\n            completed.append(record)\n    finally:\n        audit(summarize(completed))\n    return summarize(completed)\n\n\ndef preview(records: list[Record], policy: Policy | None = None) -> tuple[str, ...]:\n    \"\"\"Preview performs the same validation without observer or audit calls.\"\"\"\n    return tuple(record.key for record in convert(records, policy))\n"
+            },
+            "passing_groups": [
+              "feature_callback_error",
+              "regression_contract"
+            ],
+            "failing_groups": [
+              "feature_missing_key",
+              "feature_default_policy"
+            ]
+          },
+          "default_policy": {
+            "sources": {
+              "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return Policy()\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.namespace + record.key, record.units * selected.factor)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large unitss.\"\"\"\n    return sum(record.units for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef units_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(missing_key)\n    return record.units\n"
+            },
+            "passing_groups": [
+              "feature_default_policy",
+              "regression_contract"
+            ],
+            "failing_groups": [
+              "feature_missing_key",
+              "feature_callback_error"
+            ]
+          }
+        }
+      },
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "checks.py",
+        "write_content": "import api\nprint(\"public import smoke passed\")\n",
+        "golden_files": {
+          "models.py": "\"\"\"Immutable input records for a small batch importer.\"\"\"\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Record:\n    key: str\n    units: int\n\n\n@dataclass(frozen=True)\nclass Policy:\n    factor: int = 1\n    namespace: str = \"\"\n\n\ndef validate(records: list[Record]) -> None:\n    \"\"\"Validate the complete batch before any observer is invoked.\"\"\"\n    seen: set[str] = set()\n    for record in records:\n        if not record.key or record.key != record.key.strip():\n            raise ValueError(\"invalid key\")\n        if record.key in seen:\n            raise ValueError(\"duplicate key\")\n        if type(record.units) is not int or record.units < 0:\n            raise ValueError(\"invalid units\")\n        seen.add(record.key)\n\n\ndef validate_policy(policy: Policy) -> None:\n    \"\"\"Zero is a legitimate factor; booleans are not integers here.\"\"\"\n    if type(policy.factor) is not int or policy.factor < 0:\n        raise ValueError(\"invalid factor\")\n    if policy.namespace != policy.namespace.strip():\n        raise ValueError(\"invalid namespace\")\n",
+          "transform.py": "\"\"\"Pure normalization, with an optional per-batch policy.\"\"\"\nfrom models import Policy, Record, validate, validate_policy\n\n\ndef resolve(policy: Policy | None) -> Policy:\n    \"\"\"Absent configuration means the default identity policy.\"\"\"\n    if policy is None:\n        return Policy()\n    validate_policy(policy)\n    return policy\n\n\ndef convert(records: list[Record], policy: Policy | None = None) -> list[Record]:\n    \"\"\"Return new records in input order without mutating the input.\"\"\"\n    validate(records)\n    selected = resolve(policy)\n    return [\n        Record(selected.namespace + record.key, record.units * selected.factor)\n        for record in records\n    ]\n\n\ndef summarize(records: list[Record]) -> int:\n    \"\"\"Use exact integers, including empty batches and very large unitss.\"\"\"\n    return sum(record.units for record in records)\n\n\ndef find(records: list[Record], key: str) -> Record | None:\n    \"\"\"Look up a record without conflating a zero value with absence.\"\"\"\n    for record in records:\n        if record.key == key:\n            return record\n    return None\n\n\ndef units_for(records: list[Record], key: str) -> int:\n    record = find(records, key)\n    if record is None:\n        raise KeyError(key)\n    return record.units\n",
+          "api.py": "\"\"\"Batch import entry point with explicit observer and audit boundaries.\"\"\"\nfrom collections.abc import Callable\nfrom models import Policy, Record\nfrom transform import convert, summarize\n\nObserver = Callable[[Record], None]\nAudit = Callable[[int], None]\n\n\ndef ignore_record(record: Record) -> None:\n    \"\"\"Default observer accepts every normalized record.\"\"\"\n    pass\n\n\ndef ignore_total(total: int) -> None:\n    \"\"\"Default audit has no side effects.\"\"\"\n    pass\n\n\ndef import_batch(\n    records: list[Record],\n    policy: Policy | None = None,\n    observer: Observer = ignore_record,\n    audit: Audit = ignore_total,\n) -> int:\n    \"\"\"Normalize first, observe in order, and always audit observed progress.\"\"\"\n    normalized = convert(records, policy)\n    completed: list[Record] = []\n    try:\n        for record in normalized:\n            observer(record)\n            completed.append(record)\n    finally:\n        audit(summarize(completed))\n    return summarize(completed)\n\n\ndef preview(records: list[Record], policy: Policy | None = None) -> tuple[str, ...]:\n    \"\"\"Preview performs the same validation without observer or audit calls.\"\"\"\n    return tuple(record.key for record in convert(records, policy))\n"
+        },
+        "required_paths": [
+          "README.md",
+          "models.py",
+          "transform.py",
+          "api.py",
+          "checks.py",
+          "coworker_notes.txt"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "checks.py"
+        ],
+        "acceptance_groups": {
+          "feature_missing_key": "from models import Record\nfrom transform import units_for\nfor records in ([], [Record(\"a\", 0)], [Record(\"a\", 10**80), Record(\"b\", 2)]):\n    for key in (\"absent\", \"A\", \"\"):\n        try: units_for(records, key)\n        except KeyError as error: assert error.args == (key,)\n        else: raise AssertionError(\"missing key accepted\")\nassert units_for([Record(\"a\", 0)], \"a\") == 0\n",
+          "feature_callback_error": "from api import import_batch\nfrom models import Record, Policy\nclass Stop(BaseException): pass\nfor error in (RuntimeError(\"observer\"), Stop(\"cancel\")):\n    seen = []; audits = []\n    def observe(record):\n        seen.append(record)\n        if record.key == \"xb\": raise error\n    try: import_batch([Record(\"a\", 3), Record(\"b\", 5), Record(\"c\", 7)], Policy(2,\"x\"), observe, audits.append)\n    except BaseException as caught: assert caught is error\n    else: raise AssertionError(\"callback failure suppressed\")\n    assert seen == [Record(\"xa\",6), Record(\"xb\",10)]\n    assert audits == [6]\n",
+          "feature_default_policy": "from models import Record\nfrom transform import convert\nfrom api import import_batch, preview\nfor records in ([], [Record(\"a\",0)], [Record(\"a\",4),Record(\"b\",10**70)]):\n    assert convert(records) == records\n    assert preview(records) == tuple(r.key for r in records)\n    assert import_batch(records) == sum(r.units for r in records)\n",
+          "regression_contract": "from models import Record, Policy\nfrom transform import convert, units_for\nfrom api import import_batch, preview\nrecords=[Record(\"b\",3),Record(\"a\",0)]\nseen=[]; audits=[]\nassert import_batch(records, Policy(2,\"x\"), seen.append, audits.append)==6\nassert seen==[Record(\"xb\",6),Record(\"xa\",0)] and audits==[6]\nassert records==[Record(\"b\",3),Record(\"a\",0)]\nassert convert(records,Policy(0))==[Record(\"b\",0),Record(\"a\",0)]\nassert preview(records,Policy(1,\"p\"))==(\"pb\",\"pa\")\nfor bad in ([Record(\"\",1)],[Record(\" a\",1)],[Record(\"a\",-1)],[Record(\"a\",True)],[Record(\"a\",1),Record(\"a\",2)]):\n    seen=[]; audits=[]\n    try: import_batch(bad,Policy(),seen.append,audits.append)\n    except ValueError: pass\n    else: raise AssertionError(\"invalid batch\")\n    assert seen==[] and audits==[]\nfor bad in (Policy(-1),Policy(True),Policy(1,\" x\")):\n    try: convert(records,bad)\n    except ValueError: pass\n    else: raise AssertionError(\"invalid policy\")\nerror=RuntimeError(\"audit\")\ndef fail(total): raise error\ntry: import_batch(records,Policy(),audit=fail)\nexcept RuntimeError as caught: assert caught is error\nelse: raise AssertionError(\"audit error suppressed\")\n"
+        },
+        "heldout_test": "assert True\n"
+      }
+    }
+  }
+]

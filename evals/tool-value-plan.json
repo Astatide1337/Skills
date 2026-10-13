@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "purpose": "Measure marginal tool value and natural activation separately, using existing Inspect tasks and independent artifact review.",
+  "policy": {
+    "arms": ["baseline", "available", "assisted"],
+    "baseline": "Same frozen skills, globals, model, fixture and native checks; supplemental adapter and runtime inaccessible.",
+    "available": "Adapter locators provided as optional capability; agent chooses whether to invoke it.",
+    "assisted": "Explicitly invoke adapter before repair; capability trial, not natural activation evidence.",
+    "primary": "Independently verified task acceptance and regression preservation",
+    "secondary": ["useful diagnostics", "missed defects", "false positives", "actual invocation", "diagnostic-to-edit linkage", "uncached input", "output tokens", "elapsed time", "setup effort", "maintenance burden"],
+    "gates": ["scope preserved", "no security or data-loss regression", "no weakened native checks", "truthful claims", "independent artifact review"],
+    "candidate_budget": {"development_calls": 12, "conditional_holdout_calls": 2, "maximum_calls": 14, "model": "explicit live-catalog selection", "effort": "identical across arms", "per_sample_seconds": 480, "paid_behavior_grader_calls": 0},
+    "repetitions": 2,
+    "orders": [["baseline", "available", "assisted"], ["assisted", "available", "baseline"]],
+    "promotion": "No universal ranking from a small pilot. A natural-use candidate must preserve quality and improve a named outcome consistently across repetitions; confirm on unchanged heldout against baseline. Assisted-only gains justify activation investigation, not automatic installation.",
+    "results": "Ignored evals/results only; no tracked Markdown reports; installed skills unchanged unless evidence supports authorized promotion.",
+    "freeze": "Acceptance, catalogs, globals, runtime, model, effort and budget frozen after independent evaluator review, before candidate calls. Defective scoring invalidates confirmatory claims; preserve every attempt.",
+    "telemetry": "Unknown remains unknown; receipts are candidate-written evidence, not authenticated correctness verdicts. Corroborate with actual command execution and independent artifacts. Separate setup/reviewer cost from candidate totals."
+  },
+  "experiments": [
+    {
+      "tool": "portable-lint",
+      "implementation": "tool_value_workflows",
+      "status": "implementation-pilot",
+      "workload": "Typed Python multi-module import processing: defect and clean development cases, reserved contract variant holdout",
+      "mechanism": "Supplemental Ruff and strict Mypy expose reachable errors missed by narrow native smoke checks.",
+      "activation": "Correctness/type-check gap after inspecting existing project checks",
+      "qualification": "Real pinned adapter diagnoses known defects; clean/all-fixed source passes; diagnostic mappings and runtime identity independently checked before live runs.",
+      "outputs": "Raw adapter receipts, native command evidence, fixed acceptance groups, retained source artifacts and blinded quality adjudication"
+    },
+    {
+      "tool": "Context7",
+      "status": "next-independent-pilot",
+      "workload": "Version-pinned integration with changed library APIs and an executable contract server",
+      "mechanism": "Reduce wrong-version API assumptions and documentation search effort.",
+      "baseline": "Same project and official documentation access without Context7",
+      "qualification": "Verify current official release/runtime/license and exact library version; one CLI or MCP transport, no duplicate search stack; network/documentation access must be supported by evaluator.",
+      "acceptance": "Real wire contract and negative cases; independently verify cited API/version claims",
+      "exclusions": "No value claim from offline synthetic documentation retrieval or merely finding a page"
+    },
+    {
+      "tool": "Serena",
+      "status": "planned",
+      "workload": "Larger repository with distributed callers, aliases and multiple execution entrypoints",
+      "baseline": "Native rg and existing language tooling",
+      "acceptance": "Correct behavior across all real callers; navigation effort and missed callers",
+      "qualification": "One read-only semantic transport; indexing setup and maintenance included"
+    },
+    {
+      "tool": "Knip",
+      "status": "planned",
+      "workload": "JS/TS removal candidates containing genuinely dead code and live dynamic/framework entrypoints",
+      "baseline": "Existing compiler/linter and caller inspection",
+      "acceptance": "Dead code removed while native build and reachable dynamic flows pass; independently judge false deletion suggestions",
+      "qualification": "Entrypoints calibrated before removal; real compatible pinned tool, no synthetic scan substitute"
+    },
+    {
+      "tool": "axe-core",
+      "status": "planned",
+      "workload": "Interactive UI with keyboard flows, modal focus and both scanner-detectable and interaction-only defects",
+      "baseline": "Identical supported browser and keyboard checks without axe",
+      "acceptance": "Actual browser journeys and independently verified accessibility fixes; clean control false alarms",
+      "qualification": "Existing supported browser transport, real adapter execution and stable runtime; scan is not full accessibility acceptance"
+    },
+    {
+      "tool": "Ponytail-derived simplification",
+      "status": "planned",
+      "workload": "Working multi-module feature with duplicated decisions, unnecessary branches and legitimate abstractions that must remain",
+      "baseline": "Same catalog with simplification guidance removed in copied snapshot only",
+      "acceptance": "Unchanged behavioral corpus plus blinded maintainability judgments; raw line counts descriptive only",
+      "qualification": "Evaluate procedure rather than inventing a Ponytail CLI; task-owned copies, no unrelated cleanup"
+    }
+  ]
+}

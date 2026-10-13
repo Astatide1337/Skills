@@ -8,7 +8,8 @@
     "compare": "frozen matched catalogs; single-component ablation after observed gap",
     "holdout": "explicit selection only after candidate frozen",
     "promotion": "Freeze acceptance and budget before trial; require behavior/authority gates, independently reviewed artifacts, improvement across matched cases and repetitions, and unchanged heldout confirmation. A quality tie is no demonstrated quality gain; do not rank individual skills from whole-catalog runs.",
-    "next_experiment": "Trial one component against an observed gap, then complementary pairs and leave-one-out removal; no automatic promotion from a saturated pilot."
+    "next_experiment": "Trial one component against an observed gap, then complementary pairs and leave-one-out removal; no automatic promotion from a saturated pilot.",
+    "tool_value_plan": "evals/tool-value-plan.json"
   },
   "tiers": {
     "smoke": "mechanics and narrow boundary checks",
@@ -201,7 +202,8 @@
       "local_suites": [
         "engineering_workflows",
         "harder_workflows",
-        "review_workflows"
+        "review_workflows",
+        "tool_value_workflows"
       ],
       "external": [
         "terminal-bench",

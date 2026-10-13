@@ -15,6 +15,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+from collections import namedtuple
 from collections.abc import Mapping
 from contextlib import contextmanager, nullcontext
 from html.parser import HTMLParser
@@ -102,6 +103,7 @@ WORKFLOW_CASES = Path(__file__).parent / "cases" / "workflows.json"
 COMPARISON_CASES = Path(__file__).parent / "cases" / "skills-comparison.json"
 HARDER_CASES = Path(__file__).parent / "cases" / "harder.json"
 REVIEWS_CASES = Path(__file__).parent / "cases" / "reviews.json"
+TOOL_VALUE_CASES = Path(__file__).parent / "cases" / "tool-value.json"
 ENGINEERING_CASES = Path(__file__).parent / "cases" / "engineering.json"
 GLOBAL_INSTRUCTIONS = REPO_ROOT / "global-instructions" / "AGENTS.md"
 GRADE_SCHEMA = Path(__file__).parent / "grade-schema.json"
@@ -305,10 +307,10 @@ async def _native_skill_startup(
             env={"HOME": str(home), "CODEX_HOME": str(home), "PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"},
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, start_new_session=True)
         communication = asyncio.create_task(process.communicate())
-        raw_stdout, _ = await asyncio.wait_for(asyncio.shield(communication), timeout=30)
+        raw_stdout, raw_stderr = await asyncio.wait_for(asyncio.shield(communication), timeout=30)
         communication_complete = True
         if process.returncode != 0 or len(raw_stdout) > 1_000_000:
-            raise RuntimeError("native skill metadata initialization unavailable")
+            raise RuntimeError("native skill metadata initialization unavailable: " + raw_stderr.decode("utf-8", errors="replace")[-2000:])
         metadata = raw_stdout.decode("utf-8")
         if not isinstance(json.loads(metadata), list):
             raise RuntimeError("native skill metadata initialization returned an unsupported shape")
@@ -345,6 +347,149 @@ async def _native_skill_startup(
     return selectors, receipt
 
 
+
+_ToolValueConfig = namedtuple("_ToolValueConfig", ("mode", "runtime"))
+
+
+def _validate_tool_runtime(value: str | Path) -> Path:
+    runtime = Path(value)
+    if (not runtime.is_absolute() or ".." in runtime.parts
+            or runtime.is_symlink() or not runtime.is_dir()
+            or runtime.resolve(strict=True) != runtime
+            or runtime.stat().st_uid != os.getuid()
+            or runtime.is_relative_to(REPO_ROOT)
+            or runtime in {Path("/"), Path.home(), Path("/tmp")}):
+        raise ValueError("tool runtime must be an absolute owned external directory without symlinks")
+    marker = runtime / "skills-portable-lint.json"
+    if (marker.is_symlink() or not marker.is_file()
+            or marker.stat().st_uid != os.getuid() or marker.stat().st_size > 256000):
+        raise ValueError("tool runtime requires owned skills-portable-lint.json marker")
+    ownership = json.loads(marker.read_text())
+    if (not isinstance(ownership, dict) or ownership.get("owner") != "skills-portable-lint" or ownership.get("complete") is not True
+            or ownership.get("version") != 1 or ownership.get("language") != "python"
+            or ownership.get("runtime") != str(runtime)):
+        raise ValueError("tool runtime ownership marker is invalid")
+    helper = SKILLS_ROOT / "code-review-and-quality/scripts/setup_portable_lint.py"
+    spec = importlib.util.spec_from_file_location("skills_tool_value_doctor", helper)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    inspected = module.inspect_runtime(runtime, "python")
+    if any(inspected["tools"].get(name) != version for name, version in module.PYTHON_TOOLS.items()):
+        raise ValueError("tool runtime doctor returned unsupported Python tooling")
+    version = tuple(int(part) for part in inspected["tools"]["python"].split(".")[:2])
+    if version < (3, 10):
+        raise ValueError("tool runtime requires Python >=3.10")
+    if not (runtime / "python/bin/python").resolve(strict=True).is_relative_to(Path("/usr")):
+        raise ValueError("tool runtime interpreter is outside the existing minimal /usr boundary")
+    return runtime
+
+
+def _tool_value_permissions(permissions: dict, config: _ToolValueConfig,
+                            output: Path, home: Path, skills_root: Path) -> None:
+    if not isinstance(config, _ToolValueConfig) or config.mode not in {"baseline", "available", "assisted"}:
+        raise ValueError("invalid internal tool configuration")
+    _validate_tool_runtime(config.runtime)
+    if (output.is_symlink() or not output.is_dir() or output.stat().st_uid != os.getuid()
+            or output.resolve() != output or output.is_relative_to(REPO_ROOT)
+            or output.parent != _native_ephemeral_cache().resolve()
+            or not output.name.startswith("tool-value-")
+            or stat.S_IMODE(output.stat().st_mode) != 0o700):
+        raise ValueError("tool output must be an owned ephemeral external directory")
+    filesystem = permissions["permissions.skills-eval.filesystem"]
+    access = "deny" if config.mode == "baseline" else "read"
+    filesystem[str(config.runtime)] = access
+    for root in (skills_root.resolve(strict=True), home / "skills"):
+        filesystem[str(root / "code-review-and-quality/scripts")] = access
+
+    filesystem[str(output)] = "write"
+    # :tmpdir resolves from the launch environment. With TMPDIR set to the
+    # owned output directory its deny alias overrides the exact write rule.
+    # Root denial and :slash_tmp denial retain host-path exclusions. Native
+    # synthetic mount scaffolding may permit nonpersistent shadow files.
+    filesystem.pop(":tmpdir")
+
+
+def _tool_value_receipts(directory: Path) -> str:
+    """Capture only bounded regular tool-output JSON; contents are unauthenticated."""
+    if directory.is_symlink() or not directory.is_dir() or directory.stat().st_uid != os.getuid():
+        return ""
+    records = []
+    destination = None
+    for path in sorted(directory.glob("*.json"))[:4]:
+        try:
+            descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            with os.fdopen(descriptor, "rb") as stream:
+                info = os.fstat(stream.fileno())
+                if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                        or info.st_uid != os.getuid() or info.st_size > 16 * 1024 * 1024):
+                    continue
+                content = stream.read(16 * 1024 * 1024 + 1)
+            if len(content) > 16 * 1024 * 1024:
+                continue
+            value = json.loads(content)
+            if not isinstance(value, dict):
+                continue
+            if destination is None:
+                root = REPO_ROOT / "evals/results/tool-value-receipts"
+                root.mkdir(parents=True, exist_ok=True, mode=0o700)
+                if root.resolve() != root or root.stat().st_uid != os.getuid():
+                    raise ValueError("receipt artifact root must be owned and regular")
+                destination = Path(tempfile.mkdtemp(prefix="candidate-", dir=root))
+            raw = destination / path.name
+            with os.fdopen(os.open(raw, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600), "wb") as stream:
+                stream.write(content)
+
+            def summary(report: dict) -> dict:
+                fields = ("version", "language", "passed", "unavailable", "reason", "tools",
+                          "stages", "checks", "diagnostics", "diagnostics_available", "diagnostic_error",
+                          "unchanged_inputs", "selection")
+                selected = {}
+                for field in fields:
+                    if field not in report:
+                        continue
+                    item = report[field]
+                    if field == "checks" and isinstance(item, list):
+                        item = [{key: (value[:2000] if isinstance(value, str) else value)
+                                 for key, value in check.items()
+                                 if key in {"id", "status", "exit_code", "command", "argv", "stdout", "stderr", "reason", "timed_out", "duration_seconds"}}
+                                for check in item[:16] if isinstance(check, dict)]
+                    if isinstance(item, list):
+                        item = item[:64]
+                    encoded = json.dumps(item, ensure_ascii=True)
+                    selected[field] = item if len(encoded) <= 12000 else {"truncated_json": encoded[:12000]}
+                if isinstance(report.get("results"), list):
+                    selected["results"] = [summary(item) for item in report["results"][:2] if isinstance(item, dict)]
+                return selected
+
+            compact = summary(value)
+            # Keep JSONL transport small even when raw dependency graphs are large.
+            if len(json.dumps(compact).encode()) > 256000:
+                compact = {"passed": value.get("passed"), "summary_omitted": "exceeds transport bound"}
+            records.append(json.dumps({"type": "skills_eval.tool_receipt", "name": path.name,
+                "sha256": hashlib.sha256(content).hexdigest(), "raw_path": str(raw), "receipt": compact,
+                "authenticity": "candidate-written; not authenticated"}, sort_keys=True))
+        except (OSError, ValueError, UnicodeDecodeError):
+            continue
+    return "".join(record + "\n" for record in records)
+
+
+def _tool_evidence(events: str, config: _ToolValueConfig) -> dict:
+    commands, receipts = [], []
+    for line in events.splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        item = event.get("item", {})
+        if event.get("type") == "item.completed" and item.get("type") == "command_execution":
+            commands.append(item)
+        if event.get("type") == "skills_eval.tool_receipt":
+            receipts.append(event)
+    return {"advertised_access": config.mode != "baseline", "mode": config.mode,
+            "runtime": str(config.runtime), "completed_commands": commands,
+            "candidate_receipts": receipts, "scope": "descriptive evidence; no causal tool-success assertion"}
+
+
 async def run_codex(
     prompt: str,
     *,
@@ -365,6 +510,7 @@ async def run_codex(
     review_artifacts: bool = False,
     interrupt_marker: str | None = None,
     interrupt_absent: str | None = None,
+    _tool_config: _ToolValueConfig | None = None,
 ) -> tuple[str, str]:
     """Run signed-in Codex in the current Inspect local sandbox workspace."""
 
@@ -375,6 +521,8 @@ async def run_codex(
         raise ValueError("native evaluation supports only workspace-write or read-only")
     if extra_env and {"HOME", "CODEX_HOME"} & extra_env.keys():
         raise ValueError("native evaluation home cannot be overridden by fixture environment")
+    if _tool_config is not None:
+        _validate_tool_runtime(_tool_config.runtime)
     binary = _native_codex_binary()
     with binary.open("rb") as source:
         binary_sha256 = hashlib.file_digest(source, "sha256").hexdigest()
@@ -389,6 +537,8 @@ async def run_codex(
             prefix="review-workspace-", dir=str(_native_ephemeral_cache()),
         )
         if isolate_workspace else nullcontext(None) as review_directory,
+        tempfile.TemporaryDirectory(prefix="tool-value-", dir=str(_native_ephemeral_cache()))
+        if _tool_config is not None else nullcontext(None) as tool_directory,
     ):
         if global_rules is not None:
             (Path(codex_home) / "AGENTS.md").write_text(global_rules)
@@ -414,6 +564,17 @@ async def run_codex(
             sandbox_mode=sandbox_mode,
             skills_root=(skills_root or SKILLS_ROOT) if with_skills else None,
         )
+        if _tool_config is not None:
+            tool_output = Path(tool_directory).resolve(strict=True)
+            _tool_value_permissions(permissions, _tool_config, tool_output, Path(codex_home), skills_root or SKILLS_ROOT)
+            tool_statement = "Portable lint capability unavailable." if _tool_config.mode == "baseline" else (
+                f"Optional portable lint capability: {codex_home}/skills/code-review-and-quality/scripts/portable_lint.py; "
+                f"runtime: {_tool_config.runtime}; external output/TMPDIR: {tool_output}; "
+                f"target interpreter: {_tool_config.runtime / 'python/bin/python'}."
+            )
+            if _tool_config.mode == "assisted":
+                tool_statement += " Run portable lint diagnostics before repairing the source."
+            prompt = tool_statement + "\n\n" + prompt
         if review_artifacts:
             filesystem = permissions["permissions.skills-eval.filesystem"]
             # Native writable roots are directories; writable file roots cause
@@ -476,6 +637,7 @@ async def run_codex(
                         "CODEX_HOME": str(codex_home),
                         "HOME": str(codex_home),
                         **(dict(extra_env) if extra_env else {}),
+                        **({"TMPDIR": tool_directory, "PYTHONDONTWRITEBYTECODE": "1"} if tool_directory else {}),
                     },
                     timeout=timeout,
                     timeout_retry=False,
@@ -495,7 +657,7 @@ async def run_codex(
                     f"stdout={result.stdout[-4000:]}; requested_permissions={launch_receipt.strip()}"
                 )
             completion = await sandbox().read_file(output_file)
-            return completion.strip(), launch_receipt + result.stdout
+            return completion.strip(), launch_receipt + result.stdout + ("\n" + _tool_value_receipts(Path(tool_directory)) if tool_directory else "")
         finally:
             await sandbox().exec(["rm", "-f", output_file], timeout=30)
 
@@ -509,6 +671,7 @@ def native_codex(
     effort: str = "medium",
     skills_root: Path | str | None = None,
     global_instructions: Path | str | None = None,
+    _tool_config: _ToolValueConfig | None = None,
 ) -> Solver:
     """Execute a sample with the locally authenticated Codex CLI."""
 
@@ -610,6 +773,7 @@ def native_codex(
                     )
                 completion, events = await run_codex(
                     prompt,
+                    _tool_config=_tool_config,
                     model=model,
                     effort=effort,
                     with_skills=with_skills,
@@ -680,6 +844,8 @@ def native_codex(
             "guidance_access": _guidance_access(events),
             "execution_metrics": _execution_metrics(events),
         }
+        if _tool_config is not None:
+            state.output.metadata["tool_evidence"] = _tool_evidence(events, _tool_config)
         if "native_interruption" in state.store:
             state.output.metadata["native_interruption"] = state.store.get("native_interruption")
             state.output.metadata["usage_scope"] = "completed-turn usage only; interrupted phase may be unavailable"
@@ -811,7 +977,8 @@ def workflows_dataset(
         harder_dataset = json_dataset(str(HARDER_CASES))
         engineering_samples = json_dataset(str(ENGINEERING_CASES)).samples if ENGINEERING_CASES.exists() else []
         review_samples = json_dataset(str(REVIEWS_CASES)).samples if REVIEWS_CASES.exists() else []
-        all_samples = (*dataset.samples, *comparison_dataset.samples, *harder_dataset.samples, *engineering_samples, *review_samples)
+        tool_samples = json_dataset(str(TOOL_VALUE_CASES)).samples if TOOL_VALUE_CASES.exists() else []
+        all_samples = (*dataset.samples, *comparison_dataset.samples, *harder_dataset.samples, *engineering_samples, *review_samples, *tool_samples)
         by_id = {sample.id: sample for sample in all_samples}
         if len(by_id) != len(all_samples):
             raise ValueError("workflow case IDs must be unique across fixture files")
@@ -3576,6 +3743,7 @@ def workflows(
     grader_effort: str = "high",
     include_behavior_grader: bool = True,
     case_ids: list[str] | None = None,
+    _tool_config: _ToolValueConfig | None = None,
 ) -> Task:
     """Run execution-ready workflows for an explicitly named comparison arm.
 
@@ -3628,6 +3796,7 @@ def workflows(
         dataset=dataset,
         setup=[capture_workspace_baseline(), workflow_support_gate()],
         solver=native_codex(
+            _tool_config=_tool_config,
             with_skills=with_skills,
             model=native_model,
             effort=native_effort,
@@ -3655,6 +3824,7 @@ def _challenge_workflows(
     split: str = "development",
     case_ids: list[str] | None = None,
     include_behavior_grader: bool = False,
+    _tool_config: _ToolValueConfig | None = None,
 ) -> Task:
     """Controlled harder fixtures using the existing native workflow runner.
 
@@ -3680,6 +3850,7 @@ def _challenge_workflows(
         if available[case_id]["metadata"].get("split") != split:
             raise ValueError(f"case {case_id} is outside explicit split {split}")
     result = workflows(
+        _tool_config=_tool_config,
         native_model=native_model, native_effort=native_effort, arm=arm,
         with_skills=arm != "no-catalog-diagnostic",
         candidate_skills_root=candidate_skills_root,
@@ -3804,13 +3975,15 @@ def engineering_observations():
             "acceptance_groups": receipts,
         }
         metadata = state.metadata or {}
-        if metadata.get("evaluation_suite") in {"engineering-workflows", "review-workflows"} and metadata.get("execution_scope") == "trusted-synthetic-local":
+        if metadata.get("evaluation_suite") in {"engineering-workflows", "review-workflows", "tool-value-workflows"} and metadata.get("execution_scope") == "trusted-synthetic-local":
             workspace = state.store.get("runner_workspace_location")
             if isinstance(workspace, str) and evidence.available:
                 observations["source_artifacts"] = _engineering_artifacts(
                     Path(workspace), metadata.get("artifact_paths", []),
                     REPO_ROOT / "evals/results/candidate-artifacts",
                 )
+        observations["tool_evidence"] = output_metadata.get("tool_evidence")
+        state.output.metadata = {**output_metadata, "engineering_observations": observations}
         state.store.set("engineering_observations", observations)
         return Score(value=values or {"acceptance_unavailable": float("nan")},
                      explanation="Separate fixed acceptance dimensions; resource counts are descriptive, not quality scores",
@@ -3867,4 +4040,30 @@ def review_workflows(
     for sample in result.dataset.samples:
         sample.metadata["artifact_paths"] = sorted(set(sample.metadata["artifact_paths"]) | {"review.json", "evidence.py"})
     result.scorer.extend([review_quality(), engineering_observations()])
+    return result
+
+
+@task
+def tool_value_workflows(
+    native_model: str,
+    native_effort: str,
+    tool_mode: str,
+    tool_runtime: str,
+    skills_root: str = str(SKILLS_ROOT),
+    global_instructions: str = str(GLOBAL_INSTRUCTIONS),
+    split: str = "development",
+    case_ids: list[str] | None = None,
+) -> Task:
+    """Compare portable lint access with identical catalog, globals and fixtures."""
+    if tool_mode not in {"baseline", "available", "assisted"}:
+        raise ValueError("tool_mode must be baseline, available, or assisted")
+    runtime = _validate_tool_runtime(tool_runtime)
+    result = _challenge_workflows(TOOL_VALUE_CASES, "tool-value-workflows", native_model,
+        native_effort, "candidate", skills_root, None, global_instructions, split, case_ids, False,
+        _tool_config=_ToolValueConfig(tool_mode, runtime))
+    for sample in result.dataset.samples:
+        sample.metadata["tool_mode"] = tool_mode
+        sample.metadata["tool_runtime"] = str(runtime)
+        sample.metadata["tool_comparison"] = "same catalog and fixtures; tool access/activation only"
+    result.scorer.append(engineering_observations())
     return result
