@@ -1,8 +1,8 @@
 # UI Prototyping
 
-Use when the user wants to compare visual directions or when a relevant UI
-decision needs a clickable prototype under the
-[approved-plan contract](../../follow-instructions/references/approved-plans.md).
+Use when the user wants to compare visual directions or when a consequential UI
+decision needs a clickable prototype. Ordinary implementation needs no separate
+prototype or approval artifact.
 A prototype answers a design question and does not establish production readiness.
 
 ## Choose the host
@@ -51,7 +51,7 @@ polished-looking option by default.
 For a single flow, exercise its controls and relevant states at the affected
 wide/narrow viewports. Capture and inspect the actual render; a compile check
 or source sketch cannot prove the interaction. Link the preview and evidence
-from the approval HTML and state what remains illustrative or untested.
+in the requested deliverable and state what remains illustrative or untested.
 
 Record:
 
@@ -71,7 +71,7 @@ Once a direction is selected:
 
 1. Capture the decision and evidence in the project's normal decision record,
    issue, or implementation context.
-2. After implementation approval, fold the winner into normal production code
+2. When implementation is authorized, fold the winner into normal production code
    with appropriate data, accessibility, tests and verification.
 3. Remove losing variants, the temporary route, switcher, and prototype-only
    state.

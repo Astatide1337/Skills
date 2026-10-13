@@ -5,7 +5,9 @@ description: When asked to pressure-test a plan or design.
 
 # Grilling
 
-Choose the mode from the request.
+Use for requested pressure-testing or consequential unresolved choices. Do not
+interrogate the user before routine authorized implementation. Choose the mode
+from the request.
 
 ## Interactive mode
 
@@ -48,8 +50,3 @@ Keep a compact decision log of confirmed decisions, unresolved risks, and
 assumptions that need evidence. Stop when the plan is coherent enough to execute
 or the user asks to stop. End with decisions, remaining unknowns, focused
 experiments, and the first concrete next step.
-
-Before finishing a one-response grill, scan the relevant dimensions named
-above once. Any omitted dimension must be marked irrelevant with a reason, not
-silently skipped—especially identity/authorization, observability, recovery,
-and staged rollout, which often disappear behind the primary technical risk.

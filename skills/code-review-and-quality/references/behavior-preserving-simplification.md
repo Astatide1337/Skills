@@ -1,9 +1,9 @@
 # Behavior-preserving simplification
 
 Treat current observable behavior as normative where the task preserves it.
-For approved new behavior, use the
-[approved-plan contract](../../follow-instructions/references/approved-plans.md)
-and its acceptance, interfaces, owners and permitted effects.
+For new behavior, use the requested acceptance criteria, interfaces, owners
+and permitted effects. Read [deslop](../../deslop/SKILL.md) for the shared
+Ponytail-derived minimalism procedure rather than running overlapping rituals.
 
 1. Identify the behavior, approved boundaries and relevant tests.
 2. Establish current evidence, distinguishing existing failures from the
@@ -14,7 +14,7 @@ and its acceptance, interfaces, owners and permitted effects.
 6. Re-run the same checks after every meaningful reduction.
 
 Stop when further shortening would obscure intent, collapse a useful boundary, or require a behavior change.
-Reviewer-driven reductions are allowed only within the approved contract.
-Material architecture, ownership, public-interface, scope or verification
-changes need a revised HTML plan and renewed confirmation. Preserve failed and
-unavailable checks rather than weakening acceptance to permit the reduction.
+Reviewer-driven reductions must preserve the requested contract. Escalate
+scope expansion or a consequential unresolved decision, not ordinary in-scope
+simplification. Preserve failed and unavailable checks rather than weakening
+acceptance to permit the reduction.

@@ -363,6 +363,8 @@ async def run_codex(
 ) -> tuple[str, str]:
     """Run signed-in Codex in the current Inspect local sandbox workspace."""
 
+    if not model or not model.strip():
+        raise ValueError("native evaluation requires explicit native_model from the live catalog")
     _validate_effort(effort)
     if sandbox_mode not in {"workspace-write", "read-only"}:
         raise ValueError("native evaluation supports only workspace-write or read-only")
@@ -759,8 +761,12 @@ COORDINATOR_MANDATE = """- Whenever one or more other catalog skills apply, init
 
 
 def coordinator_ablation(global_rules: str) -> str:
-    if global_rules.count(COORDINATOR_MANDATE) != 1:
-        raise ValueError("coordinator mandate changed; inspect the ablation before running")
+    """Remove the historical mandate, leaving already-optional globals intact."""
+    count = global_rules.count(COORDINATOR_MANDATE)
+    if count > 1:
+        raise ValueError("duplicate coordinator mandate; inspect the ablation before running")
+    if not count:
+        return global_rules
     return global_rules.replace(COORDINATOR_MANDATE,
         "- Select applicable catalog procedures directly; coordinator entry is optional. ")
 
@@ -769,7 +775,7 @@ def workflows_dataset(
     *,
     execution_ready_only: bool = False,
     global_instructions: Path = GLOBAL_INSTRUCTIONS,
-    mandatory_coordinator: bool = True,
+    mandatory_coordinator: bool = False,
     case_ids: list[str] | None = None,
 ) -> MemoryDataset:
     """Load routing cases or explicitly supplied execution fixtures.
@@ -796,7 +802,10 @@ def workflows_dataset(
             shuffled=False,
         )
     global_rules = global_instructions.read_text()
-    if not mandatory_coordinator:
+    if mandatory_coordinator:
+        if COORDINATOR_MANDATE not in global_rules:
+            global_rules = global_rules.rstrip() + "\n\n" + COORDINATOR_MANDATE + "\n"
+    else:
         global_rules = coordinator_ablation(global_rules)
     samples: list[Sample] = []
     for sample in dataset.samples:
@@ -3407,7 +3416,7 @@ def workspace_stat_cache_smoke() -> Task:
 @task
 def catalog(
     with_skills: bool = True,
-    native_model: str = "gpt-5.6-luna",
+    native_model: str = "",
     native_effort: str = "medium",
     grader_model: str | None = None,
     grader_effort: str = "high",
@@ -3439,7 +3448,7 @@ def catalog(
 
 
 @task
-def routing(native_model: str = "gpt-5.6-luna", native_effort: str = "medium", enriched: bool = False) -> Task:
+def routing(native_model: str = "", native_effort: str = "medium", enriched: bool = False) -> Task:
     """Evaluate activation timing and minimal skill selection."""
 
     return Task(
@@ -3451,7 +3460,7 @@ def routing(native_model: str = "gpt-5.6-luna", native_effort: str = "medium", e
 
 
 @task
-def workflow_routing(native_model: str = "gpt-5.6-luna", native_effort: str = "medium") -> Task:
+def workflow_routing(native_model: str = "", native_effort: str = "medium") -> Task:
     """Diagnose task/mode/domain/effect composition from normal instructions."""
 
     return Task(
@@ -3465,9 +3474,9 @@ def workflow_routing(native_model: str = "gpt-5.6-luna", native_effort: str = "m
 @task
 def workflows(
     with_skills: bool = True,
-    native_model: str = "gpt-5.6-luna",
+    native_model: str = "",
     arm: str = "candidate",
-    mandatory_coordinator: bool = True,
+    mandatory_coordinator: bool = False,
     candidate_skills_root: str = str(SKILLS_ROOT),
     candidate_global_instructions: str = str(GLOBAL_INSTRUCTIONS),
     baseline_skills_root: str | None = None,

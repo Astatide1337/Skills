@@ -2,68 +2,32 @@
 
 ## When
 
-Apply only to a valid primary route when independent work is useful, an
-authorized delegation tool exists, and shared writers/interfaces can be
-bounded. Parallelism is not a replacement process or mandatory committee.
+Use only when independent work has clear ownership, an actual authorized delegation tool, and a benefit greater than coordination cost.
 
 ## Inputs to establish
 
-- primary route, dependencies, shared files/resources, writers/controllers,
-  and the integration owner;
-- each worker's outcome, input/source boundary, owned files, invariants,
-  permitted effects, isolation, and return artifact;
-- interface/data contract, finite budget, failure/cancellation and final
-  integration check.
-- approved plan version/digest and confirmation, exclusions, remaining checks
-  and raw evidence links for approved delivery.
+- Requested result, shared contracts, dependencies, owned files/resources, and integration owner.
+- Worker constraints, acceptance, and evidence to return.
 
 ## Steps and decision points
 
-1. For a new task pattern, complete and verify one representative unit end to
-   end first. Establish its working contract and checks before considering
-   concurrency for further units of the same pattern. This controls safe
-   concurrency, not pilot-first release or partial-workflow evaluation.
-2. Settle shared contracts before splitting further units. Parallelism remains
-   optional; split only independent work, and serialize competing state or
-   unsettled interfaces.
-3. Delegate no greater authority than the parent has. Isolate ports, data,
-   credentials and browser sessions where relevant. Let workers use the
-   selected domain skills and surface conflicts instead of overwriting peers.
-   Carry the approved contract, owned files, effects, outstanding checks and
-   evidence into each task. Keep one integration owner; only that owner resolves
-   a cross-worker plan change under the
-   [approved-plan contract](../references/approved-plans.md).
-4. Inspect returned diffs/artifacts and checks yourself. Resolve overlap at
-   its owner, integrate coherently, and exercise the affected end-to-end path.
-5. Stop delegation when coordination costs exceed its benefit. If no tool is
-   available, execute sequentially and report that parallelism was not used.
+1. Establish a representative working contract before splitting similar units. Use native worktrees where isolation is needed and available.
+2. Delegate bounded independent outcomes with no greater authority than the parent. Serialize unsettled interfaces and competing writers.
+3. Inspect returned artifacts and raw checks; an agent's completion claim is not integration evidence.
+4. Resolve cross-worker conflicts and exercise the integrated behavior. Stop parallelism when it costs more than it saves.
 
 ## Failure and recovery
 
-On interruption, retain the last revision, ownership, remaining units and
-evidence in the existing task record. Recheck state on resume. A worker's
-"done" or green branch is not integration proof; retry, reassign, or serialize
-only within the parent authority.
-After the same approach fails twice or work yields no new evidence, use
-[self-reflect](../../self-reflect/SKILL.md) and the existing checkpoint to hand
-the actual artifacts to one fresh debugging/review agent for a discriminating
-next action when tools and authority permit. Withhold the author's theory as
-fact; unavailable delegation remains a recorded gate, not invented review.
+Retain current source, failures, and next action across interruption. Reassign or work sequentially when capability is missing; never invent a completed review.
 
 ## Completion evidence
 
-Provide each returned artifact, integrated diff/revision, conflict decisions,
-checks and actual user journey. Passing individual workers without the
-integrated result is incomplete.
+Report the integrated result and relevant checks, not just individually passing units.
 
 ## Example
 
-For a series of similar authorized features, the owner first completes and
-verifies one feature end to end. If its interface and checks work, independent
-remaining features may be delegated. The owner then verifies the integrated
-journey and reviews each diff.
+Delegate separate feature surfaces with a settled API, then test their combined journey.
 
 ## Near-miss
 
-Two workers editing the same migration or secret configuration are not safely
-parallel; serialize ownership rather than creating a custom coordinator.
+Two agents editing the same migration or deployment controller should be serialized.

@@ -2,70 +2,33 @@
 
 ## When
 
-Use for a read-only question about a real repository, service, document, log,
-or other supplied source; for diagnosis, research, or explanation of observed
-behavior. A pasted snippet that is sufficient on its own stays a direct
-answer.
+Use for a read-only question about a repository or supplied evidence. A sufficient pasted snippet can be answered directly.
 
 ## Inputs to establish
 
-- the exact question, requested answer shape, source/revision and search limits;
-- expected versus observed behavior, environment, and relevant time window;
-- whether the user wants only findings or a follow-on artifact such as an issue;
-- permitted observation boundary and any explicit no-edit/no-network rule.
-
-Use [`systematic-debugging`](../../systematic-debugging/SKILL.md) for causal
-bugs, [`how`](../../how/SKILL.md) for source flow, [`why`](../../why/SKILL.md)
-for history, and [`internet-reach`](../../internet-reach/SKILL.md) only when
-external research is requested or needed for an uncertain primary source.
+- Exact question, source/revision, expected versus observed behavior, and read/network boundaries.
+- Whether another artifact such as an issue is explicitly requested.
 
 ## Steps and decision points
 
-1. Locate the named revision, owner, implementation, callers, configuration,
-   and direct evidence before relying on a summary or error message.
-2. Separate `Known`, `Unknown`, and hypotheses. For a causal claim, state at
-   least one plausible competing explanation and the smallest observation that
-   distinguishes it.
-   For capability discovery, resolve the effective configuration and target
-   identity; names and prior sessions are hypotheses. An absent conventional
-   endpoint does not establish an absent API: inspect the owning source or
-   existing client before escalating. Keep discovery bounded to the authorized
-   target and metadata; do not print credentials or enumerate unrelated secrets.
-3. Run that read-only check in the closest authorized environment. If it
-   contradicts the hypothesis, update the explanation rather than forcing the
-   result. Use a disposable reproduction only when authorized.
-4. Follow primary source passages, logs, or traces to the requested answer.
-   A diagnosis states the evidenced root cause, intended behavior and remaining
-   causal uncertainty. Exploration gives viable options, a recommendation and
-   material unknowns before asking for a choice. If implementation is requested,
-   hand nontrivial work to [design](design.md) and the
-   [approved-plan contract](../references/approved-plans.md). A read-only
-   diagnosis or requested issue artifact does not authorize a source fix.
+1. Locate the actual owner, callers, configuration, and direct evidence before trusting a summary.
+2. Separate observations from hypotheses. When causation is uncertain, choose an observation that distinguishes plausible causes; do not manufacture alternatives for a demonstrated mechanism.
+3. Run the smallest authorized read-only check and update the explanation when evidence contradicts it.
+4. Answer from source, logs, or traces. Use [debugging](../../systematic-debugging/SKILL.md), [how](../../how/SKILL.md), [why](../../why/SKILL.md), or [research](../../internet-reach/SKILL.md) only for their respective jobs.
+5. If implementation is also requested, continue through [implement](implement.md); investigation alone grants no write authority.
 
 ## Failure and recovery
 
-If a source is missing, truncated, stale, or inaccessible, try one authorized
-alternative and state the gap. An empty search is not proof that no consumer or
-cause exists. Stop repeated retrieval without new evidence. Never turn a
-plausible mechanism into a confirmed diagnosis.
+Try supported alternative sources and recoverable setup. Missing evidence is a gap, not proof that no cause or caller exists. Stop repeating retrieval without new information.
 
 ## Completion evidence
 
-Return the direct answer, source locations or observations, desired behavior,
-the distinguished hypotheses, material uncertainty, and the smallest next check.
-For exploration, include the options and actionable recommendation. A diagnosis is
-not a fix, and a command that exited successfully is not proof of runtime
-behavior. For offline service snapshots, explicitly mark live reachability and
-authentication untested; discovering an interface does not exercise it.
+Give the direct answer, source locations, causal confidence, and relevant untested states. Diagnosis is not a fix.
 
 ## Example
 
-“Why does this tenant lookup return another user's row?” reads the lookup,
-scope predicate, caller, and two-tenant fixture, then reports the observed
-authorization gap without editing code.
+Inspect a wrong-tenant lookup and explain the observed scope gap without changing code.
 
 ## Near-miss
 
-“Explain this pasted function in two sentences; do not inspect files” uses only
-the supplied function and does not crawl a repository, create notes, or propose
-unrequested refactoring.
+A two-sentence pasted-code explanation does not require repository crawling.

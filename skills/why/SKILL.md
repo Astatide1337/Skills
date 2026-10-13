@@ -5,9 +5,9 @@ description: When asked why code or architecture was designed this way.
 
 # Why
 
-Code shows what happens, not why it was chosen. Anchor the question to exact files, symbols, and lines, then search available evidence: git history, commits and PRs, issues, design documents, team discussion, incidents/observability, errors, and product data. Source control is the minimum; list unavailable sources as gaps.
+Code shows what happens, not why it was chosen. Anchor the question to exact files, symbols, and lines, then search available evidence: git history, commits and PRs, issues, design documents, team discussion, incidents/observability, errors, and product data. Use source control when available; name material evidence gaps.
 
-Use read-only access. Search broadly before narrowing. Record queries and null results. Quote sparingly with precise citations. Treat the user's proposed reason as a hypothesis, not a conclusion. Surface contradictions.
+Use read-only access. Search proportionately around the affected decision. Record meaningful null results. Quote sparingly with precise citations. Treat the user's proposed reason as a hypothesis, not a conclusion. Surface contradictions.
 
 Classify every conclusion:
 
@@ -29,7 +29,7 @@ it operational and specific—current configuration or enforced limit, migration
 state, runtime telemetry, failure/cancellation behavior, and a safe validation
 path as relevant—not merely “confirm in production.”
 
-Use a final `Before changing this` paragraph for that evidence. Distinguish the
+Distinguish the
 current enforced constraint, observed runtime behavior, and cleanup/failure
 telemetry so the recommendation cannot end with historical evidence alone.
 

@@ -1,9 +1,9 @@
 # Durable task checkpoints
 
-Use before an expected interruption or when a long-running task must survive
-session/context loss. Keep a private state file outside the application checkout
-where practical. This is an author-maintained continuation record, not evidence
-that an outcome occurred and not an automatic agent scheduler.
+Use before an expected interruption or when long-running work must survive
+context loss. Prefer the harness's existing task state. The optional helper
+below supports a private file when native continuation is insufficient; it is
+not a prerequisite for ordinary work or an automatic scheduler.
 
 The input JSON has exactly `objective`, `requirements`, `decisions`,
 `next_action`, `blockers`. Requirements have unique `id`, `description`, and
@@ -22,14 +22,11 @@ and increment the sequence. A changed objective explicitly starts a separate
 checkpoint; do not silently erase the old task. The supplied workspace identity
 must match on resume. Secrets never belong in this record.
 
-For [approved delivery](approved-plans.md), use these existing fields without a
-new schema: retain the original acceptance and requirement IDs in `objective`
-and `requirements`; append plan/prototype version, paths/digests, exact user
-confirmation, permitted effects and superseding approvals to `decisions`.
-Record failed approaches, source delta and remaining-check/evidence links in
-`decisions`, the next bounded action in `next_action`, and exact unavailable
-gates in `blockers`. Author state does not itself establish approval provenance
-or independent verification; preserve the actual confirmation/evidence source.
+For [planned work](approved-plans.md), retain acceptance, relevant user decisions
+and permitted effects, changed source, failed approaches, and remaining checks.
+Store the next action and actual blockers. Plan versions or approval digests are
+needed only when explicitly requested. Author state is not independent
+verification; retain the evidence source.
 
 When accepted requirements change, start a new linked checkpoint and retain
 the old one. Do not rewrite immutable requirement descriptions or silently

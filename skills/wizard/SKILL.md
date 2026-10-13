@@ -5,7 +5,9 @@ description: When designing or building a user-run setup or onboarding wizard.
 
 # Wizard
 
-Create a project-native interactive script the user controls. When the
+Use for actual user-run setup/onboarding, not agent prerequisite recovery.
+Reuse existing setup commands and provider flows before writing a project-native
+interactive script the user controls. When the
 repository cannot support a portable script or the user requests design-only
 guidance, give the procedure in the response; create a project runbook only
 when the user explicitly requests that document. Do not run external account

@@ -18,13 +18,15 @@ Treat GitHub pull requests and GitLab merge requests as the same review artifact
 | Monitor and fix/address named in-scope defects | Monitor-and-fix | Repair only the authorized scope, then verify and push when that lifecycle is authorized. |
 | Deliver an approved feature/issue as a PR/MR ready for human merge | Approved delivery | Create a draft, finish in-scope fixes/commits/pushes and inspect current-head review/CI. Never merge or enable auto-merge. |
 | Post, reply, comment, or suggest on a PR/MR | Communicate | Post that specific checked comment only. |
-| Merge, close, reopen, rebase, or deploy | Separate action | Require explicit authorization for that action. |
+| Close, reopen or rebase | Separate action | Require authorization for that action. |
+| Merge, enable auto-merge or deploy | Prohibited | Never perform these under this owner's policy. |
 
 "Draft a PR/MR" means draft the copy only. "Open a draft PR/MR" means create
 the remote draft. When a request combines modes, run them in the order above.
-For approved delivery, retain the
-[approved-plan contract](../follow-instructions/references/approved-plans.md)
-and its exact effects. Ordinary review/monitoring remains read-only.
+For delivery, retain the requested scope and permitted publication effects.
+A formal [plan contract](../follow-instructions/references/approved-plans.md)
+applies when requested, not as an automatic prerequisite. Ordinary
+review/monitoring remains read-only.
 
 ## Establish the source of truth
 
@@ -43,18 +45,9 @@ and its exact effects. Ordinary review/monitoring remains read-only.
    they exist. Do not create or change security-sensitive repository settings
    without specific authorization.
 
-When the task supplies state for an existing PR/MR, the response order is
-mandatory:
-
-```text
-<PR/MR> status: Ready | Not ready — <current actionable item>
-<drafted title and description, if requested>
-<drafted reply or suggestion, if requested>
-```
-
-Ignore superseded checks; say `Not ready` when a verified unresolved current
-issue remains. Do not omit the status line because the user also asked for copy
-or a comment. It is a review decision, not routine pipeline boilerplate.
+For existing PR/MR state, lead with current readiness and the actionable issue
+when one exists. Ignore superseded checks and distinguish unobserved checks from
+verified failures. Add requested copy or comments without a fixed output template.
 
 ## Review a coworker's PR/MR
 
@@ -96,56 +89,16 @@ Use a title that names the outcome and follows repository convention. If the
 repository has no convention, prefer `Scope project updates to the active team`
 over `Update project service`.
 
-Use this PR/MR description exactly, omitting an empty review-focus section:
-
-```md
-## Problem
-
-One or two sentences on the user or system problem.
-
-## Fix
-
-One short paragraph or tight bullets on the meaningful change.
-
-## Review focus
-
-Only a non-obvious behavior, risk, migration, or decision the reviewer must inspect.
-```
-
-Never put routine lint, test, build, pipeline, or preview claims in the
-description. Do not paste a commit list, tool log, file inventory, or generic
-validation checklist. Mention an unverified limitation only when it changes a
-reviewer's decision.
-
-Bad:
-
-```md
-## Changes
-- Updated the service
-- Added tests
-- CI passes
-```
-
-Good:
-
-```md
-## Problem
-
-Members could update a project outside their active team by supplying its ID.
-
-## Fix
-
-Scope the project lookup and update to the authenticated team.
-
-## Review focus
-
-The two-team negative test covers both lookup and update paths.
-```
+Follow the repository template when present. Otherwise explain the concrete
+problem, resulting behavior and material review risks in proportion to the
+change. Include relevant validation and limitations that help assess readiness.
+Do not paste tool logs, commit lists or a generic checklist. Rewrite the title
+and description around the final implementation when scope changes.
 
 Before a create-mode push, confirm the branch contains the intended committed
 review unit. A create request does not by itself authorize committing preexisting
 uncommitted user work. Inspect workflows and approved effects before pushing;
-do not trigger container image builds or deployment outside explicit approval.
+do not trigger prohibited deployment as a side effect of publication.
 After creation, report the PR/MR link, base/head, and
 material review focus only.
 Inspect the final tree and diff at that head. Keep accepted, failed, skipped,
@@ -157,12 +110,12 @@ request cannot create duplicate artifacts.
 ## Complete approved delivery
 
 Create the PR/MR as a draft while required review or CI is pending. Assess
-current findings against the approved contract, repair in-scope defects,
-refresh affected tests and independent-review coverage, then commit and push
-only the scoped result. A material plan change returns to HTML approval before
-its dependent implementation; continue independent approved work.
+current findings against the requested contract, repair in-scope defects,
+refresh affected tests and any required independent-review coverage, then commit and push
+only the scoped result. Resolve scope-expanding or consequential undecided changes with the user;
+continue independent authorized work.
 
-Inspect the final pushed head, returned independent review, required-check
+Inspect the final pushed head, any required returned independent review, required-check
 results, unresolved findings and mergeability. Mark the draft ready only when
 these gates are satisfied. Failed, skipped, unavailable or not-run required
 checks keep readiness pending. A local commit, an old green SHA or a requested
@@ -209,31 +162,9 @@ authenticated team/tenant rather than a generic authentication check. If the
 exact field name is not supplied, name the authoritative scope without
 inventing one.
 
-Start every agent-posted PR/MR comment with:
-
-```md
-> <model slug>, responding on behalf of Soham.
-```
-
-Use the exact model slug when the runtime exposes it. Otherwise use
-`> AI assistant, responding on behalf of Soham.` Never guess a model identity
-or imply that a human wrote the comment.
-
-Bad:
-
-```md
-Nice refactor! Maybe add auth here?
-```
-
-Good:
-
-```md
-> gpt-5.6-terra, responding on behalf of Soham.
-
-This lookup trusts the request's `projectId` before applying the active-team
-scope. A member can target another team's project. Scope the lookup to the
-authenticated team before the update.
-```
+Follow explicit session and repository attribution requirements; do not invent
+an attribution template or model identity. Keep comments focused on the defect
+and correction. Never add AI co-author or session trailers to commits.
 
 Do not post generic praise, vague "consider" comments, routine CI/test results,
 or an uncertain claim presented as a defect.

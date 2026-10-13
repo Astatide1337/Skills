@@ -1,319 +1,133 @@
 # Astatide Skills
 
-The personal engineering workflow. Start with one entry skill, select a
-proportionate playbook, use the existing domain skills, and verify the actual
-result. The catalog is daily-use documentation first; its optional evaluator
-is evidence about contracts, not a product judge.
+A lean engineering catalog for repository-native agents. Keep native search,
+editing, shell, browser and project commands as the baseline. Load specialist
+guidance for a decision it can improve; optional tooling must earn its setup
+and maintenance cost.
 
-The catalog is portable across compatible harnesses. Some skills reference
-sibling procedures or runtime helpers; selected installation must preserve
-those declared dependencies. `code-review-and-quality` needs the compatible
-`verify-work` helper, which the installer includes when missing and checks
-before copying. It refuses an incompatible existing helper unless that skill
-was explicitly selected for replacement.
+## Daily workflow
 
-```text
-skills/<skill-name>/
-  SKILL.md
-  scripts/      # optional
-  references/   # optional
-  assets/       # optional
-```
+Inspect the affected owner and callers, establish expected behavior, implement
+a complete useful slice, exercise the real path, review correctness and
+unnecessary complexity, and complete authorized delivery.
 
-`catalog.yaml` records each skill's source, pinned revision or archive digest,
-trust classification, and installed path. Skills are copied locally at install
-time; the catalog does not fetch or run remote content.
+Clear corrections take the short path. Substantial features use a concise
+working plan when helpful. Formal approval documents and prototypes are used
+when requested or needed for a consequential user decision, not as an automatic
+prerequisite for implementation. Review depth follows risk and uncertainty.
 
-## Install
+- `follow-instructions` routes repository work without becoming a second runtime.
+- `architect` owns interfaces and state, including dataflow/failure-path questions.
+- `code-review-and-quality` owns correctness and conditional structural review.
+- `deslop` uses Ponytail-informed minimalism without always-on hooks.
+- `verify-work` interprets evidence; project-local verifiers own actual app actions.
+- Debugging, security, UI, performance, research and teaching retain focused owners.
 
-List the catalog:
+The [principles](skills/follow-instructions/references/principles.md) adapt P stack.
+Focused references synthesize methods from Cursor's thermonuclear review, gstack,
+Trail of Bits and Impeccable. These are original local procedures, not installed
+copies of whole upstream frameworks. See [catalog.yaml](catalog.yaml) for sources.
+
+## Optional tools
+
+[Tool selection](skills/follow-instructions/references/tool-selection.md) describes
+when Context7, Serena, Knip, axe and targeted specialists can add useful evidence.
+Choose one transport per capability and use project-local commands where possible.
+No extra MCP fleet, broad scan, mutation suite or service runs by default.
+
+Missing optional tooling uses a supported native fallback with a truthful gap.
+Required project checks stay required. Current release metadata is not an
+installation pin: check compatibility and pin the tested stable package at adoption.
+Repository packaging, competing coordinators, database memory and worktree tools
+remain deferred unless they fill a specific unmet job.
+
+## Install and recover
+
+List names without changing anything:
 
 ```bash
 ./scripts/install.sh --list
 ```
 
-Codex's current user discovery location is `~/.agents/skills`. Install every
-skill into an explicit destination:
+Choose the harness target explicitly:
 
 ```bash
 ./scripts/install.sh --all --target ~/.agents/skills
 ./scripts/install.sh --all --target ~/.config/opencode/skills
 ./scripts/install.sh --all --target ~/.claude/skills
+./scripts/install.sh --target ~/.agents/skills --skill systematic-debugging
 ```
 
-The older `~/.codex/skills` path is supported both as an explicit target and as
-an automatic fallback described below. Installation replaces each selected
-same-name package, including local customizations; use `--target` to choose the
-destination explicitly.
-
-Install selected skills instead:
+Selected installation includes actual runtime and essential procedural dependencies.
+The coordinator's optional route links do not install every specialist. Source
+packages are validated and staged before replacement. Content receipts in
+`.skills-install.json` support idempotence, divergence checks and recovery.
+Packages with unowned or edited contents require explicit backup replacement:
 
 ```bash
-./scripts/install.sh --target ~/.claude/skills \
-  --skill systematic-debugging --skill web-interface
+./scripts/install.sh --all --target ~/.agents/skills --preserve-existing
+./scripts/install.sh --target ~/.agents/skills --rollback
+./scripts/install.sh --target ~/.agents/skills --uninstall --skill systematic-debugging
 ```
 
-Without `--target`, the installer prefers the current project's `.agents`, then
-Codex's `~/.agents`, the legacy `~/.codex`, OpenCode, and Claude. Pass an
-explicit target whenever more than one is present. Each selected skill
-directory is replaced as a complete copy.
+Backups are reported outside the discovery directory. Rollback and uninstall refuse
+silent loss of changed packages; `--preserve-existing` retains them in a recovery
+backup. Only receipt-owned packages are eligible for uninstall. Preserve plugin
+and unrelated packages. Check unique contents before consolidating legacy discovery
+paths; two same-name copies should not expose different instructions.
+
+The optional `--agent-clis-source PATH` remains a separate explicitly selected
+application-CLI installation, with its own receipt and recovery. It is not part
+of default skill installation or the skill transaction. [Legacy app bindings](skills/verify-work/references/agent-clis.md)
+apply only to those identified projects.
 
 ## Global instructions
 
-[`global-instructions/AGENTS.md`](global-instructions/AGENTS.md) is the
-portable source for cross-repository working defaults. Installing it is always
-an explicit, user-controlled action and is separate from skill installation.
+[global-instructions/AGENTS.md](global-instructions/AGENTS.md) remains a portable
+source, separately installed at the user's direction. Skill installation never
+writes it. Machine-only GUI sudo guidance belongs in the installed personal file.
+Personal authority takes precedence: commit/push may be allowed while merge,
+auto-merge and deployment remain prohibited.
 
-## Task playbooks
+## Verification and evaluation
 
-When a catalog skill applies, `follow-instructions` is the single entry point:
-it chooses one primary task process, attaches only the domain skills that own
-the decisions, records permitted effects separately, and loads supporting
-procedures from `skills/follow-instructions/playbooks/`. It is not used for a
-plain conceptual answer and does not grant merge or deployment authority.
+Use the project’s existing tests, lint/type checks and supported browser/API/CLI
+flow. Add a project-local `.agents/skills/verify-<app>/` only for reusable app
+knowledge: launch, fixtures, actions, expected results, evidence and cleanup.
+Do not introduce an app CLI solely to satisfy this catalog.
 
-Examples:
-
-```text
-Fix the broken search filter and run its regression.
-→ implement/bug + systematic-debugging; workspace write; no PR requested.
-
-Investigate the tenant lookup failure and create one issue; do not edit code.
-→ investigate/read → issues/create; source inspection, one tracker write/readback,
-  and no workspace, PR, merge, or deployment effect.
-
-Design and execute a one-off offline reproduction package from these sanitized
-snapshots; do not contact production or create a permanent workflow.
-→ custom/compose; compose existing investigation/security/verification methods
-  into a temporary checked sequence and report any blocked input.
-```
-
-For nontrivial feature/issue work, inspect the actual source and environment,
-present a researched HTML approval plan and relevant clickable prototype using
-the application's actual components, then record the user's version-specific
-greenlight. After approval, own the complete agreed implementation, real
-journeys, independent review, in-scope fixes and approved commit/publication
-effects. Material architecture, scope, contract or verification changes reopen
-the plan; in-contract simplification can continue. See the single
-[approved-plan contract](skills/follow-instructions/references/approved-plans.md).
-Read-only requests and the tiny-change path retain their narrower boundaries.
-
-Approved PR/MR delivery starts in draft and finishes with review and required CI
-at the current head, ready for human merge. It never merges or enables auto-merge.
-Diagnose safe supported alternatives before declaring a blocker; a genuine
-stall retains the plan, failures, changes and checks for a fresh diagnostic
-handoff when available. Use the existing checkpoint schema, not another task
-runtime. Self-learning and automatic rule promotion remain paused.
-
-The first line is the requested outcome; it is not a new command language. The
-coordinator preserves literal prohibitions, uses `pull-requests` for explicit
-publication, and applies `production-safety`/`security-and-hardening` when
-those boundaries are in scope. Parallel work is an optional modifier and ends
-with an integrated check.
-
-The implemented package map is intentionally small:
-
-```text
-skills/follow-instructions/
-  SKILL.md                 entry point, route table, and evidence gates
-  references/principles.md principle index and pstack mapping
-  references/approved-plans.md approval and owned-delivery contract
-  references/principles/   detailed, selectively loaded decision rules
-  references/case-studies.md selectively loaded public contrasts
-  examples/jobmark-pagination.md source-grounded worked example
-  playbooks/               investigate, design, implement, performance,
-                           migrate-operate, review, issues, document-teach,
-                           custom, and parallel procedures
-skills/<domain-skill>/SKILL.md
-skills/deslop/SKILL.md          code-diff cleanup; use unslop for prose
-global-instructions/AGENTS.md
-evals/cases/workflows.json  optional composition and execution diagnostics
-evals/workspace_evidence.py runner-owned Git baseline/evidence contract
-evals/fake_tracker.py       isolated publication fixture
-evals/results/               sanitized review-unit summaries
-```
-
-For the worked application example, read
-[`examples/jobmark-pagination.md`](skills/follow-instructions/examples/jobmark-pagination.md).
-The supplied tracker fixture remains a deterministic evaluator-contract
-boundary only. It is not a live tracker integration, and its results are never
-product or agent verification.
-
-## Application verification ownership
-
-Skills owns the judgment: [verify-work](skills/verify-work/SKILL.md) chooses
-independent expectations, interprets accepted, failed, skipped, and not-run
-checks, and decides what evidence must be refreshed. A separate pinned per-app
-CLI may own deterministic startup, actions, assertions, evidence, and cleanup.
-The application owns its types, schemas, lint/import boundaries, CI, and
-committed feature map. Its map pins the CLI version; it must not pin the app's
-own Git HEAD. The CLI records a clean app HEAD and map digest for each run and
-checks them again before claiming the result. See the
-[create](skills/verify-work/references/create-project-verifier.md) and
-[maintain](skills/verify-work/references/maintain-project-verifier.md)
-recipes for app-side adoption and recovery. This catalog does not install a
-per-app CLI by default or supply application-specific expected values. Its
-explicit `--agent-clis-source` installer option builds the reviewed
-`7048e748fd890340bbc03399b0dc1d619091af67` revision and installs the Linktree,
-real Shrunk and shared core packages. Follow
-[installed app CLI discovery](skills/verify-work/references/agent-clis.md):
-Linktree exposes `commands --json` and `COMMAND --help`; Shrunk is the constrained
-service `start` entrypoint used by Linktree, not another command registry. Actual
-app checkouts, dependencies and owned runtime verification remain required.
-
-## Portable lint
-
-Use the [portable lint procedure](skills/code-review-and-quality/references/portable-lint.md)
-for supplemental Python/TypeScript checks without adding app configuration.
-Its setup helper creates an explicitly external locked runtime; the lint runner
-does not install packages or alter target source. The public entrypoints are:
-
-```sh
-python skills/code-review-and-quality/scripts/setup_portable_lint.py --runtime /path/to/fresh-external-runtime
-python skills/code-review-and-quality/scripts/portable_lint.py --workspace /path/to/app --scope changed --base REF --runtime /path/to/external-runtime --receipt /path/to/new-external-receipt.json
-```
-
-Explicit files remain the default, with deliberate changed/tracked/directory
-discovery available. Native checks remain independently required; portable
-coverage and debt comparison have their own evidence boundaries. The owning
-procedure documents exact tools, rules, suppression limits and unavailable
-contexts. React Doctor is not included.
-
-## Validate and evaluate
-
-Run deterministic structure and catalog checks:
+Run deterministic checks in the locked environment:
 
 ```bash
 ./scripts/validate-skills.sh
-```
-
-The optional Inspect evaluation fixtures live in `evals/`. To verify task
-discovery without making a model call:
-
-```bash
-uv sync --frozen
+uv run python -m unittest discover -s evals/tests
 uv run inspect list tasks evals/skills.py
 ```
 
-Run live evaluations only deliberately: they use the locally authenticated
-Codex CLI and can execute model-generated code inside its workspace sandbox.
+Live comparisons are separate and finite: current guidance versus lean guidance,
+then one marginal addition. Select model/effort explicitly from the current supported
+catalog, freeze task inputs and acceptance, and preserve failed/unavailable outcomes.
+Use existing Inspect tasks; no second evaluator is needed.
+Read [the evaluation procedure](skills/skill-creator/references/evaluation.md)
+before native runs. Task discovery and fixtures do not prove model efficacy.
 
-The workflow path keeps the existing evaluator entry points. Verify discovery
-and run the deterministic fixture smoke with:
+The pilot starts with two to four matched pairs (4–8 total native runs). Judge
+behavior, authority and truthful evidence before speed; measure interruptions,
+unique useful findings, false positives and setup cost. Trial complementary pairs
+and removal only when justified. Passing both arms is not a demonstrated advantage.
 
-```bash
-uv run inspect list tasks evals/skills.py
-uv run inspect eval evals/skills.py@workflow_fixture_smoke --max-samples 1
-```
+Historical explicit-approval fixtures test user-requested staging, not a universal
+approval rule. The fake tracker remains a contract fixture under `evals/`; it is
+not a live tracker integration. Runner-owned hidden checks remain outside candidate
+instructions. Native execution requires the existing verified containment and a
+direct trusted executable; unsupported capabilities are unavailable, not bypassed.
 
-`workflow_fixture_smoke` and `workflow_fixture_pilot` exercise the evaluator's
-runner-owned contract with a disposable fixture. They are contract diagnostics,
-not live GitHub/GitLab integration, and must not be reported as product, agent,
-or publication verification. Native comparisons are separate, finite, and must
-use the same model, tools, permissions, and budget for baseline and treatment.
+## Maintenance
 
-Complete the candidate workflow and deterministic checks before a deliberate
-GPT-6 Luna comparison. Freeze both catalogs, organic tasks, settings, tools,
-budget and held-out acceptance; use the same model/settings in both arms and
-retain actual failures and unavailable outcomes. Installed procedures and
-passing harness tests do not establish improved model efficacy. See the
-[evaluation procedure](skills/skill-creator/references/evaluation.md).
+Update existing skill owners rather than adding competing coordinators. Keep source
+provenance and license review at integration. Put deterministic rules in project
+checks when practical; keep skills for decisions requiring judgment. Recheck adopted
+tools on compatibility changes, advisories or failures. Remove redundant additions.
 
-The fake tracker is intentionally limited to those optional publication-contract
-diagnostics. It stays under `evals/`, is not installed with the skills, and is
-not needed for ordinary diagnosis, implementation, review, or issue drafting.
-Its runner-owned receipts test ordering, identity, source-read observation, and
-idempotent recovery; they are fixture evidence, not proof of a live tracker or
-agent behavior. Removing it would remove that contract's negative controls rather
-than simplify the daily package.
-
-Workspace evidence and native execution require Bubblewrap (`bwrap`) with user
-and mount namespaces enabled. The preflight checks the disposable workspace
-and the read-only `/usr`, `/bin`, `/lib`, `/lib64`, `/etc`, `/proc`, `/dev`, and
-temporary `/tmp` mounts. There is no unsafe host fallback. The local collector
-supports trusted synthetic fixtures only; remote, live, and adversarial
-execution remain unsupported. Contained Git subprocesses do not contain every
-Python read or native-agent operation.
-
-The workflow dataset labels cases as `execution-ready` or `routing-only`.
-Execution support is gated separately: an executable fixture is not proof of a
-supported native lifecycle. Historical contract-pilot results cover their
-recorded cases/revisions only; they do not restrict this complete candidate or
-establish its efficacy. The fixture task remains available as a deterministic
-diagnostic:
-
-```bash
-uv run inspect eval evals/skills.py@workflow_fixture_pilot --max-samples 10
-```
-
-The native `workflows` task runs a pre-launch boundary gate. A case is
-unscored/blocked when a required effect is outside the runner's observed
-boundary; missing observations are never treated as success. The established
-local native case is `workflow-native-local-repair`, which checks the actual
-edited checkout and runs its supplied regression test. New approval/resume
-cases require observed ordering and their own support gate; unsupported peer
-review, real CI and remote effects remain unmeasured. A local workflow does not
-establish live tracker, pull-request, deployment, browser or adversarial behavior.
-
-That local workflow runs candidate supplemental checks first, then a
-runner-controlled copy of the original acceptance regression against the final
-workspace. The check imports the candidate's changed implementation, so
-replacing `test_bug.py`, restoring the bug after a passing supplemental command,
-or mentioning an exception in a source comment cannot satisfy behavioral
-acceptance. The runner-owned regression is separate from the candidate's own
-tests and is reported as optional local contract evidence, not live product
-verification.
-
-For a fair native comparison, select both catalog arms explicitly. The baseline
-must point at the last accepted checkout and its matching global instructions;
-the no-catalog control is an optional diagnostic, not the baseline:
-
-```bash
-uv run inspect eval evals/skills.py@workflows \
-  -T arm=candidate \
-  -T candidate_skills_root=/path/to/candidate/skills \
-  -T candidate_global_instructions=/path/to/candidate/global-instructions/AGENTS.md
-uv run inspect eval evals/skills.py@workflows \
-  -T arm=baseline \
-  -T baseline_skills_root=/path/to/accepted/skills \
-  -T baseline_global_instructions=/path/to/accepted/global-instructions/AGENTS.md
-```
-
-The pilot summary records exact revisions, case IDs, repetitions, and limits;
-generated binary `.eval` logs are ignored and are not review evidence.
-
-### Real repository demonstration
-
-For a non-fixture demonstration, use an explicitly authorized public checkout
-and its own native commands. In the Issue #17 review unit, the real
-`pallets/markupsafe` checkout was pinned to `b2e4d9c7687be25695fffbe93a37622302b24fb1`:
-
-```bash
-git clone --depth 1 https://github.com/pallets/markupsafe.git /tmp/markupsafe-demo
-uv run --project /tmp/markupsafe-demo pytest -q
-uv run --project /tmp/markupsafe-demo ruff check
-uv run --project /tmp/markupsafe-demo mypy
-git -C /tmp/markupsafe-demo diff --exit-code
-```
-
-Those commands exercise the repository's actual source and tests. A real
-checkout/test result establishes only that repository behavior; it does not
-establish live GitHub publication, deployment, browser behavior, or a better
-agent workflow. Do not substitute the disposable fixture or a no-model run for
-that evidence.
-
-The Jobmark example is the directly executed application path. Browser QA is a
-separate matching-surface check and must use the app's local server, real local
-database, and native Playwright/browser tools. A screenshot or passing build
-without the interaction is not a browser result. If the app's required
-database or browser setup is unavailable, report that blocker instead of
-fabricating a UI or using the tracker fixture as a substitute.
-
-## Safety and provenance
-
-- Installer work is local filesystem copying only.
-- Credentials, cookies, and external service tokens do not belong in skills.
-- Bundled skill scripts are preserved for an agent to use when appropriate;
-  the installer and validator do not execute them.
-
-See [`catalog.yaml`](catalog.yaml) for the catalog's source provenance.
+Credentials, cookies and session data never belong in the catalog. Installation
+copies local packages; it does not fetch upstream code or execute bundled scripts.

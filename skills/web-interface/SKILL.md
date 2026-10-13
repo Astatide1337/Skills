@@ -23,8 +23,8 @@ they affect.
 
 ## Choose the lane
 
-Classify the task before changing code. Load every reference that matches the
-actual work, but do not read the full library by default.
+Classify the task before changing code. Load references needed for the
+actual decision, but do not read the full library by default.
 
 | Situation | Read |
 | --- | --- |
@@ -35,7 +35,7 @@ actual work, but do not read the full library by default.
 | Running the shadcn CLI, adding/updating items, changing presets, or working with registries | [shadcn operations](./references/shadcn-operations.md) |
 | An existing React feature crosses multiple UI states, a route, form submission, or shared component boundary | [React feature delivery](./references/react-feature-delivery.md) |
 | Auditing UI code, accessibility, UX, or final interface quality | [Web interface audit](./references/web-audit.md) |
-| Comparing visual directions or proving a relevant approval-plan UI decision | [UI prototyping](./references/ui-prototyping.md) |
+| Comparing visual directions or resolving a consequential UI decision | [UI prototyping](./references/ui-prototyping.md) |
 
 Use the base workflow below for every lane. A React project does not
 automatically make every UI change a performance refactor, and a Tailwind
@@ -68,6 +68,11 @@ project is not necessarily a shadcn project.
    Record rejected elements in the existing task record and check later
    integrated screens against those decisions; a redesign or shared component
    change must not silently reintroduce them.
+
+For a focused UX problem, use [critique, clarify, harden and adapt](references/focused-ux.md).
+For optional axe or framework diagnostics, use
+[tool selection](../follow-instructions/references/tool-selection.md).
+Do not stack overlapping audits on an ordinary UI edit.
 
 ## Interface baseline
 

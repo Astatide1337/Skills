@@ -4,6 +4,8 @@ policy:
   execute_skill_scripts: false
   skill_network_access: false
   credentials_in_skill_content: false
+  native_tools_first: true
+  optional_tools_required: false
   default_profile: all
 profiles:
   web-engineering: [web-interface, html-artifacts]
@@ -102,3 +104,35 @@ blocked:
   - {id: next-best-practices, reason: knowledge moved to version-matched Next.js bundled docs}
   - {id: next-upgrade, reason: pinned repository contains no SKILL.md at this path}
   - {id: zoom-out, reason: current upstream repository contains no skill with this name}
+
+# Original local instructions informed by these methods; no upstream runtime,
+# hooks, command suite, or verbatim skill package is installed.
+method_adaptations:
+  checked_on: '2026-10-12'
+  sources:
+    - owner: deslop
+      repository: https://github.com/DietrichGebert/ponytail
+      observed_revision: 8b50c44f193cffe6ac12303ac4c86c361666c06c
+      method: reuse and platform capability before custom implementation
+    - owner: code-review-and-quality
+      repository: https://github.com/cursor/plugins
+      observed_revision: fe53d9e9093dbb9ae298563b1a9d702dd6e2ca08
+      path: cursor-team-kit/skills/thermo-nuclear-code-quality-review/SKILL.md
+      method: conditional structural review with integrated actionable findings
+    - owner: architect
+      repository: https://github.com/garrytan/gstack
+      observed_revision: dbf400ec3f1ffb96a429f0d0b29ca932b3d6c6f0
+      path: plan-eng-review/SKILL.md
+      method: caller dataflow, failure recovery and acceptance coverage
+    - owner: systematic-debugging
+      repository: https://github.com/trailofbits/skills
+      observed_revision: 442fc9d6c89b1e937e6f7a477e7071ea75fcbea4
+      method: mechanism-based variant analysis after confirming a defect
+    - owner: verify-work
+      repository: https://github.com/trailofbits/skills
+      observed_revision: 442fc9d6c89b1e937e6f7a477e7071ea75fcbea4
+      method: independent invariants and targeted property/mutation testing
+    - owner: web-interface
+      repository: https://github.com/pbakaus/impeccable
+      observed_revision: 245ad82def45831dc56a21b683c7a1ff530b06cc
+      method: focused UX critique, clarity, error states and responsive adaptation

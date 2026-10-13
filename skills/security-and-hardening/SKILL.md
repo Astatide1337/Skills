@@ -125,6 +125,13 @@ a different ordinary identity performs that same operation against the same
 object and is denied without revealing existence. Add role or admin cases only
 after this baseline proves horizontal isolation.
 
+For a confirmed recurring defect, apply
+[variant analysis](../systematic-debugging/references/variant-analysis.md).
+Use [tool selection](../follow-instructions/references/tool-selection.md) for
+targeted Semgrep, zizmor, Trivy or schema checks only at affected boundaries.
+Compare changed attack paths and enforcement before/after a repair; scanner
+findings require reachability analysis, and clean scans do not prove security.
+
 ## 7. Report by risk
 
 For each finding, provide:

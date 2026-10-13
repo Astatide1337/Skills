@@ -32,4 +32,4 @@ Show code or a diagram only when it makes the mechanism easier to grasp. For
 several moving parts, build the picture in small stages instead of presenting
 one crowded diagram.
 
-Keep it conversational. Do not quiz, perform pacing theater, dump symbol lists, or bury the answer in framing. Preserve `why`'s confidence labels and uncertainty. Write the final explanation through `unslop`.
+Keep it conversational. Do not quiz, perform pacing theater, dump symbol lists, or bury the answer in framing. Preserve `why`'s uncertainty. Use `unslop` when the explanation needs a prose rewrite, not as an obligatory final pass.

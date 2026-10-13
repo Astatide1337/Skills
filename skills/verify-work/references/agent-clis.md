@@ -1,9 +1,13 @@
-# Installed application CLIs
+# Optional legacy application CLI binding
+
+Read only when project instructions explicitly select the Linktree/Shrunk CLI.
+This historical binding is not a global installation or verification default.
+Recheck its source pin and current project setup before execution.
 
 Discover the application's existing CLI before writing replacement automation.
 Skills owns independent expectations, judgment and freshness; `agent-clis`
 owns its registered deterministic operations, startup, checks, evidence and
-owned cleanup. Use Linktree's CLI for Linktree verification, including its
+owned cleanup. For a project selecting this binding, use its CLI including the
 required real Shrunk service. These tools do not drive unrelated repositories.
 
 From the Skills checkout, install skills and the pinned CLI together:

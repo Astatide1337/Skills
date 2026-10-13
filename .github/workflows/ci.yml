@@ -39,7 +39,7 @@ jobs:
           uv run --frozen python scripts/validate_catalog.py
           uv run --frozen python skills/verify-work/scripts/boundary_checks.py ci --dialect github --file .github/workflows/ci.yml
           uv run --frozen python skills/code-review-and-quality/scripts/setup_portable_lint.py --language python --runtime "$RUNNER_TEMP/skills-lint-python"
-          SKILLS_LINT_RUNTIME="$RUNNER_TEMP/skills-lint-python" uv run --frozen python -m unittest evals.tests.test_catalog_validation evals.tests.test_cli_installation evals.tests.test_portable_lint.PythonLintTests evals.tests.test_portable_lint.DiscoveryTests evals.tests.test_portable_lint.SetupTests evals.tests.test_workflows evals.tests.test_skills_lifecycle -v
+          SKILLS_LINT_RUNTIME="$RUNNER_TEMP/skills-lint-python" uv run --frozen python -m unittest evals.tests.test_catalog_validation evals.tests.test_cli_installation evals.tests.test_skill_installation evals.tests.test_portable_lint.PythonLintTests evals.tests.test_portable_lint.DiscoveryTests evals.tests.test_portable_lint.SetupTests evals.tests.test_workflows evals.tests.test_skills_lifecycle -v
 
   workspace-tests:
     # Bubblewrap requires user namespaces denied by the restricted cluster runtime.

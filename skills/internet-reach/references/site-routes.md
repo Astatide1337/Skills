@@ -16,7 +16,7 @@ and emits JSON with the source, URL, and domain.
 
 Search-engine results are the default for Instagram and LinkedIn because their
 native search pages commonly require a signed-in session. Use the native URL
-when the user asks for current in-app results and the Zen bridge is connected.
+when the user asks for current in-app results and the active harness supports an authenticated browser session.
 For Reddit, prefer the domain-filtered search when the user wants discussions;
 the native page is useful for the user's own saved or account-scoped results.
 For YouTube, the native page is usually the best public video index.

@@ -15,6 +15,7 @@ Before editing, establish:
 - nearby requests that should not trigger it;
 - the behavior Codex needs help performing;
 - required tools, evidence, and execution boundaries;
+- the native baseline, unique contribution, and removal condition;
 - the target catalog and install location.
 
 Derive these from the user's real workflow before inventing an ideal one. Review
@@ -145,10 +146,10 @@ automatic-routing settings.
 - Re-read the description against positive and negative triggers.
 - Remove duplicated or generic text.
 - Ensure every reference is reachable from `SKILL.md`.
-- Give the revised instructions to a cold reader or clean context, including a
-  positive trigger, nearby non-trigger, and adversarial attempt to skip a
+- For meaningful behavioral changes, use a cold reader or clean context when
+  available and authorized, including a positive trigger, nearby non-trigger, and adversarial attempt to skip a
   required check. Correct what fails and rerun the same case.
 - Compare the result with the original conversation and corrections. Confirm
   that it solves the user's workflow rather than only passing the eval wording.
 - Report validation actually run and limitations of any evaluation evidence.
-- Install, commit, or publish only when the user requests that stage.
+- Install, commit, or publish within the user's authorized scope.

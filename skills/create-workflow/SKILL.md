@@ -13,7 +13,7 @@ Before choosing an implementation, copy every literal deliverable from the
 request into a short checklist: exact output paths, filenames, command names,
 inputs, allowed changes, and required checks. These are constraints, not naming
 suggestions. Verify each literal against the final workspace before reporting;
-if one is absent, the workflow is not complete.
+if a required deliverable is absent, report that gap.
 
 ## Modes
 
@@ -21,6 +21,8 @@ if one is absent, the workflow is not complete.
 - **Simplify:** reduce an existing workflow while preserving its guarantees, evidence, and recovery behavior.
 
 In either mode, observe the real procedure before designing its replacement.
+Reuse existing scripts and CI before introducing a workflow service, task
+database, or agent runtime. Do not automate a one-off task by default.
 
 Classify the target before acting:
 

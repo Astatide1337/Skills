@@ -20,13 +20,12 @@ path; do not manufacture a multi-hypothesis investigation for it.
    - Record the exact command, request, user flow, or conditions that trigger it.
    - If it cannot be reproduced, gather current logs/state before changing anything.
    - Invest disproportionate effort in a tight feedback loop that fails on the user's exact symptom. Prefer, in order: a focused test, request/CLI fixture, browser script, captured-trace replay, throwaway harness, fuzz loop, bisection, or differential comparison.
-   - Tighten the loop until it is fast, deterministic, and runnable without interpretation. For flaky bugs, raise and measure the reproduction rate instead of waiting for a perfect repro.
+   - Tighten the loop enough to distinguish outcomes reliably. For flaky bugs, raise and measure the reproduction rate instead of waiting for a perfect repro.
    - Run at least one command, request, or interaction capable of producing the
      failure before calling it reproduced. A plausible test plan is not a red
      state.
-   - Minimize the reproduction. Remove inputs, services, timing, and setup one
-     at a time until every remaining element is load-bearing. Record what can
-     be removed without changing the failure.
+   - Minimize a slow or ambiguous reproduction when doing so helps isolate the
+     cause. A reliable focused reproduction needs no extra minimization ritual.
 
 3. **Inspect the real system.**
    - Read the relevant code, configuration, tests, logs, runtime state, and recent changes.
@@ -38,8 +37,8 @@ path; do not manufacture a multi-hypothesis investigation for it.
    - Treat anything not directly observed as an assumption.
 
 5. **Form competing hypotheses.**
-   - Prefer three to five plausible causes when the evidence permits; use fewer
-     when the search space is genuinely narrow.
+   - Consider competing causes when evidence is ambiguous; do not manufacture
+     a fixed number of hypotheses.
    - Rank them by current evidence, not intuition alone.
    - Write each as: `If H is true, observation O should occur; observation R
      would reject it.`
@@ -96,6 +95,10 @@ For a Python persistence, import, pagination, or migration bug, use the
 input through validation, transformation, durable state, and the authoritative
 reader. Keep its transaction and migration decisions aligned with the owning
 repository and environment.
+
+After confirming a recurring failure mechanism, use
+[variant analysis](references/variant-analysis.md) to inspect related paths.
+Keep repairs inside the requested scope; report broader follow-up separately.
 
 ## Stop conditions
 

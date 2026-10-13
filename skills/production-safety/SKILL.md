@@ -5,7 +5,9 @@ description: When production-like state, credentials or delivery are involved.
 
 # Production Safety
 
-Observe first. Change only from verified state.
+Observe first. Change only from verified state. Apply this skill at live-state,
+credential, destructive or delivery boundaries; ordinary local edits do not
+need an operational checklist. Honor the session's no-merge/no-deploy policy.
 
 For any request to approve deletion or another destructive action, lead with
 the decision (`not approved` while material facts are unknown), then explicitly

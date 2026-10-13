@@ -5,8 +5,21 @@ description: When a diff contains AI-generated code clutter.
 
 # Deslop
 
-Clean generated code before review or commit. This is a focused cleanup pass,
-not a license to redesign the change.
+Simplify the requested change while preserving its behavior and safeguards.
+Use this during implementation or for a requested cleanup; an ordinary change
+needs one useful pass, not a mandatory series of reviews.
+
+## Prefer existing capability
+
+Before adding code, inspect what already solves the problem: existing project
+code, the standard library, native platform features, and installed dependencies.
+Add custom implementation only for the remaining requirement. Remove speculative
+flexibility and duplicate wrappers when their callers establish that they are
+unnecessary. A shorter implementation is better only when it remains correct,
+readable, and complete.
+
+This adapts the decision ladder from [Ponytail](https://github.com/DietrichGebert/ponytail)
+without its always-on hooks, output restrictions, or extra command runtime.
 
 ## Inspect the change
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import socket
@@ -69,7 +70,7 @@ class WorkflowContractTests(unittest.TestCase):
             self.assertNotEqual(self._run_case_acceptance(sample, root).returncode, 0)
 
     def test_global_ablation_preserves_repository_layer_and_other_rules(self):
-        mandated = skills.workflows_dataset(execution_ready_only=True)
+        mandated = skills.workflows_dataset(execution_ready_only=True, mandatory_coordinator=True)
         direct = skills.workflows_dataset(execution_ready_only=True, mandatory_coordinator=False)
         self.assertEqual([s.id for s in mandated], [s.id for s in direct])
         for left, right in zip(mandated, direct):
@@ -77,15 +78,61 @@ class WorkflowContractTests(unittest.TestCase):
             self.assertEqual(left.files, right.files)
             self.assertEqual(left.setup, right.setup)
             self.assertEqual(left.metadata['fixture_contract'], right.metadata['fixture_contract'])
-            self.assertEqual(right.metadata['global_rules'], skills.coordinator_ablation(left.metadata['global_rules']))
-            for section in ('## Default authority', '## The SOPS age key', '## Work from evidence'):
-                self.assertEqual(left.metadata['global_rules'].split(section)[1], right.metadata['global_rules'].split(section)[1])
+            self.assertNotIn(skills.COORDINATOR_MANDATE, right.metadata['global_rules'])
+            self.assertIn(skills.COORDINATOR_MANDATE, left.metadata['global_rules'])
+            self.assertIn(skills.GLOBAL_INSTRUCTIONS.read_text().strip(), right.metadata['global_rules'])
         repo = next(s for s in mandated if s.id == 'workflow-native-repository-instructions')
         self.assertIn('no catalog procedure is required', repo.files['AGENTS.md'])
         self.assertNotEqual(repo.files['AGENTS.md'], repo.metadata['global_rules'])
         self.assertIsNotNone(repo.metadata['repository_instructions_identity'])
-        with self.assertRaisesRegex(ValueError, 'mandate changed'):
-            skills.coordinator_ablation('other instructions')
+        self.assertEqual(skills.coordinator_ablation('other instructions'), 'other instructions')
+        with self.assertRaisesRegex(ValueError, 'duplicate coordinator mandate'):
+            skills.coordinator_ablation(skills.COORDINATOR_MANDATE * 2)
+
+    def test_native_local_fixtures_bootstrap_without_phantom_repository_globals(self):
+        cases = {sample.id: sample for sample in skills.workflows_dataset()}
+        for name in ("workflow-native-local-repair", "workflow-native-authorized-feature-native-tools"):
+            sample = cases[name]
+            self.assertNotIn("AGENTS.md", sample.files)
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                self._write_case_files(root, sample)
+                result = subprocess.run(sample.setup, shell=True, cwd=root,
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                committed = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root,
+                                           capture_output=True, text=True)
+                self.assertEqual(committed.returncode, 0, committed.stderr)
+                self.assertFalse((root / "AGENTS.md").exists())
+                self.assertTrue(sample.metadata["global_rules"])
+
+    def test_live_evaluation_requires_explicit_model_before_execution(self):
+        with self.assertRaisesRegex(ValueError, "requires explicit native_model"):
+            asyncio.run(skills.run_codex("task", model="", with_skills=False,
+                                         sandbox_mode="read-only"))
+
+    def test_historical_mandate_ablation_preserves_other_bytes(self):
+        rules = "before\n" + skills.COORDINATOR_MANDATE + "\nafter\n"
+        self.assertEqual(skills.coordinator_ablation(rules),
+                         "before\n- Select applicable catalog procedures directly; coordinator entry is optional. \nafter\n")
+        for sample in skills.workflows_dataset():
+            self.assertFalse(sample.metadata["mandatory_coordinator"])
+
+    def test_authorized_feature_accepts_behavior_and_rejects_weakened_visible_test(self):
+        sample = next(s for s in skills.workflows_dataset() if s.id == "workflow-native-authorized-feature-native-tools")
+        contract = sample.metadata["fixture_contract"]
+        self.assertNotIn("approval_turn", sample.metadata)
+        self.assertEqual(sample.metadata["allowed_paths"], ["records.py"])
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self._write_case_files(root, sample)
+            self.assertNotEqual(self._run_case_acceptance(sample, root).returncode, 0)
+            (root / "records.py").write_text(contract["write_content"])
+            result = self._run_case_acceptance(sample, root)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            (root / "records.py").write_text("def select_records(records, tenant, query=''):\n    return records\n")
+            (root / "checks.py").write_text("print('PASS')\n")
+            self.assertNotEqual(self._run_case_acceptance(sample, root).returncode, 0)
 
     def test_routing_alternatives_and_harmful_additions_are_separate(self):
         metadata = {'expected_skills': ['follow-instructions', 'how'],
@@ -223,7 +270,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            48,
+            49,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -311,6 +358,7 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-draft-issue",
                 "workflow-fix-open-draft-pr",
                 "workflow-native-local-repair",
+                "workflow-native-authorized-feature-native-tools",
                 "workflow-custom-temporary",
                 "workflow-parallel-safe",
                 "workflow-correction-resume",

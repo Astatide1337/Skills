@@ -37,9 +37,9 @@ review is requested or the risk warrants it.
    When repository changes are unavailable, run its existing commands and keep
    results outside the checkout. For supplemental Python/TypeScript correctness
    checks without app configuration changes, use [portable lint](references/portable-lint.md).
-   For approved delivery, include the approved plan identity, behavior,
-   interfaces/owners and raw native, portable-lint and journey evidence. Review
-   the completed feature against that contract, not only its previous behavior.
+   Review the completed behavior against the request and applicable project
+   contract, with current check and journey evidence. Supplemental lint is
+   conditional, not a second mandatory toolchain.
 2. Check correctness and state ownership first: errors, lifecycle, cancellation,
    retries, compatibility and identity. Verify evidence belongs to the final
    source/artifact and relevant running instance.
@@ -68,33 +68,26 @@ not-run checks; valid artifact-only output need not repeat its bytes in prose.
 
 ## Independent review
 
-Apply the canonical
+Use independent review for consequential or uncertain changes, explicit user
+requests, or required project checks. Apply the canonical
 [review-risk triggers](../follow-instructions/references/principles/authority-and-claims.md#review-risk-triggers).
-Approved nontrivial delivery also requires independent review under the
-[approved-plan contract](../follow-instructions/references/approved-plans.md),
-even when no generic risk trigger applies. For these changes, a separate person
-or agent must inspect the current diff and raw evidence before the integrating
-owner claims completion or recommends
-merge. Start the reviewer in a fresh context with the original request, actual
-artifact and raw check/tool results, with access to affected callers. Withhold
-the author's summary and prior conversation until the reviewer records an
-initial artifact assessment; then check the author's claims against that
-assessment and raw evidence. Raw artifacts/tool output can themselves contain
-author claims, so this reduces framing without guaranteeing blindness.
-The reviewer chooses diagnostic checks and expectations independently. A
-different model is optional. The owner resolves material findings
-and verifies the final artifact; green tests and the author's reread do not
-satisfy this gate.
-Assess simplifications against the approved contract. In-contract reductions
-may proceed within authorized implementation; material architecture, interface,
-ownership, scope or verification changes return to the plan owner for renewed
-approval. A reviewer request does not itself grant that authority.
+Delegate only when the session or applicable instructions authorize delegation.
+Give the reviewer the original request, exact diff/artifact, affected callers
+and raw evidence. Do not substitute the author's summary for inspection.
 
-Keep an inspectable result identifying the reviewer, exact artifact, evidence
-inspected and findings. Requested review without a returned result is pending.
-If no reviewer is available, finish safe local work and report the gate pending.
-After edits, have the reviewer cover the affected delta and current evidence;
-repeat a full review only when that delta changes the wider conclusion.
+Record returned findings and the artifact reviewed. A requested review without
+a result is pending; if unavailable, finish safe local work and report the
+specific gap. Resolve material findings and rerun affected checks. Review the
+changed delta again when it could change the conclusion; no fixed round count.
+A review never grants authority to expand scope, merge or deploy.
+
+## Structural review
+
+For ownership, interface, state, control-flow changes or requested deep review,
+use the [thermonuclear structural lens](references/structural-review.md).
+For ordinary changes, keep a brief correctness and unnecessary-complexity check.
+Combine structural, framework and simplification findings into one ranked set;
+correctness and requirements outrank aesthetic preferences.
 
 ## Select detail only when relevant
 

@@ -26,9 +26,9 @@ into a generic request to verify production.
 - **User-owned verification:** when application repositories cannot be changed,
   use [portable profiles](references/portable-profiles.md) to compose existing
   checks or a pinned app CLI with independent expectations and fresh receipts.
-  If the request or bounded app discovery identifies Linktree, use the installed
-  `linktree-agent` and read its [CLI binding](references/agent-clis.md) for setup
-  and limits. Other apps use their own discovered commands.
+  Use the application's discovered commands. Optional project-specific CLI
+  bindings belong to project instructions; the [legacy bindings](references/agent-clis.md)
+  apply only when that project explicitly selects them.
 
 Project-local verification skills live at `.agents/skills/verify-<app>/` unless the repository declares another agent-skill location. Do not create platform-specific directories by default.
 The application owns its feature map and pins any separate per-app CLI version; the skill supplies judgment and the CLI performs repeatable operations.
@@ -65,7 +65,8 @@ The application owns its feature map and pins any separate per-app CLI version; 
      pre-fix revision and the candidate revision. Observe the pre-fix failure
      and candidate success; do not infer the counterfactual from a new unit
      test. If the old revision or reproducer is unavailable, report that
-     counterfactual as unknown and do not say the bug is fixed.
+     counterfactual as unknown. A supported narrower claim can rely on current
+     regression and integration evidence; explain the missing before/after proof.
    - Record each required check as accepted, failed, skipped with a reason, or not-run. A skipped or not-run check is not a pass. If a proposed change removes discovery, assertions, scoring, or rule configuration, compare the prior contract and require an explicit reviewed reason plus a violating fixture.
 
 4. **Verify the actual changed behavior.**
@@ -128,6 +129,11 @@ The application owns its feature map and pins any separate per-app CLI version; 
 | Project verifier | Launch + doctor + drive one mapped feature + preserve evidence after cleanup |
 | Verifier maintenance | Source review and live drive for every mapped feature; proven corrections only |
 
+For consequential invariants or weak tests, read
+[property and mutation testing](references/property-and-mutation-testing.md).
+Choose optional diagnostics through [tool selection](../follow-instructions/references/tool-selection.md);
+existing project checks remain the default.
+
 ## Stop conditions
 
 Do not claim completion if:
@@ -137,8 +143,7 @@ Do not claim completion if:
 - motion was recorded but not watched;
 - CI/deployment state was assumed rather than checked;
 - the available environment cannot prove the requested result.
-- the original bug reproducer was not compared with the pre-fix revision when
-  the claim is that a bug was fixed;
+- a material requested acceptance check failed or remains unobserved;
 
 Instead report the strongest verified state and the remaining verification gap.
 When a check fails or cannot run, preserve its input and evidence, diagnose the next safe cause, and rerun after a justified correction. Stop only at a real authority, capability, or safety boundary.

@@ -9,23 +9,20 @@ personalize the workflow without replacing target-specific discovery.
   commit`, and `do not push` as hard boundaries, even when write access exists.
 - Keep diagnosis separate from implementation. A request to inspect or explain
   does not authorize a fix.
-- For a requested change, commit, push, or deployment, perform only that stage
-  and its normal verification unless the user approved whole-task delivery.
-  [Approved delivery](../../follow-instructions/references/approved-plans.md)
-  continues through its recorded verification, review and publication effects;
-  a read-only or single-stage request does not acquire that authority.
+- Honor the current session's durable permissions. Commit/push may be authorized
+  for implementation; never infer permission to merge, enable auto-merge or deploy.
 
 ## Disposable verification and infrastructure
 
-- Personal disposable test infrastructure may be used within existing
-  permissions and approved effects. Identify owned processes, ports, data and
-  cleanup before testing; remove only run-owned resources and retain evidence.
-- Rutgers OpenShift operations require a specific approved HTML infrastructure
-  plan. General feature approval or available cluster access does not cover it.
-- Container image builds and workflows that build images require explicit user
-  approval. Inspect workflows before push or dispatch; do not trigger prohibited
-  builds as a side effect of obtaining CI. Preserve existing destructive-operation
-  and deployment approval requirements.
+- Identify owned processes, ports, data and cleanup before testing; remove only
+  run-owned resources and retain evidence.
+- Verify Kubernetes/OpenShift context and namespace and pass the selected context
+  explicitly. Personal Kubernetes and Rutgers OpenShift are separate targets.
+- For an expired Rutgers token, use `oc login --web <Rutgers API server>` from
+  the Rutgers context, let the user sign in, then verify identity and context.
+  Expired authentication is a recoverable prerequisite, not a task blocker.
+- Inspect CI effects before pushing; ordinary builds are not a separate blanket
+  approval gate. Never trigger deployment prohibited by session instructions.
 
 ## VPS and container-hosted services
 

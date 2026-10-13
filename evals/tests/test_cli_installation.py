@@ -247,6 +247,8 @@ class CLIReceiptTests(unittest.TestCase):
         source.write_text("original skill")
         shutil.copyfile(Path(__file__).resolve().parents[2] / "scripts/install.sh",
                         repo / "scripts/install.sh")
+        shutil.copyfile(Path(__file__).resolve().parents[2] / "scripts/skill_install.py",
+                        repo / "scripts/skill_install.py")
         alias = self.root / "alias"
         alias.symlink_to(repo / "skills", target_is_directory=True)
         result = subprocess.run(["bash", str(repo / "scripts/install.sh"),

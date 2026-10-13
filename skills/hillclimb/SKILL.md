@@ -6,6 +6,12 @@ description: When improving a measured outcome through bounded experiments.
 # Hillclimb
 
 Improve the measured result without sacrificing the system around it.
+For skill/tool selection, compare the simplified native baseline with one
+marginal addition; include setup, false positives, latency, maintenance, and
+context cost. Prefer equal-result simplicity. Try complementary pairs when
+individual additions may miss synergy, and remove earlier additions that stop
+earning their cost. Use the coordinator's [tool selection reference](../follow-instructions/references/tool-selection.md)
+only when an observed capability gap justifies an adapter.
 
 ## Establish a trustworthy ruler
 
