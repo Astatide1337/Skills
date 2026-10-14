@@ -36,12 +36,19 @@ actual work, but do not read the full library by default.
 | An existing React feature crosses multiple UI states, a route, form submission, or shared component boundary | [React feature delivery](./references/react-feature-delivery.md) |
 | Auditing UI code, accessibility, UX, or final interface quality | [Web interface audit](./references/web-audit.md) |
 | Comparing visual directions or proving a relevant approval-plan UI decision | [UI prototyping](./references/ui-prototyping.md) |
+| Visual quality is below the agreed bar, or a new direction needs judgment | [Visual direction](./references/visual-direction.md) |
+| A concrete hierarchy example would clarify that decision | [Sourced visual references](./references/composition-examples.md) |
 
 Use the base workflow below for every lane. A React project does not
 automatically make every UI change a performance refactor, and a Tailwind
 project is not necessarily a shadcn project.
 
 ## Base workflow
+
+Selected public reference images can be fetched explicitly with the
+[reference fetcher](./scripts/fetch_references.py) described in the reference.
+The installer performs no network fetch. Inspect actual images and attribution,
+not just their labels, and keep third-party artwork out of shipped products.
 
 1. **Bound the change.** Identify the affected screen, user goal, existing
    contract, and requested mode. Preserve unrelated user work.
@@ -51,7 +58,9 @@ project is not necessarily a shadcn project.
    proposing a new visual language.
 3. **Reuse before creating.** Use established primitives, variants, semantic
    tokens, and component patterns. Create a new primitive only when the
-   existing system cannot express the requested behavior cleanly.
+   existing system cannot express the requested behavior cleanly. Reuse is a
+   default, not a reason to preserve a demonstrated design-system defect.
+   Resolve material changes through the existing approval contract.
 4. **Implement the smallest coherent experience.** Keep hierarchy intentional,
    copy specific, and decoration subordinate to content or interaction. Avoid
    visual-system changes for a local request.
@@ -61,8 +70,11 @@ project is not necessarily a shadcn project.
    without burying the main action or its result. Retain necessary consent,
    security, validation, and recovery information.
 5. **Verify what changed.** Exercise the changed controls and inspect the
-   rendered state. Repeat after correcting visible defects. If the interface
-   cannot be opened, report that as an acceptance gap instead of guessing.
+   rendered state against the agreed task and visual standard, not just a score.
+   Retain the best-so-far candidate. A revision needs a specific observed gap.
+   When refinements plateau, diagnose direction, fidelity or evaluator judgment
+   rather than layering on effects. If the interface cannot be opened, report
+   that as an acceptance gap instead of guessing.
 6. **Preserve accepted choices.** Treat explicit user corrections as constraints
    for the current task. Keep accepted parts stable while iterating elsewhere.
    Record rejected elements in the existing task record and check later

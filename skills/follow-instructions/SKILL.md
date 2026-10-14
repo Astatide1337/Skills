@@ -41,6 +41,22 @@ if the cause, ownership or check becomes unclear, a check contradicts the
 explanation, or a consequential boundary appears. Never use the short path to
 skip a required check or silently downgrade a real blocker.
 
+## Engineer, verify, improve
+
+One engineer owns integration. A fresh reviewer challenges substantive work.
+Improvement changes the reusable method, not the current task's acceptance.
+These are responsibilities, not a mandatory agent roster.
+
+Keep requirements, defaults and examples distinct. Requirements bind the result
+and effects. Defaults may yield to a task-grounded better approach. Examples
+illustrate judgment, not the only acceptable architecture or visual style.
+Automate stable mechanics with existing tools, leaving contextual decisions to
+the agent. A repeatable result is not necessarily correct.
+
+For a consequential choice, unclear quality bar, or stalled approach, use
+[engineering judgment](references/engineering-judgment.md). Do not load it for
+an already-clear short-path edit. Select only resources that change a decision.
+
 ## Route other work
 
 Keep outcome, supporting expertise, follow-ons and permitted effects separate.
@@ -95,6 +111,8 @@ and the short path retain their own boundaries.
 Keep only obligations that can change action, order, permission, stopping or
 completion in the task record:
 `Outcome / Route / Domains / Effects / Constraints / Done`.
+For substantive work, link authoritative inputs, acceptance, candidate identity,
+current evidence and unresolved decisions in that same record, not a new ledger.
 A simple answer needs no formal record. Use current CLI/model settings; when
 controls exist, start routine work at the configured ordinary effort and
 escalate for demonstrated uncertainty. Do not change the user's model or quota

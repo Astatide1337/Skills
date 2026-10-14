@@ -1,9 +1,17 @@
 # Astatide Skills
 
-The personal engineering workflow. Start with one entry skill, select a
-proportionate playbook, use the existing domain skills, and verify the actual
-result. The catalog is daily-use documentation first; its optional evaluator
-is evidence about contracts, not a product judge.
+A portable engineering method for AI agents: informed judgment, dependable
+execution, and independently supported outcomes. One accountable engineer owns
+the result. Verification challenges it. Improvement keeps only interventions
+that help without narrowing valid solutions.
+
+This branch implements the **Engineering the Engineer v2 preview**. Start with
+[PREVIEW.md](PREVIEW.md) for non-destructive trial preparation, exact checks,
+design coverage, and the live evidence still needed before adoption. The
+[approved design](docs/engineering-the-engineer-v2.md) is a developer reference,
+not an always-loaded prompt. Neither these instructions nor passing fixture
+tests establish improved agent quality, protected live execution, or production
+readiness. Current authority and no-merge policies remain unchanged.
 
 The catalog is portable across compatible harnesses. Some skills reference
 sibling procedures or runtime helpers; selected installation must preserve
@@ -213,7 +221,7 @@ or publication verification. Native comparisons are separate, finite, and must
 use the same model, tools, permissions, and budget for baseline and treatment.
 
 Complete the candidate workflow and deterministic checks before a deliberate
-GPT-6 Luna comparison. Freeze both catalogs, organic tasks, settings, tools,
+comparison using the currently authorized, runtime-verified model and settings. Freeze both catalogs, organic tasks, settings, tools,
 budget and held-out acceptance; use the same model/settings in both arms and
 retain actual failures and unavailable outcomes. Installed procedures and
 passing harness tests do not establish improved model efficacy. See the

@@ -98,6 +98,15 @@ repeat a full review only when that delta changes the wider conclusion.
 
 ## Select detail only when relevant
 
+- Plausible generated code with weak integration or redundant bookkeeping:
+  [sourced AI-code failures](references/generated-code-failures.md). Judge the
+  concrete defect, not inferred authorship or resemblance to a preferred style.
+
+- A consequential new boundary or recurring maintainability failure:
+  [maintainability exercise](references/maintainability-exercise.md). Use a
+  credible follow-up in a disposable copy, not speculative shipped features.
+  An alternative structure can be equally valid. File count is not the score.
+
 - Review comments to implement or dispute:
   [review feedback](references/review-feedback.md). Verify the premise first;
   technical evidence outranks preference. A judgment override does not waive

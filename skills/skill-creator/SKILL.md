@@ -5,7 +5,13 @@ description: When creating, revising, validating or evaluating a reusable skill.
 
 # Skill Creator
 
-Create the smallest skill that reliably changes agent behavior.
+Improve engineering outcomes with the smallest justified intervention. A
+changed procedure is not an improvement until the evidence supports it.
+Use [measured improvement](references/measured-improvement.md) when a change
+claims better quality, lower overhead, or transfer. Use
+[worked examples](references/worked-examples.md) when adding teaching material,
+and [tool contracts](references/tool-contracts.md) when adding repeatable
+operations. Load only the reference owning the current decision.
 
 ## 1. Define the job
 
@@ -67,7 +73,7 @@ Every skill requires `SKILL.md` with YAML frontmatter containing `name` and
 - Put detailed variants, schemas, domain rules, and examples in one-level
   `references/` files and link to each directly from `SKILL.md`.
 - Add `scripts/` only for repeated deterministic operations that were tested.
-- Add `assets/` only for files copied into outputs. Do not add auxiliary
+- Add `assets/` for relevant visual/data inputs or output resources, with provenance and permissions. Do not add auxiliary
   READMEs, changelogs, installation guides, or duplicate summaries.
 
 Start with only `SKILL.md`. Add a reference, script, or asset only when a named
@@ -115,14 +121,17 @@ python skills/skill-creator/scripts/package_skill.py skills/<name> <output-dir>
 ## 6. Evaluate behavior with Inspect
 
 Do not build a bespoke runner, grader, viewer, provider adapter, or statistics
-layer. Add a small representative case to `evals/cases/catalog.json` only when
-the skill teaches material behavior or resolves a meaningful routing collision.
-Prefer shared cases over one suite per skill.
+layer. Preserve the catalog's primary-case invariant. Use the existing workflow
+cases for task-level comparisons and add only cases required by the changed
+behavior. Prefer shared cases over one suite per skill. Known teaching examples
+and their regression tests are not held-out evidence.
 
 When asked to design an evaluation, the deliverable must name all four parts:
-the representative case, treatment (catalog skill available), identical
-baseline (skill absent), and the behavioral evidence or scorer used to compare
-them. A case without the paired baseline is not an efficacy evaluation.
+the representative case, candidate guidance, the accepted baseline, and the
+behavioral evidence used to compare them. Keep task inputs, model/settings,
+tools, environment, permissions and budget comparable. A no-skill control is
+an optional, explicitly named diagnostic, not a replacement for the accepted
+baseline. A case without that comparison does not establish improvement.
 
 For execution, blinding, effort settings and outcome/cost metrics, read
 [the evaluation procedure](references/evaluation.md). It uses the existing
