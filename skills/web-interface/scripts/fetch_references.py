@@ -97,7 +97,8 @@ def existing_receipt(output: Path) -> dict | None:
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise FileExistsError("Existing output has no valid reference receipt; use a fresh directory") from exc
-    if (receipt.get("kind") != "visual-reference-download"
+    if (not isinstance(receipt, dict)
+            or receipt.get("kind") != "visual-reference-download"
             or not isinstance(receipt.get("files"), list)
             or any(not isinstance(row, dict) or not isinstance(row.get("id"), str)
                    for row in receipt["files"])

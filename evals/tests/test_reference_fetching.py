@@ -109,6 +109,47 @@ class ReferenceFetchingTests(unittest.TestCase):
                 self.assertEqual(outside.read_text(), "preserve outside sentinel")
                 self.assertEqual((output / "receipt.json").read_bytes(), receipt_before)
 
+    def test_invalid_receipt_shapes_preserve_cache_before_network_or_decode(self):
+        for payload in ([], None, 1, True, "cache", 1.5):
+            with self.subTest(payload=payload), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "cache"
+                output.mkdir()
+                (output / "receipt.json").write_text(json.dumps(payload))
+                (output / "index.md").write_text("preserve index")
+                (output / "apple-music.png").write_bytes(PNG)
+                (output / "unrelated.txt").write_text("preserve unrelated data")
+                before = {p.name: p.read_bytes() for p in output.iterdir()}
+                with patch.object(fetcher, "download") as network, \
+                     patch.object(fetcher, "decode_image") as decoder, \
+                     self.assertRaisesRegex(FileExistsError, "fresh directory"):
+                    fetcher.fetch(["apple-music"], output)
+                network.assert_not_called()
+                decoder.assert_not_called()
+                self.assertEqual({p.name: p.read_bytes() for p in output.iterdir()}, before)
+
+    def test_invalid_receipt_cli_reports_structured_failure_without_overwrites(self):
+        # Include malformed JSON alongside valid JSON with the wrong root shape.
+        for raw in ("[]", "null", "1", "{"):
+            with self.subTest(raw=raw), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "cache"
+                output.mkdir()
+                (output / "receipt.json").write_text(raw)
+                (output / "index.md").write_text("preserve index")
+                (output / "apple-music.png").write_bytes(PNG)
+                (output / "unrelated.txt").write_text("preserve unrelated data")
+                before = {p.name: p.read_bytes() for p in output.iterdir()}
+                result = subprocess.run(
+                    [sys.executable, str(SCRIPT), "--id", "apple-music", "--output", str(output)],
+                    capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(result.stdout, "")
+                self.assertNotIn("Traceback", result.stderr)
+                failure = json.loads(result.stderr)
+                self.assertEqual(failure["status"], "failed")
+                self.assertIn("fresh directory", failure["reason"])
+                self.assertEqual({p.name: p.read_bytes() for p in output.iterdir()}, before)
+
     def test_adding_selection_retains_previous_cache(self):
         with patch.object(fetcher, "download", return_value=PNG):
             fetcher.fetch(self.ids[:1], self.output)
