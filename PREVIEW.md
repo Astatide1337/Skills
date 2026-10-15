@@ -200,6 +200,16 @@ full-access permission contract here is instruction-scoped, not OS containment;
 the contained Inspect cases supply a different evidence boundary. Original
 turns were really interrupted with pending checks and persisted acceptance; the
 control's supported same-thread resume rechecked live state and completed the
-released check. Candidate resumption and final source/host gates are pending
-until their actual results are recorded. Explicit runtime resume is not proof of
-automatic scheduling. No private transcripts or credentials are published here.
+released check. The candidate also completed supported same-thread resumption:
+it recovered a lost process handle, established no duplicate checker was running,
+reran the released check successfully, reopened T3 and verified unchanged artifact
+and persisted form state. Both resumed without a corrective user instruction.
+Explicit runtime resume is not proof of automatic scheduling. No private
+transcripts or credentials are published here.
+
+The final source review independently reran 16 reference tests and four retirement
+tests. It found one remaining unconditional HTML gate in a simplification leaf;
+that leaf now delegates to the actual approval owner. Publication initially
+failed because local DNS could not resolve GitHub. That failure was preserved;
+network settings were not changed, and host readiness is established separately
+from local checks.
