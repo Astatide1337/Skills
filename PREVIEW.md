@@ -213,3 +213,21 @@ that leaf now delegates to the actual approval owner. Publication initially
 failed because local DNS could not resolve GitHub. That failure was preserved;
 network settings were not changed, and host readiness is established separately
 from local checks.
+
+
+After connectivity recovered, the same idempotent T3 transfer requests were accepted.
+Both fresh discovery sessions correctly identified the effective configuration and
+supported API from the offline snapshot, rejected the previous worker's unsupported
+context/unlock advice, and explicitly left live authentication/reachability unproven.
+Each used four command events; both fixtures remained unchanged. This is a held-back
+exploratory T3 case under identical policy/model/settings, not a successful rerun of
+the contained Inspect path. Total behavioral use was 12 model turns, including the
+two genuinely interrupted initial UI turns and two same-thread resume turns; the
+failed pre-model/native/provider attempts remain recorded above.
+
+Final independent review at `4d48e577` returned no unresolved material findings and
+independently passed 23 reference/installation tests. PR publication recovered
+without changing network settings; the single review request targets the original
+preview. Final-head host CI, approvals and mergeability are read from GitHub rather
+than inferred from these local results. The revision does not demonstrate general
+agent-performance improvement; the available paired observations showed no such gain.
