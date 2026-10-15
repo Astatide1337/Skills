@@ -137,3 +137,69 @@ Targeted structural and installation checks, live installed-reference retrieval,
 actual image viewing and native CLI setup have been exercised. Final offline
 suite, bounded comparisons, T3 interaction/resume, independent review and host
 readiness are recorded below when observed; pending work is not a pass.
+
+### Observed validation (2026-10-15)
+
+- Catalog: 22 skills, 22 primary behavior cases, 12 routing cases, 62 workflow
+  cases. Complete offline suite: **263 tests passed**. An earlier full run failed
+  the obsolete five-image assertion; it now checks six wired image references.
+- Disposable install/retirement tests exercise both known historical packages,
+  repeated retirement, preservation of modified/extra/linked content and unrelated
+  skills. Actual installed-image retrieval from a project directory decoded and
+  displayed Apple, Stripe and Linear pixels; reuse preserved hashes without a
+  second download. T3 later rendered the GOV.UK example and its error link focused
+  the missing year while retaining day/month.
+- Real Agent CLIs source discovery found no releases, selected a development
+  revision once, then used its frozen pnpm build/pack and documented npm prefix
+  installation. Installed manifests matched artifacts. Linktree command discovery
+  and help succeeded; invalid invocation and missing-run doctor retained exits
+  2/4. Shrunk's usage path returned 4, not a fabricated successful help flag.
+  Installed Keelbox's dev/unknown identity remained explicitly unproven; its help
+  and missing-config doctor were inspected without starting a cluster.
+- Fresh source review found an introduced cache symlink overwrite plus cancellation,
+  comparison-policy and UI-approval contradictions. Corrections preserve an outside
+  sentinel/prior receipt before any cache write, honor immediate cancellation,
+  share one actual comparison policy and qualify explicit approval artifacts.
+
+The finite budget is at most **12 control/candidate model turns**, including
+resumed turns, plus at most three source-review rounds. Failed startup attempts
+and interruptions are retained. Six Inspect turns used `gpt-6.1-sol`, high effort,
+identical actual policy and fixture inputs, with existing protected acceptance.
+Both arms corrected the small function (original failure then held-out success),
+rejected stale passing evidence and accurately reported the missing external
+receipt under local-only authority. No corrective user turn or extra approval
+was required. Response-contract scores were deliberately unscored without a
+model grader; those conclusions come from inspected outputs/commands. Automated
+workspace policy passed in all six; the repair's behavioral acceptance passed.
+
+| Three-case observed metric | Control `233fb741` | Initial candidate `dbef08f` |
+| --- | ---: | ---: |
+| Completed command events | 19 | 22 |
+| Nonzero commands (expected failing checks) | 3 | 3 |
+| Recorded uncached input tokens | 31,881 | 41,728 |
+
+These are single observations across tiny heterogeneous fixtures, not cost,
+speed or general quality estimates. They do not demonstrate improved performance.
+The control/candidate policy hash was identical. Source-review corrections made
+`76d2871`; they do not retroactively change the tested snapshot's identity.
+
+Two held-back Inspect discovery attempts failed **before model execution** at
+native metadata startup. A bounded model-free diagnosis returned `failed to
+load AGENTS.md instructions for environment local: Permission denied`. Two T3
+fallback requests then returned `provider_unavailable`/provider-status timeout
+without accepting tasks. Neither result is passing transfer evidence, and no
+permission, model or host security setting was weakened to make it pass.
+
+The two installed-catalog UI fixtures are real local HTML/HTTP interactions, not
+host PR simulations. Their authors opened the hash/source-matched Stripe pixels,
+implemented distinct valid green/neutral and cream/navy settings layouts, and
+exercised 422/409 retention, error-summary keyboard focus, viewer 403 with unchanged
+server state, Cancel, valid save/reload and narrow viewport layout through T3.
+The acceptance server/checker were outside the authors' write authority. T3's
+full-access permission contract here is instruction-scoped, not OS containment;
+the contained Inspect cases supply a different evidence boundary. Original
+turns were really interrupted with pending checks and persisted acceptance; the
+control's supported same-thread resume rechecked live state and completed the
+released check. Candidate resumption and final source/host gates are pending
+until their actual results are recorded. Explicit runtime resume is not proof of
+automatic scheduling. No private transcripts or credentials are published here.
