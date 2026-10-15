@@ -154,20 +154,65 @@ known gaps, but a skipped check is not green. If a create or push response is
 uncertain, read the remote branch and PR by identity before retrying so one
 request cannot create duplicate artifacts.
 
-## Complete approved delivery
+## Complete authorized delivery
 
-Create the PR/MR as a draft while required review or CI is pending. Assess
-current findings against the approved contract, repair in-scope defects,
-refresh affected tests and independent-review coverage, then commit and push
-only the scoped result. A material plan change returns to HTML approval before
-its dependent implementation; continue independent approved work.
+Use for an implementation task that includes a PR/MR intended for human merge.
+The outcome is the completed, verified change in a merge-ready request, not a
+local commit or draft. Keep three states distinct:
 
-Inspect the final pushed head, returned independent review, required-check
-results, unresolved findings and mergeability. Mark the draft ready only when
-these gates are satisfied. Failed, skipped, unavailable or not-run required
-checks keep readiness pending. A local commit, an old green SHA or a requested
-but unreturned review is insufficient. Report the ready review artifact for
-human merge; never merge or enable auto-merge in this workflow.
+- **Draft:** published work with remaining implementation, review or checks.
+- **Review-ready:** coherent scope and evidence suitable for feedback; host
+  approvals or integration checks may still be pending.
+- **Merge-ready:** engineering acceptance is established and the host's current
+  merge requirements are satisfied. This status never grants permission to merge.
+
+1. Retain the original objective, authority and acceptance. Inspect existing
+   requests, intended base, current head, host rules, required checks/approvals,
+   unresolved discussions and mergeability. Discover project requirements from
+   the current host/configuration; do not infer them from memory or a ready flag.
+2. Complete implementation and actual affected-behavior checks. Obtain independent
+   review of substantive work. Assess findings against the request; repair material
+   in-scope defects and refresh affected checks/reviewer coverage. A finding or
+   ordinary failing check is the next action, not a final handoff. Keep optional
+   preferences and valid alternative designs distinct from requirements.
+3. Publish the scoped change, initially as draft when work remains. Inspect the
+   failing output for any required check, repair its in-scope cause and push the
+   correction. Reuse unaffected evidence; refresh what source or integration
+   changes invalidate. Resolve conflicts within authorized scope without rewriting
+   unrelated work. Inspect workflows before pushes to preserve delivery boundaries.
+4. Wait through supported native mechanisms. Prefer the runtime's attached PR
+   watch when available: register the request and let its notification resume this
+   task. Otherwise use the host CLI's supported wait/watch. A progress update is
+   not task termination; avoid tight polling, identical retries and empty pushes.
+5. Before a real interruption, retain one compact continuation record using
+   [the existing checkpoint guidance](../follow-instructions/references/durable-checkpoints.md).
+   On resume, inspect live head/base, checks, discussions and artifact state before
+   the next action. Runtime persistence owns resumption; saving text schedules no run.
+6. Read the remote state back at the final head/current target. Establish completed
+   scope, affected behavior, returned independent review, resolved material findings,
+   required CI, required approvals, known mergeability and non-draft state. Change
+   the draft flag when appropriate and read it back. Host-accepted skipped/neutral
+   checks are not executed tests; record what ran and ensure engineering acceptance
+   independently covers the required outcome. Pending/unknown gates stay pending.
+
+Honor cancellation immediately: stop further implementation and perform only
+safe owned-resource shutdown within the remaining authority. A hard runtime or
+quota stop may prevent even a checkpoint; preserve one when possible. Neither
+state is successful completion.
+
+For an unavailable capability/authority, essential product decision or required
+human-only approval, finish independent work while authority and runtime permit,
+then suspend with the exact gate, remaining objective and usable resume point.
+Call this externally blocked rather than successful. A small self-imposed trial
+budget is not a delivery suspension reason. Request legitimate required reviews
+through the authorized host workflow; never fabricate approval or resolve a
+disagreement merely to turn a status green.
+
+Report success only when engineering completion and host merge eligibility are
+established. Keep permission to merge separate: never merge, enable auto-merge or
+deploy under this delivery contract. [Host draft behavior](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/changing-the-stage-of-a-pull-request)
+and [branch rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
+explain why a ready flag alone is insufficient; the actual project remains authoritative.
 
 ## Monitor without scope creep
 

@@ -39,6 +39,10 @@ Guard against two failure modes:
   cleanup, or adjacent improvements that were never authorized.
 
 State explicit stop conditions and the handoff after successful verification.
+For delivery work, link the completion contract in
+[`pull-requests`](../../pull-requests/SKILL.md); do not define a second lifecycle
+in each playbook. A checkpoint preserves pending work; it does not perform it
+or cause a runtime to resume.
 
 ## Write executable steps
 
@@ -50,6 +54,30 @@ allowed alternative when ambiguity remains.
 Explain why a non-obvious constraint exists. This helps the agent generalize
 when the exact example changes. Examples should resolve a real ambiguity, not
 decorate the rule.
+
+Keep requirements, defaults and examples distinguishable. Use binding language
+for authority, compatibility and evidence obligations. State a preferred method
+as a default when another method can satisfy the same obligation. Identify the
+conditions that make an example useful rather than turning its architecture or
+style into a requirement.
+
+Use explicit actors and referents: “The agent inspects the failing run's output”
+is clearer than “inspect it.” Keep the action, its deciding observation and the
+failure response together. A command that returns a page shell does not satisfy
+an instruction to inspect an image; name the actual observation needed.
+
+Validate wording through behavior. A fresh reader should perform the intended
+action, recover from a relevant failure and accept a valid alternative without
+the author explaining missing context. If the tool cannot provide the needed
+observation, repair the tool or report that limit; stronger adjectives in the
+instructions cannot supply it. Do not impose a sentence template or phrase lint
+as a substitute for this check.
+
+These choices follow Anthropic's
+[context-engineering guidance](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents):
+provide enough concrete context to guide a decision while avoiding brittle
+prescriptions and loading detail only when relevant. The source motivates the
+method; it does not establish that this catalog improves agent performance.
 
 ## Prune instruction sediment
 

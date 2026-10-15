@@ -26,7 +26,6 @@ PLAYBOOK_NAMES = {
     "review.md",
     "issues.md",
     "document-teach.md",
-    "custom.md",
     "parallel.md",
 }
 PLAYBOOK_SECTIONS = (
@@ -64,7 +63,6 @@ WORKFLOW_ROUTES = {
     "document-teach/document",
     "document-teach/teach",
     "workflow-improvement/improve",
-    "custom/compose",
     "verify-work/verify",
 }
 

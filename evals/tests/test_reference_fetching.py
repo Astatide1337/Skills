@@ -1,5 +1,6 @@
 """Offline tool-contract tests. Remote image availability is a separate observation."""
 from __future__ import annotations
+import base64
 import hashlib
 from http.client import IncompleteRead
 import importlib.util
@@ -17,7 +18,7 @@ SPEC = importlib.util.spec_from_file_location("fetch_references", SCRIPT)
 assert SPEC and SPEC.loader
 fetcher = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(fetcher)
-PNG = b"\x89PNG\r\n\x1a\nfixture"
+PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
 
 
 class ReferenceFetchingTests(unittest.TestCase):
@@ -32,7 +33,7 @@ class ReferenceFetchingTests(unittest.TestCase):
         result = subprocess.run([sys.executable, str(SCRIPT), "--list"],
                                 capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(len(json.loads(result.stdout)), 5)
+        self.assertEqual(set(json.loads(result.stdout)), set(fetcher.image_sources()))
         self.assertFalse(self.output.exists())
 
     def test_unknown_duplicate_and_empty_selection_do_not_create_output(self):
@@ -75,6 +76,142 @@ class ReferenceFetchingTests(unittest.TestCase):
                 fetcher.fetch(self.ids[:1], destination)
         self.assertEqual((self.root / "file").read_text(), "preserve")
         self.assertFalse((self.root / "absent").exists())
+
+    def test_intact_selected_cache_is_reused_without_network(self):
+        with patch.object(fetcher, "download", return_value=PNG):
+            first = fetcher.fetch(self.ids[:1], self.output)
+        with patch.object(fetcher, "download") as network:
+            second = fetcher.fetch(self.ids[:1], self.output)
+        network.assert_not_called()
+        self.assertEqual(second["files"][0]["status"], "reused")
+        self.assertEqual(first["files"][0]["sha256"], second["files"][0]["sha256"])
+        self.assertFalse(second["quality_verified"])
+
+    def test_replaced_index_rejects_reuse_before_network_or_metadata_writes(self):
+        for replacement in ("symlink", "directory"):
+            with self.subTest(replacement=replacement), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "cache"
+                outside = Path(directory) / "outside.md"
+                outside.write_text("preserve outside sentinel")
+                with patch.object(fetcher, "download", return_value=PNG):
+                    fetcher.fetch(self.ids[:1], output)
+                receipt_before = (output / "receipt.json").read_bytes()
+                index = output / "index.md"
+                index.unlink()
+                if replacement == "symlink": index.symlink_to(outside)
+                else: index.mkdir()
+                with patch.object(fetcher, "download") as network, \
+                     patch.object(fetcher, "decode_image") as decoder, \
+                     self.assertRaises(FileExistsError):
+                    fetcher.fetch(self.ids[:2], output)
+                network.assert_not_called()
+                decoder.assert_not_called()
+                self.assertEqual(outside.read_text(), "preserve outside sentinel")
+                self.assertEqual((output / "receipt.json").read_bytes(), receipt_before)
+
+    def test_invalid_receipt_shapes_preserve_cache_before_network_or_decode(self):
+        for payload in ([], None, 1, True, "cache", 1.5):
+            with self.subTest(payload=payload), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "cache"
+                output.mkdir()
+                (output / "receipt.json").write_text(json.dumps(payload))
+                (output / "index.md").write_text("preserve index")
+                (output / "apple-music.png").write_bytes(PNG)
+                (output / "unrelated.txt").write_text("preserve unrelated data")
+                before = {p.name: p.read_bytes() for p in output.iterdir()}
+                with patch.object(fetcher, "download") as network, \
+                     patch.object(fetcher, "decode_image") as decoder, \
+                     self.assertRaisesRegex(FileExistsError, "fresh directory"):
+                    fetcher.fetch(["apple-music"], output)
+                network.assert_not_called()
+                decoder.assert_not_called()
+                self.assertEqual({p.name: p.read_bytes() for p in output.iterdir()}, before)
+
+    def test_incomplete_unselected_rows_reject_before_network_or_writes(self):
+        for row in ({"id": "unselected"},
+                    {"id": "unselected", "status": None},
+                    {"id": "unselected", "status": "fetched"},
+                    {"id": "unselected", "status": "reused", "file": None}):
+            with self.subTest(row=row), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "cache"
+                output.mkdir()
+                (output / "receipt.json").write_text(json.dumps({
+                    "kind": "visual-reference-download", "files": [row],
+                }))
+                (output / "index.md").write_text("preserve index")
+                before = {p.name: p.read_bytes() for p in output.iterdir()}
+                with patch.object(fetcher, "download", side_effect=OSError("offline")) as network, \
+                     self.assertRaisesRegex(FileExistsError, "fresh directory"):
+                    fetcher.fetch(["apple-music"], output)
+                network.assert_not_called()
+                self.assertEqual({p.name: p.read_bytes() for p in output.iterdir()}, before)
+
+    def test_invalid_receipt_cli_reports_structured_failure_without_overwrites(self):
+        # Include malformed JSON alongside valid JSON with the wrong root shape.
+        for raw in ("[]", "null", "1", "{"):
+            with self.subTest(raw=raw), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "cache"
+                output.mkdir()
+                (output / "receipt.json").write_text(raw)
+                (output / "index.md").write_text("preserve index")
+                (output / "apple-music.png").write_bytes(PNG)
+                (output / "unrelated.txt").write_text("preserve unrelated data")
+                before = {p.name: p.read_bytes() for p in output.iterdir()}
+                result = subprocess.run(
+                    [sys.executable, str(SCRIPT), "--id", "apple-music", "--output", str(output)],
+                    capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(result.stdout, "")
+                self.assertNotIn("Traceback", result.stderr)
+                failure = json.loads(result.stderr)
+                self.assertEqual(failure["status"], "failed")
+                self.assertIn("fresh directory", failure["reason"])
+                self.assertEqual({p.name: p.read_bytes() for p in output.iterdir()}, before)
+
+    def test_adding_selection_retains_previous_cache(self):
+        with patch.object(fetcher, "download", return_value=PNG):
+            fetcher.fetch(self.ids[:1], self.output)
+            fetcher.fetch(self.ids[1:2], self.output)
+        with patch.object(fetcher, "download") as network:
+            receipt = fetcher.fetch(self.ids[:2], self.output)
+        network.assert_not_called()
+        self.assertEqual([row["status"] for row in receipt["files"]], ["reused", "reused"])
+
+    def test_changed_source_corruption_or_link_does_not_refetch_or_overwrite(self):
+        for defect in ("source", "bytes", "link", "path"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "cache"
+                with patch.object(fetcher, "download", return_value=PNG):
+                    original = fetcher.fetch(self.ids[:1], output)
+                row = original["files"][0]
+                target = output / row["file"]
+                if defect == "bytes": target.write_bytes(PNG + b"corruption")
+                elif defect == "link":
+                    target.unlink()
+                    target.symlink_to(Path(directory) / "outside")
+                else:
+                    stored = json.loads((output / "receipt.json").read_text())
+                    stored["files"][0]["url" if defect == "source" else "file"] = "changed"
+                    (output / "receipt.json").write_text(json.dumps(stored))
+                with patch.object(fetcher, "download") as network:
+                    result = fetcher.fetch(self.ids[:1], output)
+                network.assert_not_called()
+                self.assertEqual(result["files"][0]["status"], "failed")
+                self.assertIn("fresh directory", result["files"][0]["reason"])
+
+    def test_decode_failure_is_visible_without_a_successful_image(self):
+        with patch.object(fetcher, "download", return_value=PNG), \
+             patch.object(fetcher, "decode_image", side_effect=ValueError("Image decoding failed")):
+            result = fetcher.fetch(self.ids[:1], self.output)
+        self.assertEqual(result["files"][0]["status"], "failed")
+        self.assertIn("decoding", result["files"][0]["reason"])
+        self.assertFalse(list(self.output.glob("*.png")))
+
+    def test_missing_decoder_is_not_model_inspection(self):
+        with patch.dict(sys.modules, {"PIL": None}):
+            result = fetcher.decode_image(PNG)
+        self.assertIn("not-checked", result)
 
     def test_source_definitions_reject_duplicate_and_unreviewed_origins(self):
         document = self.root / "references.md"

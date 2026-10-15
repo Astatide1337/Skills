@@ -146,7 +146,7 @@ def prepare(repo: Path, candidate: str, baseline: str, output: Path) -> dict:
             "No model, application, installer, login, network operation or global change ran.\n\n"
             f"Baseline commit: `{baseline_sha}`\n\nCandidate commit: `{candidate_sha}`\n\n"
             "Select only one arm per fresh session. Use its `skills/follow-instructions/SKILL.md`\n"
-            "and `global-instructions/AGENTS.md`, preserving application-specific instructions.\n"
+            "with the same actual user policy in both arms, preserving application instructions.\n"
             "Use the existing runtime to enforce permissions and isolate acceptance. Do not mix\n"
             "same-named installed baseline skills into a candidate run. If routing isolation is\n"
             "not established, report an exploratory trial rather than a controlled comparison.\n\n"

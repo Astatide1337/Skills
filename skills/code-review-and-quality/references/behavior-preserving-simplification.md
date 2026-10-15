@@ -15,6 +15,10 @@ and its acceptance, interfaces, owners and permitted effects.
 
 Stop when further shortening would obscure intent, collapse a useful boundary, or require a behavior change.
 Reviewer-driven reductions are allowed only within the approved contract.
-Material architecture, ownership, public-interface, scope or verification
-changes need a revised HTML plan and renewed confirmation. Preserve failed and
+When a reduction changes architecture, ownership, a public interface, scope or
+verification, reassess it through the actual
+[plans and authority contract](../../follow-instructions/references/approved-plans.md).
+Renew confirmation only when the user/project gate or changed explicit approval
+requires it, or when essential authority is unavailable. Continue authorized
+in-scope simplification without inventing an HTML gate. Preserve failed and
 unavailable checks rather than weakening acceptance to permit the reduction.

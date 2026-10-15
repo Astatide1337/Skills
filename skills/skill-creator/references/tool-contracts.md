@@ -6,10 +6,18 @@ wrap native commands or create a universal result schema.
 ## Before writing it
 
 Identify the observed repeated error or costly operation. Inspect the native
-command and owning tool first. A stable operation can move into code only when
+command and owning tool first: read current help or authoritative metadata,
+confirm the executable and target, and try the supported operation. Do not
+invent flags, update commands or output formats from another CLI's conventions.
+A stable operation can move into code only when
 its inputs and intended effects are understood. Product choices, architectural
 trade-offs and aesthetic judgments must not be hidden in a supposedly neutral
 tool. Choose one owner for the changing contract.
+
+For application CLI selection, authorized setup and task-stable identity, use
+the [native-tool guidance](../../verify-work/references/agent-clis.md). Keep
+package manifests and command semantics in the owning CLI project rather than
+copying a permanent application revision into Skills.
 
 In the operation's existing documentation, establish:
 
@@ -27,6 +35,14 @@ failure, application failure and unavailable capability. Missing required
 observations are not a successful default. Avoid opaque success flags and
 unbounded output. Do not silently install dependencies, use production as a
 fallback or widen permissions to make a command succeed.
+
+Preserve meaningful inner exits and stage results when an existing operation
+launches subprocesses. An outer process that exits successfully after an inner
+test failed has not produced passing evidence. Report the failed stage, target,
+partial effects and recovery information; use
+[`verify-work`](../../verify-work/SKILL.md) to decide what the observations prove.
+Fix the owning result contract when possible instead of adding a second wrapper
+that guesses success from log text.
 
 ## Exercise the actual interface
 
@@ -51,6 +67,11 @@ out of examples and receipts. A checksum establishes identity, not correctness.
 
 Keep the operation only when its benefit justifies maintenance and context cost.
 Removal in favor of a better native tool is a successful outcome.
+
+Anthropic's [tool-design account](https://www.anthropic.com/engineering/writing-tools-for-agents)
+supports distinct capabilities, useful observations, actionable errors and
+bounded results. It is evidence for those design choices, not a requirement to
+copy its tools, response schema or evaluation infrastructure.
 
 ## Example and near-miss
 

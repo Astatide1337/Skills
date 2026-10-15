@@ -5,7 +5,7 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage: ./scripts/install.sh [--all | --skill NAME ...] [--target PATH]
-                           [--agent-clis-source PATH]
+       ./scripts/install.sh --retire internet-reach --target PATH
        ./scripts/install.sh --list
 
 Options:
@@ -13,7 +13,7 @@ Options:
   --list            List available skill names and exit.
   --skill NAME     Install one named skill; may be repeated.
   --target PATH    Directory that directly contains installed skill folders.
-  --agent-clis-source PATH  Also install the pinned core, Shrunk and Linktree CLIs from a local Git checkout.
+  --retire NAME    Remove only a byte-identical known retired skill; requires --target.
   -h, --help       Show this help.
 
 Without --target, the installer checks the current project's .agents directory,
@@ -28,7 +28,7 @@ skills_root="$repo_root/skills"
 target=""
 install_all=false
 list_only=false
-agent_clis_source=""
+retire=""
 declare -a requested=()
 
 while (($# > 0)); do
@@ -49,9 +49,9 @@ while (($# > 0)); do
       target="$2"
       shift
       ;;
-    --agent-clis-source)
-      (($# >= 2)) || { printf '%s\n' '--agent-clis-source requires a path' >&2; exit 2; }
-      agent_clis_source="$2"
+    --retire)
+      (($# >= 2)) || { printf '%s\n' '--retire requires a name' >&2; exit 2; }
+      retire="$2"
       shift
       ;;
     -h|--help)
@@ -70,9 +70,55 @@ done
 mapfile -t available < <(find "$skills_root" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
 ((${#available[@]} > 0)) || { printf '%s\n' 'No skills found under skills/' >&2; exit 1; }
 
-if "$list_only"; then
+if "$list_only" && [[ -z "$retire" ]]; then
   printf '%s\n' "${available[@]}"
   exit 0
+fi
+
+if [[ -n "$retire" ]]; then
+  [[ -n "$target" && "$install_all" == false && "$list_only" == false && ${#requested[@]} == 0 ]] || {
+    printf '%s\n' 'Retirement requires explicit --target and cannot be combined with installation or --list.' >&2; exit 2;
+  }
+  python3 - "$repo_root" "$target" "$retire" <<'PYRETIRE'
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import sys
+
+root, target_arg, name = sys.argv[1:]
+root = Path(root).resolve()
+target = Path(target_arg).resolve()
+known = json.loads((root / "scripts/retired-skills.json").read_text())
+if name not in known:
+    sys.exit("No supported retirement for this skill; nothing removed.")
+if target in (Path("/"), Path.home()) or target == root / "skills" or (root / "skills") in target.parents:
+    sys.exit("Refusing unsafe retirement target; nothing removed.")
+package = target / name
+if package.is_symlink():
+    sys.exit("Refusing a symlinked retired package; nothing removed.")
+if not package.exists():
+    print(f"already absent: {package}")
+    sys.exit(0)
+if not package.is_dir():
+    sys.exit("Retired package is not a directory; nothing removed.")
+files = {}
+for path in package.rglob("*"):
+    if path.is_symlink() or not (path.is_file() or path.is_dir()):
+        sys.exit("Retired package contains a symlink or special file; nothing removed.")
+    if path.is_file():
+        files[str(path.relative_to(package))] = hashlib.sha256(path.read_bytes()).hexdigest()
+for revision, expected in known[name].items():
+    directories = {str(parent) for relative in expected for parent in Path(relative).parents if str(parent) != "."}
+    actual_directories = {str(p.relative_to(package)) for p in package.rglob("*") if p.is_dir()}
+    if files == expected and actual_directories == directories:
+        shutil.rmtree(package)
+        print(f"retired {name} from {package}; matched {revision}")
+        break
+else:
+    sys.exit("Retired package is customized or unknown; preserve it and remove it manually after review. Nothing removed.")
+PYRETIRE
+  exit $?
 fi
 
 if [[ -z "$target" ]]; then
@@ -165,10 +211,6 @@ if "$needs_profile" && ! "$profile_selected"; then
     requested+=(verify-work)
     printf '%s\n' 'including required dependency: verify-work'
   fi
-fi
-
-if [[ -n "$agent_clis_source" ]]; then
-  python3 "$repo_root/scripts/install-agent-clis.py" --source "$agent_clis_source"
 fi
 
 for skill in "${requested[@]}"; do

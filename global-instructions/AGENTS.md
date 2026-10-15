@@ -1,98 +1,30 @@
-# Personal collaboration contract
+# Global instructions
 
-These are the user's working defaults. Direct user instructions and more
-specific repository instructions win.
+- Never add AI-agent co-author or session trailers to commits, including
+  `Co-Authored-By: Codex` or `Codex-Session`.
+- You may commit and push changes made for a requested implementation task
+  unless I say otherwise. Never merge, enable auto-merge, or deploy.
 
-## Skill compliance
+## Kubernetes and OpenShift
 
-- Whenever one or more other catalog skills apply, initialize
-  `follow-instructions` once before loading the selected domain skills. It
-  classifies the requested outcome/process, domain expertise, follow-on
-  deliverables, and permitted effects, then composes only the required
-  procedures. Do not use it for ordinary direct-answer tasks or invoke it
-  recursively from a leaf skill. After reading every selected skill and its
-  required references, keep a proportionate task record for obligations that
-  can change action, ordering, permission, a stop condition, or a completion
-  claim. Do not mutate state, publish, or claim completion while a relevant
-  obligation remains unresolved.
+- My personal Kubernetes cluster and Rutgers OpenShift are separate environments.
+  Before using either, verify the target context and namespace. Use the correct
+  context explicitly; do not assume the current context is correct.
+- If the Rutgers OpenShift CLI token has expired, run
+  `oc login --web <Rutgers API server>` using the server from the Rutgers
+  context. I will complete the browser sign-in. Then verify the identity and
+  context and resume the task; an expired token alone is not a blocker.
 
-## Work from evidence
+## Sudo on this machine
 
-- Solve the request that was actually made. Prefer the smallest system, change,
-  and verification that make the intended behavior clear.
-- Keep self-learning and automatic rule promotion paused. Record observed
-  lessons as proposals; durable rule changes require a separate explicit user
-  decision and the owning skill procedure.
-- Before changing shared behavior, trace the callers or user surfaces it can
-  affect. Verify the requested path and any clearly affected path before
-  claiming the broader result.
-- Never substitute a mock route, placeholder UI, assumed environment state, or
-  plausible explanation for the requested behavior or evidence.
+- When authorized work requires sudo, use GUI authentication (for example,
+  `sudo -A` with the configured askpass helper). I will enter the password;
+  needing sudo authentication is not a blocker.
+- Group related sudo commands into one authenticated invocation where practical
+  to avoid repeated GUI prompts. Separate them when later commands depend on
+  results that must be inspected first. Never collect or store my password.
 
-## Default authority
+## Root secrets
 
-- Questions, explanations, research, audits, reviews, and status requests are
-  read-only unless the user explicitly asks for a change. Inspect enough to
-  answer, then stop.
-- Existing access is not authorization. Commit, push, open or modify a pull
-  request, post a public comment, merge, deploy, migrate, or change external
-  state only when the request explicitly includes that action or invokes a
-  workflow that clearly grants it.
-- Do not create or rewrite README files, AGENTS files, architecture documents,
-  plans, runbooks, or other project documentation as a side effect. Create
-  those artifacts only when the user asks for them or invokes a workflow that
-  names them as a deliverable, including the approval plan below.
-- Do not add AI-agent co-author or session trailers to commits.
-
-Example: "How does this work?" authorizes inspection and an explanation. It
-does not authorize edits, a documentation pass, a commit, or a new PR.
-
-## Engineering delivery default
-
-- For nontrivial feature/issue implementation, investigate the actual code and
-  environment, present a scannable HTML plan and relevant actual-component UI
-  prototype, then wait for the plan's explicit greenlight. Follow the single
-  [approved-plan contract](../skills/follow-instructions/references/approved-plans.md),
-  resolving it through the installed `follow-instructions` skill's locator when
-  this global file is copied elsewhere.
-- After approval, own the agreed work through actual verification, independent
-  review, in-scope fixes and the approved commit/publication effects. Reopen a
-  material plan change before dependent work; continue safe independent work.
-  Remote readiness requires current-head evidence. Never merge or enable
-  auto-merge in this delivery workflow.
-- Preserve the coordinator's tiny-change path and read-only requests. An
-  approved plan supplies only its recorded effects; access alone grants none.
-
-## The SOPS age key
-
-- The age key in `~/.config/sops/age/keys.txt`, the `sops-age` Secret in
-  `argocd`, and the Bitwarden secure note "SOPS age key (gitops)" (in the local
-  vault or the cluster's `bitwarden-vault`) are the root of every encrypted
-  file in the gitops repo. Never read, print, copy, export, or search for them,
-  and never pass the key to a tool. Decrypting through `sops` or `make` when a
-  task needs it is fine; handling the key itself is not.
-
-## Verification and handoff
-
-- Make claims match observed evidence. State what is proven, what remains
-  unknown, and the narrowest justified conclusion when a meaningful check
-  remains unavailable.
-- When secrets, multi-process or production-like state, or a consequential
-  external write is in scope, report the boundary, alternatives, and effect
-  only to the detail that changes the decision. Ordinary publication, issue
-  drafting, and direct answers stay concise while retaining material limits;
-  they do not require a fixed reporting template.
-- Use targeted checks for the changed surface. Do not run broad suites merely
-  for ceremony, and do not report a check that was not run.
-- Keep updates direct: outcome, material changes, evidence, and any real
-  limitation. Do not turn the handoff into a tool transcript.
-
-## Collaboration
-
-- Make reasonable, reversible progress when the intent is clear. Ask one
-  focused question only when a product, risk, ownership, or external-action
-  decision cannot be established safely from the request and available
-  evidence.
-- Preserve unrelated user changes. Do not widen a task into cleanup, refactors,
-  documentation, or feature work without explaining the connection and getting
-  direction.
+- Never read, print, copy or export the SOPS age root keys or vault copies.
+  Use authorized `sops` or `make` decryption without handling the key itself.

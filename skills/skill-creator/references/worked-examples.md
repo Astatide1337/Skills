@@ -28,6 +28,11 @@ well as meaningful defective candidates, including missing/stale evidence.
 
 ## Placement and discovery
 
+The small [engineering case index](../../follow-instructions/references/case-studies.md)
+links original exercises on interrupted work, form-error recovery and delivery
+through review. Use only the case matching the current decision. Its hypothetical
+states are teaching material, not industry transcripts or trial results.
+
 Keep shared methods beside their existing skill. Keep changing app policies,
 selectors, schemas, launch details and accepted design anchors with the app.
 Reference one well-integrated application feature rather than copying an entire

@@ -34,7 +34,7 @@ fixed or that today's catalog reliably prevents it.
 | Loops | Retry a stateful create | An ambiguous result was retried into duplicate resources and cleanup used only a name. | Observe by stable identity before retry; refuse destructive cleanup without exact identity and authorization. | production-safety |
 | Loops | Wake or continue a worker | Generic message updates caused repeated wakeups; a continuous loop waited for an hourly schedule. | Trigger on the requested transition, dedupe by state identity, and check the actual next-start interval. | architect, self-reflect |
 
-A structural rule is justified when an observed recurrence or safety boundary can be enforced. State the approved pattern, forbidden alternative, enforcement point, and a violating fixture that fails. Keep app-specific types, schemas, lint/import rules, CI, and feature maps in the application; keep deterministic operations in a pinned per-app CLI.
+A structural rule is justified when an observed recurrence or safety boundary can be enforced. State the approved pattern, forbidden alternative, enforcement point, and a violating fixture that fails. Keep app-specific types, schemas, lint/import rules, CI, and feature maps in the application; use its native CLI for established operations, resolving and retaining the executable's identity for the task.
 
 ## Later regression coverage
 
