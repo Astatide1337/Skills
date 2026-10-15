@@ -127,6 +127,25 @@ class ReferenceFetchingTests(unittest.TestCase):
                 decoder.assert_not_called()
                 self.assertEqual({p.name: p.read_bytes() for p in output.iterdir()}, before)
 
+    def test_incomplete_unselected_rows_reject_before_network_or_writes(self):
+        for row in ({"id": "unselected"},
+                    {"id": "unselected", "status": None},
+                    {"id": "unselected", "status": "fetched"},
+                    {"id": "unselected", "status": "reused", "file": None}):
+            with self.subTest(row=row), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "cache"
+                output.mkdir()
+                (output / "receipt.json").write_text(json.dumps({
+                    "kind": "visual-reference-download", "files": [row],
+                }))
+                (output / "index.md").write_text("preserve index")
+                before = {p.name: p.read_bytes() for p in output.iterdir()}
+                with patch.object(fetcher, "download", side_effect=OSError("offline")) as network, \
+                     self.assertRaisesRegex(FileExistsError, "fresh directory"):
+                    fetcher.fetch(["apple-music"], output)
+                network.assert_not_called()
+                self.assertEqual({p.name: p.read_bytes() for p in output.iterdir()}, before)
+
     def test_invalid_receipt_cli_reports_structured_failure_without_overwrites(self):
         # Include malformed JSON alongside valid JSON with the wrong root shape.
         for raw in ("[]", "null", "1", "{"):

@@ -101,6 +101,9 @@ def existing_receipt(output: Path) -> dict | None:
             or receipt.get("kind") != "visual-reference-download"
             or not isinstance(receipt.get("files"), list)
             or any(not isinstance(row, dict) or not isinstance(row.get("id"), str)
+                   or not isinstance(row.get("status"), str)
+                   or (row["status"] in ("fetched", "reused")
+                       and not isinstance(row.get("file"), str))
                    for row in receipt["files"])
             or len({row["id"] for row in receipt["files"]}) != len(receipt["files"])):
         raise FileExistsError("Existing output is not a reference cache; use a fresh directory")
