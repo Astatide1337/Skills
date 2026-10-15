@@ -69,8 +69,17 @@ class WorkflowContractTests(unittest.TestCase):
             self.assertNotEqual(self._run_case_acceptance(sample, root).returncode, 0)
 
     def test_global_ablation_preserves_repository_layer_and_other_rules(self):
-        mandated = skills.workflows_dataset(execution_ready_only=True)
-        direct = skills.workflows_dataset(execution_ready_only=True, mandatory_coordinator=False)
+        # Ablation is a historical optional experiment, not a mandate that the
+        # user's current short policy must retain obsolete coordinator prose.
+        with tempfile.TemporaryDirectory() as raw:
+            policy = Path(raw) / "policy.md"
+            policy.write_text(skills.COORDINATOR_MANDATE + "\n"
+                              "## Default authority\nRead only unless authorized.\n"
+                              "## The SOPS age key\nNever export keys.\n"
+                              "## Work from evidence\nInspect actual outcomes.\n")
+            mandated = skills.workflows_dataset(execution_ready_only=True, global_instructions=policy)
+            direct = skills.workflows_dataset(execution_ready_only=True, global_instructions=policy,
+                                               mandatory_coordinator=False)
         self.assertEqual([s.id for s in mandated], [s.id for s in direct])
         for left, right in zip(mandated, direct):
             self.assertEqual(left.input, right.input)
@@ -279,7 +288,7 @@ class WorkflowContractTests(unittest.TestCase):
         }
         self.assertIn("issues/create", routes)
         self.assertIn("pull-requests/create", routes)
-        self.assertIn("custom/compose", routes)
+        self.assertIn("implement/feature", routes)
         self.assertTrue(
             any(
                 "parallel" in (sample.metadata or {}).get("expected_modifiers", [])

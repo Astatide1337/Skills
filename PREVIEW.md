@@ -1,181 +1,139 @@
-# Engineering the Engineer v2 preview
+# Engineering Skills preview: native tools and complete delivery
 
-Branch: `preview/engineering-the-engineer-v2`  
-Source base: `52ef9c11fc6ac42e01bd6aed78ae15bf46250290`  
-Status: implementation preview for a user-run project trial, not a demonstrated
-quality improvement, protected runtime, or production release.
+Control for this revision: fetched `preview/engineering-the-engineer-v2` at
+`233fb741431a41b22e865d9baaedf62a90bface9`. Candidate: the head of
+`feat/native-delivery-judgment`. These are experimental instructions, not a
+measured general improvement or permission to merge/deploy/install globally.
+The original [v2 design](docs/engineering-the-engineer-v2.md) is historical design
+context; current entrypoints and owners govern execution.
 
-The [v2 design](docs/engineering-the-engineer-v2.md) is the design record. Its
-proposal-status wording predates the user's subsequent implementation approval.
-This branch does not change `main`, the global collaboration policy, the installer,
-the app-CLI pin, or CI. It grants no merge, deployment, spending or automatic
-rule-promotion authority. Application and runtime policies still apply.
+The October 13–15 audit found useful counterexample-driven reviews alongside
+premature readiness, scope expansion and missed existing automation. Its actual
+installed predecessor was `8f2d963`, not `52ef9c1`; installed preview package bytes
+matched `233fb741`, while the actual user policy differed from source. Those
+historical distinctions do not make the predecessor this revision's control.
 
-## 1. Temporary project-local installation
+## What to use
 
-For a new trial project on a Linux host with Git and Bash, these commands create
-fresh directories and use the existing installer. They do not replace global
-skills or overwrite an existing project. There is no additional service to buy.
+Start engineering work at `follow-instructions/SKILL.md`. Use its short path for
+clear small corrections, and retain read-only boundaries for explanations/reviews.
+`pull-requests` owns authorized delivery through current-head checks, review,
+conflict resolution and host eligibility. A draft or ready flag is intermediate.
+Explicit user/project design approvals remain binding; HTML is not a default gate.
+
+Native tools own established operations. The [CLI reference](skills/verify-work/references/agent-clis.md)
+explains discovery, task-stable identity, supported setup and limits for Agent
+CLIs and Keelbox. T3 owns its collaborative browser and runtime continuation.
+`create-workflow` is only for requested recurring automation, not an investigation
+turned into a permanent harness. `skill-creator`, `unslop` and `deslop` retain their
+distinct jobs. The duplicate custom playbook and obsolete internet-reach/Zen
+bridge are removed.
+
+Use the [three worked decisions](skills/follow-instructions/references/case-studies.md)
+only when they address the task. They are original sourced instructional
+exercises, not fabricated industry transcripts or behavioral-trial receipts.
+The [visual collection](skills/web-interface/references/composition-examples.md)
+has a task index, publisher attribution, actual-image access and limitations.
+Images remain publisher-owned; no proprietary images/fonts are redistributed.
+Open actual pixels, then check the implemented interaction through the browser.
+A valid different design is allowed; copying a brand is not acceptance.
+
+## Disposable installation and rollback
+
+Use Bash/Git on an authorized Linux host. These commands install into two new
+project directories, preserve the previous preview, and leave global skills and
+application instructions unchanged. Resolve the candidate once before starting.
 
 ```bash
 set -euo pipefail
-TRIAL=$(mktemp -d "$HOME/skills-v2-trial.XXXXXX")
-git clone --single-branch --branch preview/engineering-the-engineer-v2 \
-  https://github.com/Astatide1337/Skills.git "$TRIAL/Skills"
-mkdir "$TRIAL/project"
-bash "$TRIAL/Skills/scripts/install.sh" --all \
-  --target "$TRIAL/project/.agents/skills"
-cp "$TRIAL/Skills/global-instructions/AGENTS.md" "$TRIAL/project/AGENTS.md"
-git -C "$TRIAL/Skills" rev-parse HEAD
-printf 'Open a fresh agent session in: %s\n' "$TRIAL/project"
+trial_root=$(mktemp -d "$HOME/skills-preview-trial.XXXXXX")
+git clone https://github.com/Astatide1337/Skills.git "$trial_root/Skills"
+git -C "$trial_root/Skills" fetch origin feat/native-delivery-judgment
+candidate_ref=$(git -C "$trial_root/Skills" rev-parse origin/feat/native-delivery-judgment)
+git -C "$trial_root/Skills" worktree add --detach "$trial_root/control" \
+  233fb741431a41b22e865d9baaedf62a90bface9
+git -C "$trial_root/Skills" worktree add --detach "$trial_root/candidate" "$candidate_ref"
+mkdir "$trial_root/control-project" "$trial_root/candidate-project"
+bash "$trial_root/control/scripts/install.sh" --all \
+  --target "$trial_root/control-project/.agents/skills"
+bash "$trial_root/candidate/scripts/install.sh" --all \
+  --target "$trial_root/candidate-project/.agents/skills"
+printf 'Control: %s\nCandidate: %s\nRoot: %s\n' \
+  233fb741431a41b22e865d9baaedf62a90bface9 "$candidate_ref" "$trial_root"
 ```
 
-The copied policy is local to this fresh project. It is not installed in your
-home or substituted for any existing application instruction. For an existing
-application, use a disposable checkout and inspect its instructions first.
-Do not overwrite an existing `.agents/skills` or `AGENTS.md` without preserving
-and reconciling it. The existing installer replaces selected same-name packages.
+Supply the **same actual collaboration policy** to both fresh sessions and retain
+application-specific instructions. Do not copy the candidate policy over an
+existing application policy. Explicitly select one installed catalog, beginning
+at `.agents/skills/follow-instructions/SKILL.md`; confirm actual loaded locators.
+If global/bundled catalog isolation is unproved, report an exploratory trial.
+Rollback: stop the candidate session and open the control project selecting its
+catalog. Global restoration is unnecessary. Keep project work and evidence;
+remove only explicitly identified disposable directories when finished.
 
-Use the explicit local catalog, beginning at `.agents/skills/follow-instructions/SKILL.md`.
-A suitable session instruction is:
-
-> Use this project's preview catalog and AGENTS.md. Start with
-> .agents/skills/follow-instructions/SKILL.md and load only relevant references.
-> Do not install or edit global skills. Build the project I describe, using the
-> agreed scope and quality standard. Inspect actual renders, verify real behavior,
-> and obtain required independent review. Do not weaken acceptance, merge or deploy.
-
-Confirm which same-named skills the runtime actually loads. A project-local
-installation does not prove every harness excludes global or bundled skills.
-When one-version routing cannot be confirmed, call it an exploratory trial,
-not a controlled comparison. Stop that session to stop using the preview. Keep
-project work and remove only the local trial skills when no longer needed.
-
-## 2. Real visual references and documented AI failures
-
-The [visual reference guide](skills/web-interface/references/composition-examples.md)
-replaces the self-made illustrations. It includes Apple Music and Stripe payment
-layouts, two documented weak AI-generated screens, and a better AI-generated
-alternative. Each has source attribution, a concrete judgment and limits.
-Linear's official design article is supplementary rationale. Its image was not
-renderable in the final inspection pass, so it is not counted as visually verified.
-
-For the local image-reading tool, fetch the selected public images explicitly:
+Normal installation replaces selected same-name packages and does not prune
+retired/unrelated packages. Preserve customizations before any selected install.
+To retire a recognized old internet-reach in a disposable selected destination:
 
 ```bash
-python3 "$TRIAL/project/.agents/skills/web-interface/scripts/fetch_references.py" --list
-python3 "$TRIAL/project/.agents/skills/web-interface/scripts/fetch_references.py" \
-  --all --output "$TRIAL/reference-images"
+bash "$trial_root/candidate/scripts/install.sh" --retire internet-reach \
+  --target "$trial_root/control-project/.agents/skills"
 ```
 
-The five images go into a fresh run-owned directory with an index and receipt.
-Inspect the actual pixels. Network access is required for this optional operation,
-not for skill installation. Download errors remain errors. The receipt records
-bytes and failures, not an aesthetic score, signature, or redistribution license.
-Third-party artwork is not bundled in Git or licensed for inclusion in a product.
+Retirement refuses changed/extra/linked/unknown content and leaves it untouched.
+It is explicit, separate from installation and never runs on global targets here.
 
-[Sourced code failures](skills/code-review-and-quality/references/generated-code-failures.md)
-cover disconnected interaction logic, route-order errors and redundant bookkeeping.
-The sources explicitly identify AI-generated artifacts. We do not infer authorship
-from disliked fonts, naming, or architecture. These are teaching cases, not a
-blanket claim that AI output is bad or a hidden test set.
-
-## 3. Design coverage
-
-| Decision | Existing owner and implementation |
-| --- | --- |
-| One engineer, separate verification and improvement | `follow-instructions`, `verify-work`, `skill-creator` |
-| Requirements differ from defaults and examples | `follow-instructions/references/engineering-judgment.md` |
-| Stable operations use well-defined native tools | `skill-creator/references/tool-contracts.md`, existing CLIs, preview preparer and reference fetcher |
-| Examples teach context and valid alternatives | `skill-creator/references/worked-examples.md`, sourced UI/code references and authorization controls |
-| Separate design judgment, generation and fidelity | `web-interface/references/visual-direction.md` |
-| Assess credible future changes, not folder aesthetics | `code-review-and-quality/references/maintainability-exercise.md` |
-| Independently grounded expectations and current evidence | `verify-work/references/independent-acceptance.md`, with existing runtime boundaries retained |
-| Check false rejection as well as false acceptance | `verify-work/references/authorization-example.py` and existing evidence checks |
-| Improvement must transfer and preserve valid alternatives | `skill-creator/references/measured-improvement.md` |
-| Preserve compatibility and authority | Existing catalog names, installer, globals, app-CLI pin and evaluator remain their owners |
-
-No scheduler, gateway, new agent hierarchy, universal verifier, paid model ensemble
-or unrelated application change is introduced. References explain methods. They
-cannot enforce runtime isolation by themselves.
-
-## 4. Comparison and rollback
-
-For a qualitative trial, judge the actual artifact before its explanation. Keep
-functionality, visual quality, usability, maintainability and relevant security
-separate. A prettier but broken result stays unaccepted. Planned approval is not
-the same as you diagnosing or repairing the agent's work.
-
-The existing preparer can freeze committed baseline and candidate inputs without
-activating them. From the preview checkout, choose a fresh output path:
+From a project directory, resolve the fetcher through the selected installed
+skill, not relative to the source checkout:
 
 ```bash
-python3 scripts/prepare-preview.py prepare \
-  --baseline 52ef9c11fc6ac42e01bd6aed78ae15bf46250290 \
-  --candidate HEAD --output /path/to/fresh-comparison
-python3 scripts/prepare-preview.py verify /path/to/fresh-comparison
+python3 /absolute/project/.agents/skills/web-interface/scripts/fetch_references.py --list
+python3 /absolute/project/.agents/skills/web-interface/scripts/fetch_references.py \
+  --id linear-sidebar --id stripe-payment-layouts --output /absolute/fresh-reference-cache
 ```
 
-The source base above is not an assertion about your installed or last-accepted
-configuration. Use its actual preserved identity when different. Snapshots are
-inputs, not a sandbox or proof of honest execution. The manifest detects drift
-relative to itself, not malicious edits to both the manifest and the files.
+Reuse that cache while its source URL/hash/container and decoder checks remain
+valid. A fetched or decoded image is not proof of model inspection. Open it with
+a vision tool; changed/corrupt caches fail visibly instead of silently replacing
+observations. GOV.UK's live recovery example uses the documented browser path.
 
-For controlled comparisons, follow the existing
-[evaluation procedure](skills/skill-creator/references/evaluation.md) on a supported,
-already-authenticated runtime. Inspect task discovery and namespace support first:
+## Maintained checks and evaluation responsibilities
 
-```bash
-uv sync --frozen
-uv run --frozen inspect list tasks evals/skills.py
-python3 scripts/namespace-doctor.py
-```
-
-Use its existing `workflows` task with explicit candidate/baseline roots, the same
-authorized model/settings, native tools, application inputs, acceptance and finite
-budget. Include the targeted issue, ordinary work, an unseen related task, a case
-where the new default should not apply, and another valid solution. Do not tune
-on exposed cases and then call them held out. A namespace or runtime failure is
-not permission to remove the support gate. A time budget is not a token quota cap.
-
-If this preview does not help, keep the accepted version and diagnose the failed
-decision. Change the responsible tool, context, method or evaluator rather than
-accumulating rules or lowering the bar. Removal can be an improvement.
-
-## 5. Checks and remaining evidence
-
-The final targeted suite ran **34 tests successfully** in the authoring container:
-
-```bash
-python3 -m unittest evals.tests.test_preview_preparation \
-  evals.tests.test_engineering_examples evals.tests.test_reference_fetching -v
-python3 skills/verify-work/references/authorization-example.py
-```
-
-Tests exercise real disposable Git histories, snapshot drift and no-overwrite
-behavior, installer resource copying, meaningful authorization controls, and
-mocked HTTP success/failure/interruption handling. The installer bytes were
-verified against the unchanged repository blob. Test inputs were reconstructed
-from the changed-source bundle plus that installer, not a complete clone.
-The reference-fetcher tests are not proof of origin availability.
-
-Five external images were directly inspected through the web image viewer. Direct
-network access from the coding container was unavailable. The Python fetcher's
-live-origin path, a full-checkout catalog/suite run, independent agent review,
-remote CI, real Linktree/Shrunk delivery and a model-quality comparison have not
-been established by these targeted results. Do not report those as passed.
-
-Run the unchanged full-checkout validation where supported:
+`./scripts/validate-skills.sh` is the one documented catalog-validation entrypoint;
+it is a thin wrapper around `validate_catalog.py`, not another validation engine.
+The optional evaluation suite owns offline tests and contained native comparisons.
+`namespace-doctor.py` diagnoses evaluator prerequisites, not everyday work or
+runtime isolation. `prepare-preview.py` snapshots committed comparison inputs,
+detects drift and does not install, run, protect or resume agents. Their paths
+remain stable because tests and snapshots consume them. `checkpoint.py` remains
+a portable fallback when native persistence cannot retain acceptance; do not run
+a second task ledger alongside a capable runtime.
 
 ```bash
 ./scripts/validate-skills.sh
 uv run --frozen python -m unittest discover -s evals/tests -v
+uv run --frozen inspect list tasks evals/skills.py
+python3 scripts/namespace-doctor.py
+python3 scripts/prepare-preview.py prepare --baseline 233fb741 \
+  --candidate HEAD --output /absolute/fresh-comparison
+python3 scripts/prepare-preview.py verify /absolute/fresh-comparison
 ```
 
-The first real-delivery milestone requires an actual requested application task,
-current native/browser evidence, meaningful negative controls, independent review,
-repairs and fresh-context repeatability. Linktree's documented CLI requires the
-real local Shrunk dependency and explicit auth mode. Development login does not
-prove CAS. Do not invent a defect or substitute a static demo for that delivery.
-The later milestones require transfer and sustained work, not a branch or a
-passing fixture count. Difficulty, breadth and authority advance separately.
+When T3 exports `__PYVENV_LAUNCHER__` pointing at its AppImage, clear it for the
+Python command (`env -u __PYVENV_LAUNCHER__ uv run ...`); otherwise subprocess tests
+may report that AppImage as `sys.executable`. This does not change global settings.
+Do not weaken evaluator boundaries to hide an unavailable prerequisite.
+
+Use existing `workflows` task parameters with explicit control/candidate roots,
+the same actual policy, model/effort/tools/permissions and a frozen finite budget.
+Keep hidden expectations outside implementer write authority. Record every
+failure/interruption, required human correction, observed calls and limits; no
+cost estimate or uplift follows from a passing fixture. Native fixture resumption,
+T3 thread resumption and real host delivery are different claims.
+
+## Evidence for this revision
+
+Targeted structural and installation checks, live installed-reference retrieval,
+actual image viewing and native CLI setup have been exercised. Final offline
+suite, bounded comparisons, T3 interaction/resume, independent review and host
+readiness are recorded below when observed; pending work is not a pass.

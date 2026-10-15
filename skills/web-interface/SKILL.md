@@ -45,6 +45,12 @@ project is not necessarily a shadcn project.
 
 ## Base workflow
 
+For a new visual direction, select a task-relevant case from the
+[sourced visual references](./references/composition-examples.md), open its actual
+image or live example, identify the useful design decision, and compare the
+rendered candidate against that decision. An accepted local direction or a small
+fix needs no reference tour. Different valid compositions remain acceptable.
+
 Selected public reference images can be fetched explicitly with the
 [reference fetcher](./scripts/fetch_references.py) described in the reference.
 The installer performs no network fetch. Inspect actual images and attribution,

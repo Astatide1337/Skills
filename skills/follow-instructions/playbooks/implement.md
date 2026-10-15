@@ -5,9 +5,9 @@
 Use when the requested outcome changes repository behavior or structure. Pick
 `bug`, `feature`, or `refactor`; add a PR route only when publication is also
 requested or included in approved delivery. Mechanical local changes use the
-coordinator's short path instead. Nontrivial feature/issue work starts with the
-[approved-plan contract](../references/approved-plans.md) and [design](design.md)
-when its confirmed plan is missing.
+coordinator's short path instead. Substantial design decisions use [design](design.md) and
+[plans and authority](../references/approved-plans.md); an existing implementation
+authorization does not require a separate presentation or confirmation.
 Use [`systematic-debugging`](../../systematic-debugging/SKILL.md) for unclear causes, [`architect`](../../architect/SKILL.md) for unclear boundaries,
 [`web-interface`](../../web-interface/SKILL.md) for UI, and
 [`code-review-and-quality`](../../code-review-and-quality/SKILL.md) before
@@ -19,8 +19,8 @@ handoff.
 - current branch/revision, owning implementation, callers, data/state owners,
   fixtures, commands, and relevant environment;
 - allowed files/effects, compatibility constraints, and requested publication;
-- approved plan/prototype version and digest, user confirmation, exclusions and
-  outstanding evidence gates for nontrivial work;
+- original authorization, exclusions, acceptance and outstanding evidence gates;
+  plan/prototype identity and confirmation only when actually required;
 - for a sensitive boundary, identities, consumers, secret data, and rollback.
 
 ## Steps and decision points
@@ -66,8 +66,9 @@ and use the strongest safe alternative; do not fabricate a before/after win.
 If a check contradicts the hypothesis, return to diagnosis. Remove temporary
 probes and revert only run-owned rejected changes. Do not broaden secret access
 or hide a symptom to make a test pass.
-Preserve evidence for material discoveries, stop the dependent unit and revise
-its HTML plan before resuming; continue independent approved units. Diagnose
+Preserve evidence for material discoveries and revise the affected decision.
+Apply the actual approval gate in [plans and authority](../references/approved-plans.md);
+continue independent authorized units. Diagnose
 safe alternatives and recoverable setup before declaring a blocker. Repeated
 failure or no new evidence uses [self-reflect](../../self-reflect/SKILL.md).
 

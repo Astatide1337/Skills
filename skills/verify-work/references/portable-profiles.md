@@ -2,7 +2,7 @@
 
 Use when verification must travel with the user's tools and the application
 repository cannot be changed. Reuse the application's existing checks or a
-pinned application CLI. That CLI owns launch, readiness, instance identity,
+task-stable application CLI. That CLI owns launch, readiness, instance identity,
 domain operations, and cleanup; this helper does not replace those mechanisms.
 
 Store a reviewed JSON profile outside the application checkout. It contains

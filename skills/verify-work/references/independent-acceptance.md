@@ -20,7 +20,7 @@ reviewed. Reassess baseline and candidate under the same corrected contract.
 
 ## Observations and protection
 
-Use the application's supported native checks or pinned CLI and the existing
+Use the application's supported native checks or task-stable CLI and the existing
 runtime boundary. Run candidate code without unrelated secrets or privileges.
 Protect check discovery, runner logic, acceptance inputs and authoritative outputs.
 A read-only prompt, separate directory, hash or candidate-generated receipt does

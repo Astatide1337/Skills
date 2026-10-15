@@ -15,12 +15,19 @@ Write for execution, not admiration. State the outcome, triggering conditions, a
    should result?” without inferring either from the filename. For an Agent
    Skill, put the trigger in frontmatter; for a runbook or task specification,
    use a short applicability or trigger statement in the document itself.
-3. Separate universal rules from task-specific procedure.
-4. Use imperative, observable language. Replace “be careful” with the check that demonstrates care.
+3. Separate requirements, defaults and examples. Requirements bind outcomes,
+   authority and evidence. Defaults allow a justified alternative; examples
+   demonstrate a decision under stated conditions.
+4. Name the actor, action and observation that informs the next decision. For a
+   consequential sequence, state what the agent does when an observation fails
+   or a required capability is unavailable. Replace “be careful” with the check
+   that demonstrates care.
 5. Resolve conflicts and precedence explicitly.
 6. Keep the root document lean; move detail to directly linked references.
 7. Include examples only where they disambiguate a decision.
-8. Test with realistic trigger, near-miss, and adversarial prompts.
+8. Test the changed behavior with a realistic trigger, a near-miss and a valid
+   alternative. Add a failure or interruption case when the instructions govern
+   recovery or continuation. Check the outcome, not recitation of the wording.
 9. Hand the instructions to a cold reader with only the declared context. Run
    the actual command or user path it prescribes, inspect the result, correct
    missing prerequisites or ambiguous steps, and rerun the corrected text.
