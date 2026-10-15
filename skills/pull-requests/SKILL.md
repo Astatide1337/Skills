@@ -195,13 +195,18 @@ local commit or draft. Keep three states distinct:
    checks are not executed tests; record what ran and ensure engineering acceptance
    independently covers the required outcome. Pending/unknown gates stay pending.
 
-Complete independent in-scope work before suspending for user cancellation, a hard
-runtime/quota limit, unavailable authority/capability, an essential product decision,
-or a required human-only approval. Record the exact gate, remaining objective and
-usable resume point; call the state paused or externally blocked, not successful.
-A small self-imposed trial budget is not a delivery suspension reason. Request
-legitimate required reviews through the authorized host workflow; never fabricate
-approval or resolve disagreement merely to turn a status green.
+Honor cancellation immediately: stop further implementation and perform only
+safe owned-resource shutdown within the remaining authority. A hard runtime or
+quota stop may prevent even a checkpoint; preserve one when possible. Neither
+state is successful completion.
+
+For an unavailable capability/authority, essential product decision or required
+human-only approval, finish independent work while authority and runtime permit,
+then suspend with the exact gate, remaining objective and usable resume point.
+Call this externally blocked rather than successful. A small self-imposed trial
+budget is not a delivery suspension reason. Request legitimate required reviews
+through the authorized host workflow; never fabricate approval or resolve a
+disagreement merely to turn a status green.
 
 Report success only when engineering completion and host merge eligibility are
 established. Keep permission to merge separate: never merge, enable auto-merge or

@@ -87,6 +87,28 @@ class ReferenceFetchingTests(unittest.TestCase):
         self.assertEqual(first["files"][0]["sha256"], second["files"][0]["sha256"])
         self.assertFalse(second["quality_verified"])
 
+    def test_replaced_index_rejects_reuse_before_network_or_metadata_writes(self):
+        for replacement in ("symlink", "directory"):
+            with self.subTest(replacement=replacement), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "cache"
+                outside = Path(directory) / "outside.md"
+                outside.write_text("preserve outside sentinel")
+                with patch.object(fetcher, "download", return_value=PNG):
+                    fetcher.fetch(self.ids[:1], output)
+                receipt_before = (output / "receipt.json").read_bytes()
+                index = output / "index.md"
+                index.unlink()
+                if replacement == "symlink": index.symlink_to(outside)
+                else: index.mkdir()
+                with patch.object(fetcher, "download") as network, \
+                     patch.object(fetcher, "decode_image") as decoder, \
+                     self.assertRaises(FileExistsError):
+                    fetcher.fetch(self.ids[:2], output)
+                network.assert_not_called()
+                decoder.assert_not_called()
+                self.assertEqual(outside.read_text(), "preserve outside sentinel")
+                self.assertEqual((output / "receipt.json").read_bytes(), receipt_before)
+
     def test_adding_selection_retains_previous_cache(self):
         with patch.object(fetcher, "download", return_value=PNG):
             fetcher.fetch(self.ids[:1], self.output)

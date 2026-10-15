@@ -96,9 +96,10 @@ focus and the resulting state, not just the red border.
 **Limits:** GOV.UK's exact wording, typography and service conventions are not
 requirements for another product. The published component example demonstrates
 an error state and focus target, not backend validation or successful submission.
-Its URL and page content were checked on 2026-10-15; the audit environment's T3
-snapshot timed out, so no screenshot inspection is claimed here. If the browser
-cannot render it, use a task-relevant inspected reference and record the gap.
+Its URL, page content and actual rendered pixels were checked through T3 on
+2026-10-15. An earlier snapshot attempt timed out; a later native snapshot
+succeeded. If the browser cannot render it, use a task-relevant inspected
+reference and record the gap.
 
 ## Documented AI-output cases
 

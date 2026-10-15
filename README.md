@@ -285,11 +285,11 @@ the no-catalog control is an optional diagnostic, not the baseline:
 uv run inspect eval evals/skills.py@workflows \
   -T arm=candidate \
   -T candidate_skills_root=/path/to/candidate/skills \
-  -T candidate_global_instructions=/path/to/candidate/global-instructions/AGENTS.md
+  -T candidate_global_instructions=/path/to/actual-user-policy.md
 uv run inspect eval evals/skills.py@workflows \
   -T arm=baseline \
   -T baseline_skills_root=/path/to/accepted/skills \
-  -T baseline_global_instructions=/path/to/accepted/global-instructions/AGENTS.md
+  -T baseline_global_instructions=/path/to/actual-user-policy.md
 ```
 
 The pilot summary records exact revisions, case IDs, repetitions, and limits;
@@ -315,9 +315,9 @@ establish live GitHub publication, deployment, browser behavior, or a better
 agent workflow. Do not substitute the disposable fixture or a no-model run for
 that evidence.
 
-The Jobmark example is the directly executed application path. Browser QA is a
-separate matching-surface check and must use the app's local server, real local
-database, and native Playwright/browser tools. A screenshot or passing build
+The historical application examples are context, not flagship quality standards.
+Browser QA is a matching-surface check using the actual local server, supported
+data setup and native browser tools (T3 when exposed). A screenshot or passing build
 without the interaction is not a browser result. If the app's required
 database or browser setup is unavailable, report that blocker instead of
 fabricating a UI or using the tracker fixture as a substitute.

@@ -82,11 +82,11 @@ class EngineeringExampleTests(unittest.TestCase):
         content = (base / "references/composition-examples.md").read_text()
         definitions = dict(re.findall(r"^\[([^]]+)\]: (https://\S+)$", content, re.MULTILINE))
         image_ids = re.findall(r"!\[[^]]*\]\[([^]]+)\]", content)
-        self.assertEqual(len(image_ids), 5)
-        self.assertEqual(len(set(image_ids)), 5)
+        self.assertEqual(len(image_ids), 6)
+        self.assertEqual(len(set(image_ids)), 6)
         for image_id in image_ids:
             self.assertIn(image_id, definitions)
-        for source in ("source-apple", "source-stripe", "source-linear", "source-anthropic"):
+        for source in ("source-apple", "source-stripe", "source-linear", "source-anthropic", "source-govuk"):
             self.assertIn(source, definitions)
         self.assertFalse(list((base / "assets").glob("composition-*")))
         # This establishes reference wiring, not aesthetic quality or origin uptime.

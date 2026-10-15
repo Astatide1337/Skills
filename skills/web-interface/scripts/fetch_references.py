@@ -86,8 +86,13 @@ def existing_receipt(output: Path) -> dict | None:
         output.mkdir(mode=0o700, parents=False)
         return None
     receipt_path = output / "receipt.json"
-    if output.is_symlink() or not output.is_dir() or receipt_path.is_symlink():
+    if output.is_symlink() or not output.is_dir():
         raise FileExistsError("Output must be a fresh directory or this fetcher's task cache")
+    # Check every metadata destination before fetching or changing the receipt.
+    # A cache marker does not authorize following a replaced index outside it.
+    for metadata in (receipt_path, output / "index.md"):
+        if metadata.is_symlink() or (metadata.exists() and not metadata.is_file()):
+            raise FileExistsError("Cache metadata must be regular files; use a fresh directory")
     try:
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
