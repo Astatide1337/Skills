@@ -12,7 +12,8 @@ tokens, and surrounding UI make the comparison more trustworthy. Keep the
 prototype in an isolated copy or an existing authorized preview, use the actual
 application's components and conventions, and visibly mark it as temporary.
 Record source/preview identity and owned cleanup. A standalone visual imitation
-cannot satisfy the actual-component gate; an unavailable host remains pending.
+cannot demonstrate actual-component fidelity; when that fidelity is required,
+an unavailable host remains pending.
 
 Create a new throwaway route only when no plausible host exists. Follow the
 project's current routing convention and avoid introducing a second framework,
@@ -51,7 +52,8 @@ polished-looking option by default.
 For a single flow, exercise its controls and relevant states at the affected
 wide/narrow viewports. Capture and inspect the actual render; a compile check
 or source sketch cannot prove the interaction. Link the preview and evidence
-from the approval HTML and state what remains illustrative or untested.
+from the existing task record, or the approval artifact when a user/project gate
+requires one. State what remains illustrative or untested.
 
 Record:
 

@@ -14,8 +14,8 @@ bounded. Parallelism is not a replacement process or mandatory committee.
   permitted effects, isolation, and return artifact;
 - interface/data contract, finite budget, failure/cancellation and final
   integration check.
-- approved plan version/digest and confirmation, exclusions, remaining checks
-  and raw evidence links for approved delivery.
+- original authority, acceptance, exclusions, remaining checks and evidence;
+  approved plan identity only when the user or project actually requires it.
 
 ## Steps and decision points
 

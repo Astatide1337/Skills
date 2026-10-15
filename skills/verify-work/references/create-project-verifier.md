@@ -4,7 +4,7 @@ Use this when the user asks for a reusable way to prove one application's user b
 
 ## Interview the application
 
-Trace one user entry point through source and identify its launch command, readiness signal, data/auth prerequisites, existing browser or CLI driver, observable result, and safe isolation. Read the application's types, schemas, lint/import boundaries, and CI rather than moving those contracts into the shared Skills repository. Check whether a separate per-app executable CLI already supports this application. If it does, consume an exact version pinned by the application; do not copy its process or browser code into the skill. If it does not, use existing project tooling for the requested scope or report the missing capability. A CLI for another app is not a substitute.
+Trace one user entry point through source and identify its launch command, readiness signal, data/auth prerequisites, existing browser or CLI driver, observable result, and safe isolation. Read the application's types, schemas, lint/import boundaries, and CI rather than moving those contracts into the shared Skills repository. Check whether a separate per-app executable CLI already supports this application. If it does, resolve a compatible version at an authorized setup boundary and keep its identity stable for this task; do not copy its process or browser code into the skill. If it does not, use existing project tooling for the requested scope or report the missing capability. A CLI for another app is not a substitute.
 
 ## Write the app-owned map and skill
 

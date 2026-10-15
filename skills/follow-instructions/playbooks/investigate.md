@@ -16,7 +16,7 @@ answer.
 
 Use [`systematic-debugging`](../../systematic-debugging/SKILL.md) for causal
 bugs, [`how`](../../how/SKILL.md) for source flow, [`why`](../../why/SKILL.md)
-for history, and [`internet-reach`](../../internet-reach/SKILL.md) only when
+for history, and native web/search tools only when
 external research is requested or needed for an uncertain primary source.
 
 ## Steps and decision points

@@ -1,66 +1,104 @@
-# Installed application CLIs
+# Native application tools
 
-Discover the application's existing CLI before writing replacement automation.
-Skills owns independent expectations, judgment and freshness; `agent-clis`
-owns its registered deterministic operations, startup, checks, evidence and
-owned cleanup. Use Linktree's CLI for Linktree verification, including its
-required real Shrunk service. These tools do not drive unrelated repositories.
+Before reconstructing an operation in shell or browser code, inspect the
+application's existing CLI, its current source documentation and actual help.
+Discover executable paths rather than assuming a global installation. Record
+which executable/revision the task uses; command discovery proves capability,
+not the requested application outcome. No install or update is implied by a
+read-only review.
 
-From the Skills checkout, install skills and the pinned CLI together:
+## Select once at an authorized setup boundary
 
-```sh
-./scripts/install.sh --all --target "$HOME/.agents/skills" \
-  --agent-clis-source /path/to/agent-clis
-```
+Use the owning project's supported installation method. Resolve the latest
+available stable release from its authoritative repository when installation or
+update is authorized, subject to the application's compatibility requirements.
+If no release exists, explicitly select a current development revision. Record
+the source URL, resolved commit/release, executable path, package/version
+metadata and artifact or installed-file hashes in the task's existing evidence.
+A checksum proves identity, not correctness. Keep that selection stable during
+the task; an explicit older revision remains valid for reproduction or rollback.
+Do not silently upgrade an active runtime or replace a global executable.
 
-The installer builds the exact reviewed revision
-`7048e748fd890340bbc03399b0dc1d619091af67` (merged PR #4), packs all three private
-packages
-(`@agent-clis/core`, `@agent-clis/shrunk-cli` and `@agent-clis/linktree`), and
-installs them under the user's local data directory. It verifies the Linktree
-package's required Shrunk dependency, then writes `linktree-agent` and
-`shrunk-agent` launchers into `~/.local/bin`. Its receipt records package
-versions, source revision, artifact hashes and installed-file hashes. Building
-requires Node 24+, Git, Corepack with pnpm 12.8.1 and npm. The installer does
-not publish packages, change shell configuration or install system packages.
-For an installation conflict, the CLI helper's `--help` exposes explicit
-`--prefix` and `--bin-dir` alternatives; never delete an unrelated executable.
+Skills does not own application package manifests, versions or command
+semantics. Read the selected revision's prerequisites before building, and use
+a task-owned prefix or disposable checkout for a trial. If identity or a needed
+capability is unavailable, report the exact gap and use a justified supported
+alternative; do not invent a release channel, update command or JSON flag.
 
-Match the installation receipt to that pin and inspect the app/source identity.
-Probe `linktree-agent commands --json` and the relevant `COMMAND --help` before
-using commands. If PATH does not include the user bin directory, invoke
-`~/.local/bin/linktree-agent` explicitly. The installed `shrunk-agent` is the
-required service runtime used by Linktree; it does not replace the separate
-Shrunk application checkout and Python environment needed to run the service.
-A missing CLI is a setup gap; use the installer or report the exact prerequisite
-instead of assuming another app's CLI is compatible. No install is implied by
-an ordinary read-only review.
+## Linktree and Shrunk: agent-clis
 
-Shrunk has a constrained service entrypoint, not Linktree's command registry:
-`shrunk-agent start` accepts only `--app`, `--python`, `--mongo-port`,
-`--mongo-db`, `--port`, `--token-file` and `--run-id`, all required. It has no
-`commands --json`, `doctor`, or help-discovery command. Inspect the pinned
-`packages/shrunk-cli/src/cli.mjs` contract rather than inventing those flags.
-It requires Linux, an owned run identity/process-group, a clean Shrunk 3.3.0
-backend and its existing Python environment, an isolated database and an
-owner-only token path outside the app. Prefer Linktree `start --shrunk-app PATH`:
-its runtime supplies these inputs and owns the MongoDB/Shrunk processes, token
-and cleanup. Do not print the token or substitute a simulated Shrunk server.
+The authoritative source is [Astatide1337/agent-clis](https://github.com/Astatide1337/agent-clis).
+Its README describes local private packages, not a registry release. At an
+explicitly selected revision, follow that README: Corepack uses the project's
+`packageManager`; `pnpm install --frozen-lockfile` installs its dependencies,
+`pnpm build` builds the workspace, and `pnpm --filter PACKAGE pack
+--pack-destination DIR` produces the matching artifacts. Inspect the current
+package manifests for package names, executable mappings and dependencies;
+install all matching required artifacts together using the documented `npm
+install --prefix TASK_PREFIX ...TARBALLS`. This is the package owner's method;
+Skills has no second installer or permanent source pin.
 
-For a real Linktree run, inspect `linktree-agent start --help`, then use its
-`start`, `doctor`, requested domain commands and `cleanup`. Node 24+, Linux,
-Playwright Chromium, application
-dependencies and a compatible explicitly selected `mongod` remain prerequisites;
-CLI installation and command discovery alone do not prove a live journey.
-Use a disposable app copy/run outside the author's checkout. Select development
-or real local CAS authentication explicitly; development login does not prove
-CAS behavior. Named scenarios require independently selected private maps.
+For a disposable trial, archive the selected commit to a private task directory
+(or use a disposable worktree), build/pack there, hash the resulting artifacts,
+and install to a fresh task prefix. Inspect installed metadata against those
+artifacts and record the resolved source commit. Invoke executables from that
+prefix's `node_modules/.bin` so global PATH cannot silently select another copy.
+Reuse this installation while its identity remains valid. A failed build or
+install leaves an incomplete task prefix, not an accepted runtime; inspect the
+failed stage before retrying or choosing a fresh prefix.
 
-Inspect structured checks, both Linktree/Shrunk source revisions, run identity
-and fresh screenshots/recordings before claiming success. Verify requested Go
-behavior against the real local Shrunk API and the actual Linktree flow;
-command discovery or service readiness alone cannot prove that behavior.
-Cleanup stops owned resources and retains evidence; it does not undo prior
-application mutations. Commands and replacement browser automation both remain
-subject to the user's authority. For other apps, reuse their own existing
-tooling or report a missing adapter.
+For Linktree, run `linktree-agent commands --json`, then the relevant
+`COMMAND --help`. Prefer its registered `start`, `doctor`, domain operations and
+`cleanup` for Linktree work. They own the disposable services, real browser
+operations, state/readback and evidence. T3 owns general collaborative browser
+interaction; an application CLI's bounded browser operation remains useful for
+its supported domain. Inspect a rendered implementation with T3 when the task
+requires visual/interactive assessment beyond that operation.
+
+Shrunk has a constrained `shrunk-agent start` entrypoint, not Linktree's command
+registry. Read the selected `packages/shrunk-cli/src/cli.mjs` and its usage for
+accepted inputs; it does not support `commands --json` or a general `doctor`.
+Prefer Linktree `start --shrunk-app PATH` when verifying Linktree with Shrunk:
+the owning runtime supplies the required service arguments and owns cleanup.
+The separate compatible Shrunk application checkout, Python environment,
+MongoDB binary, Node runtime and browser prerequisites still matter. Inspect
+current requirements rather than copying package versions from Skills.
+
+Use disposable app copies and owned run directories. Select development versus
+real local CAS explicitly; development login does not prove CAS. Do not print
+private tokens, cookies or application data. Independently select the expected
+behavior, inspect structured checks and source/run identity, then prove the
+actual requested flow. A saved API setting does not prove an unsaved form,
+Cancel, navigation recovery, authorization rejection or persistence after reload.
+Cleanup stops owned resources and retains evidence; it does not undo earlier
+application mutations.
+
+## Keelbox: Kubernetes development lifecycle
+
+The authoritative source is [Astatide1337/keelbox](https://github.com/Astatide1337/keelbox).
+Read its README and `tools/release/INSTALL.md` at the chosen revision. Use a
+published compatible release when one exists; otherwise select a development
+revision and use the documented build/package target in a disposable copy.
+Install the resulting binary only to the task prefix. Verify its checksum,
+`keelbox version` (or the version option documented by that binary) and
+`keelbox --help`. An installed `dev`/`commit unknown` label does not establish
+source provenance; record that limitation or build the selected revision.
+
+Keelbox owns local Kubernetes development lifecycle commands such as `doctor`,
+`config`, `build`, `up`, `ps`, `logs`, `exec`, `down` and explicit volume removal.
+Read current help/configuration before using them. `doctor` checks prerequisites;
+it does not prove the application journey. Before cluster access, verify the
+intended context and namespace explicitly under the user's policy. Keelbox is
+not a universal application verifier, a remote-cluster fallback or permission
+to delete volumes. Use its native lifecycle where it fits, then verify the
+application's actual behavior with its own supported surfaces.
+
+## Interpret native results
+
+Preserve the subprocess exit and the tool's failed/not-run checks, target, stage,
+partial effects and recovery information in verification evidence. Read both
+outer and inner results: an outer shell or tool envelope reporting success
+cannot turn a failed child operation into a passing check. Avoid piping away
+an exit status. When a command fails, inspect its usable error and supported
+recovery before repeating it; after uncertain writes inspect state first.
+The [verification owner](../SKILL.md) defines what evidence the task requires.

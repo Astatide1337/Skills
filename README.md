@@ -1,9 +1,18 @@
 # Astatide Skills
 
-The personal engineering workflow. Start with one entry skill, select a
-proportionate playbook, use the existing domain skills, and verify the actual
-result. The catalog is daily-use documentation first; its optional evaluator
-is evidence about contracts, not a product judge.
+A portable engineering method for AI agents: informed judgment, dependable
+execution, and independently supported outcomes. One accountable engineer owns
+the result. Verification challenges it. Improvement keeps only interventions
+that help without narrowing valid solutions.
+
+Use the maintained `main` branch for ordinary installation. The completed
+Engineering the Engineer revision is source in this catalog; availability here
+does not mean it is installed on any machine. [PREVIEW.md](PREVIEW.md) preserves
+the historical comparison inputs, observed checks and disposable rollback path.
+The [design record](docs/engineering-the-engineer-v2.md) is historical context,
+not an always-loaded prompt. Neither instructions nor passing fixture tests
+establish improved agent quality or production readiness. User-specific authority
+and standing merge/deployment policies remain separate and unchanged.
 
 The catalog is portable across compatible harnesses. Some skills reference
 sibling procedures or runtime helpers; selected installation must preserve
@@ -26,9 +35,11 @@ time; the catalog does not fetch or run remote content.
 
 ## Install
 
-List the catalog:
+For a fresh checkout, select the maintained source explicitly, then list the catalog:
 
 ```bash
+git clone --branch main --single-branch https://github.com/Astatide1337/Skills.git Skills
+cd Skills
 ./scripts/install.sh --list
 ```
 
@@ -84,26 +95,23 @@ Investigate the tenant lookup failure and create one issue; do not edit code.
 
 Design and execute a one-off offline reproduction package from these sanitized
 snapshots; do not contact production or create a permanent workflow.
-→ custom/compose; compose existing investigation/security/verification methods
+→ implement/feature; compose existing investigation/security/verification methods
   into a temporary checked sequence and report any blocked input.
 ```
 
-For nontrivial feature/issue work, inspect the actual source and environment,
-present a researched HTML approval plan and relevant clickable prototype using
-the application's actual components, then record the user's version-specific
-greenlight. After approval, own the complete agreed implementation, real
-journeys, independent review, in-scope fixes and approved commit/publication
-effects. Material architecture, scope, contract or verification changes reopen
-the plan; in-contract simplification can continue. See the single
-[approved-plan contract](skills/follow-instructions/references/approved-plans.md).
-Read-only requests and the tiny-change path retain their narrower boundaries.
+For substantial work, inspect the owner, callers and existing automation, then
+record the outcome, authority, smallest correction and acceptance. Present a
+separate approval artifact only when the user or project requires it. Existing
+authorization remains valid for in-scope implementation and repair. See
+[plans and authority](skills/follow-instructions/references/approved-plans.md).
+Read-only requests and the short path keep their own stopping conditions.
 
-Approved PR/MR delivery starts in draft and finishes with review and required CI
-at the current head, ready for human merge. It never merges or enables auto-merge.
-Diagnose safe supported alternatives before declaring a blocker; a genuine
-stall retains the plan, failures, changes and checks for a fresh diagnostic
-handoff when available. Use the existing checkpoint schema, not another task
-runtime. Self-learning and automatic rule promotion remain paused.
+[PR/MR delivery](skills/pull-requests/SKILL.md#complete-authorized-delivery) owns
+completion: affected behavior, independent review, material repairs, publication,
+current-head checks and host merge eligibility. A draft is intermediate; a
+review-ready flag is not merge readiness. Use native watches and runtime
+continuation, retaining a compact record before interruption. Never merge or
+enable auto-merge. Self-learning and automatic rule promotion remain paused.
 
 The first line is the requested outcome; it is not a new command language. The
 coordinator preserves literal prohibitions, uses `pull-requests` for explicit
@@ -117,13 +125,13 @@ The implemented package map is intentionally small:
 skills/follow-instructions/
   SKILL.md                 entry point, route table, and evidence gates
   references/principles.md principle index and pstack mapping
-  references/approved-plans.md approval and owned-delivery contract
+  references/approved-plans.md explicit approval gates and authority
   references/principles/   detailed, selectively loaded decision rules
   references/case-studies.md selectively loaded public contrasts
-  examples/jobmark-pagination.md source-grounded worked example
+  examples/                three primary-grounded instructional exercises
   playbooks/               investigate, design, implement, performance,
                            migrate-operate, review, issues, document-teach,
-                           custom, and parallel procedures
+                           and parallel procedures
 skills/<domain-skill>/SKILL.md
 skills/deslop/SKILL.md          code-diff cleanup; use unslop for prose
 global-instructions/AGENTS.md
@@ -133,33 +141,40 @@ evals/fake_tracker.py       isolated publication fixture
 evals/results/               sanitized review-unit summaries
 ```
 
-For the worked application example, read
-[`examples/jobmark-pagination.md`](skills/follow-instructions/examples/jobmark-pagination.md).
+For worked decisions and their limits, use the
+[case index](skills/follow-instructions/references/case-studies.md).
 The supplied tracker fixture remains a deterministic evaluator-contract
 boundary only. It is not a live tracker integration, and its results are never
 product or agent verification.
 
 ## Application verification ownership
 
-Skills owns the judgment: [verify-work](skills/verify-work/SKILL.md) chooses
-independent expectations, interprets accepted, failed, skipped, and not-run
-checks, and decides what evidence must be refreshed. A separate pinned per-app
-CLI may own deterministic startup, actions, assertions, evidence, and cleanup.
-The application owns its types, schemas, lint/import boundaries, CI, and
-committed feature map. Its map pins the CLI version; it must not pin the app's
-own Git HEAD. The CLI records a clean app HEAD and map digest for each run and
-checks them again before claiming the result. See the
-[create](skills/verify-work/references/create-project-verifier.md) and
-[maintain](skills/verify-work/references/maintain-project-verifier.md)
-recipes for app-side adoption and recovery. This catalog does not install a
-per-app CLI by default or supply application-specific expected values. Its
-explicit `--agent-clis-source` installer option builds the reviewed
-`7048e748fd890340bbc03399b0dc1d619091af67` revision and installs the Linktree,
-real Shrunk and shared core packages. Follow
-[installed app CLI discovery](skills/verify-work/references/agent-clis.md):
-Linktree exposes `commands --json` and `COMMAND --help`; Shrunk is the constrained
-service `start` entrypoint used by Linktree, not another command registry. Actual
-app checkouts, dependencies and owned runtime verification remain required.
+Skills owns judgment: [verify-work](skills/verify-work/SKILL.md) chooses expectations,
+interprets failures and decides which evidence a change invalidates. Application
+CLIs own supported deterministic operations and compatibility. Resolve a release
+at an authorized setup boundary, or explicitly select a current development
+revision when no release exists; retain identity throughout the task. Do not
+silently upgrade active tools or copy application manifests into Skills.
+
+[Native CLI discovery](skills/verify-work/references/agent-clis.md) covers the actual
+Linktree/Shrunk package owner and Keelbox lifecycle CLI. Inspect current help;
+Keelbox manages Kubernetes development resources and does not verify arbitrary
+application outcomes. T3 owns collaborative browser interaction when available;
+follow its current capability and ownership documentation. `internet-reach` and
+its obsolete Zen bridge are retired, without a replacement browser wrapper.
+
+Normal installation never prunes removed or unrelated skills. For an explicit
+retirement in a selected destination:
+
+```sh
+./scripts/install.sh --retire internet-reach --target /path/to/disposable/skills
+```
+
+Only recognized historical package bytes are retired. Extra files, changed bytes
+or links cause refusal; preserve and reconcile local customizations separately.
+The obsolete `--agent-clis-source` option and pinned installer are removed; use
+the CLI project's supported build/pack/install method into a task-owned prefix.
+See [PREVIEW.md](PREVIEW.md) for comparison and rollback without global changes.
 
 ## Portable lint
 
@@ -213,7 +228,7 @@ or publication verification. Native comparisons are separate, finite, and must
 use the same model, tools, permissions, and budget for baseline and treatment.
 
 Complete the candidate workflow and deterministic checks before a deliberate
-GPT-6 Luna comparison. Freeze both catalogs, organic tasks, settings, tools,
+comparison using the currently authorized, runtime-verified model and settings. Freeze both catalogs, organic tasks, settings, tools,
 budget and held-out acceptance; use the same model/settings in both arms and
 retain actual failures and unavailable outcomes. Installed procedures and
 passing harness tests do not establish improved model efficacy. See the
@@ -265,18 +280,19 @@ tests and is reported as optional local contract evidence, not live product
 verification.
 
 For a fair native comparison, select both catalog arms explicitly. The baseline
-must point at the last accepted checkout and its matching global instructions;
+must point at an explicitly frozen accepted revision; both arms must use the same actual
+user policy when comparing only Skills changes;
 the no-catalog control is an optional diagnostic, not the baseline:
 
 ```bash
 uv run inspect eval evals/skills.py@workflows \
   -T arm=candidate \
   -T candidate_skills_root=/path/to/candidate/skills \
-  -T candidate_global_instructions=/path/to/candidate/global-instructions/AGENTS.md
+  -T candidate_global_instructions=/path/to/actual-user-policy.md
 uv run inspect eval evals/skills.py@workflows \
   -T arm=baseline \
   -T baseline_skills_root=/path/to/accepted/skills \
-  -T baseline_global_instructions=/path/to/accepted/global-instructions/AGENTS.md
+  -T baseline_global_instructions=/path/to/actual-user-policy.md
 ```
 
 The pilot summary records exact revisions, case IDs, repetitions, and limits;
@@ -302,9 +318,9 @@ establish live GitHub publication, deployment, browser behavior, or a better
 agent workflow. Do not substitute the disposable fixture or a no-model run for
 that evidence.
 
-The Jobmark example is the directly executed application path. Browser QA is a
-separate matching-surface check and must use the app's local server, real local
-database, and native Playwright/browser tools. A screenshot or passing build
+The historical application examples are context, not flagship quality standards.
+Browser QA is a matching-surface check using the actual local server, supported
+data setup and native browser tools (T3 when exposed). A screenshot or passing build
 without the interaction is not a browser result. If the app's required
 database or browser setup is unavailable, report that blocker instead of
 fabricating a UI or using the tracker fixture as a substitute.

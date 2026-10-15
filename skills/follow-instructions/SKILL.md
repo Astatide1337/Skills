@@ -41,6 +41,22 @@ if the cause, ownership or check becomes unclear, a check contradicts the
 explanation, or a consequential boundary appears. Never use the short path to
 skip a required check or silently downgrade a real blocker.
 
+## Engineer, verify, improve
+
+One engineer owns integration. A fresh reviewer challenges substantive work.
+Improvement changes the reusable method, not the current task's acceptance.
+These are responsibilities, not a mandatory agent roster.
+
+Keep requirements, defaults and examples distinct. Requirements bind the result
+and effects. Defaults may yield to a task-grounded better approach. Examples
+illustrate judgment, not the only acceptable architecture or visual style.
+Automate stable mechanics with existing tools, leaving contextual decisions to
+the agent. A repeatable result is not necessarily correct.
+
+For a consequential choice, unclear quality bar, or stalled approach, use
+[engineering judgment](references/engineering-judgment.md). Do not load it for
+an already-clear short-path edit. Select only resources that change a decision.
+
 ## Route other work
 
 Keep outcome, supporting expertise, follow-ons and permitted effects separate.
@@ -59,7 +75,6 @@ Read its playbook and only the domain skills owning material decisions.
 | PR/MR lifecycle | `pull-requests/<mode>` | [pull-requests](../pull-requests/SKILL.md) |
 | Documentation or teaching | `document-teach/document` or `document-teach/teach` | [document-teach](playbooks/document-teach.md) |
 | Reusable workflow/skill improvement | `workflow-improvement/improve` | [create-workflow](../create-workflow/SKILL.md), [skill-creator](../skill-creator/SKILL.md) |
-| Explicit bespoke composition | `custom/compose` | [custom](playbooks/custom.md) |
 | Establish whether a claim is true | `verify-work/verify` | [verify-work](../verify-work/SKILL.md) |
 
 Attach expertise only where it changes a decision: unclear causes use
@@ -69,8 +84,10 @@ Attach expertise only where it changes a decision: unclear causes use
 use [security-and-hardening](../security-and-hardening/SKILL.md); production-like
 state or credentials use [production-safety](../production-safety/SKILL.md);
 real UI work uses [web-interface](../web-interface/SKILL.md). Use `how`, `why`,
-`teach`, `deslop`, `unslop`, or [internet-reach](../internet-reach/SKILL.md) for
-the corresponding requested deliverable, not incidental subject words.
+`teach`, `deslop`, or `unslop` for the corresponding requested deliverable,
+not incidental subject words. For a bespoke task, compose the closest existing
+methods in a temporary sequence in this task record; do not create a new playbook
+or persistent framework merely because the combination is unfamiliar.
 
 Use the [principle index](references/principles.md) only for a material choice,
 then read the relevant detail. Source context is optional:
@@ -78,28 +95,31 @@ then read the relevant detail. Source context is optional:
 [case studies](references/case-studies.md), and
 [observed failures](references/failure-to-checks.md).
 
-## Approval and continuation
+## Authority and delivery
 
-For nontrivial feature/issue implementation, investigate first and follow the
-[approved-plan contract](references/approved-plans.md): produce the researched
-HTML plan and relevant actual-component prototype before dependent source
-implementation. Record the version-specific confirmation and permitted effects.
-Reuse approval already given for that scope; plan controls never grant it.
-After greenlight, continue the whole approved result through verification,
-independent review and approved delivery. Material discoveries return the
-affected work to design; safe independent work continues. Read-only requests
-and the short path retain their own boundaries.
+Use [plans and authority](references/approved-plans.md) for a substantial design
+or an explicit approval gate. Reuse authorization already given. Keep required
+outcomes, preferred methods and illustrative examples distinct; choose a justified
+alternative when the default does not fit.
+
+When implementation and PR/MR delivery are authorized, retain the original objective
+and follow [delivery completion](../pull-requests/SKILL.md#complete-authorized-delivery).
+Ordinary failed checks and in-scope findings create the next engineering action.
+Read-only requests and local-only changes retain their own stopping conditions.
 
 ## Effort and continuation
 
 Keep only obligations that can change action, order, permission, stopping or
 completion in the task record:
 `Outcome / Route / Domains / Effects / Constraints / Done`.
+For substantive work, link authoritative inputs, acceptance, candidate identity,
+current evidence and unresolved decisions in that same record, not a new ledger.
 A simple answer needs no formal record. Use current CLI/model settings; when
 controls exist, start routine work at the configured ordinary effort and
 escalate for demonstrated uncertainty. Do not change the user's model or quota
 settings without authority, or claim a setting change that the harness cannot
-make. Agree a finite experiment/retry budget for prolonged work.
+make. Bound optional experiments and comparisons before running them; do not invent a
+tiny budget as a stopping condition for already-authorized delivery.
 
 Use [parallel](playbooks/parallel.md) only when independent ownership, a real
 delegation tool and a benefit justify it. Prove one complete unit first. Use

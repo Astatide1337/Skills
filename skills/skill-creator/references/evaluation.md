@@ -11,9 +11,12 @@ For the approved engineering workflow, implement the complete candidate,
 portable lint repairs and deterministic lifecycle tests before comparison.
 Obtain independent review of that final candidate. Freeze the baseline and
 candidate catalogs/globals, project files, organic tasks, settings, held-out
-checks and a finite candidate/grader budget together. The current comparison
-uses **GPT-6 Luna candidates in both arms with identical explicit settings**;
-do not silently substitute another model or effort after a failed launch.
+checks and a finite candidate/grader budget together. Use the current explicitly
+authorized, runtime-verified model and settings identically in both arms. Named
+models in historical examples below are not a mandate or a capability claim.
+Do not silently substitute another model or effort after a failed launch.
+For candidate-versus-accepted-baseline decisions, balanced transfer cases, valid
+alternatives and promotion, use [measured improvement](measured-improvement.md).
 Retain every attempted outcome, including unavailable capabilities and failed
 samples. Self-learning and automatic rule promotion remain paused; any later
 promotion is a separate human-authorized decision.
@@ -132,7 +135,7 @@ Bubblewrap gate and containment contract; it is not a bypass. Do not change
 host namespace/security policy or remove the preflight. Keep the attempt and
 remaining capability gap if the supported path also fails.
 
-Example bounded paired catalog runs:
+Historical catalog diagnostic command shapes (not an accepted-version comparison):
 
 ```bash
 uv run --frozen inspect eval evals/skills.py@catalog -T native_model=gpt-6-luna -T native_effort=medium -T grader_effort=high --limit 2 --epochs 2 --max-samples 2 --time-limit 480

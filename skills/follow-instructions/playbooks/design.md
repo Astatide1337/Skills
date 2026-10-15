@@ -43,10 +43,10 @@ Use [`security-and-hardening`](../../security-and-hardening/SKILL.md) or
 4. Choose the simplest shape, name interfaces/state transitions, failure
    behavior, rollback where effects require it, and the first implementation
    step, including purposeful refactors. For nontrivial feature/issue delivery,
-   produce and inspect the HTML approval document and relevant actual-component
-   clickable prototype. Present the complete result and wait for version-specific
-   confirmation before dependent implementation. Standalone design uses the
-   requested deliverable. Keep prototype shortcuts visibly non-production.
+   record the plan in the existing task record. Prepare a relevant actual-component
+   prototype when it resolves a design uncertainty. Present a separate approval
+   artifact and await confirmation only when the user or project requires it.
+   Standalone design uses the requested deliverable. Label prototype shortcuts.
 
 ## Failure and recovery
 

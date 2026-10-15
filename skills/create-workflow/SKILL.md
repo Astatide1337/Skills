@@ -20,6 +20,12 @@ if one is absent, the workflow is not complete.
 - **Create:** capture a recurring manual or agent-run procedure as a repository-owned workflow.
 - **Simplify:** reduce an existing workflow while preserving its guarantees, evidence, and recovery behavior.
 
+Use only for explicitly requested recurring automation or simplification of an
+existing workflow. A one-off investigation or test campaign does not imply a
+permanent harness, CI job or reusable package. For native operation discovery,
+use [tool contracts](../skill-creator/references/tool-contracts.md) and the owning
+application's help; this skill does not wrap established CLIs.
+
 In either mode, observe the real procedure before designing its replacement.
 
 Classify the target before acting:
