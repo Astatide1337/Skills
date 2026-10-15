@@ -1,11 +1,18 @@
 # Engineering Skills preview: native tools and complete delivery
 
-Control for this revision: fetched `preview/engineering-the-engineer-v2` at
-`233fb741431a41b22e865d9baaedf62a90bface9`. Candidate: the head of
-`feat/native-delivery-judgment`. These are experimental instructions, not a
-measured general improvement or permission to merge/deploy/install globally.
-The original [v2 design](docs/engineering-the-engineer-v2.md) is historical design
-context; current entrypoints and owners govern execution.
+This file preserves the **historical October 2026 preview comparison**, not an
+installation channel. For ordinary use, select maintained `main` through
+[README.md](README.md#install). Source promotion does not update global Skills or
+user/application instructions automatically.
+
+The historical control was `233fb741431a41b22e865d9baaedf62a90bface9` on
+`preview/engineering-the-engineer-v2`. The revision candidate culminated in
+`400df1a2cb7682117166219bd7cdd5a973e10fc4`; individual trials below identify their
+actual earlier snapshots. Subsequent receipt validation corrections and promotion
+were not covered by those historical model trials. The original
+[v2 design](docs/engineering-the-engineer-v2.md) is historical context; current
+entrypoints and owners govern execution. These records do not establish general
+performance improvement or grant merge/deployment/global-installation authority.
 
 The October 13–15 audit found useful counterexample-driven reviews alongside
 premature readiness, scope expansion and missed existing automation. Its actual
@@ -42,14 +49,15 @@ A valid different design is allowed; copying a brand is not acceptance.
 
 Use Bash/Git on an authorized Linux host. These commands install into two new
 project directories, preserve the previous preview, and leave global skills and
-application instructions unchanged. Resolve the candidate once before starting.
+application instructions unchanged. These frozen inputs reproduce the historical
+comparison; they do not select the latest maintained catalog.
 
 ```bash
 set -euo pipefail
 trial_root=$(mktemp -d "$HOME/skills-preview-trial.XXXXXX")
 git clone https://github.com/Astatide1337/Skills.git "$trial_root/Skills"
-git -C "$trial_root/Skills" fetch origin feat/native-delivery-judgment
-candidate_ref=$(git -C "$trial_root/Skills" rev-parse origin/feat/native-delivery-judgment)
+candidate_ref=400df1a2cb7682117166219bd7cdd5a973e10fc4
+git -C "$trial_root/Skills" rev-parse --verify "$candidate_ref^{commit}"
 git -C "$trial_root/Skills" worktree add --detach "$trial_root/control" \
   233fb741431a41b22e865d9baaedf62a90bface9
 git -C "$trial_root/Skills" worktree add --detach "$trial_root/candidate" "$candidate_ref"
@@ -73,11 +81,13 @@ remove only explicitly identified disposable directories when finished.
 
 Normal installation replaces selected same-name packages and does not prune
 retired/unrelated packages. Preserve customizations before any selected install.
-To retire a recognized old internet-reach in a disposable selected destination:
+To test retirement without changing the preserved control installation:
 
 ```bash
+mkdir "$trial_root/retirement-skills"
+cp -a "$trial_root/control-project/.agents/skills/internet-reach" "$trial_root/retirement-skills/"
 bash "$trial_root/candidate/scripts/install.sh" --retire internet-reach \
-  --target "$trial_root/control-project/.agents/skills"
+  --target "$trial_root/retirement-skills"
 ```
 
 Retirement refuses changed/extra/linked/unknown content and leaves it untouched.

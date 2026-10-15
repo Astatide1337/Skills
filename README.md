@@ -5,13 +5,14 @@ execution, and independently supported outcomes. One accountable engineer owns
 the result. Verification challenges it. Improvement keeps only interventions
 that help without narrowing valid solutions.
 
-This branch implements the **Engineering the Engineer v2 preview**. Start with
-[PREVIEW.md](PREVIEW.md) for non-destructive trial preparation, exact checks,
-design coverage, and the live evidence still needed before adoption. The
-[approved design](docs/engineering-the-engineer-v2.md) is a developer reference,
-not an always-loaded prompt. Neither these instructions nor passing fixture
-tests establish improved agent quality, protected live execution, or production
-readiness. Current authority and no-merge policies remain unchanged.
+Use the maintained `main` branch for ordinary installation. The completed
+Engineering the Engineer revision is source in this catalog; availability here
+does not mean it is installed on any machine. [PREVIEW.md](PREVIEW.md) preserves
+the historical comparison inputs, observed checks and disposable rollback path.
+The [design record](docs/engineering-the-engineer-v2.md) is historical context,
+not an always-loaded prompt. Neither instructions nor passing fixture tests
+establish improved agent quality or production readiness. User-specific authority
+and standing merge/deployment policies remain separate and unchanged.
 
 The catalog is portable across compatible harnesses. Some skills reference
 sibling procedures or runtime helpers; selected installation must preserve
@@ -34,9 +35,11 @@ time; the catalog does not fetch or run remote content.
 
 ## Install
 
-List the catalog:
+For a fresh checkout, select the maintained source explicitly, then list the catalog:
 
 ```bash
+git clone --branch main --single-branch https://github.com/Astatide1337/Skills.git Skills
+cd Skills
 ./scripts/install.sh --list
 ```
 
@@ -277,7 +280,7 @@ tests and is reported as optional local contract evidence, not live product
 verification.
 
 For a fair native comparison, select both catalog arms explicitly. The baseline
-must point at the current accepted preview; both arms must use the same actual
+must point at an explicitly frozen accepted revision; both arms must use the same actual
 user policy when comparing only Skills changes;
 the no-catalog control is an optional diagnostic, not the baseline:
 
