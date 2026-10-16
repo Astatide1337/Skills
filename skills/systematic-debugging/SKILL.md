@@ -38,8 +38,8 @@ path; do not manufacture a multi-hypothesis investigation for it.
    - Treat anything not directly observed as an assumption.
 
 5. **Form competing hypotheses.**
-   - Prefer three to five plausible causes when the evidence permits; use fewer
-     when the search space is genuinely narrow.
+   - Consider plausible competing causes supported by the evidence. Use enough
+     to distinguish the uncertainty without filling a hypothesis quota.
    - Rank them by current evidence, not intuition alone.
    - Write each as: `If H is true, observation O should occur; observation R
      would reject it.`

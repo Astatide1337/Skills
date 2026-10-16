@@ -49,7 +49,7 @@ with the editing action, so the intended reading order is unclear." A revision
 should address that gap. Retain the strongest candidate and compare after changes.
 If several focused refinements plateau, reopen the direction rather than layering
 on effects. Evaluate whether a design-system default itself causes the failure.
-Material changes still need the existing approval. Test a suspect default without
+Apply the existing plan's authority rules to material changes. Test a suspect default without
 weakening behavior or accessibility. Extract reusable patterns only after they
 prove useful, leaving one-off composition choices local.
 

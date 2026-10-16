@@ -85,10 +85,10 @@ The reviewer chooses diagnostic checks and expectations independently. A
 different model is optional. The owner resolves material findings
 and verifies the final artifact; green tests and the author's reread do not
 satisfy this gate.
-Assess simplifications against the approved contract. In-contract reductions
-may proceed within authorized implementation; material architecture, interface,
-ownership, scope or verification changes return to the plan owner for renewed
-approval. A reviewer request does not itself grant that authority.
+Assess changes against the approved contract and apply the authority conditions
+in [plans and authority](../follow-instructions/references/approved-plans.md).
+A reviewer finding does not itself require a new approval round or grant
+permission to expand scope.
 
 Keep an inspectable result identifying the reviewer, exact artifact, evidence
 inspected and findings. Requested review without a returned result is pending.

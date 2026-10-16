@@ -73,10 +73,9 @@ only when no meaningful safe move remains without a required input or effect.
 
 If the state is unclear, say what observation would distinguish `progressing`
 from `stalled` or `blocked` and obtain that observation before changing course.
-If the needed mutation is explicitly outside the current authority and no
-remaining observation could change that conclusion, classify the task as
-`blocked`, not merely `stalled`; hand back the exact authority or capability
-blocker instead of proposing a future implementation sequence.
+If a necessary effect is outside current authority and observation cannot
+resolve that, state the exact gate. Distinguish any proposed repair from work
+that is authorized to execute.
 
 ## Make the mode-specific decision
 
@@ -108,16 +107,8 @@ next action. If independent help is unavailable, record that gate and choose a
 bounded safe observation instead of looping or inventing a review. Material
 discoveries follow the approved-plan revision rule before dependent work resumes.
 
-When the evidence shows a stalled task but the current request is read-only,
-make the next move a single discriminating observation (for example, inspect
-the owning implementation or run one focused test), not a multi-step repair
-plan. Implementation belongs after that observation and its result. This is a
-hard boundary: do not write `implement ... then add ... then run ...` in
-`Next`; choose the first observation or state the exact blocker instead.
-For example, `Next: inspect importer.py to confirm parser ownership` is
-bounded; `Next: replace the parser, add tests, and run pytest` is a repair
-recipe and is not acceptable here. Preserve a real setup blocker such as a
-missing test runner when the observation exposes one.
+Read-only work can recommend repair steps; it does not authorize executing
+them. Keep recommendations distinct from observed results and permitted actions.
 
 **Checkpoint.** Report progress since the last checkpoint, remaining budget or
 telemetry when available, and whether to continue, replan, or stop. A
@@ -127,33 +118,16 @@ finite budget without evidence, or approaching an authority boundary.
 
 ## Return a useful handoff
 
-Keep the result conversational and short:
-
-```text
-Observed: <state and the evidence that matters>
-Decision: <continue, replan, ask, hand back, or complete>
-Next: <one action or the exact blocker>
-Lesson: <only when it changes a future decision>
-```
-
-For an explicit reflection or checkpoint, make `Observed` one compact sentence
-covering `Goal`, `Acceptance`, `Boundary`, and `Progress`, plus the evidence
-that determines the state. For `stalled`, name the exact failed premise that
-produced no change (for example, repeating a comment or command could alter
-runtime behavior). `Decision` must name one of the listed moves. `Next` is one
-observable check, one authorized action, or one exact blocker; if it has
-several verbs, choose the first dependency instead. Prefer a check that answers
-an unresolved question and is not already recorded as complete. A complete
-repair sequence is not a bounded reflection handoff.
-
-Omit empty fields. Do not repeat a list of things that were not done merely to
-sound cautious. Name a material limitation once, then choose the next useful
-move.
+Explain what changed the assessment and the useful next move or exact blocker.
+Match the requested format and depth. Keep state classifications and working
+notes internal unless they help the user understand the result. Include a
+lesson only when it changes a future decision; a separate reflection report is
+not required.
 
 ## Boundaries
 
-- Reflect once, take at most one bounded next action or replan, then reassess;
-  do not loop on reflection or create a second coordinator.
+- Use reflection to choose the next useful move, then continue authorized work.
+  Do not loop on reflection or create a second coordinator.
 - Reuse the existing task record and applicable playbook. Do not create a
   transcript database, scheduler, mandatory subagent fan-out, or model ensemble.
 - Keep fixing, publishing, merging, deploying, and editing catalog rules

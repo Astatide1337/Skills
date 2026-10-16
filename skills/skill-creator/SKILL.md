@@ -48,11 +48,11 @@ fails there. If no check can enforce it and judgment remains necessary, keep
 one concise instruction with the trigger and evidence. Do not duplicate a
 working enforcement rule as emphatic prose.
 
-Do not create a skill for generic knowledge Codex already handles well. Do not
-create or rewrite project documentation as a side effect of skill work; author
-README files, AGENTS files, plans, or runbooks only when the user asks for that
-artifact. A requested `SKILL.md` is the catalog artifact, not a reason to add
-adjacent project docs.
+Do not create a skill for generic knowledge Codex already handles well. Use a
+temporary task workspace freely for research, plans, draft instructions, and
+experiments. Apply the [documentation boundary](../follow-instructions/SKILL.md#documentation-boundary)
+when choosing what belongs in the catalog or project. A requested `SKILL.md`
+is the catalog artifact; adjacent docs need a purpose in the delivered result.
 
 ## 2. Design progressive disclosure
 

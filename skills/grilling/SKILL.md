@@ -49,7 +49,6 @@ assumptions that need evidence. Stop when the plan is coherent enough to execute
 or the user asks to stop. End with decisions, remaining unknowns, focused
 experiments, and the first concrete next step.
 
-Before finishing a one-response grill, scan the relevant dimensions named
-above once. Any omitted dimension must be marked irrelevant with a reason, not
-silently skipped—especially identity/authorization, observability, recovery,
-and staged rollout, which often disappear behind the primary technical risk.
+Before finishing, check whether identity/authorization, observability, recovery,
+or rollout exposes a material risk. Report relevant findings and consequential
+gaps; keep the relevance check internal rather than explaining every omission.

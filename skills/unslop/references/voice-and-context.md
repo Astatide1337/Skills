@@ -17,6 +17,37 @@ Preserve those signals when they help the reader recognize the author. If the
 source has no authorial evidence, choose a clear, restrained voice rather than
 inventing a personality.
 
+## Composition and progression
+
+Choose what to say and how it unfolds before choosing polished wording. Work
+out the reader's starting knowledge, the point they should understand or feel,
+and which details earn the path between them. Use scratch outlines or drafts
+when useful; present the finished piece unless the user asks for the outline.
+
+For explanations, choose an entry that answers the reader's actual question.
+Supply background when it becomes necessary. Follow a concrete example through
+the mechanism when that helps; use a direct answer when that is enough. Connect
+claims to their evidence, and distinguish causes from mere sequence. Do not give
+every related topic its own heading or equal space.
+
+For stories and personal prose, preserve the author's viewpoint and let events,
+observations, or discoveries change what follows. Control when information is
+revealed and how long an important moment holds attention. Preserve implied
+meaning when spelling it out would only repeat what the scene conveys. Do not
+add suspense, a redemptive turn, or a moral that the source does not support.
+
+Illustrative engineering explanation: “The worker fetched a batch, processed
+it, and acknowledged it. There are reliability considerations at each step”
+names stages but leaves their relationship unexplained. “If the worker crashes
+after processing a batch but before acknowledging it, the queue delivers it
+again. The handler therefore needs to tolerate repeats” develops one concrete
+failure into its consequence. Use this causal order only when it serves the
+question; it is not a universal writing template.
+
+Keep a useful existing structure. Required templates, procedures, and reference
+material may need predictable organization. Diagnose the actual reader problem
+before replacing them with flowing prose.
+
 ## Make voice-mode prose natural
 
 - Let the author react to facts when the source supports the reaction.
@@ -63,4 +94,3 @@ Apply voice by section rather than averaging the whole document into one tone.
 A personal introduction may use first person; the procedure that follows should
 remain literal. Product copy may carry a point of view; its security or pricing
 claims still require factual support.
-

@@ -31,9 +31,9 @@ Use [`security-and-hardening`](../../security-and-hardening/SKILL.md) or
    action, and its observable result from the supplied requirements. Preserve
    the interaction that makes that result useful when splitting work into
    components; component completion alone is not the product acceptance.
-2. Compare two structurally distinct viable shapes on ownership, data flow,
-   invariants, failure/retry, migration, complexity, and security. Do not
-   invent alternatives for a trivial choice.
+2. Compare credible alternatives when a real choice remains, using the relevant
+   ownership, data flow, failure/retry, migration, complexity, and security
+   constraints. Do not invent alternatives for an established correction.
 3. Resolve the riskiest material uncertainty with source evidence or the
    smallest authorized disposable experiment. A plan-only request permits only
    its observation and explicitly authorized prototype effects, not dependent

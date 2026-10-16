@@ -15,7 +15,9 @@ Explore the actual code and produce a working mental model, not an annotated fil
 
 For complex systems, split the exploration into distinct angles locally or with read-only collaborators when available and permitted. Do not require a particular model or delegation mechanism.
 
-Return: overview, key concepts, step-by-step flow, where things live, and genuine gotchas. Cite clickable files and symbols. Use a small diagram only when it materially clarifies three or more moving parts.
+Explain the flow and locations needed to answer the question, with clickable
+source links and material caveats. Choose the depth and structure for this
+reader. Use a diagram when it makes the mechanism clearer.
 
 Read `references/critique-rubric.md` before making architectural judgments in
 critique mode.

@@ -90,7 +90,10 @@ values. Reject an artifact that contains a digest with no verifiable target.
 
 ## Output
 
-For planning, return a decision table with `repeated step`, `exported artifact`, `input contract`, `owner`, `failure behavior`, and `verification command`.
+For planning, explain the repeated decision, proposed artifact, inputs, owner,
+failure behavior, and verification needed for this workflow. Use the planning
+format in [plans and authority](../follow-instructions/references/approved-plans.md);
+choose a table only when it makes the decision easier to compare.
 
 For implementation, create the smallest repository-native artifact and report
 the exact commands and observed results for the focused checks above. Apply

@@ -107,6 +107,22 @@ and follow [delivery completion](../pull-requests/SKILL.md#complete-authorized-d
 Ordinary failed checks and in-scope findings create the next engineering action.
 Read-only requests and local-only changes retain their own stopping conditions.
 
+## Documentation boundary
+
+When you need working files, create a task-specific temporary workspace outside
+the project, for example with `mktemp -d "${TMPDIR:-/tmp}/agent-work.XXXXXX"`.
+Use it freely for notes, research, plans, drafts, scripts, and experiments that
+support the task. Choose the working method and artifacts yourself; routine
+scratch work needs no additional permission within the task's existing authority.
+Keep the project checkout for implementation and intended deliverables. Move
+material into project docs when the user requests it, a repository requirement
+applies, or changed behavior would otherwise leave existing instructions wrong.
+Include only what a future reader needs to use or maintain the result. Source
+comments should explain a useful reason, invariant, or constraint. Before
+handoff, inspect the diff for scratch material and unnecessary narration from
+your work; preserve existing and independently edited material. Use the existing
+checkpoint procedure when work needs durable continuation beyond temporary storage.
+
 ## Effort and continuation
 
 Keep only obligations that can change action, order, permission, stopping or

@@ -39,7 +39,7 @@ not a license to redesign the change.
   systematic debugging rather than silently changing behavior.
 - Re-read the final diff and compare the public behavior with the pre-cleanup
   version. Report only checks that actually ran.
-- Keep the final summary to one to three sentences.
+- Keep the handoff proportional to the change and any material verification gap.
 
 Guardrails: preserve behavior unless a clear bug is explicitly in scope, prefer
 minimal focused edits, and do not remove useful comments or safeguards merely

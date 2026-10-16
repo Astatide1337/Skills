@@ -34,9 +34,10 @@ or a source document expected to receive frequent line-based review. Do not
 silently turn every plan, explanation, or summary into HTML. If the format is
 ambiguous, estimate whether HTML changes comprehension or enables an action;
 otherwise prefer the simpler medium.
-The coordinator's [approved-plan contract](../follow-instructions/references/approved-plans.md)
-explicitly requires HTML for nontrivial engineering approval; use its content
-requirements rather than reconsidering the medium or duplicating approval rules.
+For plans, follow the HTML default and task-specific exceptions in
+[plans and authority](../follow-instructions/references/approved-plans.md).
+That reference owns approval requirements; the presentation format does not
+create another approval gate.
 
 ## Route by artifact
 

@@ -43,18 +43,9 @@ and its exact effects. Ordinary review/monitoring remains read-only.
    they exist. Do not create or change security-sensitive repository settings
    without specific authorization.
 
-When the task supplies state for an existing PR/MR, the response order is
-mandatory:
-
-```text
-<PR/MR> status: Ready | Not ready — <current actionable item>
-<drafted title and description, if requested>
-<drafted reply or suggestion, if requested>
-```
-
-Ignore superseded checks; say `Not ready` when a verified unresolved current
-issue remains. Do not omit the status line because the user also asked for copy
-or a comment. It is a review decision, not routine pipeline boilerplate.
+When assessing an existing PR/MR, ignore superseded checks and account for
+unresolved current issues. Explain a material readiness issue when it affects
+the requested decision or copy; use the response format the task calls for.
 
 ## Review a coworker's PR/MR
 
@@ -92,62 +83,35 @@ review is submitted merely because the review finished.
 
 ## Draft and create the review unit
 
-Use a title that names the outcome and follows repository convention. If the
-repository has no convention, prefer `Scope project updates to the active team`
-over `Update project service`.
+Follow [Google's Writing good CL descriptions](https://google.github.io/eng-practices/review/developer/cl-descriptions.html)
+for PR/MR titles and descriptions. Apply an explicit user format or required
+repository template when present. On GitHub and GitLab, the title serves as the
+CL's first line; the description serves as its body.
 
-Use this PR/MR description exactly, omitting an empty review-focus section:
+- Write a short, specific title in the imperative that stands on its own.
+- Explain what changes and why, including context and decisions that the code
+  alone would not communicate. Write for reviewers and future maintainers.
+- Include relevant implementation detail, shortcomings, issue references,
+  benchmarks, or design links when they help readers understand the change.
+  Keep enough context in the description for it to remain useful if links expire.
+- Recheck the description before submission so it describes the final change.
 
-```md
-## Problem
+Use Google's published examples to guide judgment. Do not impose additional
+section names, bullet counts, or a fixed narrative order.
 
-One or two sentences on the user or system problem.
-
-## Fix
-
-One short paragraph or tight bullets on the meaningful change.
-
-## Review focus
-
-Only a non-obvious behavior, risk, migration, or decision the reviewer must inspect.
-```
-
-Never put routine lint, test, build, pipeline, or preview claims in the
-description. Do not paste a commit list, tool log, file inventory, or generic
-validation checklist. Mention an unverified limitation only when it changes a
-reviewer's decision.
-
-Bad:
-
-```md
-## Changes
-- Updated the service
-- Added tests
-- CI passes
-```
-
-Good:
-
-```md
-## Problem
-
-Members could update a project outside their active team by supplying its ID.
-
-## Fix
-
-Scope the project lookup and update to the authenticated team.
-
-## Review focus
-
-The two-team negative test covers both lookup and update paths.
-```
+Before publication, inspect documentation and comments in the diff as well as
+code. Apply the [documentation boundary](../follow-instructions/SKILL.md#documentation-boundary).
+Use the temporary task workspace freely for review notes, research, and drafts.
+Include findings that affect review in the PR/MR body, and keep project docs and
+source comments focused on using or maintaining the change. Leave scratch
+material out of the patch. Remove only unnecessary additions from this task;
+preserve existing and independently edited material.
 
 Before a create-mode push, confirm the branch contains the intended committed
 review unit. A create request does not by itself authorize committing preexisting
-uncommitted user work. Inspect workflows and approved effects before pushing;
-do not trigger container image builds or deployment outside explicit approval.
-After creation, report the PR/MR link, base/head, and
-material review focus only.
+uncommitted user work. Inspect workflows before pushing for deployments or other
+effects outside the requested delivery. After creation, report the PR/MR link
+and the evidence or remaining issues needed for the user's next decision.
 Inspect the final tree and diff at that head. Keep accepted, failed, skipped,
 and not-run checks distinct in the handoff; a draft PR can be reviewable with
 known gaps, but a skipped check is not green. If a create or push response is
@@ -254,7 +218,7 @@ authenticated team/tenant rather than a generic authentication check. If the
 exact field name is not supplied, name the authoritative scope without
 inventing one.
 
-Start every agent-posted PR/MR comment with:
+Start every agent-drafted or posted PR/MR comment with:
 
 ```md
 > <model slug>, responding on behalf of Soham.
@@ -280,5 +244,5 @@ scope. A member can target another team's project. Scope the lookup to the
 authenticated team before the update.
 ```
 
-Do not post generic praise, vague "consider" comments, routine CI/test results,
-or an uncertain claim presented as a defect.
+Keep comments relevant to the requested review or discussion. Avoid generic
+praise, vague "consider" comments, and uncertain claims presented as defects.

@@ -39,9 +39,17 @@ check when possible. Keep prose for decisions that still require judgment.
 
 Avoid personality theater, duplicated policy, unsupported metadata, hidden prerequisites, vague “best practices,” and procedures that claim success without evidence.
 
-Do not create an AGENTS file, README, runbook, plan, or other project document
-because it seems useful. Treat the existing project documentation as read-only
-unless the user asks to create or revise a named instruction artifact.
+Before removing a personalized rule, check current instructions and relevant
+user-authored history when available. Keep task-specific exceptions scoped;
+missing history is not evidence that a preference was invented.
+
+Give agents room to choose their working method. Distinguish temporary working
+material from delivered project changes, and constrain the effect that matters.
+For example, “Use a temporary task workspace for research and drafts; include
+only useful project documentation in the final patch” preserves exploration
+while keeping scratch material out of the codebase. Apply the
+[documentation boundary](../follow-instructions/SKILL.md#documentation-boundary)
+to this instruction-writing task too.
 
 Read `references/instruction-design.md` when deciding what context to include,
 where it should live, how to prevent premature completion, or how to prune an

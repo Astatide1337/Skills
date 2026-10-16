@@ -5,34 +5,24 @@ description: When asked why code or architecture was designed this way.
 
 # Why
 
-Code shows what happens, not why it was chosen. Anchor the question to exact files, symbols, and lines, then search available evidence: git history, commits and PRs, issues, design documents, team discussion, incidents/observability, errors, and product data. Source control is the minimum; list unavailable sources as gaps.
+Anchor the question to the relevant code, then search available history and
+supplied decision evidence. Use read-only access. Code shows what happens; it
+does not establish why someone chose it.
 
-Use read-only access. Search broadly before narrowing. Record queries and null results. Quote sparingly with precise citations. Treat the user's proposed reason as a hypothesis, not a conclusion. Surface contradictions.
+Treat a proposed reason as a hypothesis. Check contradictory sources and keep
+important null results in the working notes. Distinguish documented reasons,
+supported inference, plausible alternatives, and what the search did not
+establish. Use confidence labels when useful rather than attaching a fixed tier
+to every sentence.
 
-Classify every conclusion:
+Answer the actual question with adjacent source citations and the uncertainty
+that affects the conclusion. State missing sources when their absence matters;
+a separate source inventory or confidence summary is not required.
 
-- **Direct:** a source explicitly states the reason.
-- **Supported:** several indirect sources converge.
-- **Inferred:** a reasonable but unstated interpretation.
-- **Speculative:** one of several plausible stories.
-- **Unknown:** searched and not found.
+When recommending a change, identify current evidence needed to know whether
+the historical constraint still applies: relevant configuration, migration
+state, runtime behavior, or failure and cleanup evidence. Use the structure and
+depth the recommendation needs.
 
-Return the question and code anchor, direct findings, reasonable inferences, competing hypotheses when needed, specific unknowns, sources consulted, and an overall confidence summary. Never cite code behavior as proof of author intent. Preserve uncertainty instead of completing a tidy story.
-
-Label the confidence tier beside each material conclusion, not only in a final
-summary. Include the searched scope and any meaningful null result so `Unknown`
-can be distinguished from `not investigated`.
-
-When the investigation informs a proposed change, finish by naming the current
-evidence needed to know whether the historical constraint still applies. Make
-it operational and specific—current configuration or enforced limit, migration
-state, runtime telemetry, failure/cancellation behavior, and a safe validation
-path as relevant—not merely “confirm in production.”
-
-Use a final `Before changing this` paragraph for that evidence. Distinguish the
-current enforced constraint, observed runtime behavior, and cleanup/failure
-telemetry so the recommendation cannot end with historical evidence alone.
-
-Read `references/epistemics.md` before synthesizing confidence or resolving
-contradictory evidence. Read `references/code-archaeology.md` for repository
-history investigations.
+Read `references/epistemics.md` when weighing evidence or resolving contradictions,
+and `references/code-archaeology.md` for repository history investigations.

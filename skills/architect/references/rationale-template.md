@@ -1,5 +1,8 @@
 # Design rationale
 
+Optional prompts for a non-obvious decision. Use the relevant parts in the
+existing task record or requested artifact; this template does not require a file.
+
 ## Problem
 What outcome and constraints make the shape non-obvious?
 
@@ -13,7 +16,7 @@ Define core data, public signatures, ownership, validation boundaries, invariant
 Name the selected candidate and what made it stronger.
 
 ## Tradeoffs and alternatives
-Use “we accept X in exchange for Y.” Describe at least one structurally different alternative and why it lost.
+Explain material tradeoffs and any credible alternatives that informed the choice.
 
 ## Risks and next step
 List open questions and the first implementation slice.

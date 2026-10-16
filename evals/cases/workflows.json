@@ -2492,5 +2492,152 @@
         ]
       }
     }
+  },
+  {
+    "id": "workflow-native-prose-concise",
+    "input": "Read worker.py and explain why its handler needs to tolerate repeated deliveries. Keep it brief. Do not edit files or run the queue.",
+    "target": "Explain the concrete crash window after handler completion but before acknowledgement: the queue may deliver the item again, so the handler must tolerate repeats. Answer directly with enough causal detail; no forced overview, confidence labels, unrelated edge cases, or research files. Do not claim observed runtime behavior.",
+    "files": {
+      "worker.py": "def consume(queue, handler):\n    item = queue.receive()\n    handler(item)\n    queue.acknowledge(item)\n"
+    },
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": [
+        "follow-instructions",
+        "how"
+      ],
+      "expected_workflows": [
+        "investigate/read"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-edit",
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "supplied-source-inspected",
+        "requested-result-produced"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "response-contract",
+        "required_content": [
+          "handler"
+        ]
+      }
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add -- worker.py && git commit -qm baseline"
+  },
+  {
+    "id": "workflow-native-prose-detailed",
+    "input": "Read worker.py and teach me how to make this consumer safe to retry. Give a detailed explanation of crashes before handling, during handling, and after handling but before acknowledgement. Explain where idempotency belongs and what the code alone cannot guarantee. Do not edit files or run the queue.",
+    "target": "Cover each requested failure window, the distinction between delivery and external side effects, and handler-owned idempotency or transactional coordination when available. Explain relevant tradeoffs and unknown queue/handler semantics without inventing guarantees. Keep requested depth despite concision guidance; no fixed headings, recap prohibition, or sentence quota. Remain read-only.",
+    "files": {
+      "worker.py": "def consume(queue, handler):\n    item = queue.receive()\n    handler(item)\n    queue.acknowledge(item)\n"
+    },
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": [
+        "follow-instructions",
+        "teach"
+      ],
+      "expected_workflows": [
+        "document-teach/teach"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-edit",
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "supplied-source-inspected",
+        "requested-result-produced"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "response-contract",
+        "required_content": [
+          "handler"
+        ]
+      }
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add -- worker.py && git commit -qm baseline"
+  },
+  {
+    "id": "workflow-native-attributed-review-draft",
+    "input": "Draft a concise inline comment for a GitLab merge request changing projects.py. The handler accepts a project ID but does not enforce the authenticated team. Start with the model responding on behalf of Soham; the exposed model slug is gpt-6.1-sol. Draft only: do not edit or post.",
+    "target": "Return a draft beginning with > gpt-6.1-sol, responding on behalf of Soham. Explain that the project lookup is not scoped to the authenticated team and ask for enforcement at that lookup. Do not invent schema names, add an unrelated status template, claim a fix, edit source, or post the comment.",
+    "files": {
+      "projects.py": "def get_project(actor, project_id, store):\n    return store.get(project_id)\n"
+    },
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": [
+        "follow-instructions",
+        "pull-requests"
+      ],
+      "expected_workflows": [
+        "pull-requests/draft"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-edit",
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "supplied-source-inspected",
+        "requested-result-produced"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "response-contract",
+        "required_content": [
+          "> gpt-6.1-sol, responding on behalf of Soham.",
+          "project"
+        ]
+      }
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add -- projects.py && git commit -qm baseline"
+  },
+  {
+    "id": "workflow-native-html-plan-only",
+    "input": "Inspect client.py and prepare an HTML implementation plan for adding bounded retries to fetch_status. Save the requested plan as plan.html in this workspace. Cover transient versus permanent failures and the retry limit. Do not implement the change, install anything, or contact a service.",
+    "target": "Produce a readable self-contained HTML plan grounded in client.py, with bounded retries, transient/permanent error handling, a validation approach, and explicit unknown transport semantics. Preserve client.py. No implementation, network action, extra project report, or new approval round is needed to finish this plan-only request. Structure the plan for its purpose rather than a mandatory section template.",
+    "files": {
+      "client.py": "def fetch_status(transport, key):\n    return transport.fetch(key)\n"
+    },
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": [
+        "follow-instructions",
+        "html-artifacts"
+      ],
+      "expected_workflows": [
+        "design/plan"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "supplied-source-inspected",
+        "requested-result-produced"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "plan.html",
+        "write_content": "<!doctype html>",
+        "required_paths": [
+          "plan.html",
+          "client.py"
+        ],
+        "response_required": false
+      },
+      "allowed_paths": [
+        "plan.html"
+      ]
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add -- client.py && git commit -qm baseline"
   }
 ]

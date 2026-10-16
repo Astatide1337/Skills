@@ -19,11 +19,13 @@ missing ownership decision behind a diagram or generic interface name.
 1. Ground the existing system with `how`; use `why` when historical rationale constrains the change.
 2. Write realistic caller usage before types. When choosing a boundary, data
    shape or shared state, apply [construction decisions](../follow-instructions/references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples).
-3. Produce at least two structurally distinct candidate designs. Do this locally, or with collaborators only when permitted.
-4. Compare candidates on interface depth, ownership, data access, boundary validation, invariants, state transitions, failure recovery, and likely evolution.
+3. Compare credible alternatives when a real design choice remains. Do not invent
+   a second design for an already-established correction.
+4. Evaluate relevant tradeoffs in interface depth, ownership, data access,
+   validation, state transitions, recovery, and likely evolution.
 5. Reject shallow modules, information leakage, temporal decomposition, pass-through layers, and speculative generality.
-6. Record the chosen shape, accepted tradeoffs, rejected alternative, risks,
-   unresolved decisions, purposeful refactors and first implementation step.
+6. Retain the chosen shape, material tradeoffs, unresolved decisions, and next
+   implementation step in the existing plan or task record.
 7. Implement against the sketch. Treat repeated deviations as evidence the architecture is wrong; re-ground and redesign instead of adding escape hatches.
 
 Before handing off a design-only result, trace one successful operation and one
@@ -34,11 +36,12 @@ the written sequence.
 
 For nontrivial feature/issue delivery, use the coordinator's
 [approved-plan contract](../follow-instructions/references/approved-plans.md).
-Material contract, ownership, architecture or migration changes reopen that
-plan; in-contract simplification can proceed within the existing approval.
+Update changed decisions and apply that reference's authority rules; a material
+discovery does not by itself require another approval round.
 Standalone design and the tiny-change path retain their requested boundaries.
 
-Use `references/rationale-template.md` for the decision record. Read
+Use `references/rationale-template.md` when a separate decision record is needed;
+its sections are prompts, not mandatory output. Read
 `references/design-red-flags.md` when comparing module boundaries or reviewing
 an existing proposal.
 For asynchronous saves, conflicts, retries, shared views, or owned resources,

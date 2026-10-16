@@ -22,10 +22,8 @@ personalize the workflow without replacing target-specific discovery.
   cleanup before testing; remove only run-owned resources and retain evidence.
 - Rutgers OpenShift operations require a specific approved HTML infrastructure
   plan. General feature approval or available cluster access does not cover it.
-- Container image builds and workflows that build images require explicit user
-  approval. Inspect workflows before push or dispatch; do not trigger prohibited
-  builds as a side effect of obtaining CI. Preserve existing destructive-operation
-  and deployment approval requirements.
+- Inspect workflows before push or dispatch for effects outside the requested
+  work. Preserve destructive-operation and deployment approval requirements.
 
 ## VPS and container-hosted services
 

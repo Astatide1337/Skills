@@ -156,6 +156,34 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(len(dataset), 9)
         self.assertTrue(all(not str(sample.id).startswith("workflow-native-") for sample in dataset))
 
+    def test_writing_cases_establish_inspectable_git_baselines(self) -> None:
+        cases = {sample.id: sample for sample in skills.workflows_dataset()}
+        for case_id in (
+            "workflow-native-prose-concise",
+            "workflow-native-prose-detailed",
+            "workflow-native-attributed-review-draft",
+            "workflow-native-html-plan-only",
+        ):
+            sample = cases[case_id]
+            with self.subTest(case=case_id), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                for name, content in sample.files.items():
+                    target = root / name
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_text(content)
+                subprocess.run(sample.setup, shell=True, cwd=root, check=True,
+                               capture_output=True, text=True)
+                subprocess.run(["git", "rev-parse", "--verify", "HEAD"],
+                               cwd=root, check=True, capture_output=True)
+                for name, content in sample.files.items():
+                    baseline = subprocess.check_output(
+                        ["git", "show", f"HEAD:{name}"], cwd=root, text=True,
+                    )
+                    self.assertEqual(baseline, content)
+                self.assertEqual(subprocess.check_output(
+                    ["git", "status", "--porcelain"], cwd=root, text=True,
+                ), "")
+
     def test_recovery_equivalent_reproduces_before_repair_and_retains_acceptance(self):
         sample = next(s for s in skills.workflows_dataset()
                       if s.id == "workflow-native-approved-safe-recovery")
@@ -232,7 +260,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            48,
+            52,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -314,6 +342,10 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-approved-safe-recovery",
                 "workflow-native-approved-stall-handoff",
                 "workflow-native-tiny-change-no-approval-cycle",
+                "workflow-native-prose-concise",
+                "workflow-native-prose-detailed",
+                "workflow-native-attributed-review-draft",
+                "workflow-native-html-plan-only",
                 "workflow-native-stale-plan-approval",
                 "workflow-native-approved-no-merge-boundary",
                 "workflow-investigate-create-issue",

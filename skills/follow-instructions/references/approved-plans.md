@@ -9,8 +9,9 @@ research and reviews stay read-only. Clear small changes use the short path.
 
 Inspect the actual owner, callers, existing automation, constraints and checks.
 State the desired outcome, smallest correction, affected interfaces, permitted
-effects and acceptance in the existing task record. Use a concise plan unless
-the user requests another format. A bounded investigation does not authorize
+effects and acceptance in the existing task record. Present plans as concise
+HTML artifacts in the temporary task workspace unless the user requests another
+format or waives the artifact for this task. A bounded investigation does not authorize
 permanent tooling; first establish the recurring need and missing native capability.
 For uncertain UI direction, exercise one representative interaction before
 expanding screens; use [UI prototyping](../../web-interface/references/ui-prototyping.md)
@@ -21,8 +22,9 @@ when a prototype is relevant.
 When the user or project requires a design approval, prepare the concrete
 reviewable result in the requested format, identify its version and ask only for
 the unresolved decision. Preserve explicit HTML/prototype approval requests.
-When implementation and delivery are already authorized, proceed within that
-scope; an HTML document or another approval round is not a default prerequisite.
+Keep presentation separate from authorization: an HTML plan does not itself
+require a new approval round. When implementation and delivery are already
+authorized, proceed within that scope and honor any task-specific planning waiver.
 Record the original request or confirmation and any later superseding decision.
 
 When evidence changes the design, update the affected decision. Continue in-scope
