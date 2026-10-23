@@ -1,0 +1,60 @@
+name: test-integrity
+
+# Reusable check for application repositories. It fails a pull request that
+# removes tests, adds skip/only markers, or edits lint, type, test-runner or CI
+# configuration, unless a human applies the matching approval label:
+#   tests-removed-ok   approve removed tests or new skip markers
+#   gates-changed-ok   approve changed check configuration
+#
+# Caller example (in the application repository):
+#   on: { pull_request: { types: [opened, synchronize, reopened, labeled, unlabeled] } }
+#   jobs:
+#     integrity:
+#       uses: Astatide1337/Skills/.github/workflows/test-integrity.yml@main
+#       with: { runs-on: ubuntu-latest }
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: Runner label for the check
+        type: string
+        default: ubuntu-latest
+      skills-ref:
+        description: Skills revision that provides the checker
+        type: string
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  integrity:
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          repository: Astatide1337/Skills
+          ref: ${{ inputs.skills-ref }}
+          path: .agent-gates-skills
+          sparse-checkout: global-instructions/hooks
+      - name: Compare tests and check configuration with the base branch
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          allow=()
+          case "$LABELS" in *'"tests-removed-ok"'*) allow+=(--allow tests);; esac
+          case "$LABELS" in *'"gates-changed-ok"'*) allow+=(--allow gates);; esac
+          base=$(git merge-base "$BASE_SHA" HEAD)
+          python3 .agent-gates-skills/global-instructions/hooks/test_integrity.py \
+            --base "$base" --head HEAD "${allow[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "${PIPESTATUS[0]}"

@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$SKILLS_DIR/global-instructions/hooks/agent_gates.py\" session-start"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$SKILLS_DIR/global-instructions/hooks/agent_gates.py\" format",
+            "timeout": 45
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$SKILLS_DIR/global-instructions/hooks/agent_gates.py\" stop",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
+  }
+}
