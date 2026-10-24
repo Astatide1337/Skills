@@ -141,9 +141,9 @@ Use [parallel](playbooks/parallel.md) only when independent ownership, a real
 delegation tool and a benefit justify it. Prove one complete unit first. Use
 [self-reflect](../self-reflect/SKILL.md) when repeated failure or stalled progress
 requires a new observation; ordinary completion needs no extra reflection.
-Learning is propose-only: a mistake seen twice gets a proposed fix through
-[learn from repeats](../self-reflect/references/learn-from-repeats.md), applied
-only after the user approves it. Nothing is promoted automatically.
+A correction of a recorded or repeated mistake uses
+[learn from repeats](../self-reflect/references/learn-from-repeats.md); nothing
+is applied without the user's approval.
 Across handoff or compaction retain the objective, accepted decisions,
 unfinished gates, next action and exact blockers. Use
 [durable checkpoints](references/durable-checkpoints.md) for expected

@@ -1,55 +1,65 @@
 # 0002: Replace the self-learning pause with propose-only learning
 
-- Status: accepted
+- Status: proposed (accepted when this PR merges)
 - Date: 2026-10-23
 - Reverses: "Self-learning and automatic rule promotion remain paused", stated
   in the README, `follow-instructions`, `self-reflect` and `skill-creator`
+- Related: 0001 (skill descriptions), proposed separately in PR #28
 
 ## Context
 
-The pause existed to stop agents from rewriting their own rules: lessons from
-one task's context, rule bloat and self-serving exceptions. It also stopped
-the loop that makes a harness improve. A recurring mistake produced, at best,
-a sentence in a handoff that nobody acted on.
+The pause stopped agents from rewriting their own rules: lessons drawn from
+one task's context, growing rule files, and self-serving exceptions. It also
+stopped repeated mistakes from ever turning into fixes. At best a lesson
+became a sentence in a handoff that nobody searched later.
 
-Session history showed the cost. The same mistake classes recurred across
-weeks and were corrected by hand each time:
+The owner reports these classes recurring across weeks of sessions in several
+projects, each corrected by hand every time. They are listed here as
+owner-reported; the session export is private:
 
 - synthetic fixtures standing in for real API captures;
-- work reported done before verification;
-- frontend and backend payloads drifting apart;
-- internal errors reaching users;
-- work handed back that the agent could do itself.
+- work reported done before verification ran;
+- frontend and backend request shapes drifting apart;
+- internal error text reaching end users;
+- work handed back to the user that the agent could have done.
 
-Practitioners who ship reliably with agents do not freeze learning. They gate
-it. A mistake class must occur twice. The fix goes to the strongest
-enforcement level: architecture, then types, then a check, then a test, then
-text. The check is proven to fail on the past mistake, a human approves it,
-and stale rules are pruned. pstack's `/correct` and `/reflect`, Every's
-compound step and the Claude Code team's shared `CLAUDE.md` all follow this
-shape.
+## What practitioners do
+
+Only pstack's `correct` skill has the full shape adopted here:
+- a two-occurrence threshold;
+- an enforcement ladder from architecture to prose;
+- proof that each new check fails on the past mistake;
+- a rule-to-enforcer table;
+- exceptions that carry a reason, an expiry and approval.
+
+Others contribute pieces:
+- pstack `reflect`: row-by-row approval, and routing anything a check could enforce away from prose.
+- Every's compound engineering: one record per solved problem, plus a refresh pass that retires stale ones.
+- GitHub Copilot Memory: facts tied to code and deleted after 28 days unused.
+- The Claude Code team: lessons added to a reviewed `CLAUDE.md` from pull request comments.
+
+No one has published a controlled measurement of whether a human-approved
+rule loop pays off. This decision rests on practitioner consensus and the
+owner's own repeated corrections.
 
 ## Decision
 
-- Agents propose; the user approves. Nothing is promoted automatically.
-- The trigger is a mistake class with two occurrences with evidence, or a
-  user correcting a repeat.
-- The fix level is chosen highest-first. Any check is proven to fail on the
-  real past mistake.
-- Placement defaults to the target repository: code, config and CI, plus a
-  rule→enforcer row in its `AGENTS.md`. A fix goes into the Skills catalog only
-  when the mistake recurs across repositories or concerns agent method, and
-  then it must meet `SCOPE.md`.
-- Declined proposals are recorded and not re-proposed without new evidence.
-- Rules whose mistake can no longer happen are deleted.
+- Agents record and propose; the user approves each proposal. Nothing is promoted automatically.
+- **Recording:** a first occurrence becomes a Candidate row that expires after 90 days, so a second occurrence can be seen.
+- **Proposing:** a proposal requires two distinct occurrences, or one that crossed a safety boundary. Breaking an existing rule means proposing a stronger enforcement level.
+- **Where and how:** the fix goes to the narrowest scope (target repository by default) and the strongest enforcement that works there.
+- **Proof and gate changes:** any check must be proven to fail on the past mistake. A change to a gate is marked and never ships with the code it would have failed.
+- **Where rules live:** in each repository's `docs/agents/rules.md`, with a single pointer from `AGENTS.md`. Candidates expire, judgment rules carry review dates, and rows whose mistake can no longer happen are deleted.
+- **Rejections:** declined proposals are recorded and not re-raised without new evidence.
 
 Procedure: `skills/self-reflect/references/learn-from-repeats.md`.
 
-## What would make us revisit this
+## Revisit when
 
-- Proposals arrive faster than they can be reviewed.
-- Approved rules start contradicting each other.
-- A month of rule tables shows mostly prose rows with no enforcer.
+- proposals arrive faster than they can be reviewed;
+- approved rules contradict each other;
+- after a month, rule tables hold mostly Judgment rows with no enforcer;
+- rejections outnumber approvals.
 
-If any of these happens, tighten the trigger or the bar instead of returning
-to a blanket pause.
+When that happens, tighten the trigger or the bar instead of returning to a
+blanket pause.

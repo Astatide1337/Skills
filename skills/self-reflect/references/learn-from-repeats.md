@@ -1,104 +1,121 @@
 # Learn from repeated mistakes
 
-Turn a mistake that has happened twice into a proposal that makes it hard to
-happen a third time. Agents propose; the user approves. Nothing here grants
+Turn a mistake that keeps happening into a proposal that makes it hard to
+repeat. Agents record and propose; the user approves. Nothing here grants
 permission to edit a repository, the Skills catalog or global instructions
 without that approval.
 
-## When this applies
+Adapted from pstack's `correct` skill (`cursor/plugins`, commit
+[`8b3326d9`](https://github.com/cursor/plugins/tree/8b3326d99fd4b993cb33a24dad8af03175c642c5/pstack/skills/correct)),
+with candidate tracking and expiry from GitHub Copilot Memory and Every's
+compound engineering.
 
-- The user corrects something that has gone wrong before: in this task, in
-  the repository's rule table, in commit or revert history, or in review
-  comments.
-- A `Close` reflection finds a lesson backed by two or more real occurrences.
+## 1. Notice a mistake
 
-A mistake class counts once it has two occurrences with evidence. Two
-occurrences means two distinct instances of the same class, not one failure
-retried twice. A single occurrence goes in the handoff as an observation,
-nowhere else. Do not mine unrelated history looking for lessons.
+Start when the user, a reviewer, a revert or a failed acceptance check shows
+a mistake the agent made. Name the class, not the instance: "hand-written
+fixtures instead of captured API responses", not "the T12 sketch fixture".
 
-## Choose the strongest fix
+## 2. Look for earlier occurrences
+
+Read the target repository's `docs/agents/rules.md` if it exists: Enforced,
+Judgment, Candidates and Rejected. Then run a targeted search for this one
+class: `git log --grep`, reverts, review comments, and session history if the
+harness exposes it. Search for the class you have; do not sweep history for
+new lessons.
+
+## 3. Decide what to do
+
+| What you found | Action |
+| --- | --- |
+| First occurrence | Fix it. Add a Candidate row in the same commit when the task already authorizes writes; otherwise mention it in the handoff. No proposal. |
+| A second distinct occurrence, or a matching Candidate row | Propose a fix (section 4). |
+| A rule that already exists was broken | That rule is too weak. Propose moving it up one enforcement level. |
+| One occurrence that crossed a safety boundary (data loss, secrets, production, auth) | Propose a fix now. |
+| A matching Rejected row | Do not re-propose unless this occurrence is new evidence; link the rejection. |
+
+Two distinct occurrences means two separate instances of the same class. One
+failure retried twice is one occurrence.
+
+## 4. Propose
+
+Choose along two axes and say why. **Scope:** the narrowest place that fixes
+it (see `skill-creator`'s layers): the current task, the target repository,
+global instructions, or the Skills catalog. Default to the target repository;
+a lesson moves into the catalog only when it recurs across repositories or is
+about how agents work. **Enforcement:** the strongest form that works there.
+
+| Target repository | Skills catalog |
+| --- | --- |
+| 1. Architecture: one owner per state, one supported path, unimportable internals, delete code an agent would copy | 1. A hook or permission in `global-instructions/hooks/agent_gates.py` |
+| 2. Types or schema that make the bad state unrepresentable | 2. A tested helper script (for example `verify-work/scripts/boundary_checks.py`) |
+| 3. A lint rule or CI check whose error names the fix; fail only new violations if the pattern is widespread | 3. An eval case the no-guidance baseline fails |
+| 4. A test that fails on the past mistake | 4. Skill text |
+| 5. Rule text, for judgment calls only | |
 
 Assume the next agent sees only the files it opens, copies the nearest
-example and takes the shortest path that compiles. Fix the class at the
-highest level that works, and say why each higher level does not:
+example, and takes the shortest path that compiles.
 
-1. **Architecture.** Remove the wrong way: one owner per piece of state, one
-   supported path per task, internals that cannot be imported, deleted dead
-   code an agent would copy.
-2. **Types or schema.** Make the bad state unrepresentable, for example shared
-   types generated from the API schema instead of hand-copied payloads.
-3. **Check.** A lint rule, CI step or script whose error names the file,
-   type or function to use instead. If the pattern already exists widely,
-   fail only on new occurrences.
-4. **Test.** A test that fails on the real past mistake.
-5. **Rule text.** Only for judgment calls nothing can check. Rule text is the
-   weakest form: nothing fails when an agent skips it.
+Present one block per class, then stop:
 
-Prove any check or test fails on the real past mistake: run it against the
-revision or a minimal reproduction of the original error. A check that has
-never failed is a draft.
+- **Class:** one line.
+- **Evidence:** each occurrence, linked or quoted.
+- **Fix:** scope and level, why each stronger level does not work, and the
+  exact diff.
+- **Proof:** the command that fails on the past-mistake revision (or a
+  minimal reproduction) and passes after the fix. A check that has never
+  failed is a draft. A check must run the same way locally and in CI.
+- **Gate-touch:** yes or no. Does this change any test, check, threshold,
+  permission or verifier? If yes, it is reviewed on its own merits and never
+  ships in the same commit as code it would have failed. Per
+  `measured-improvement`, an aggregate score cannot justify it.
+- **Cost:** runtime, context and friction it adds to future tasks.
+- **Review by:** a date, for rule-text rows and exceptions only.
 
-## Choose where it lives
+## 5. Apply only what the user approves
 
-| The mistake is about | Put the fix in | Record it in |
-| --- | --- | --- |
-| This codebase | The target repository (code, config, CI) | The repository's `AGENTS.md` rule table |
-| How agents work, seen in two or more repositories | The Skills catalog, via `skill-creator` | `SCOPE.md` evidence and an eval case |
-| A standing personal preference | `global-instructions/AGENTS.md` | The commit message |
+- Approved: land it as its own commit. Add or update the row in
+  `docs/agents/rules.md`. A Skills or global-instructions change follows
+  `skill-creator` and `measured-improvement`.
+- Rejected: add a Rejected row with the reason.
+- Exceptions to an enforced rule go on the offending line, with a reason, an
+  expiry date and the user's approval. Never add a blanket ignore.
 
-Default to the target repository. A lesson moves into the Skills catalog only
-when the same class shows up in more than one repository or concerns the
-agent's method rather than one codebase.
+## 6. Keep the table honest
 
-## Propose
+Whenever you touch `docs/agents/rules.md`:
 
-Present one block per class and stop for a decision:
+- delete expired Candidates;
+- for Judgment rows past their review date, propose keep, strengthen or
+  delete, with evidence of whether the mistake recurred;
+- for Enforced rows whose enforcer no longer exists, propose repair or
+  deletion;
+- delete any row whose mistake can no longer happen.
 
-- **Class:** one line naming the mistake, not the instance.
-- **Evidence:** each occurrence with a link, commit, file or quoted correction.
-- **Fix:** the level chosen, why higher levels do not work, and the exact
-  change (files and diff, or the rule text).
-- **Proof:** the command that shows the check failing on the past mistake.
-- **Cost:** what it adds to every future task (runtime, context, friction).
+## Where rules live
 
-Apply only after the user approves that specific proposal. Within an
-already-authorized task, an approved repository fix lands as its own commit.
-A Skills or global-instructions change follows `skill-creator` and its
-measured-improvement rules.
+In each target repository, created on the first approved rule, never in
+advance:
 
-## Rule table
-
-Each repository that adopts a rule keeps one table in its `AGENTS.md`:
-
-```markdown
-## Rules and enforcers
-
-| Rule | Enforced by | Evidence | Added |
-| --- | --- | --- | --- |
-| Fixtures come from real API captures, never hand-written | `scripts/check-fixtures` (fails without capture metadata) | PR #12, PR #15 | 2026-10-23 |
-| Error text shown to users comes only from `errors.ts` | test `user-errors.test.ts` | review on #31, #34 | 2026-10-23 |
+```text
+AGENTS.md              one line: "Before proposing a rule or after a correction,
+                       read docs/agents/rules.md." Plus only judgment rules that
+                       must shape every task.
+docs/agents/rules.md   ## Enforced   | Rule | Enforced by | Evidence | Added |
+                       ## Judgment   | Rule | Trigger | Evidence | Added | Review by |
+                       ## Candidates | Class | Evidence | Seen | Expires (seen + 90 days) |
+                       ## Rejected   | Class | Proposed fix | Reason | Date |
 ```
 
-- When the user corrects a mistake that already has a row, it is a repeat.
-  Fix it at a higher level in the same change.
-- When a check enforces a rule, keep the row but delete any duplicate prose
-  rule elsewhere. When a mistake can no longer happen, delete the row.
-- At a `Checkpoint` or `Close`, flag rows whose enforcer no longer exists or
-  that contradict current code. Propose their removal; do not keep stale rules.
-
-## Rejected proposals
-
-When the user declines a proposal, record the class and the reason in the
-same place the rule would have lived: a `Rejected` list under the repository's
-rule table, or `docs/learning/rejected.md` for the Skills catalog. Check that
-list before proposing, and do not re-propose a rejected class without new
-evidence.
+The table stays out of `AGENTS.md`. An enforced row tells the implementing
+agent nothing the check's error does not, and candidates and rejections are
+noise in context loaded on every task. For the Skills catalog, the equivalent
+table is `skills/follow-instructions/references/failure-to-checks.md`, and
+rejections go in `docs/learning/rejected.md`.
 
 ## Do not
 
-- Encode one task's context as a general rule.
-- Write a rule that makes the agent's own work easier at the expense of the
-  check: no lowered thresholds, broader exceptions or skipped tests.
-- Add a persona, slogan or general best practice the model already follows.
-- Apply a proposal because it seems obviously right. Approval is required.
+- Generalize one task's context into a rule.
+- Write a rule that eases the agent's own work at the check's expense:
+  lowered thresholds, broader exceptions, skipped tests.
+- Apply a proposal because it looks obviously right. Approval is required.

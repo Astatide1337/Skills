@@ -1,4 +1,4 @@
-# Declined proposals
+# Declined proposals for the Skills catalog
 
 Proposals for the Skills catalog that were declined, so they are not raised
 again without new evidence. Repository-specific proposals belong under the

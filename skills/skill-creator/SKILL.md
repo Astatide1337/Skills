@@ -34,7 +34,9 @@ Design for lack of surprise. A user who reads the description should predict
 when the skill activates, what authority it assumes, what artifact it produces,
 and where it stops.
 
-Choose the lowest layer that fixes the observed failure:
+Choose the lowest layer that fixes the observed failure, then the strongest
+enforcement within it (see
+[learn from repeats](../self-reflect/references/learn-from-repeats.md)):
 
 - current request or response for a one-off need;
 - personal/global instruction for a cross-repository working default;
