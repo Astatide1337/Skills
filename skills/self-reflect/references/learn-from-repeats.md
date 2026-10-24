@@ -110,8 +110,9 @@ docs/agents/rules.md   ## Enforced   | Rule | Enforced by | Evidence | Added |
 The table stays out of `AGENTS.md`. An enforced row tells the implementing
 agent nothing the check's error does not, and candidates and rejections are
 noise in context loaded on every task. For the Skills catalog, the equivalent
-table is `skills/follow-instructions/references/failure-to-checks.md`, and
-rejections go in `docs/learning/rejected.md`.
+table is `skills/follow-instructions/references/failure-to-checks.md`. Record
+catalog rejections with their reason in the existing proposal PR or issue,
+and search those records before proposing the same change again.
 
 ## Do not
 
