@@ -403,21 +403,18 @@ def render(report: Report, failures: list[str]) -> str:
         lines.append("")
         lines.append(
             "These changes weaken a check. Restore them, or get explicit human approval "
-            "(CI labels: tests-removed-ok, gates-changed-ok)."
+            "(CI labels: tests-ok:<full-head-sha>, gates-ok:<full-head-sha>)."
         )
     return "\n".join(lines) if lines else "No test or check weakening found."
 
 
-def approvals(events: list, after: str, approvers: set[str]) -> set[str]:
-    """Approval categories from PR label events a human applied after `after`.
-
-    `after` is an ISO-8601 time, normally the head commit's time. A label
-    applied earlier, by a bot, or by someone outside `approvers` (when given)
-    does not count, so an approval covers only the code it was given for.
-    """
-    labels = {"tests-removed-ok": "tests", "gates-changed-ok": "gates"}
+def approvals(events: list, head: str, approvers: set[str]) -> set[str]:
+    """Human label approvals bound to the exact full head SHA, never its date."""
+    if not re.fullmatch(r"[0-9a-f]{40}", head):
+        return set()
+    labels = {f"tests-ok:{head}": "tests", f"gates-ok:{head}": "gates"}
     granted: dict[str, bool] = {}
-    for event in sorted(events, key=lambda item: item.get("created_at", "")):
+    for event in sorted(events, key=lambda item: item.get("id", 0)):
         name = (event.get("label") or {}).get("name")
         if name not in labels:
             continue
@@ -430,8 +427,9 @@ def approvals(events: list, after: str, approvers: set[str]) -> set[str]:
         human = actor.get("type") == "User" and not actor.get("login", "").endswith(
             "[bot]"
         )
-        allowed = not approvers or actor.get("login") in approvers
-        granted[name] = bool(human and allowed and event.get("created_at", "") >= after)
+        granted[name] = bool(
+            human and (not approvers or actor.get("login") in approvers)
+        )
     return {labels[name] for name, ok in granted.items() if ok}
 
 
@@ -451,7 +449,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--approval-events", help="JSON file of GitHub issue events")
     parser.add_argument(
-        "--approval-after", default="", help="ISO time approvals must follow"
+        "--approval-head",
+        default="",
+        help="full head SHA that human approval labels must name",
     )
     parser.add_argument(
         "--approvers", default="", help="comma-separated logins allowed to approve"
@@ -462,11 +462,16 @@ def main(argv: list[str] | None = None) -> int:
     allow = set(args.allow)
     try:
         if args.approval_events:
+            if (
+                args.approval_head
+                != git(repo, "rev-parse", "--verify", f"{args.head}^{{commit}}").strip()
+            ):
+                raise ValueError("approval head must match the compared commit")
             events = json.loads(Path(args.approval_events).read_text() or "[]")
             approvers = {
                 name.strip() for name in args.approvers.split(",") if name.strip()
             }
-            allow |= approvals(events, args.approval_after, approvers)
+            allow |= approvals(events, args.approval_head, approvers)
         report = compare(repo, resolve(repo, args.base), resolve(repo, args.head))
     except (RuntimeError, OSError, ValueError) as error:
         print(f"test_integrity: {error}", file=sys.stderr)

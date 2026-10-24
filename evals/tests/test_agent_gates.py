@@ -307,78 +307,84 @@ class IntegrityTests(unittest.TestCase):
         result = self.check(repo, "--head", "WORKTREE")
         self.assertEqual(result.returncode, 1, result.stderr)
 
-    def test_approvals_require_a_human_label_after_the_head_commit(self):
-        def labeled(name, when, login="soham", kind="User", event="labeled"):
+    def test_approvals_require_a_human_label_for_the_exact_head(self):
+        head, other = "a" * 40, "b" * 40
+
+        def labeled(name, login="soham", kind="User", event="labeled", id=1):
             return {
+                "id": id,
                 "event": event,
-                "created_at": when,
+                "created_at": "2026-10-23T12:00:00Z",
                 "label": {"name": name},
                 "actor": {"login": login, "type": kind},
             }
 
-        head_time = "2026-10-23T12:00:00Z"
         approvals = test_integrity.approvals
+        label = f"tests-ok:{head}"
+        self.assertEqual(approvals([labeled(label)], head, set()), {"tests"})
+        self.assertEqual(approvals([labeled(label)], other, set()), set())
+        self.assertEqual(approvals([labeled("tests-removed-ok")], head, set()), set())
+        self.assertEqual(approvals([labeled(label)], "", set()), set())
+        self.assertEqual(approvals([labeled(label)], head[:7], set()), set())
+        self.assertEqual(
+            approvals([labeled(label, "ci[bot]", "Bot")], head, set()), set()
+        )
+        self.assertEqual(approvals([labeled(label, "agent")], head, {"soham"}), set())
+        # Same-second changes are ordered by GitHub's event IDs, not timestamp.
         self.assertEqual(
             approvals(
-                [labeled("tests-removed-ok", "2026-10-23T12:05:00Z")], head_time, set()
+                [labeled(label, event="unlabeled", id=2), labeled(label)], head, set()
+            ),
+            set(),
+        )
+        self.assertEqual(
+            approvals(
+                [labeled(label, event="unlabeled", id=2), labeled(label, id=3)],
+                head,
+                set(),
             ),
             {"tests"},
-        )
-        self.assertEqual(
-            approvals(
-                [labeled("tests-removed-ok", "2026-10-23T11:00:00Z")], head_time, set()
-            ),
-            set(),
-            "a label from before the latest commit must not count",
-        )
-        self.assertEqual(
-            approvals(
-                [labeled("gates-changed-ok", "2026-10-23T12:05:00Z", "ci[bot]", "Bot")],
-                head_time,
-                set(),
-            ),
-            set(),
-        )
-        self.assertEqual(
-            approvals(
-                [labeled("gates-changed-ok", "2026-10-23T12:05:00Z", "agent")],
-                head_time,
-                {"soham"},
-            ),
-            set(),
-        )
-        self.assertEqual(
-            approvals(
-                [
-                    labeled("tests-removed-ok", "2026-10-23T12:05:00Z"),
-                    labeled(
-                        "tests-removed-ok", "2026-10-23T12:06:00Z", event="unlabeled"
-                    ),
-                ],
-                head_time,
-                set(),
-            ),
-            set(),
         )
 
 
 class WorkflowTests(unittest.TestCase):
-    def test_cli_applies_only_fresh_human_approvals(self):
+    def test_backdated_commit_cannot_reuse_a_label(self):
+        old_head, new_head = "a" * 40, "b" * 40
+        event = {
+            "event": "labeled",
+            "created_at": "2026-10-23T12:00:00Z",
+            "label": {"name": f"tests-ok:{old_head}"},
+            "actor": {"login": "soham", "type": "User"},
+        }
+        self.assertEqual(test_integrity.approvals([event], new_head, set()), set())
+        event["created_at"] = "2000-01-01T00:00:00Z"
+        self.assertEqual(test_integrity.approvals([event], new_head, set()), set())
+        event["label"]["name"] = f"tests-ok:{new_head}"
+        self.assertEqual(test_integrity.approvals([event], new_head, set()), {"tests"})
+        workflow = (ROOT / ".github/workflows/test-integrity.yml").read_text()
+        self.assertIn('--approval-head "$HEAD_SHA"', workflow)
+        self.assertNotIn(".commit.committer.date", workflow)
+        self.assertNotIn(".pushed_at", workflow)
+
+    def test_cli_applies_only_human_approvals_bound_to_resolved_head(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo = Repo(root, {"tests/test_a.py": PY_TESTS})
             repo.write({"tests/test_a.py": ONE_PY_TEST})
             repo.commit("drop")
+            head = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=repo.path, text=True
+            ).strip()
             events = root / "events.json"
 
-            def run(created_at, actor_type="User"):
+            def run(label_head, actor_type="User"):
                 events.write_text(
                     json.dumps(
                         [
                             {
                                 "event": "labeled",
-                                "created_at": created_at,
-                                "label": {"name": "tests-removed-ok"},
+                                "created_at": "2000-01-01T00:00:00Z",
+                                "label": {"name": f"tests-ok:{label_head}"},
                                 "actor": {"login": "soham", "type": actor_type},
                             }
                         ]
@@ -394,8 +400,8 @@ class WorkflowTests(unittest.TestCase):
                         repo.base,
                         "--approval-events",
                         str(events),
-                        "--approval-after",
-                        "2026-10-23T12:00:00Z",
+                        "--approval-head",
+                        head,
                         "--approvers",
                         "soham",
                     ],
@@ -404,15 +410,15 @@ class WorkflowTests(unittest.TestCase):
                     check=False,
                 ).returncode
 
-            self.assertEqual(run("2026-10-23T12:30:00Z"), 0)
-            self.assertEqual(run("2026-10-23T11:30:00Z"), 1, "stale approval")
-            self.assertEqual(run("2026-10-23T12:30:00Z", "Bot"), 1, "bot approval")
+            self.assertEqual(run(head), 0)
+            self.assertEqual(run(repo.base), 1, "approval for old head")
+            self.assertEqual(run(head, "Bot"), 1, "bot approval")
 
     def test_reusable_workflow_wires_approvals_and_the_pinned_checker(self):
         text = (ROOT / ".github/workflows/test-integrity.yml").read_text()
         for needle in (
             "--approval-events",
-            "--approval-after",
+            "--approval-head",
             "--approvers",
             "ref: ${{ inputs.skills-ref }}",
             "pull-requests: read",

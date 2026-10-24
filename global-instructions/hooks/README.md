@@ -67,7 +67,7 @@ jobs:
 
 - **Make it a required status check.** Otherwise a PR can delete the job.
 - **Pin both refs to the same commit** so the checker cannot change underneath you.
-- **To approve an intentional change,** apply `tests-removed-ok` or `gates-changed-ok`. A label counts only if a human applied it after the PR's latest commit; bots and logins outside `approvers` do not count. Re-apply it after pushing more changes.
+- **To approve an intentional change,** apply `tests-ok:<full-head-sha>` or `gates-ok:<full-head-sha>`. Create the label with the PR's full 40-character head SHA. Only human label events from `approvers` count. New commits need new labels; unsuffixed or old-head labels never approve a change.
 
 Run the same check locally before pushing:
 
