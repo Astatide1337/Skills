@@ -1,0 +1,108 @@
+{
+  "date": "2026-10-24",
+  "kind": "static solver-input capture, not native execution",
+  "baseline_revision": "16cfffb5a160e24d40814c07cc1cfcc84c798a47",
+  "candidate_revision": "5d7482ecc67d848fd97d9ec5de0f1f5557449d8e",
+  "shared_harness_patch": "0acba597d390df4152e22f942a04b8c8d189adca",
+  "baseline_case_setup": "Candidate three learning cases copied verbatim into baseline before capture; no expected answers enter the prompt.",
+  "method": "Call existing route_codex solver with run_codex intercepted by AsyncMock, as in test_shipped_routing_has_no_evaluator_hints. Compare prompt and schema SHA-256 plus settings; no model generation.",
+  "model_calls": 0,
+  "identical_inputs": true,
+  "global_sha256": "7f175eb60326da8d0bd27d94ddf229fc56b05788fe29b662bcdfd1ed49312039",
+  "catalog_sha256": "38f85536a0b0426e7e7623021e25f85b641192e634103e10ae0b24bb8be54c09",
+  "cases": [
+    {
+      "id": "route-follow-instructions-shibboleth-boundary",
+      "prompt_sha256": "0fe737d999fcf1398f3e01c564e154f8e874624ab9e99235a02c54fa7246ac83",
+      "native_settings": {
+        "model": "gpt-6.1-sol",
+        "effort": "low",
+        "with_skills": false,
+        "sandbox_mode": "read-only",
+        "timeout": 300
+      },
+      "schema_sha256": "0c22db55691d267c7a11cb61f4496c109781e5050568aca84fbc19ef1de90bc8",
+      "metadata": {
+        "expected_skills": [
+          "follow-instructions",
+          "systematic-debugging",
+          "production-safety",
+          "security-and-hardening",
+          "pull-requests",
+          "verify-work"
+        ],
+        "route_kind": "positive"
+      }
+    },
+    {
+      "id": "route-self-reflect-repeat-correction",
+      "prompt_sha256": "aa211826a2ce4934f9f9f093a674d0ff9a1b15b165ef6044fe050c9e248adfde",
+      "native_settings": {
+        "model": "gpt-6.1-sol",
+        "effort": "low",
+        "with_skills": false,
+        "sandbox_mode": "read-only",
+        "timeout": 300
+      },
+      "schema_sha256": "0c22db55691d267c7a11cb61f4496c109781e5050568aca84fbc19ef1de90bc8",
+      "metadata": {
+        "expected_skills": [
+          "follow-instructions",
+          "self-reflect"
+        ],
+        "route_kind": "positive",
+        "optional_skills": [
+          "verify-work"
+        ]
+      }
+    },
+    {
+      "id": "route-self-reflect-first-occurrence-near-miss",
+      "prompt_sha256": "23a05cde8415a38cee141bbc6541637365a8c839f87ecdc6dc0591780169ed55",
+      "native_settings": {
+        "model": "gpt-6.1-sol",
+        "effort": "low",
+        "with_skills": false,
+        "sandbox_mode": "read-only",
+        "timeout": 300
+      },
+      "schema_sha256": "0c22db55691d267c7a11cb61f4496c109781e5050568aca84fbc19ef1de90bc8",
+      "metadata": {
+        "expected_skills": [
+          "follow-instructions",
+          "verify-work"
+        ],
+        "route_kind": "negative",
+        "optional_skills": [
+          "production-safety"
+        ],
+        "harmful_skills": [
+          "self-reflect"
+        ]
+      }
+    },
+    {
+      "id": "route-self-reflect-already-enforced-near-miss",
+      "prompt_sha256": "04d80cdddc6511773eb5138c3f266c30b9230f690418a7e6fd4f9f2f03c0fe31",
+      "native_settings": {
+        "model": "gpt-6.1-sol",
+        "effort": "low",
+        "with_skills": false,
+        "sandbox_mode": "read-only",
+        "timeout": 300
+      },
+      "schema_sha256": "0c22db55691d267c7a11cb61f4496c109781e5050568aca84fbc19ef1de90bc8",
+      "metadata": {
+        "expected_skills": [],
+        "route_kind": "negative",
+        "optional_skills": [
+          "follow-instructions",
+          "verify-work"
+        ],
+        "harmful_skills": [
+          "self-reflect"
+        ]
+      }
+    }
+  ]
+}

@@ -111,7 +111,8 @@ completion: affected behavior, independent review, material repairs, publication
 current-head checks and host merge eligibility. A draft is intermediate; a
 review-ready flag is not merge readiness. Use native watches and runtime
 continuation, retaining a compact record before interruption. Never merge or
-enable auto-merge. Self-learning and automatic rule promotion remain paused.
+enable auto-merge. Learning is propose-only; see
+[learn from repeats](skills/self-reflect/references/learn-from-repeats.md).
 
 The first line is the requested outcome; it is not a new command language. The
 coordinator preserves literal prohibitions, uses `pull-requests` for explicit
