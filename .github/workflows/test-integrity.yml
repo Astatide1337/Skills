@@ -1,17 +1,24 @@
 name: test-integrity
 
 # Reusable check for application repositories. It fails a pull request that
-# removes tests, adds skip/only markers, or edits lint, type, test-runner or CI
-# configuration, unless a human applies the matching approval label:
+# removes tests, adds skip/only markers to existing tests, or edits lint, type,
+# test-runner or verify configuration, unless a human approves the change:
 #   tests-removed-ok   approve removed tests or new skip markers
 #   gates-changed-ok   approve changed check configuration
 #
+# An approval label counts only when a human (not a bot, and one of
+# `approvers` when that input is set) applied it after the PR's latest commit,
+# so it covers exactly the code that was reviewed. Re-apply it after a push.
+#
+# Make this a required status check; otherwise a PR can delete the job.
+#
 # Caller example (in the application repository):
 #   on: { pull_request: { types: [opened, synchronize, reopened, labeled, unlabeled] } }
+#   permissions: { contents: read, pull-requests: read }
 #   jobs:
 #     integrity:
-#       uses: Astatide1337/Skills/.github/workflows/test-integrity.yml@main
-#       with: { runs-on: ubuntu-latest }
+#       uses: Astatide1337/Skills/.github/workflows/test-integrity.yml@<sha>
+#       with: { skills-ref: <same sha>, approvers: your-login }
 
 on:
   workflow_call:
@@ -21,18 +28,23 @@ on:
         type: string
         default: ubuntu-latest
       skills-ref:
-        description: Skills revision that provides the checker
+        description: Skills revision for the checker; set it to the same ref as `uses:`
         type: string
         default: main
+      approvers:
+        description: Comma-separated logins allowed to approve; empty means any human
+        type: string
+        default: ""
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   integrity:
     if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
     runs-on: ${{ inputs.runs-on }}
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -48,13 +60,21 @@ jobs:
           sparse-checkout: global-instructions/hooks
       - name: Compare tests and check configuration with the base branch
         env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          APPROVERS: ${{ inputs.approvers }}
         run: |
-          allow=()
-          case "$LABELS" in *'"tests-removed-ok"'*) allow+=(--allow tests);; esac
-          case "$LABELS" in *'"gates-changed-ok"'*) allow+=(--allow gates);; esac
+          events="$RUNNER_TEMP/approval-events.json"
+          gh api --paginate "repos/$REPO/issues/$PR/events" \
+            --jq '[.[] | select(.event == "labeled" or .event == "unlabeled")]' \
+            | jq -s 'add // []' > "$events"
+          pushed_at=$(gh api "repos/$REPO/commits/$HEAD_SHA" --jq '.commit.committer.date')
           base=$(git merge-base "$BASE_SHA" HEAD)
           python3 .agent-gates-skills/global-instructions/hooks/test_integrity.py \
-            --base "$base" --head HEAD "${allow[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+            --base "$base" --head HEAD \
+            --approval-events "$events" --approval-after "$pushed_at" \
+            --approvers "$APPROVERS" | tee -a "$GITHUB_STEP_SUMMARY"
           exit "${PIPESTATUS[0]}"

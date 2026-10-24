@@ -3,26 +3,30 @@
 
 Subcommands, each reading the hook's JSON from stdin:
 
-  session-start  remember HEAD for the session's repository
-  format         format the file an Edit/Write just touched (project tools only)
-  stop           run the repository's verify command and the test-integrity
-                 check before the agent may stop
+  session-start  snapshot the starting tree of the session's repository
+  guard          before a tool runs: snapshot the repository it will touch,
+                 and refuse hook bypasses and edits to the gates themselves
+  format         after an edit: format the file with the project's formatter
+  stop           before the agent stops: for every repository changed this
+                 session, run the test-integrity check and the verify command
 
-The stop gate only runs when the repository changed during the session. It
-blocks (exit 2) with the failing output so the agent keeps working, gives up
-after a bounded number of attempts, and never edits anything itself.
+"Changed" means the working tree, including uncommitted and untracked files,
+differs from its snapshot at session start, so a read-only session is never
+verified and the user's own earlier edits are never blamed on the agent.
 Standard library only; see README.md for installation.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -62,7 +66,22 @@ PRETTIER_CONFIGS = (
     "prettier.config.cjs",
     "prettier.config.mjs",
 )
-
+# Commands that switch off checks rather than satisfy them.
+BYPASSES = (
+    (re.compile(r"--no-verify\b"), "--no-verify skips the repository's hooks"),
+    (
+        re.compile(
+            r"\bgit\b[^|;&\n\"']*\bcommit\b[^|;&\n\"']*\s-[A-Za-z]*n[A-Za-z]*\b"
+        ),
+        "git commit -n skips the repository's hooks",
+    ),
+    (re.compile(r"\bHUSKY=0\b"), "HUSKY=0 disables git hooks"),
+    (
+        re.compile(r"\bSKIP=\S+[^|;&\n]*\b(?:git|pre-commit)\b"),
+        "SKIP= disables pre-commit checks",
+    ),
+    (re.compile(r"core\.hooksPath"), "changing core.hooksPath disables git hooks"),
+)
 VERIFY_GUIDANCE = (
     "Fix the cause in the code. Do not delete or skip tests, loosen lint or type "
     "settings, or edit the verify command to make this pass. If you believe the "
@@ -71,8 +90,12 @@ VERIFY_GUIDANCE = (
 INTEGRITY_GUIDANCE = (
     "This session weakened a check. Restore it, unless the user explicitly asked "
     "for this change. If they did, say so in your final message and name each "
-    "file listed above, so the person reviewing the work sees it."
+    "item listed above, so the person reviewing the work sees it."
 )
+
+
+def now() -> str:
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def state_dir() -> Path:
@@ -83,12 +106,32 @@ def state_dir() -> Path:
     return Path(base) / "agent-gates"
 
 
+def default_state() -> dict:
+    return {
+        "started_at": now(),
+        "starts": {},
+        "failed": {},
+        "passed": [],
+        "given_up": [],
+        "acknowledged": [],
+    }
+
+
 def load_state(session: str) -> dict:
-    path = state_dir() / f"{session}.json"
+    state = default_state()
     try:
-        return json.loads(path.read_text())
-    except (OSError, ValueError):
-        return {"starts": {}, "failed": {}, "passed": [], "acknowledged": []}
+        stored = json.loads((state_dir() / f"{session}.json").read_text())
+        if isinstance(stored, dict):
+            state.update(
+                {
+                    key: value
+                    for key, value in stored.items()
+                    if isinstance(value, type(state[key]))
+                }
+            )
+    except (OSError, ValueError, KeyError):
+        pass
+    return state
 
 
 def save_state(session: str, state: dict) -> None:
@@ -99,31 +142,98 @@ def save_state(session: str, state: dict) -> None:
     temporary.replace(directory / f"{session}.json")
 
 
-def git(root: Path, *args: str) -> str | None:
-    result = subprocess.run(
-        ["git", "-C", str(root), *args], capture_output=True, text=True, check=False
-    )
-    return result.stdout.strip() if result.returncode == 0 else None
-
-
-def repo_root(path: Path) -> Path | None:
-    start = path if path.is_dir() else path.parent
-    top = git(start, "rev-parse", "--show-toplevel") if start.exists() else None
-    return Path(top) if top else None
-
-
 def session_id(payload: dict) -> str:
     raw = str(payload.get("session_id") or "unknown")
     return "".join(ch for ch in raw if ch.isalnum() or ch in "-_")[:80] or "unknown"
 
 
-def remember_start(payload: dict, root: Path) -> None:
-    session = session_id(payload)
-    state = load_state(session)
-    head = git(root, "rev-parse", "HEAD")
-    if head and str(root) not in state["starts"]:
-        state["starts"][str(root)] = head
-        save_state(session, state)
+def git(root: Path, *args: str) -> str | None:
+    result = subprocess.run(
+        ["git", "-C", str(root), *args], capture_output=True, check=False
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout.decode("utf-8", "surrogateescape").strip()
+
+
+def repo_root(path: Path) -> Path | None:
+    start = path if path.is_dir() else path.parent
+    while not start.exists() and start != start.parent:
+        start = start.parent
+    top = git(start, "rev-parse", "--show-toplevel")
+    return Path(top) if top else None
+
+
+def record_start(state: dict, root: Path | None) -> bool:
+    """Snapshot a repository the first time the session touches it."""
+    if root is None or str(root) in state["starts"]:
+        return False
+    try:
+        tree = test_integrity.snapshot_tree(root)
+    except RuntimeError:
+        return False
+    state["starts"][str(root)] = {
+        "tree": tree,
+        "head": git(root, "rev-parse", "HEAD"),
+        "worktrees": [str(path) for path in worktrees(root)],
+    }
+    return True
+
+
+def worktrees(root: Path) -> list[Path]:
+    listing = git(root, "worktree", "list", "--porcelain") or ""
+    return [
+        Path(line[len("worktree ") :])
+        for line in listing.splitlines()
+        if line.startswith("worktree ")
+    ]
+
+
+def session_started(payload: dict, state: dict) -> str:
+    """When the session began: the transcript's first timestamp, else the state's."""
+    transcript = payload.get("transcript_path")
+    try:
+        with open(str(transcript), encoding="utf-8") as handle:
+            for line in handle:
+                stamp = json.loads(line).get("timestamp")
+                if stamp:
+                    return min(stamp, state["started_at"])
+    except (OSError, ValueError, TypeError, AttributeError):
+        pass
+    return state["started_at"]
+
+
+def start_for(state: dict, root: Path, started: str) -> tuple[str, str | None]:
+    """The tree to compare against, and a note when it had to be inferred."""
+    recorded = state["starts"].get(str(root))
+    if recorded:
+        return recorded["tree"], None
+    common = git(root, "rev-parse", "--git-common-dir")
+    for other, start in state["starts"].items():
+        other_common = git(Path(other), "rev-parse", "--git-common-dir")
+        if (
+            common
+            and other_common
+            and start.get("head")
+            and Path(root, common).resolve() == Path(other, other_common).resolve()
+        ):
+            tree = git(root, "rev-parse", f"{start['head']}^{{tree}}")
+            if tree:
+                return tree, f"{root}: compared with the session's starting commit"
+    candidates = (
+        (f"HEAD@{{{started}}}", "HEAD at the session's start, from the reflog"),
+        (git(root, "merge-base", "HEAD", "@{upstream}"), "the upstream branch"),
+        ("HEAD", "HEAD"),
+    )
+    for base, label in candidates:
+        tree = (
+            git(root, "rev-parse", "--verify", "-q", f"{base}^{{tree}}")
+            if base
+            else None
+        )
+        if tree:
+            return tree, f"{root}: no session start recorded; compared with {label}"
+    return "", f"{root}: no session start recorded and no commits to compare with"
 
 
 def verify_command(root: Path) -> list[str] | str | None:
@@ -156,22 +266,18 @@ def verify_command(root: Path) -> list[str] | str | None:
     return None
 
 
-def fingerprint(root: Path) -> str:
-    """Identify the exact tree state, including new files `git diff` omits."""
-    digest = hashlib.sha256()
-    for part in (
-        git(root, "rev-parse", "HEAD"),
-        git(root, "status", "--porcelain"),
-        git(root, "diff", "HEAD"),
-    ):
-        digest.update((part or "").encode() + b"\0")
-    untracked = git(root, "ls-files", "-z", "--others", "--exclude-standard") or ""
-    for name in sorted(filter(None, untracked.split("\0"))):
-        try:
-            digest.update(name.encode() + b"\0" + (root / name).read_bytes() + b"\0")
-        except OSError:
-            digest.update(name.encode() + b"\0")
-    return digest.hexdigest()[:24]
+def trusted(root: Path) -> bool:
+    configured = os.environ.get("AGENT_GATES_TRUSTED")
+    prefixes = configured.split(os.pathsep) if configured else [str(Path.home())]
+    resolved = root.resolve()
+    return any(
+        prefix
+        and (
+            resolved == Path(prefix).expanduser().resolve()
+            or Path(prefix).expanduser().resolve() in resolved.parents
+        )
+        for prefix in prefixes
+    )
 
 
 def tail(text: str) -> str:
@@ -182,82 +288,205 @@ def tail(text: str) -> str:
 def run_verify(root: Path, command: list[str] | str) -> tuple[bool, str]:
     timeout = int(os.environ.get("AGENT_VERIFY_TIMEOUT", "540"))
     try:
-        result = subprocess.run(
+        process = subprocess.Popen(
             command,
             cwd=root,
             shell=isinstance(command, str),
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
         )
-    except subprocess.TimeoutExpired:
-        return False, f"verify timed out after {timeout}s"
     except OSError as error:
         return False, f"verify could not start: {error}"
-    return result.returncode == 0, result.stdout + result.stderr
+    try:
+        output, _ = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        for sig in (signal.SIGTERM, signal.SIGKILL):
+            try:
+                os.killpg(process.pid, sig)
+            except ProcessLookupError:
+                break
+            try:
+                process.wait(timeout=5)
+                break
+            except subprocess.TimeoutExpired:
+                continue
+        return False, f"verify timed out after {timeout}s; its processes were stopped"
+    return process.returncode == 0, output.decode("utf-8", "replace")
 
 
-def block(message: str) -> int:
-    print(message, file=sys.stderr)
-    return 2
+def check_repository(
+    root: Path, state: dict, started: str, blocks: list, notices: list
+) -> None:
+    start_tree, note = start_for(state, root, started)
+    if note:
+        notices.append(note)
+    if not start_tree:
+        return
+    current = test_integrity.snapshot_tree(root)
+    if current == start_tree:
+        return
+    report = test_integrity.compare(root, start_tree, current)
+    weakened = bool(report.failures(set()))
+    rendered = test_integrity.render(report, [])
+    key = str(root)
 
+    command = verify_command(root)
+    shown = (
+        (command if isinstance(command, str) else shlex.join(command))
+        if command
+        else ""
+    )
+    verify_ok = True
+    if command is None or current in state["passed"]:
+        pass
+    elif current in state["given_up"]:
+        verify_ok = None
+        notices.append(
+            f"{root}: `{shown}` still fails on this unchanged tree; not rerun."
+        )
+    elif not trusted(root):
+        verify_ok = None
+        notices.append(
+            f"{root}: `{shown}` not run; the path is outside AGENT_GATES_TRUSTED."
+        )
+    elif isinstance(command, list) and shutil.which(command[0]) is None:
+        verify_ok = None
+        notices.append(f"{root}: `{shown}` not run; `{command[0]}` is not installed.")
+    elif state["failed"].get(key, 0) >= MAX_FAILED_STOPS:
+        verify_ok = False
+        state["given_up"].append(current)
+        integrity = f"\n\n{rendered}" if weakened else ""
+        notices.append(
+            f"{root}: `{shown}` still fails after {MAX_FAILED_STOPS} attempts. "
+            f"The work is not verified; review it before relying on it.{integrity}"
+        )
+    else:
+        passed, output = run_verify(root, command)
+        if passed:
+            state["passed"].extend([current, test_integrity.snapshot_tree(root)])
+            state["failed"].pop(key, None)
+        else:
+            verify_ok = False
+            failures = state["failed"].get(key, 0) + 1
+            state["failed"][key] = failures
+            integrity = f"\n\n{rendered}" if weakened else ""
+            blocks.append(
+                f"`{shown}` failed in {root} (attempt {failures} of "
+                f"{MAX_FAILED_STOPS}).\n\n{tail(output)}{integrity}\n\n{VERIFY_GUIDANCE}"
+            )
+            if weakened:
+                state["acknowledged"].append(report.digest())
 
-def allow_with_notice(message: str) -> int:
-    print(json.dumps({"systemMessage": message}))
-    return 0
+    if weakened and verify_ok is not False:
+        digest = report.digest()
+        if digest in state["acknowledged"]:
+            notices.append(f"{root}: this session weakened a check.\n{rendered}")
+        else:
+            state["acknowledged"].append(digest)
+            blocks.append(f"{root}:\n{rendered}\n\n{INTEGRITY_GUIDANCE}")
 
 
 def handle_stop(payload: dict) -> int:
-    root = repo_root(Path(payload.get("cwd") or os.getcwd()))
-    if root is None:
-        return 0
     session = session_id(payload)
     state = load_state(session)
-    start = state["starts"].get(str(root))
-    head = git(root, "rev-parse", "HEAD")
-    dirty = bool(git(root, "status", "--porcelain"))
-    if not dirty and (start is None or start == head):
-        return 0
-
-    current = fingerprint(root)
-    command = verify_command(root)
-    if command is not None and current not in state["passed"]:
-        passed, output = run_verify(root, command)
-        if passed:
-            state["passed"].append(current)
-        else:
-            failures = state["failed"].get(str(root), 0) + 1
-            state["failed"][str(root)] = failures
-            save_state(session, state)
-            shown = command if isinstance(command, str) else shlex.join(command)
-            if failures > MAX_FAILED_STOPS:
-                return allow_with_notice(
-                    f"`{shown}` still fails in {root} after {MAX_FAILED_STOPS} attempts. "
-                    "The work is not verified; review it before relying on it."
-                )
-            return block(
-                f"`{shown}` failed in {root} (attempt {failures} of "
-                f"{MAX_FAILED_STOPS}).\n\n{tail(output)}\n\n{VERIFY_GUIDANCE}"
-            )
-        state["failed"].pop(str(root), None)
-
-    if start and current not in state["acknowledged"]:
-        report = test_integrity.compare(root, start, test_integrity.WORKTREE)
-        if report.failures(set()):
-            state["acknowledged"].append(current)
-            save_state(session, state)
-            return block(
-                test_integrity.render(report, []) + "\n\n" + INTEGRITY_GUIDANCE
-            )
-    save_state(session, state)
+    if not payload.get("stop_hook_active"):
+        state["failed"] = {}  # a new turn gets fresh attempts
+    roots: list[Path] = []
+    cwd_root = repo_root(Path(payload.get("cwd") or os.getcwd()))
+    known = {
+        path
+        for start in state["starts"].values()
+        for path in start.get("worktrees", [])
+    }
+    for candidate in [*(Path(path) for path in state["starts"]), cwd_root]:
+        if candidate is None or not candidate.exists():
+            continue
+        # Worktrees created during the session; ones that already existed are
+        # the user's and are only checked if the session touched them.
+        new = [path for path in worktrees(candidate) if str(path) not in known]
+        for root in [candidate, *new]:
+            if root.exists() and root not in roots:
+                roots.append(root)
+    started = session_started(payload, state)
+    blocks: list[str] = []
+    notices: list[str] = []
+    try:
+        for root in roots:
+            check_repository(root, state, started, blocks, notices)
+    finally:
+        save_state(session, state)
+    if blocks:
+        print("\n\n---\n\n".join(blocks), file=sys.stderr)
+        return 2
+    if notices:
+        print(json.dumps({"systemMessage": "Agent gates:\n" + "\n".join(notices)}))
     return 0
+
+
+def protected(path: Path) -> bool:
+    resolved = path.expanduser().resolve()
+    gates = state_dir().resolve()
+    settings = (
+        resolved.name.startswith("settings") and resolved.parent.name == ".claude"
+    )
+    return resolved == gates or gates in resolved.parents or settings
+
+
+def handle_guard(payload: dict) -> int:
+    session = session_id(payload)
+    state = load_state(session)
+    tool = payload.get("tool_name", "")
+    tool_input = payload.get("tool_input") or {}
+    cwd = Path(payload.get("cwd") or os.getcwd())
+    reason = None
+    if tool == "Bash":
+        command = str(tool_input.get("command", ""))
+        target = cwd
+        reason = next(
+            (why for pattern, why in BYPASSES if pattern.search(command)), None
+        )
+        if reason is None and (
+            str(state_dir()) in command
+            or "state/agent-gates" in command
+            or re.search(r"\.claude/settings", command)
+        ):
+            reason = "this command touches the agent gates or Claude Code hook settings"
+    else:
+        raw = tool_input.get("file_path") or tool_input.get("notebook_path") or ""
+        target = Path(raw) if Path(raw).is_absolute() else cwd / raw
+        if raw and protected(target):
+            reason = (
+                "agent gate state and Claude Code hook settings are not agent-editable"
+            )
+    if record_start(state, repo_root(target)):
+        save_state(session, state)
+    if reason:
+        print(
+            f"Blocked by agent gates: {reason}. If the user wants this, they can run it "
+            "themselves.",
+            file=sys.stderr,
+        )
+        return 2
+    return 0
+
+
+def ignored(root: Path, path: Path) -> bool:
+    return (
+        subprocess.run(
+            ["git", "-C", str(root), "check-ignore", "-q", str(path)],
+            capture_output=True,
+            check=False,
+        ).returncode
+        == 0
+    )
 
 
 def formatter(root: Path, file: Path) -> list[str] | None:
     suffix = file.suffix.lower()
     bin_dir = root / "node_modules" / ".bin"
-    if suffix in PRETTIER_FILES:
+    local_bin = bin_dir.is_dir() and ignored(root, bin_dir)  # installed, not committed
+    if suffix in PRETTIER_FILES and local_bin:
         if (bin_dir / "biome").exists() and any(
             (root / name).exists() for name in ("biome.json", "biome.jsonc")
         ):
@@ -270,8 +499,12 @@ def formatter(root: Path, file: Path) -> list[str] | None:
         if (bin_dir / "prettier").exists() and has_config:
             return [str(bin_dir / "prettier"), "--write", "--ignore-unknown", str(file)]
     if suffix == ".py":
-        ruff = root / ".venv" / "bin" / "ruff"
-        ruff_path = str(ruff) if ruff.exists() else shutil.which("ruff")
+        venv_ruff = root / ".venv" / "bin" / "ruff"
+        ruff = (
+            str(venv_ruff)
+            if venv_ruff.exists() and ignored(root, venv_ruff)
+            else shutil.which("ruff")
+        )
         pyproject = root / "pyproject.toml"
         configured = (
             (root / "ruff.toml").exists()
@@ -281,8 +514,8 @@ def formatter(root: Path, file: Path) -> list[str] | None:
                 and "[tool.ruff" in pyproject.read_text(errors="replace")
             )
         )
-        if ruff_path and configured:
-            return [ruff_path, "format", str(file)]
+        if ruff and configured:
+            return [ruff, "format", str(file)]
     if suffix == ".go" and shutil.which("gofmt"):
         return ["gofmt", "-w", str(file)]
     return None
@@ -298,7 +531,6 @@ def handle_format(payload: dict) -> int:
     root = repo_root(file)
     if root is None or not file.is_file() or "node_modules" in file.parts:
         return 0
-    remember_start(payload, root)
     command = formatter(root, file)
     if command is None:
         return 0
@@ -324,14 +556,16 @@ def handle_format(payload: dict) -> int:
 
 
 def handle_session_start(payload: dict) -> int:
-    root = repo_root(Path(payload.get("cwd") or os.getcwd()))
-    if root is not None:
-        remember_start(payload, root)
+    session = session_id(payload)
+    state = load_state(session)
+    if record_start(state, repo_root(Path(payload.get("cwd") or os.getcwd()))):
+        save_state(session, state)
     return 0
 
 
 HANDLERS = {
     "session-start": handle_session_start,
+    "guard": handle_guard,
     "format": handle_format,
     "stop": handle_stop,
 }
@@ -348,7 +582,22 @@ def main(argv: list[str]) -> int:
         payload = json.load(sys.stdin)
     except ValueError:
         payload = {}
-    return HANDLERS[argv[1]](payload if isinstance(payload, dict) else {})
+    payload = payload if isinstance(payload, dict) else {}
+    try:
+        return HANDLERS[argv[1]](payload)
+    except Exception as error:  # noqa: BLE001 - a crashed gate must say so, not pass silently
+        if argv[1] == "stop":
+            print(
+                json.dumps(
+                    {
+                        "systemMessage": f"Agent gates did not run: {error!r}. "
+                        "This stop was not checked."
+                    }
+                )
+            )
+            return 0
+        print(f"agent gates {argv[1]} failed: {error!r}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
