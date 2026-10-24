@@ -1,5 +1,7 @@
 # Global instructions
 
+- For non-trivial engineering work, start with the `follow-instructions` skill
+  when it is installed; it picks the procedure and the domain skills to load.
 - Never add AI-agent co-author or session trailers to commits, including
   `Co-Authored-By: Codex` or `Codex-Session`.
 - You may commit and push changes made for a requested implementation task

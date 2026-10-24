@@ -1,6 +1,6 @@
 ---
 name: code-review-and-quality
-description: When reviewing a diff or a material code change.
+description: "Reviews a diff, branch or PR against intent, callers and tests; returns evidence-backed findings and readiness. Use for code review or quality checks. Not for prose (unslop)."
 ---
 
 # Code Review and Quality

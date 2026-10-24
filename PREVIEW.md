@@ -9,9 +9,8 @@ The historical control was `233fb741431a41b22e865d9baaedf62a90bface9` on
 `preview/engineering-the-engineer-v2`. The revision candidate culminated in
 `400df1a2cb7682117166219bd7cdd5a973e10fc4`; individual trials below identify their
 actual earlier snapshots. Subsequent receipt validation corrections and promotion
-were not covered by those historical model trials. The original
-[v2 design](docs/engineering-the-engineer-v2.md) is historical context; current
-entrypoints and owners govern execution. These records do not establish general
+were not covered by those historical model trials. Current entrypoints and
+owners govern execution. These records do not establish general
 performance improvement or grant merge/deployment/global-installation authority.
 
 The October 13–15 audit found useful counterexample-driven reviews alongside

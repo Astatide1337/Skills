@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: When creating, revising, validating or evaluating a reusable skill.
+description: "Creates, revises, validates and evaluates agent skills with trigger tests and measured comparisons. Use when writing or changing a SKILL.md, skill description or skill eval."
 ---
 
 # Skill Creator
@@ -34,7 +34,9 @@ Design for lack of surprise. A user who reads the description should predict
 when the skill activates, what authority it assumes, what artifact it produces,
 and where it stops.
 
-Choose the lowest layer that fixes the observed failure:
+Choose the lowest layer that fixes the observed failure, then the strongest
+enforcement within it (see
+[learn from repeats](../self-reflect/references/learn-from-repeats.md)):
 
 - current request or response for a one-off need;
 - personal/global instruction for a cross-repository working default;
@@ -59,15 +61,18 @@ is the catalog artifact; adjacent docs need a purpose in the delivered result.
 Every skill requires `SKILL.md` with YAML frontmatter containing `name` and
 `description`.
 
-- Treat `description` as a routing instruction, not a miniature manual. Put
-  the user situation that should select the skill first, then one or two nearby
-  non-triggers when they prevent a collision. The body is unavailable until
+- Treat `description` as a routing instruction, not a miniature manual. Write
+  it in the third person: what the skill does, then `Use when` with the
+  situations and the words a user would actually type, then one nearby
+  non-trigger when it prevents a collision. The body is unavailable until
   after selection.
-- Use one short trigger line within the catalog validator's
-  [description budget](../../scripts/validate_catalog.py); keep procedure and
-  capabilities in the body. This is a local budget, not a harness guarantee.
-- Good: `Use when the user asks to watch an already-open PR. Do not use to
-  create one.` Bad: `Helps with pull requests and GitHub workflows.`
+- Stay within the catalog validator's
+  [description budget](../../scripts/validate_catalog.py) on one line; keep
+  procedure in the body. This is a local budget, not a harness guarantee.
+- Good: `Drafts, opens, reviews or monitors GitHub PRs and GitLab MRs. Use for
+  any PR/MR task. Never merges.` Bad: `Helps with pull requests.` Also bad:
+  `When watching a PR.`, which names neither the capability nor the words that
+  should select it.
 - Keep the body to essential workflow, decisions, safety gates, and reference
   routing. Assume Codex is capable; omit tutorials and motivational prose.
 - Put detailed variants, schemas, domain rules, and examples in one-level
