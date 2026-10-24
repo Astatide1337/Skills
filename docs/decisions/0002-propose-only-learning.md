@@ -79,10 +79,56 @@ verification/supporting workflows. The shared coverage loss was the
 Shibboleth-boundary case missing security-and-hardening. One stochastic run
 cannot establish causation, but it does not clear the routing acceptance bar.
 
-**Recommendation: hold PR #29; revert the learning-loop change if this routing
-behavior is not corrected and remeasured.** Do not promote it on the strength
-of coverage alone. This result does not measure the quality of actual
-learning proposals or their enforcement.
+### Reassessment — 2026-10-24
+
+A per-case comparison of the same run does not support holding on routing:
+
+- **Shared cases.** Learning-loop matched main on 31 of 34 shared cases. It was
+  better on two: `css-explanation` with no skill, and `why-legacy-timeout`
+  without an extra `systematic-debugging`. It was worse on one:
+  `shibboleth-boundary` missed `security-and-hardening` but kept the other
+  six skills. This PR changes no security wording, coordinator route table or
+  security trigger. One sample per arm cannot tell that miss from noise. Every
+  arm's commonest unnecessary addition was `verify-work` (main 8,
+  learning-loop 11), so that pattern predates this PR.
+- **The three new cases mis-specified what correct routing is.** The two
+  near-misses expected no skills at all, yet the first asks to recapture from
+  a live endpoint and rerun a test, and the second asks to run a script and
+  rerun lint. The property under test is that `self-reflect` is not selected
+  for a first or already-enforced occurrence. Both cases did avoid it.
+  Corrected expectations:
+  - `first-occurrence-near-miss`: requires `follow-instructions` and
+    `verify-work`; allows `production-safety` (live endpoint); `self-reflect`
+    is harmful.
+  - `already-enforced-near-miss`: requires nothing; allows
+    `follow-instructions` and `verify-work`; `self-reflect` is harmful.
+  - `repeat-correction`: still requires `self-reflect`; allows `verify-work`,
+    since the prompt asks for a fix.
+
+  This is stricter on the policy's own behaviour: choosing `self-reflect` on
+  either near-miss now fails minimality as harmful, where before it was only
+  one of several unnecessary additions. Re-scoring the recorded selections
+  gives 3/3 coverage and 3/3 minimality. That is a re-score, not a new run.
+
+**Recommendation: merge after one targeted rerun.** Run the three new cases
+and `shibboleth-boundary` for 5 epochs on main and on this branch:
+
+```sh
+uv run inspect eval evals/skills.py@routing -T native_model=gpt-6.1-sol -T native_effort=low \
+  --sample-id route-follow-instructions-shibboleth-boundary,route-self-reflect-repeat-correction,route-self-reflect-first-occurrence-near-miss,route-self-reflect-already-enforced-near-miss \
+  --epochs 5 --max-samples 2
+```
+
+Accept if all three of these hold:
+
+1. `security-and-hardening` coverage on `shibboleth-boundary` is no more than
+   one sample worse than main's.
+2. `self-reflect` appears on at least 4 of 5 repeat-correction samples.
+3. `self-reflect` appears on no more than 1 of 10 near-miss samples.
+
+Otherwise, revise the `self-reflect` trigger wording and rerun. None of this
+measures whether real proposals prevent mistakes; the revisit criteria above
+cover that.
 
 [Run identities and counts](evidence/2026-10-24-routing.json) and
 [per-case selections and scores](evidence/2026-10-24-routing.jsonl) are the
