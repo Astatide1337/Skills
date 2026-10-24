@@ -15,8 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 LINK = re.compile(r"\[[^]]*\]\(([^)]+)\)")
-# Local routing budget, not a claimed Codex/Claude harness limit.
-MAX_DESCRIPTION_CHARS = 80
+# Local routing budget (harness limit is 1,024). Room for what + when + key
+# terms while keeping always-visible catalog metadata compact.
+MAX_DESCRIPTION_CHARS = 200
 PLAYBOOK_NAMES = {
     "investigate.md",
     "design.md",

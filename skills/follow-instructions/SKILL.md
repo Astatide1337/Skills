@@ -1,6 +1,6 @@
 ---
 name: follow-instructions
-description: When catalog skills apply; choose the smallest required procedure.
+description: "Selects the smallest workflow and supporting skills. Use whenever a catalog skill applies, including diagnosis, review, implementation, writing and retrospectives. Initialize once."
 ---
 
 # Follow instructions
