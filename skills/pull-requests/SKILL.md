@@ -1,6 +1,6 @@
 ---
 name: pull-requests
-description: When drafting, opening, reviewing, posting on or watching a PR/MR.
+description: "Drafts, opens, reviews, monitors or comments on GitHub PRs and GitLab MRs with the right authority per mode. Use for any PR/MR task. Never merges or enables auto-merge."
 ---
 
 # Pull requests

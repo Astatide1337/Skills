@@ -1,6 +1,6 @@
 ---
 name: verify-work
-description: When proving claims or creating or maintaining app verification.
+description: "Proves claims with current evidence at each layer, from build to deployed behavior, and builds project verifiers. Use before saying something is done, fixed, deployed or working."
 ---
 
 # Verify Work

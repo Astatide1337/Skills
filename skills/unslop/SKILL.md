@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: When prose needs natural phrasing, structure, or less overexplanation.
+description: "Writes or revises prose for its reader: plain, specific, natural, without AI tells or overexplanation. Use for docs, READMEs, PR descriptions, messages and reports. Not for code (deslop)."
 ---
 
 # Unslop
