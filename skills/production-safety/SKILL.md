@@ -1,6 +1,6 @@
 ---
 name: production-safety
-description: When production-like state, credentials or delivery are involved.
+description: "Observes before changing live systems: target, source of truth, backups, rollback, blast radius. Use for production, credentials, databases, Kubernetes, deploys, migrations or deletes."
 ---
 
 # Production Safety

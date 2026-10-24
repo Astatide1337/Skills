@@ -1,6 +1,6 @@
 ---
 name: html-artifacts
-description: When creating or revising a self-contained HTML artifact.
+description: "Builds a self-contained HTML page (report, explainer, diagram, dashboard) that opens directly. Use when an HTML artifact, standalone page or visual write-up is requested."
 ---
 
 # HTML Artifacts
