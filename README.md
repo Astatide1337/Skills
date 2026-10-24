@@ -5,14 +5,12 @@ execution, and independently supported outcomes. One accountable engineer owns
 the result. Verification challenges it. Improvement keeps only interventions
 that help without narrowing valid solutions.
 
-Use the maintained `main` branch for ordinary installation. The completed
-Engineering the Engineer revision is source in this catalog; availability here
-does not mean it is installed on any machine. [PREVIEW.md](PREVIEW.md) preserves
-the historical comparison inputs, observed checks and disposable rollback path.
-The [design record](docs/engineering-the-engineer-v2.md) is historical context,
-not an always-loaded prompt. Neither instructions nor passing fixture tests
-establish improved agent quality or production readiness. User-specific authority
-and standing merge/deployment policies remain separate and unchanged.
+Use the maintained `main` branch for ordinary installation. Source availability
+here does not mean it is installed on any machine. [PREVIEW.md](PREVIEW.md)
+preserves historical comparison inputs, observed checks and a disposable rollback
+path. Neither instructions nor passing fixture tests establish improved agent
+quality or production readiness. User-specific authority and standing
+merge/deployment policies remain separate and unchanged.
 
 The catalog is portable across compatible harnesses. Some skills reference
 sibling procedures or runtime helpers; selected installation must preserve
