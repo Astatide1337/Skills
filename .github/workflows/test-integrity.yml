@@ -69,11 +69,7 @@ jobs:
           APPROVERS: ${{ inputs.approvers }}
         run: |
           events="$RUNNER_TEMP/approval-events.json"
-          gh api --paginate "repos/$REPO/issues/$PR/events" \
-            --jq '[.[] | select(.event == "labeled" or .event == "unlabeled")]' \
-            | jq -s 'add // []' > "$events"
-          live_head=$(gh api "repos/$REPO/pulls/$PR" --jq '.head.sha')
-          test "$live_head" = "$HEAD_SHA"
+          python3 .agent-gates-skills/global-instructions/hooks/fetch_approval_events.py "$events"
           base=$(git merge-base "$BASE_SHA" HEAD)
           changed=$(git diff --numstat "$base" HEAD | awk '{added += $1; removed += $2} END {print added + removed}')
           {

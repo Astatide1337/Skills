@@ -11,7 +11,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 HOOKS = ROOT / "global-instructions" / "hooks"
@@ -425,6 +427,48 @@ class WorkflowTests(unittest.TestCase):
             'exit "${PIPESTATUS[0]}"',
         ):
             self.assertIn(needle, text)
+
+
+class ApprovalFetchTests(unittest.TestCase):
+    def test_pages_and_head_are_checked_without_an_external_cli(self):
+        import fetch_approval_events as fetch
+
+        calls = []
+        pages = [
+            {"head": {"sha": "a" * 40}},
+            [{"event": "commented"}] * 99 + [{"event": "labeled", "id": 1}],
+            [{"event": "unlabeled", "id": 2}],
+        ]
+
+        def opened(request, timeout):
+            calls.append((request.full_url, timeout))
+            return StringIO(json.dumps(pages.pop(0)))
+
+        with patch.object(fetch, "urlopen", side_effect=opened):
+            events = fetch.fetch_events("owner/repo", "1", "a" * 40, "test-token")
+        self.assertEqual([event["id"] for event in events], [1, 2])
+        self.assertIn("page=2", calls[-1][0])
+        self.assertTrue(all(timeout == 30 for _, timeout in calls))
+        with (
+            patch.object(
+                fetch, "urlopen", return_value=StringIO('{"head":{"sha":"other"}}')
+            ),
+            self.assertRaisesRegex(ValueError, "head changed"),
+        ):
+            fetch.fetch_events("owner/repo", "1", "a" * 40, "test-token")
+
+    def test_api_errors_fail_closed_without_writing_events(self):
+        import fetch_approval_events as fetch
+
+        with (
+            patch.object(fetch, "urlopen", side_effect=OSError("unavailable")),
+            self.assertRaises(OSError),
+        ):
+            fetch.fetch_events("owner/repo", "1", "a" * 40, "test-token")
+        text = (ROOT / ".github/workflows/test-integrity.yml").read_text()
+        self.assertIn('fetch_approval_events.py "$events"', text)
+        self.assertNotIn("gh api", text)
+        self.assertNotIn("jq ", text)
 
 
 class VerifyCommandTests(unittest.TestCase):
