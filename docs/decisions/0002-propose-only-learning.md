@@ -63,3 +63,34 @@ Procedure: `skills/self-reflect/references/learn-from-repeats.md`.
 
 When that happens, tighten the trigger or the bar instead of returning to a
 blanket pause.
+
+## Routing result — 2026-10-24
+
+Run with authenticated Codex CLI 0.164.0, `gpt-6.1-sol`, low effort, one epoch
+and two concurrent samples. The same instruction-discovery repair from
+[PR #30](https://github.com/Astatide1337/Skills/pull/30), commit `0acba59`, was
+applied to main and both candidate branches; no scorer or shared case changed; learning-loop adds three cases scored separately.
+
+On the 34 shared cases, main scored coverage 33/34 and minimality 13/34;
+learning-loop scored 32/34 and 15/34. The three added cases scored coverage
+3/3, minimality 0/3: the repeated-correction request selected self-reflect as
+expected, and both near-misses avoided it, but all three selected unnecessary
+verification/supporting workflows. The shared coverage loss was the
+Shibboleth-boundary case missing security-and-hardening. One stochastic run
+cannot establish causation, but it does not clear the routing acceptance bar.
+
+**Recommendation: hold PR #29; revert the learning-loop change if this routing
+behavior is not corrected and remeasured.** Do not promote it on the strength
+of coverage alone. This result does not measure the quality of actual
+learning proposals or their enforcement.
+
+[Run identities and counts](evidence/2026-10-24-routing.json) and
+[per-case selections and scores](evidence/2026-10-24-routing.jsonl) are the
+readable evidence. All runs read back as `success`, without sample errors.
+Reproduce after applying #30's same patch in each clean worktree:
+
+```sh
+export SKILLS_CODEX_NATIVE_BINARY=/absolute/path/to/native/codex
+uv sync --frozen
+uv run inspect eval evals/skills.py@routing -T native_model=gpt-6.1-sol -T native_effort=low --max-samples 2
+```
