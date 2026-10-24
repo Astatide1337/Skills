@@ -333,3 +333,24 @@ fabricating a UI or using the tracker fixture as a substitute.
   the installer and validator do not execute them.
 
 See [`catalog.yaml`](catalog.yaml) for the catalog's source provenance.
+
+## Review
+
+Review guidelines live in root `AGENTS.md`. `CLAUDE.md` imports them for local
+Claude Code; `REVIEW.md` shares them with the optional hosted review service.
+
+In a feature checkout, run `/code-review main...HEAD` in Claude Code. For a
+stacked PR, use its actual base branch instead of `main`. Omit `--fix` and
+`--comment` for a local report. An explicit range includes already-pushed commits.
+Local review uses the existing session allowance; no hosted-review plan is
+required. See [local review](https://code.claude.com/docs/en/code-review-local).
+
+For optional Codex GitHub review, connect the repository in
+[Code review settings](https://chatgpt.com/codex/settings/code-review), turn on
+**Automatic review → All PRs**, and select creation/new-push events under
+**Review trigger**. Alternatively enable **Follow personal preferences** with
+**Personal preferences → Automatic review** on. A manual request is
+`@codex review`. See [setup](https://learn.chatgpt.com/docs/third-party/github).
+
+For GitLab, `codex exec` or local `/code-review` can inspect an MR diff without
+posting. Rutgers writes, including `--comment` or `glab`, require explicit approval.
