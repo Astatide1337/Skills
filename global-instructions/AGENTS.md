@@ -7,6 +7,13 @@
 - You may commit and push changes made for a requested implementation task
   unless I say otherwise. Never merge, enable auto-merge, or deploy.
 
+## Personal context
+
+- For who I am and cross-project decisions, read the [wiki decisions](https://github.com/Astatide1337/astatide-wiki/tree/main/content/decisions).
+- Skills holds how to work; each repository's `AGENTS.md` holds that codebase.
+- Keep mechanically enforceable invariants in types, lint, tests and CI.
+
+
 ## Kubernetes and OpenShift
 
 - My personal Kubernetes cluster and Rutgers OpenShift are separate environments.
@@ -30,9 +37,3 @@
 
 - Never read, print, copy or export the SOPS age root keys or vault copies.
   Use authorized `sops` or `make` decryption without handling the key itself.
-
-## Personal context
-
-- For who I am and cross-project decisions, read the [wiki decisions](https://github.com/Astatide1337/astatide-wiki/tree/main/content/decisions).
-- Skills holds how to work; each repository's `AGENTS.md` holds that codebase.
-- Keep mechanically enforceable invariants in types, lint, tests and CI.
