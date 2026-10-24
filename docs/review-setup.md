@@ -1,9 +1,8 @@
 # Enable cross-model pull request review
 
-Merge the review-guideline PRs first. Keep `main` protected so Claude applies
-root `REVIEW.md` includes; Skills main was unprotected at the 2026-10-24 readback.
-Jobmark main was protected. Review settings below are owner actions, not changes
-made by this PR.
+Merge the review-guideline PRs first. Local Claude review is the default; no
+hosted review service or billing upgrade is required. Account settings remain
+owner-controlled.
 
 ## Codex on GitHub
 
@@ -16,25 +15,29 @@ and new pushes. A manual request is `@codex review`.
 Codex reads the applicable `AGENTS.md`. These settings are documented in
 [Review GitHub pull requests with Codex](https://learn.chatgpt.com/docs/third-party/github).
 
-## Claude Code Review
+## Local Claude review
 
-The hosted review service requires a Claude Team or Enterprise organization.
-As its Owner, open **Admin settings → Claude Code → Code review**, turn on
-**Allow code review**, connect GitHub, install the Claude GitHub App for the two
-repositories, select them and click **Finish**. On each repository's **Edit**
-row, set **Review runs → After every push** and **Review level → Standard**.
-**Manual (@claude review)** is a lower-cost alternative; use `@claude review
-always` to subscribe one PR. Configure a spend limit before broad automatic use.
+In the feature-branch checkout, start Claude Code and run an explicit diff target:
 
-Claude reads `REVIEW.md`; its root `@AGENTS.md` include shares the concise rules
-with Codex. The include is expanded when read from a protected branch. The local
-`/code-review` command is separate and reads `CLAUDE.md` rather than `REVIEW.md`.
-See [setup](https://code.claude.com/docs/en/code-review-setup) and
-[customization](https://code.claude.com/docs/en/code-review-customize).
+```text
+/code-review main...HEAD
+```
+
+For a stacked PR, substitute its actual base branch for `main`. Omit `--fix`
+and `--comment` to keep the result local and read-only. With no explicit target,
+Claude may compare against the upstream feature branch and miss already-pushed
+commits. The root `CLAUDE.md` imports `AGENTS.md`, so the same review guidelines
+apply to local Claude and Codex. Local review uses the existing Claude session's
+plan allowance; no hosted-review plan is needed. See
+[local review](https://code.claude.com/docs/en/code-review-local) and
+[instruction imports](https://code.claude.com/docs/en/memory#share-one-file-with-other-coding-tools).
+
+The separate hosted Claude Code Review service is optional and is not part of
+this setup. `REVIEW.md` retains the shared rules if it is enabled later; its
+imports require a protected base/default branch. See
+[hosted review customization](https://code.claude.com/docs/en/code-review-customize).
 
 ## Rutgers / GitLab note
 
-Keep this manual until separately approved: `codex exec` can review an MR diff
-in a read-only CI job, or a local `/code-review --comment` workflow can post
-through `glab`. Adapt the GitHub-specific plugin before using it with GitLab;
-do not assume it speaks `glab`. Every Rutgers write still requires approval.
+Rutgers writes require explicit approval. `codex exec` can review an MR diff
+in a read-only CI job, or local `/code-review` can inspect it without posting. Any `--comment`/`glab` write requires separate approval.
