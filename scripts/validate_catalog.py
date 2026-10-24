@@ -16,7 +16,7 @@ SKILLS = ROOT / "skills"
 NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 LINK = re.compile(r"\[[^]]*\]\(([^)]+)\)")
 # Local routing budget (harness limit is 1,024). Room for what + when + key
-# terms; see docs/decisions/0001-skill-descriptions-name-what-when-and-terms.md.
+# terms while keeping always-visible catalog metadata compact.
 MAX_DESCRIPTION_CHARS = 200
 PLAYBOOK_NAMES = {
     "investigate.md",
