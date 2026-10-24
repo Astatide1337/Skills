@@ -1,6 +1,6 @@
 ---
 name: self-reflect
-description: When work stalls, repeats failures or settles for partial results.
+description: "Resets a stalled or repeating task and proposes fixes for repeated mistakes. Use when an approach failed twice, evidence conflicts, a long run hits a checkpoint, or the user corrects a repeat mistake."
 ---
 
 # Self-reflect
@@ -17,7 +17,9 @@ one of these triggers is present:
   threshold has been reached during a long run.
 
 An explicit user request to reflect is also a trigger; choose the mode from the
-current task state rather than asking the user to classify it first.
+current task state rather than asking the user to classify it first. So is a
+user correction of a mistake that has happened before: use `Close` and
+[learn from repeats](references/learn-from-repeats.md).
 
 Do not add a reflection ritual to a clear one-step request. This skill does not
 schedule itself: if runtime telemetry cannot expose elapsed time, iterations,
@@ -81,11 +83,12 @@ that is authorized to execute.
 
 **Close.** Compare the requested result with the actual artifact and checks.
 State the narrowest supported outcome and one lesson only if it changes a
-future decision. Keep self-learning and automatic rule promotion paused.
-Record a demonstrated recurring lesson as a proposal, defer an uncertain one
-or discard one contradicted by evidence. Adoption requires a separate explicit
-user decision and the owning skill-creator procedure; reflection does not
-authorize a skill, global instruction or workflow edit.
+future decision. When a mistake class has two real occurrences, propose a fix
+with [learn from repeats](references/learn-from-repeats.md): the strongest
+enforcement that works, in the right repository, proven against the past
+mistake. Defer an uncertain lesson or discard one contradicted by evidence.
+Applying a proposal requires the user's explicit approval; reflection alone
+does not authorize a repository, skill, global instruction or workflow edit.
 
 **Recover.** State the current hypothesis or failed premise, the evidence that
 changed its status, and one next check or replan. Continue when that move is

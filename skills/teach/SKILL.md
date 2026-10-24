@@ -1,6 +1,6 @@
 ---
 name: teach
-description: When asked to teach code so the user can maintain it.
+description: "Explains code so the user can maintain it, combining how it works with why it was built that way. Use when the user wants to understand, learn or own a change or subsystem."
 ---
 
 # Teach

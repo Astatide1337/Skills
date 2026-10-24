@@ -1,6 +1,6 @@
 ---
 name: web-interface
-description: When designing, building or reviewing a user-facing web interface.
+description: "Designs, builds and reviews user-facing web UI: layout, typography, motion, accessibility, states, browser checks. Use for React/Next.js pages, components or UX reviews with a visible surface."
 ---
 
 # Web Interface

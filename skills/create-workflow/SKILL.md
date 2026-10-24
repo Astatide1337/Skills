@@ -1,6 +1,6 @@
 ---
 name: create-workflow
-description: When a recurring repository task needs a reusable workflow.
+description: "Turns a recurring manual or agent-run procedure into a repo-owned, replayable workflow, or simplifies one. Use when asked to automate or script a repeated task. Not for one-off work."
 ---
 
 # Create Workflow
