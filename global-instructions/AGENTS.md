@@ -28,3 +28,9 @@
 
 - Never read, print, copy or export the SOPS age root keys or vault copies.
   Use authorized `sops` or `make` decryption without handling the key itself.
+
+## Personal context
+
+- For who I am and cross-project decisions, read the [wiki decisions](https://github.com/Astatide1337/astatide-wiki/tree/main/content/decisions).
+- Skills holds how to work; each repository's `AGENTS.md` holds that codebase.
+- Keep mechanically enforceable invariants in types, lint, tests and CI.
