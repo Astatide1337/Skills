@@ -5,14 +5,12 @@ execution, and independently supported outcomes. One accountable engineer owns
 the result. Verification challenges it. Improvement keeps only interventions
 that help without narrowing valid solutions.
 
-Use the maintained `main` branch for ordinary installation. The completed
-Engineering the Engineer revision is source in this catalog; availability here
-does not mean it is installed on any machine. [PREVIEW.md](PREVIEW.md) preserves
-the historical comparison inputs, observed checks and disposable rollback path.
-The [design record](docs/engineering-the-engineer-v2.md) is historical context,
-not an always-loaded prompt. Neither instructions nor passing fixture tests
-establish improved agent quality or production readiness. User-specific authority
-and standing merge/deployment policies remain separate and unchanged.
+Use the maintained `main` branch for ordinary installation. Source availability
+here does not mean it is installed on any machine. [PREVIEW.md](PREVIEW.md)
+preserves historical comparison inputs, observed checks and a disposable rollback
+path. Neither instructions nor passing fixture tests establish improved agent
+quality or production readiness. User-specific authority and standing
+merge/deployment policies remain separate and unchanged.
 
 The catalog is portable across compatible harnesses. Some skills reference
 sibling procedures or runtime helpers; selected installation must preserve
@@ -111,7 +109,8 @@ completion: affected behavior, independent review, material repairs, publication
 current-head checks and host merge eligibility. A draft is intermediate; a
 review-ready flag is not merge readiness. Use native watches and runtime
 continuation, retaining a compact record before interruption. Never merge or
-enable auto-merge. Self-learning and automatic rule promotion remain paused.
+enable auto-merge. Learning is propose-only; see
+[learn from repeats](skills/self-reflect/references/learn-from-repeats.md).
 
 The first line is the requested outcome; it is not a new command language. The
 coordinator preserves literal prohibitions, uses `pull-requests` for explicit
@@ -333,3 +332,24 @@ fabricating a UI or using the tracker fixture as a substitute.
   the installer and validator do not execute them.
 
 See [`catalog.yaml`](catalog.yaml) for the catalog's source provenance.
+
+## Review
+
+Review guidelines live in root `AGENTS.md`. `CLAUDE.md` imports them for local
+Claude Code; `REVIEW.md` shares them with the optional hosted review service.
+
+In a feature checkout, run `/code-review main...HEAD` in Claude Code. For a
+stacked PR, use its actual base branch instead of `main`. Omit `--fix` and
+`--comment` for a local report. An explicit range includes already-pushed commits.
+Local review uses the existing session allowance; no hosted-review plan is
+required. See [local review](https://code.claude.com/docs/en/code-review-local).
+
+For optional Codex GitHub review, connect the repository in
+[Code review settings](https://chatgpt.com/codex/settings/code-review), turn on
+**Automatic review → All PRs**, and select creation/new-push events under
+**Review trigger**. Alternatively enable **Follow personal preferences** with
+**Personal preferences → Automatic review** on. A manual request is
+`@codex review`. See [setup](https://learn.chatgpt.com/docs/third-party/github).
+
+For GitLab, `codex exec` or local `/code-review` can inspect an MR diff without
+posting. Rutgers writes, including `--comment` or `glab`, require explicit approval.

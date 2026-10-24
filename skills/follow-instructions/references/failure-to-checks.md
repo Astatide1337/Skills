@@ -1,5 +1,8 @@
 # Confirmed failure to check map
 
+This file is the catalog's own rule-to-enforcer table. New rows follow
+[learn from repeats](../../self-reflect/references/learn-from-repeats.md).
+
 This map abstracts confirmed, in-scope incidents from a private local audit. It excludes ambiguous intent changes, suspected omissions, excluded evaluation work, credentials, raw histories, and project-specific data. Use a row only when its trigger is present; the owning skill supplies the detailed procedure.
 
 ## Provenance and limits

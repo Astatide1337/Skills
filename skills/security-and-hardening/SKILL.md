@@ -1,6 +1,6 @@
 ---
 name: security-and-hardening
-description: When auditing or hardening application or infrastructure security.
+description: "Reviews, designs or fixes security controls at the real boundary: auth, input, secrets, SSRF, injection, dependencies, infra. Use for security audits, hardening or vulnerability fixes."
 ---
 
 # Security and Hardening
