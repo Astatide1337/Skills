@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-24",
+  "model": "gpt-6.1-sol",
+  "effort": "low",
+  "epochs": 1,
+  "max_samples": 2,
+  "inspect_ai": "0.3.259",
+  "codex_cli": "0.164.0",
+  "shared_harness_fix": "0acba597d390df4152e22f942a04b8c8d189adca",
+  "limits": "One stochastic run per arm; routing diagnostics, not execution-quality or held-out transfer evidence. The identical ambient-instruction fix was applied to every arm. No scorer or shared routing case changed; learning-loop adds three cases scored separately.",
+  "arms": {
+    "main": {
+      "revision": "16cfffb5a160e24d40814c07cc1cfcc84c798a47",
+      "eval_id": "cJNYQ7pU5xCqmsZDjLyDkM",
+      "started_at": "2026-10-24T03:48:55+00:00",
+      "log_sha256": "bb14e86a5a1b57349ab3eb1ac82866af70a615a0da80181f03f4dca5b056a4e3",
+      "shared": {
+        "samples": 34,
+        "coverage_passes": 33,
+        "minimality_passes": 13
+      },
+      "new": {
+        "samples": 0,
+        "coverage_passes": 0,
+        "minimality_passes": 0
+      }
+    },
+    "skill-triggers-original": {
+      "revision": "ed9c83c933611b9150ba8e8fc42e1c2c37d0a063",
+      "eval_id": "BsHuokKPmhY2995gxffLWM",
+      "started_at": "2026-10-24T03:48:59+00:00",
+      "log_sha256": "b68e0bb31b223d80c6a1c57d78608960abddf5eaa4d98f3747f6cc25b836ac26",
+      "shared": {
+        "samples": 34,
+        "coverage_passes": 21,
+        "minimality_passes": 15
+      },
+      "new": {
+        "samples": 0,
+        "coverage_passes": 0,
+        "minimality_passes": 0
+      }
+    },
+    "learning-loop": {
+      "revision": "f490795a356b871905c95f5c7d72e6d0a6a40b3c",
+      "eval_id": "SGfLTcMjzqoY8eooS6UZ4J",
+      "started_at": "2026-10-24T03:49:00+00:00",
+      "log_sha256": "70cf7cc085209f951da65b8c5c6eb1d268717befd30c6a1517f6477918692b17",
+      "shared": {
+        "samples": 34,
+        "coverage_passes": 32,
+        "minimality_passes": 15
+      },
+      "new": {
+        "samples": 3,
+        "coverage_passes": 3,
+        "minimality_passes": 0
+      }
+    },
+    "skill-triggers-corrected": {
+      "revision": "ed9c83c + follow-instructions description in this PR",
+      "eval_id": "NxSdEJHQLmBEo3kM9onE5c",
+      "started_at": "2026-10-24T03:58:07+00:00",
+      "log_sha256": "f918b6a32db3f9ffb5d9bdf2b29242dad0630de9f5d626e86afab5256517e0c9",
+      "shared": {
+        "samples": 34,
+        "coverage_passes": 33,
+        "minimality_passes": 13
+      },
+      "new": {
+        "samples": 0,
+        "coverage_passes": 0,
+        "minimality_passes": 0
+      }
+    }
+  },
+  "native_binary_sha256": "b93f6811d3f653f0fb83be4050d857fb9abbb111dfa2ce160563327daff7f306",
+  "setup_errors": [
+    "Initial wrapper-path preflight rejected before model execution.",
+    "Native metadata instruction discovery failed before model execution.",
+    "Execution instruction discovery failed before model execution; #30 fixes both sites."
+  ]
+}

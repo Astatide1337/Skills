@@ -18,8 +18,8 @@ Do not silently substitute another model or effort after a failed launch.
 For candidate-versus-accepted-baseline decisions, balanced transfer cases, valid
 alternatives and promotion, use [measured improvement](measured-improvement.md).
 Retain every attempted outcome, including unavailable capabilities and failed
-samples. Self-learning and automatic rule promotion remain paused; any later
-promotion is a separate human-authorized decision.
+samples. Nothing is promoted automatically; adopting a proposed change is a
+separate human-authorized decision.
 
 ## Use existing Inspect tasks
 

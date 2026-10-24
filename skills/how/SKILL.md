@@ -1,6 +1,6 @@
 ---
 name: how
-description: When asked to trace runtime flow or explain subsystem boundaries.
+description: "Traces how code actually works: entry points, call flow, data, side effects and boundaries, with source links. Use when asked how something works or to explain or critique a subsystem."
 ---
 
 # How
