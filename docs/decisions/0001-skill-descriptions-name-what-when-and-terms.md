@@ -1,6 +1,6 @@
 # 0001: Skill descriptions name what, when and key terms
 
-- Status: accepted pending routing eval
+- Status: accepted after routing eval
 - Date: 2026-10-23
 - Reverses: `498ac2e` (2026-10-05), "Keep skill descriptions compact and
   focused on activation cues", which set an 80-character budget
@@ -52,3 +52,38 @@ model and effort:
 
 Keep this change if coverage does not drop and minimality does not get worse.
 If it does, record the result here and revert.
+
+## Routing result — 2026-10-24
+
+Authenticated Codex CLI 0.164.0; `gpt-6.1-sol`, low effort, one epoch, two
+concurrent samples. All arms used the same metadata/instruction-discovery
+repair from [PR #30](https://github.com/Astatide1337/Skills/pull/30), commit
+`0acba597d390df4152e22f942a04b8c8d189adca`. No scorer or shared case changed; learning-loop adds three cases scored separately.
+
+| Arm | Shared coverage | Shared minimality |
+| --- | --- | --- |
+| main `16cfffb` | 33/34 | 13/34 |
+| original skill-triggers `ed9c83c` | 21/34 | 15/34 |
+| corrected skill-triggers | 33/34 | 13/34 |
+| learning-loop `f490795` | 32/34 | 15/34 |
+
+The original coordinator description limited activation to coding. It missed
+writing, explanation and reflection cases that still need the coordinator.
+The corrected description says it initializes whenever a catalog skill
+applies, while retaining the description's capability and trigger terms.
+Retain the corrected version: coverage and minimality match main. This single
+stochastic run establishes no broader quality or execution improvement.
+
+Reproduce in clean worktrees at the listed revisions, applying the same #30
+patch to each (until it is merged):
+
+```sh
+export SKILLS_CODEX_NATIVE_BINARY=/absolute/path/to/native/codex
+uv sync --frozen
+uv run inspect eval evals/skills.py@routing -T native_model=gpt-6.1-sol -T native_effort=low --max-samples 2
+```
+
+[Run identities and counts](evidence/2026-10-24-routing.json) and
+[per-case selections and scores](evidence/2026-10-24-routing.jsonl) retain the
+comparison. Inspect logs can exit zero on an evaluation error; these four
+logs were read back and each has status `success` with no sample errors.

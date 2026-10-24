@@ -1,6 +1,6 @@
 ---
 name: follow-instructions
-description: "Routes engineering work to the smallest procedure: bug, feature, refactor, review, debug, migration, incident, PR. Use at the start of any non-trivial coding task. Not for plain Q&A."
+description: "Selects the smallest workflow and supporting skills. Use whenever a catalog skill applies, including diagnosis, review, implementation, writing and retrospectives. Initialize once."
 ---
 
 # Follow instructions
