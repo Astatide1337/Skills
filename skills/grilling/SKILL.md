@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: When asked to pressure-test a plan or design.
+description: "Pressure-tests a plan, design or proposal by asking the unresolved decisions with recommended answers. Use when asked to grill, challenge, poke holes in, or stress-test an idea."
 ---
 
 # Grilling

@@ -8,7 +8,7 @@ from scripts.validate_catalog import MAX_DESCRIPTION_CHARS, validate_description
 class DescriptionBudgetTests(unittest.TestCase):
     def test_exact_budget_is_accepted_but_overflow_is_rejected(self):
         validate_description("example", "x" * MAX_DESCRIPTION_CHARS)
-        with self.assertRaisesRegex(ValueError, "at most 80 characters"):
+        with self.assertRaisesRegex(ValueError, "at most 200 characters"):
             validate_description("example", "x" * (MAX_DESCRIPTION_CHARS + 1))
 
     def test_empty_or_non_string_trigger_is_rejected(self):

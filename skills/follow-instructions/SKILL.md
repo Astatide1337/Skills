@@ -1,6 +1,6 @@
 ---
 name: follow-instructions
-description: When catalog skills apply; choose the smallest required procedure.
+description: "Selects the smallest workflow and supporting skills. Use whenever a catalog skill applies, including diagnosis, review, implementation, writing and retrospectives. Initialize once."
 ---
 
 # Follow instructions
@@ -141,8 +141,9 @@ Use [parallel](playbooks/parallel.md) only when independent ownership, a real
 delegation tool and a benefit justify it. Prove one complete unit first. Use
 [self-reflect](../self-reflect/SKILL.md) when repeated failure or stalled progress
 requires a new observation; ordinary completion needs no extra reflection.
-Self-learning and automatic rule promotion remain paused; proposed durable
-lessons need a separate explicit user decision.
+A correction of a recorded or repeated mistake uses
+[learn from repeats](../self-reflect/references/learn-from-repeats.md); nothing
+is applied without the user's approval.
 Across handoff or compaction retain the objective, accepted decisions,
 unfinished gates, next action and exact blockers. Use
 [durable checkpoints](references/durable-checkpoints.md) for expected

@@ -1,6 +1,6 @@
 ---
 name: hillclimb
-description: When improving a measured outcome through bounded experiments.
+description: "Improves one measured metric through repeated baseline-and-experiment loops with non-regression gates. Use for performance, latency, size, cost or eval-score optimization with a target."
 ---
 
 # Hillclimb
