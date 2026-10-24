@@ -1,6 +1,6 @@
 ---
 name: self-reflect
-description: When work stalls, repeats failures or settles for partial results.
+description: "Resets a stalled or repeating task and proposes fixes for repeated mistakes. Use when an approach failed twice, evidence conflicts, a long run hits a checkpoint, or the user corrects a repeat mistake."
 ---
 
 # Self-reflect

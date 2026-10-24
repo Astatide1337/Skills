@@ -1,6 +1,6 @@
 ---
 name: follow-instructions
-description: When catalog skills apply; choose the smallest required procedure.
+description: "Routes engineering work to the smallest procedure: bug, feature, refactor, review, debug, migration, incident, PR. Use at the start of any non-trivial coding task. Not for plain Q&A."
 ---
 
 # Follow instructions
