@@ -111,7 +111,11 @@ completion: affected behavior, independent review, material repairs, publication
 current-head checks and host merge eligibility. A draft is intermediate; a
 review-ready flag is not merge readiness. Use native watches and runtime
 continuation, retaining a compact record before interruption. Never merge or
-enable auto-merge. Self-learning and automatic rule promotion remain paused.
+enable auto-merge. Learning is propose-only: when a mistake happens twice, an
+agent proposes the strongest fix (architecture, types, a check, a test, then
+rule text) in the right repository and applies it only after approval. See
+[learn from repeats](skills/self-reflect/references/learn-from-repeats.md) and
+[SCOPE.md](SCOPE.md).
 
 The first line is the requested outcome; it is not a new command language. The
 coordinator preserves literal prohibitions, uses `pull-requests` for explicit

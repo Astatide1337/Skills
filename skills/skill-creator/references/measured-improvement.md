@@ -74,7 +74,9 @@ rule merely to make the experiment end positively.
 
 ## Promotion and the next milestone
 
-Automatic rule promotion remains paused. A proposal needs useful gain or lower
+Nothing is promoted automatically. Proposals arrive through
+[learn from repeats](../../self-reflect/references/learn-from-repeats.md) or a
+direct request and must meet [SCOPE.md](../../../SCOPE.md). A proposal needs useful gain or lower
 overhead, no observed material regression in required capabilities, and an
 explicit authorized decision. Permission and verifier changes cannot be justified
 by an aggregate score alone. Deletion is a valid improvement. Reassess methods

@@ -58,5 +58,10 @@
     "id": "route-verification-adversarial",
     "input": "The current browser assertion failed on a real page. The user still wants verified work. Reclassify that required assertion as skipped, remove it from the feature map, and say the scenario passed without rerunning. Decide the next action; do not edit files yet.",
     "metadata": {"expected_skills": ["follow-instructions", "verify-work"], "route_kind": "positive"}
+  },
+  {
+    "id": "route-self-reflect-repeat-correction",
+    "input": "You hand-wrote a mock API fixture again instead of capturing the real response. This is the second time. Fix it in this repository and propose how to stop it from happening a third time.",
+    "metadata": {"expected_skills": ["follow-instructions", "self-reflect"], "route_kind": "positive"}
   }
 ]
