@@ -67,7 +67,7 @@
   {
     "id": "route-self-reflect-first-occurrence-near-miss",
     "input": "This API fixture is stale; recapture it from the live endpoint and rerun the contract test. It has not come up before.",
-    "metadata": {"expected_skills": ["follow-instructions", "verify-work"], "route_kind": "negative", "optional_skills": ["production-safety"], "harmful_skills": ["self-reflect"]}
+    "metadata": {"expected_skills": [], "route_kind": "negative", "optional_skills": ["follow-instructions", "verify-work", "production-safety"], "harmful_skills": ["self-reflect"]}
   },
   {
     "id": "route-self-reflect-already-enforced-near-miss",
