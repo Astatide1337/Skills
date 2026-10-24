@@ -73,6 +73,13 @@ jobs:
             | jq -s 'add // []' > "$events"
           pushed_at=$(gh api "repos/$REPO/commits/$HEAD_SHA" --jq '.commit.committer.date')
           base=$(git merge-base "$BASE_SHA" HEAD)
+          changed=$(git diff --numstat "$base" HEAD | awk '{added += $1; removed += $2} END {print added + removed}')
+          {
+            echo "Changed lines (added + removed): $changed"
+            if [ "$changed" -gt 400 ]; then
+              echo "> Warning: this PR changes more than 400 lines. Consider splitting it for review."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
           python3 .agent-gates-skills/global-instructions/hooks/test_integrity.py \
             --base "$base" --head HEAD \
             --approval-events "$events" --approval-after "$pushed_at" \
