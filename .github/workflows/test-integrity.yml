@@ -1,0 +1,85 @@
+name: test-integrity
+
+# Reusable check for application repositories. It fails a pull request that
+# removes tests, adds skip/only markers to existing tests, or edits lint, type,
+# test-runner or verify configuration, unless a human approves the change:
+#   tests-ok:<full-head-sha>   approve removed tests or new skip markers
+#   gates-ok:<full-head-sha>   approve changed check configuration
+#
+# An approval label must be named tests-ok:<full-head-sha> or
+# gates-ok:<full-head-sha>, and applied by a human (one of `approvers`
+# when set). A new head needs new labels; timestamps cannot bind an approval
+# because commit dates are author-controlled and push metadata can lag.
+#
+# Make this a required status check; otherwise a PR can delete the job.
+#
+# Caller example (in the application repository):
+#   on: { pull_request: { types: [opened, synchronize, reopened, labeled, unlabeled] } }
+#   permissions: { contents: read, pull-requests: read }
+#   jobs:
+#     integrity:
+#       uses: Astatide1337/Skills/.github/workflows/test-integrity.yml@<sha>
+#       with: { skills-ref: <same sha>, approvers: your-login }
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: Runner label for the check
+        type: string
+        default: ubuntu-latest
+      skills-ref:
+        description: Skills revision for the checker; set it to the same ref as `uses:`
+        type: string
+        default: main
+      approvers:
+        description: Comma-separated logins allowed to approve; empty means any human
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  integrity:
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          repository: Astatide1337/Skills
+          ref: ${{ inputs.skills-ref }}
+          path: .agent-gates-skills
+          sparse-checkout: global-instructions/hooks
+      - name: Compare tests and check configuration with the base branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          APPROVERS: ${{ inputs.approvers }}
+        run: |
+          events="$RUNNER_TEMP/approval-events.json"
+          python3 .agent-gates-skills/global-instructions/hooks/fetch_approval_events.py "$events"
+          base=$(git merge-base "$BASE_SHA" HEAD)
+          changed=$(git diff --numstat "$base" HEAD | awk '{added += $1; removed += $2} END {print added + removed}')
+          {
+            echo "Changed lines (added + removed): $changed"
+            if [ "$changed" -gt 400 ]; then
+              echo "> Warning: this PR changes more than 400 lines. Consider splitting it for review."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          python3 .agent-gates-skills/global-instructions/hooks/test_integrity.py \
+            --base "$base" --head HEAD \
+            --approval-events "$events" --approval-head "$HEAD_SHA" \
+            --approvers "$APPROVERS" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "${PIPESTATUS[0]}"
