@@ -37,3 +37,9 @@
 
 - Never read, print, copy or export the SOPS age root keys or vault copies.
   Use authorized `sops` or `make` decryption without handling the key itself.
+
+## When a check seems wrong
+
+- If a test, lint rule or verify step blocks you and you believe the check
+  itself is wrong or the task is impossible as specified, stop and report
+  `BLOCKED: <reason>`. Never edit, skip or loosen the check to get past it.
