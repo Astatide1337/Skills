@@ -33,6 +33,10 @@ jobs:
         with:
           version: 0.12.19
           enable-cache: false
+      - name: Install verification prerequisite
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends make
       - name: Validate catalog and run offline evaluation tests
         run: |
           uv sync --frozen --python 3.13
