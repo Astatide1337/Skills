@@ -67,6 +67,41 @@ Codex's `~/.agents`, the legacy `~/.codex`, OpenCode, and Claude. Pass an
 explicit target whenever more than one is present. Each selected skill
 directory is replaced as a complete copy.
 
+## Resync existing installs
+
+Use Python 3.12+ and Git to preview a resync from a committed revision:
+
+```bash
+python3 scripts/sync.py --ref HEAD \
+  --target ~/.agents/skills --target ~/.claude/skills \
+  --claude-settings ~/.claude/settings.json
+```
+
+Add `--apply` to execute the plan. Repeat `--target` for any existing skill root,
+including OpenCode or a project directory. Only catalog packages already present
+are replaced; unrelated skills stay intact. Local package customizations are
+backed up before replacement. Use `install.sh` for first-time skill installation.
+The command runs on the current machine and requires no account, SSH access, or
+machine inventory. It does not fetch: fetch/review the desired revision first.
+
+`--claude-settings` is optional. It installs a versioned hook snapshot, sets
+`SKILLS_DIR`, and adds the example hooks without replacing other settings or
+hooks. Existing modified hook entries are preserved; review those separately to
+avoid running a custom variant alongside a catalog hook.
+
+For instruction text you explicitly want to share, add
+`--instructions /path/to/your-rules.md ~/.codex/AGENTS.md` (repeatable). It creates
+or updates a `skills-sync` block and preserves text outside it. The source is the
+file you name, including local edits; skills and hooks come only from `--ref`.
+This repository's global instructions contain personal environment rules, so
+other users should provide their own source text.
+
+Preview performs no target writes. Apply saves changed targets under
+`~/.local/state/skills-sync/backups/`, verifies copied bytes and file modes, and
+restores originals if a write fails. The backup receipt maps each target to its
+saved original. A second identical apply makes no changes. Restart agent sessions
+to load updated instructions and hooks.
+
 ## Global instructions
 
 [`global-instructions/AGENTS.md`](global-instructions/AGENTS.md) is the
