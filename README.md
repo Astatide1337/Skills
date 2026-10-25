@@ -333,6 +333,19 @@ fabricating a UI or using the tracker fixture as a substitute.
 
 See [`catalog.yaml`](catalog.yaml) for the catalog's source provenance.
 
+## Local verification
+
+Run `uv sync --frozen` and `make verify` for catalog validation and the complete
+offline unittest suite (no model calls). Use Python 3.13, Node 24 and Bubblewrap
+with user namespaces enabled, as in CI. Provision the locked supplemental lint
+tools once outside the checkout, then export their path for the tests:
+
+```sh
+uv run --frozen python skills/code-review-and-quality/scripts/setup_portable_lint.py --runtime /path/to/skills-lint
+export SKILLS_LINT_RUNTIME=/path/to/skills-lint
+make verify
+```
+
 ## Review
 
 Review guidelines live in root `AGENTS.md`. `CLAUDE.md` imports them for local
