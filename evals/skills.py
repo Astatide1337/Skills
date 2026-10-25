@@ -291,7 +291,10 @@ async def _native_skill_startup(
     # This documented metadata command initializes the CLI-owned system skills.
     # A fresh home has no user config. Never read the transport authentication
     # file here; normal CLI startup owns its authentication handling.
-    command = [str(binary), *_native_config_overrides(permissions),
+    # Metadata startup must not discover ambient AGENTS.md files outside the
+    # denied-root profile. The real execution receives its rules explicitly.
+    command = [str(binary), "-c", "project_doc_max_bytes=0",
+               *_native_config_overrides(permissions),
                "debug", "prompt-input", "Owned skill startup metadata only; no model generation or tool execution."]
     process = None
     communication = None
@@ -438,6 +441,10 @@ async def run_codex(
             "--output-last-message",
             output_file,
         ]
+        if global_rules is None:
+            # Routing supplies the governing instructions in its prompt. Do not
+            # discover ambient files outside the isolated workspace/home.
+            command.extend(["-c", "project_doc_max_bytes=0"])
         if review_directory is not None:
             command.extend(["--cd", review_directory])
         if output_schema is not None:

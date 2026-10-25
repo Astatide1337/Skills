@@ -54,6 +54,7 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
                     async def execute(command, **kwargs):
                         if command[0] == str(self.native_binary):
                             home = Path(kwargs["env"]["CODEX_HOME"])
+                            self.assertIn("project_doc_max_bytes=0", command)
                             prompt = kwargs["input"]
                             if installed:
                                 self.assertIn(f"Installed catalog filesystem root: {home}/skills/.", prompt)
@@ -98,6 +99,8 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 await skills.run_codex('task', model='stub/model', with_skills=False,
                     sandbox_mode='workspace-write', global_rules='personal defaults')
                 self.assertEqual((home / 'AGENTS.md').read_text(), 'personal defaults')
+                command = native.exec.await_args_list[0].args[0]
+                self.assertNotIn('project_doc_max_bytes=0', command)
 
     async def test_construction_answers_required_but_artifact_prose_optional(self):
         cases = {s.id:s for s in skills.workflows_dataset()}
@@ -1019,6 +1022,7 @@ class NativeSkillStartupTests(unittest.IsolatedAsyncioTestCase):
             async def initialize(*command, **kwargs):
                 command = list(command)
                 self.assertEqual(command[-3:-1], ["debug", "prompt-input"])
+                self.assertEqual(command[1:3], ["-c", "project_doc_max_bytes=0"])
                 self.assertNotIn("exec", command)
                 self.assertEqual(kwargs["env"]["HOME"], str(home))
                 self.assertEqual(kwargs["env"]["CODEX_HOME"], str(home))
