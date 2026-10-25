@@ -35,8 +35,13 @@ jobs:
           enable-cache: false
       - name: Install verification prerequisite
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends make
+          tools_dir="$RUNNER_TEMP/verify-tools"
+          mkdir -p "$tools_dir/lists/partial" "$tools_dir/packages"
+          apt-get -o Dir::State::lists="$tools_dir/lists" update -qq
+          cd "$tools_dir/packages"
+          apt-get -o Dir::State::lists="$tools_dir/lists" download make
+          dpkg-deb -x ./make_*.deb "$tools_dir/root"
+          echo "$tools_dir/root/usr/bin" >> "$GITHUB_PATH"
       - name: Validate catalog and run offline evaluation tests
         run: |
           uv sync --frozen --python 3.13
