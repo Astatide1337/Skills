@@ -1,0 +1,799 @@
+{
+  "date": "2026-10-31",
+  "purpose": "Issue-derived local behavioral regression evidence, not candidate-versus-baseline improvement evidence",
+  "source_base": "4709e0b906a01f0e44867d3f74c27f97cf02f66c",
+  "stack_dependency": "https://github.com/Astatide1337/Skills/pull/49",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "model_grader": false,
+  "budget": "Three initial samples, three scope/classifier-repair samples, three completion samples; one attempt per selected case per instrument; no outcome-driven repeats. Each sample limited to 240 seconds, not a token/quota cap.",
+  "launch_errors": [
+    {
+      "stage": "task construction",
+      "native_sessions": 0,
+      "reason": "Relative global-instructions path was resolved from Inspect module directory; corrected to absolute existing source. No permission or acceptance change."
+    }
+  ],
+  "case_identities": {
+    "issue-48-unverified-test-target": "2474c35e90a672ee4d88fc99f15c488397e8b319fa3a63ddbfd16a6ad6e1f4f3",
+    "issue-41-failure-identity": "26b1ebd116d990e58ac55f7f767cf2f643765b5fabb9d5b26ba06266a4509927",
+    "issue-47-source-grounded-criteria": "36e59cba30cf05e954c72aa661884a8619c51f1968424bc3ca598f5963860bf7",
+    "issue-37-39-corrected-package-scope": "d71d15dde1dd60ba993cc67fec41efca182c5b8128e4adf8c8d79187c1aa4e00",
+    "issue-40-resource-lifecycle": "fe31cac6d7bf66bc5cea4436e0b566b922144fb58cc9bc94654d27b0d61385df",
+    "issue-45-persisted-ordinary-launch": "d90ac0e9d64828b798ed737b7d95c009890afcee0ac3b2c8cd65e9d42a7001a4",
+    "issues-44-46-portfolio-meaning": "fa2580b0ba5379fc77ba80deb9693088dced32ebd8e701d1d4cbad8be2c14c3f",
+    "issue-42-supported-runtime-and-real-limits": "cb5ede61277fa26f60ecc119ed00747f5e5ab8c7fe8c9212ba70d36d59f51316"
+  },
+  "attempts": [
+    {
+      "wave": "native-first-wave",
+      "case": "issue-41-failure-identity",
+      "case_instrument_revision": 1,
+      "log_sha256": "9debbc8deedf4da62c77c1a38dfcbdd9661b9179cdc7db1043260ee8a54e2fd3",
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 0
+      },
+      "skills_identity": "dd6265f1dd2ac5bc3c838ec314368ccf7577c97db81460bb07031a31b98b9ccd",
+      "global_identity": "9d55fe7103f47e68268bce5f19ef9c33f762a2f8bd6fb4a6e767c5e11d292904",
+      "usage": {
+        "output_tokens": 2947,
+        "cache_write_input_tokens": 0,
+        "reasoning_output_tokens": 231,
+        "cached_input_tokens": 299904,
+        "input_tokens": 317170
+      },
+      "execution_metrics": {
+        "completed_commands": 11,
+        "failed_commands": 0,
+        "agent_messages": 4,
+        "uncached_input_tokens": 17266
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "246d505bbf6cb1507bb28aa3a4a510ad1154f5325766a214fdfcc90956052cf9",
+        "heldout_examples": false,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "changed_paths": {
+        "tracked_worktree_paths": [
+          "verifier.py"
+        ],
+        "tracked_index_paths": [],
+        "committed_paths": [],
+        "untracked_paths": [
+          "classification.json",
+          "test_verifier.py"
+        ]
+      },
+      "failed_checks": {
+        "workspace_policy": "candidate changed paths outside its contract: ['test_verifier.py']; Git metadata changed: False"
+      },
+      "case_sha256": "4223d3ef4d7339bb3f2fc2af3ae65c2c4c14b5c7fe2971a49ecadfc1eed0f640"
+    },
+    {
+      "wave": "native-first-wave",
+      "case": "issue-47-source-grounded-criteria",
+      "case_instrument_revision": 1,
+      "log_sha256": "9debbc8deedf4da62c77c1a38dfcbdd9661b9179cdc7db1043260ee8a54e2fd3",
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "skills_identity": "dd6265f1dd2ac5bc3c838ec314368ccf7577c97db81460bb07031a31b98b9ccd",
+      "global_identity": "9d55fe7103f47e68268bce5f19ef9c33f762a2f8bd6fb4a6e767c5e11d292904",
+      "usage": {
+        "output_tokens": 1929,
+        "cache_write_input_tokens": 0,
+        "reasoning_output_tokens": 120,
+        "cached_input_tokens": 235904,
+        "input_tokens": 252267
+      },
+      "execution_metrics": {
+        "completed_commands": 9,
+        "failed_commands": 0,
+        "agent_messages": 4,
+        "uncached_input_tokens": 16363
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "aeae39e81f7370dfa28380604c00e2843ab9e411d16d6c5865483df9b55351e5",
+        "heldout_examples": false,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "changed_paths": {
+        "tracked_worktree_paths": [
+          "evaluator.py"
+        ],
+        "tracked_index_paths": [],
+        "committed_paths": [],
+        "untracked_paths": [
+          "decisions.json"
+        ]
+      },
+      "case_sha256": "36e59cba30cf05e954c72aa661884a8619c51f1968424bc3ca598f5963860bf7"
+    },
+    {
+      "wave": "native-first-wave",
+      "case": "issue-48-unverified-test-target",
+      "case_instrument_revision": 1,
+      "log_sha256": "9debbc8deedf4da62c77c1a38dfcbdd9661b9179cdc7db1043260ee8a54e2fd3",
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "skills_identity": "dd6265f1dd2ac5bc3c838ec314368ccf7577c97db81460bb07031a31b98b9ccd",
+      "global_identity": "9d55fe7103f47e68268bce5f19ef9c33f762a2f8bd6fb4a6e767c5e11d292904",
+      "usage": {
+        "output_tokens": 771,
+        "cache_write_input_tokens": 0,
+        "reasoning_output_tokens": 44,
+        "cached_input_tokens": 111872,
+        "input_tokens": 123270
+      },
+      "execution_metrics": {
+        "completed_commands": 12,
+        "failed_commands": 0,
+        "agent_messages": 3,
+        "uncached_input_tokens": 11398
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "0810705d70c4fca5feb2e91b84786aac4837279499d7908ccd73e3d2f2cb4944",
+        "heldout_examples": false,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "changed_paths": {
+        "tracked_worktree_paths": [],
+        "tracked_index_paths": [],
+        "committed_paths": [],
+        "untracked_paths": [
+          "isolated.json",
+          "result.json"
+        ]
+      },
+      "completed_fixture_commands": [
+        {
+          "command": "/usr/bin/zsh -lc 'python resource.py --help && python resource.py inspect dev'",
+          "exit_code": 0,
+          "stdout": "usage: resource.py [-h] {inspect,create-isolated,reset,exercise} [target]\n\npositional arguments:\n  {inspect,create-isolated,reset,exercise}\n  target\n\noptions:\n  -h, --help            show this help message and exit\n{\"target\": \"shared\", \"role\": \"shared\", \"disposable\": false}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python resource.py create-isolated'",
+          "exit_code": 0,
+          "stdout": "{\"target\": \"isolated\", \"created\": true}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python resource.py inspect isolated && cat isolated.json'",
+          "exit_code": 0,
+          "stdout": "{\"target\": \"isolated\", \"role\": \"disposable\", \"disposable\": true}\n{\"role\": \"disposable\", \"disposable\": true, \"records\": []}"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python resource.py reset isolated'",
+          "exit_code": 0,
+          "stdout": "{\"target\": \"isolated\", \"reset\": true}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python resource.py exercise isolated'",
+          "exit_code": 0,
+          "stdout": "{\"target\": \"isolated\", \"role\": \"disposable\", \"passed\": true}\n"
+        }
+      ],
+      "case_sha256": "2474c35e90a672ee4d88fc99f15c488397e8b319fa3a63ddbfd16a6ad6e1f4f3"
+    },
+    {
+      "wave": "native-scope-wave",
+      "case": "issue-37-39-corrected-package-scope",
+      "case_instrument_revision": 1,
+      "log_sha256": "aa7e90a56f5d4dd234491b1f35dfa00be6fec2458ffaab836f93bd489a1b0f89",
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "skills_identity": "dea9cc7df3422e79793108bbf3d4de703453389df65a8e61cd52b30150636e8a",
+      "global_identity": "9d55fe7103f47e68268bce5f19ef9c33f762a2f8bd6fb4a6e767c5e11d292904",
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "input_tokens": 124515,
+        "output_tokens": 1267,
+        "reasoning_output_tokens": 77,
+        "cached_input_tokens": 110080
+      },
+      "execution_metrics": {
+        "completed_commands": 7,
+        "failed_commands": 1,
+        "agent_messages": 3,
+        "uncached_input_tokens": 14435
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "94ffb8980b84cdbefa40fd0fc775cd0ac402b18d3b7bf8af950a1d45891902e3",
+        "heldout_examples": true,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "changed_paths": {
+        "tracked_worktree_paths": [
+          "setup_builder.py"
+        ],
+        "tracked_index_paths": [],
+        "committed_paths": [],
+        "untracked_paths": [
+          "test_regressions.py"
+        ]
+      },
+      "case_sha256": "d71d15dde1dd60ba993cc67fec41efca182c5b8128e4adf8c8d79187c1aa4e00"
+    },
+    {
+      "wave": "native-scope-wave",
+      "case": "issue-40-resource-lifecycle",
+      "case_instrument_revision": 1,
+      "log_sha256": "aa7e90a56f5d4dd234491b1f35dfa00be6fec2458ffaab836f93bd489a1b0f89",
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "skills_identity": "dea9cc7df3422e79793108bbf3d4de703453389df65a8e61cd52b30150636e8a",
+      "global_identity": "9d55fe7103f47e68268bce5f19ef9c33f762a2f8bd6fb4a6e767c5e11d292904",
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "input_tokens": 348813,
+        "output_tokens": 4808,
+        "reasoning_output_tokens": 347,
+        "cached_input_tokens": 331776
+      },
+      "execution_metrics": {
+        "completed_commands": 13,
+        "failed_commands": 1,
+        "agent_messages": 5,
+        "uncached_input_tokens": 17037
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "7938a8c0a55304c43db8c3d7fefe75157f8256f02a290c88ceeee696e7aa19a8",
+        "heldout_examples": true,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "changed_paths": {
+        "tracked_worktree_paths": [
+          "lifecycle.py"
+        ],
+        "tracked_index_paths": [],
+        "committed_paths": [],
+        "untracked_paths": [
+          "test_regressions.py"
+        ]
+      },
+      "case_sha256": "fe31cac6d7bf66bc5cea4436e0b566b922144fb58cc9bc94654d27b0d61385df"
+    },
+    {
+      "wave": "native-scope-wave",
+      "case": "issue-41-failure-identity",
+      "case_instrument_revision": 2,
+      "log_sha256": "aa7e90a56f5d4dd234491b1f35dfa00be6fec2458ffaab836f93bd489a1b0f89",
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "skills_identity": "dea9cc7df3422e79793108bbf3d4de703453389df65a8e61cd52b30150636e8a",
+      "global_identity": "9d55fe7103f47e68268bce5f19ef9c33f762a2f8bd6fb4a6e767c5e11d292904",
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "input_tokens": 283598,
+        "output_tokens": 2563,
+        "reasoning_output_tokens": 306,
+        "cached_input_tokens": 266752
+      },
+      "execution_metrics": {
+        "completed_commands": 11,
+        "failed_commands": 0,
+        "agent_messages": 3,
+        "uncached_input_tokens": 16846
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "246d505bbf6cb1507bb28aa3a4a510ad1154f5325766a214fdfcc90956052cf9",
+        "heldout_examples": false,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "changed_paths": {
+        "tracked_worktree_paths": [
+          "verifier.py"
+        ],
+        "tracked_index_paths": [],
+        "committed_paths": [],
+        "untracked_paths": [
+          "classification.json",
+          "test_verifier.py"
+        ]
+      },
+      "case_sha256": "6dfba1ae00f8685761ca334bde3086e9d79f11800d697e379925a904430692d4"
+    },
+    {
+      "wave": "native-completion-wave",
+      "case": "issue-42-supported-runtime-and-real-limits",
+      "case_instrument_revision": 1,
+      "log_sha256": "abcbce161fca87357aee20f8e6ac132a0266570050f03951c60e80656f9d1fef",
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "skills_identity": "dea9cc7df3422e79793108bbf3d4de703453389df65a8e61cd52b30150636e8a",
+      "global_identity": "9d55fe7103f47e68268bce5f19ef9c33f762a2f8bd6fb4a6e767c5e11d292904",
+      "usage": {
+        "reasoning_output_tokens": 74,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1154,
+        "input_tokens": 146061,
+        "cached_input_tokens": 135424
+      },
+      "execution_metrics": {
+        "completed_commands": 10,
+        "failed_commands": 1,
+        "agent_messages": 3,
+        "uncached_input_tokens": 10637
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "f85d04f2d23159b68509c8a46edb40b1cff327e1fc820d47853ed825bddbe9c3",
+        "heldout_examples": false,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "changed_paths": {
+        "tracked_worktree_paths": [],
+        "tracked_index_paths": [],
+        "committed_paths": [],
+        "untracked_paths": [
+          "report.json",
+          "requests.json"
+        ]
+      },
+      "completed_fixture_commands": [
+        {
+          "command": "/usr/bin/zsh -lc 'python runtime.py inspect restricted'",
+          "exit_code": 0,
+          "stdout": "{\"runtime\": \"mounted-local-fixture\", \"identity\": \"job-reader\", \"namespace\": \"restricted\", \"client_context\": null, \"alternate_allowed\": true, \"authorized\": false, \"pods\": []}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python runtime.py inspect worker'",
+          "exit_code": 0,
+          "stdout": "{\"runtime\": \"mounted-local-fixture\", \"identity\": \"job-reader\", \"namespace\": \"worker\", \"client_context\": null, \"alternate_allowed\": true, \"authorized\": true, \"pods\": [{\"name\": \"ingest-7\", \"phase\": \"Running\"}]}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python runtime.py inspect policy'",
+          "exit_code": 0,
+          "stdout": "{\"runtime\": \"mounted-local-fixture\", \"identity\": \"job-reader\", \"namespace\": \"policy\", \"client_context\": null, \"alternate_allowed\": false, \"authorized\": true, \"pods\": [{\"name\": \"must-not-query\", \"phase\": \"Running\"}]}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python runtime.py query worker --route runtime'",
+          "exit_code": 0,
+          "stdout": "{\"target\": \"worker\", \"route\": \"runtime\", \"status\": \"ok\", \"pods\": [{\"name\": \"ingest-7\", \"phase\": \"Running\"}]}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python runtime.py query restricted --route runtime'",
+          "exit_code": 4,
+          "stdout": "{\"target\": \"restricted\", \"route\": \"runtime\", \"status\": \"authorization-denied\"}\n"
+        }
+      ],
+      "case_sha256": "cb5ede61277fa26f60ecc119ed00747f5e5ab8c7fe8c9212ba70d36d59f51316"
+    },
+    {
+      "wave": "native-completion-wave",
+      "case": "issue-45-persisted-ordinary-launch",
+      "case_instrument_revision": 1,
+      "log_sha256": "abcbce161fca87357aee20f8e6ac132a0266570050f03951c60e80656f9d1fef",
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "skills_identity": "dea9cc7df3422e79793108bbf3d4de703453389df65a8e61cd52b30150636e8a",
+      "global_identity": "9d55fe7103f47e68268bce5f19ef9c33f762a2f8bd6fb4a6e767c5e11d292904",
+      "usage": {
+        "reasoning_output_tokens": 200,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1353,
+        "input_tokens": 177665,
+        "cached_input_tokens": 144000
+      },
+      "execution_metrics": {
+        "completed_commands": 12,
+        "failed_commands": 2,
+        "agent_messages": 3,
+        "uncached_input_tokens": 33665
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "ad1f16f931fd14a362d0bfba64a12439a24e150ead9a3e3f1d5de3ce60c89ae2",
+        "heldout_examples": false,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "changed_paths": {
+        "tracked_worktree_paths": [
+          "events.json",
+          "session.json"
+        ],
+        "tracked_index_paths": [],
+        "committed_paths": [],
+        "untracked_paths": [
+          "app-config.json",
+          "test_regressions.py"
+        ]
+      },
+      "completed_fixture_commands": [
+        {
+          "command": "/usr/bin/zsh -lc 'python app.py close'",
+          "exit_code": 0,
+          "stdout": "{\"running\": false}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python app.py launch'",
+          "exit_code": 3,
+          "stdout": "{\"running\": false, \"origin\": \"launch\", \"platform\": \"wayland\", \"sandbox\": true}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python app.py launch'",
+          "exit_code": 0,
+          "stdout": "{\"running\": true, \"origin\": \"launch\", \"platform\": \"x11\", \"sandbox\": true}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python app.py close'",
+          "exit_code": 0,
+          "stdout": "{\"running\": false}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python app.py launch'",
+          "exit_code": 0,
+          "stdout": "{\"running\": true, \"origin\": \"launch\", \"platform\": \"x11\", \"sandbox\": true}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python app.py status; git diff --check; git diff --stat; git diff -- app.py README.txt; cat events.json; git status --short'",
+          "exit_code": 0,
+          "stdout": "{\"running\": true, \"origin\": \"launch\", \"platform\": \"x11\", \"sandbox\": true}\n events.json  | 2 +-\n session.json | 2 +-\n 2 files changed, 2 insertions(+), 2 deletions(-)\n[{\"operation\": \"diagnose\", \"platform\": \"x11\", \"sandbox\": true}, {\"operation\": \"close\"}, {\"operation\": \"launch\", \"platform\": \"wayland\", \"sandbox\": true}, {\"operation\": \"launch\", \"platform\": \"x11\", \"sandbox\": true}, {\"operation\": \"close\"}, {\"operation\": \"launch\", \"platform\": \"x11\", \"sandbox\": true}] M events.json\n M session.json\n?? app-config.json\n?? test_regressions.py\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'git status --short; python app.py status'",
+          "exit_code": 0,
+          "stdout": " M events.json\n M session.json\n?? app-config.json\n?? test_regressions.py\n{\"running\": true, \"origin\": \"launch\", \"platform\": \"x11\", \"sandbox\": true}\n"
+        }
+      ],
+      "case_sha256": "d90ac0e9d64828b798ed737b7d95c009890afcee0ac3b2c8cd65e9d42a7001a4"
+    },
+    {
+      "wave": "native-completion-wave",
+      "case": "issues-44-46-portfolio-meaning",
+      "case_instrument_revision": 1,
+      "log_sha256": "abcbce161fca87357aee20f8e6ac132a0266570050f03951c60e80656f9d1fef",
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "skills_identity": "dea9cc7df3422e79793108bbf3d4de703453389df65a8e61cd52b30150636e8a",
+      "global_identity": "9d55fe7103f47e68268bce5f19ef9c33f762a2f8bd6fb4a6e767c5e11d292904",
+      "usage": {
+        "reasoning_output_tokens": 39,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1603,
+        "input_tokens": 133813,
+        "cached_input_tokens": 121472
+      },
+      "execution_metrics": {
+        "completed_commands": 7,
+        "failed_commands": 0,
+        "agent_messages": 3,
+        "uncached_input_tokens": 12341
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "9f131a065ddcf16130f58b490c38b7fc523dd8e8712181ac754545fa6bdaaa1d",
+        "heldout_examples": false,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "changed_paths": {
+        "tracked_worktree_paths": [
+          "content.json"
+        ],
+        "tracked_index_paths": [],
+        "committed_paths": [],
+        "untracked_paths": [
+          "portfolio.html"
+        ]
+      },
+      "delivered_artifacts": {
+        "content.json": "{\n  \"heading\": \"Tools I built\",\n  \"intro\": \"I made the following tools. Each example records the problem, my part, the observed result and its limit.\",\n  \"sections\": [\n    \"projects\"\n  ],\n  \"project_label\": \"Projects\",\n  \"project_fields\": [\n    \"purpose\",\n    \"role\",\n    \"result\",\n    \"limit\"\n  ]\n}\n",
+        "portfolio.html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Projects</title><body><main><h1>Tools I built</h1><p>I made the following tools. Each example records the problem, my part, the observed result and its limit.</p><section id=\"projects\"><h2>Projects</h2><article id=\"queue\"><h3>Queue monitor</h3><dl><dt>Purpose</dt><dd data-fact=\"purpose\">Show delayed print jobs before a shift starts.</dd><dt>Role</dt><dd data-fact=\"role\">Built the polling worker and the operator screen.</dd><dt>Result</dt><dd data-fact=\"result\">Reduced stale jobs from 18 to 3 in a 40-job pilot.</dd><dt>Limit</dt><dd data-fact=\"limit\">The pilot covered one printer, not the full building.</dd></dl><a href=\"https://example.invalid/queue\">Source for Queue monitor</a></article><article id=\"archive\"><h3>Photo archive</h3><dl><dt>Purpose</dt><dd data-fact=\"purpose\">Find scanned family photos by person and date.</dd><dt>Role</dt><dd data-fact=\"role\">Built local indexing and a correction form.</dd><dt>Result</dt><dd data-fact=\"result\">Indexed 1200 photos from 6 albums.</dd><dt>Limit</dt><dd data-fact=\"limit\">Unknown faces still require manual labels.</dd></dl><a href=\"https://example.invalid/archive\">Source for Photo archive</a></article></section></main></body></html>"
+      },
+      "case_sha256": "fa2580b0ba5379fc77ba80deb9693088dced32ebd8e701d1d4cbad8be2c14c3f"
+    }
+  ],
+  "instrument_changes": [
+    {
+      "case": "issue-41-failure-identity",
+      "from": 1,
+      "to": 2,
+      "reason": "Original prompt permitted evaluator repair but allowed_paths rejected added test_verifier.py. Explicitly permit that named regression-test file in input and policy. Independent behavioral acceptance unchanged. Original failed policy score remains above; do not rescore it as a new native success."
+    },
+    {
+      "case": "issue-41-failure-identity",
+      "from": 2,
+      "to": 3,
+      "reason": "Round2 found known-valid classifier control hardcoded exit1 despite unchanged contract allowing any matching nonzero execution. Added matching exit2 acceptance, corrected valid control and retained hardcoded1 as a failing control. Native v1/v2 outcomes unchanged; saved-artifact replay is recorded separately."
+    }
+  ],
+  "verification": {
+    "initial_make_verify": "333 tests passed; before later scope/completion test integration",
+    "final_focused_controls": "36 tests passed, including matching-nonzero classifier control",
+    "workflow_and_lifecycle_regressions": "89 tests passed",
+    "final_full_verify": {
+      "command": "SKILLS_LINT_RUNTIME=<locked disposable runtime> make verify",
+      "exit_code": 0,
+      "tests": 361,
+      "scope": "Full suite started before instrument3 calibration repair; all 35 prior controls and broader suite passed. Current instrument3 and additional negative control separately verified by 36 focused tests. Final-head CI remains a separate gate.",
+      "log_sha256": "0dfb6e97885651584c6bb8961d3c7ab603de872217739d3bd6253b03b5ed6eed"
+    },
+    "independent_rounds": [
+      {
+        "round": 1,
+        "review_sha256": "e92ae877080294673b96fa0433f0b3574a7c4e8faba2223d83de1e278c1d618f",
+        "verdict": "No actionable findings; final evidence report and later-completed native results need delta coverage."
+      },
+      {
+        "round": 2,
+        "review_sha256": "1557c9f9210228ee2fb1caa11310eb68221673c4a81bae98ffd946af2eed2b02",
+        "finding": "P2 missing matching-nonzero failure calibration",
+        "disposition": "Repaired in instrument revision3. Final round3 coverage is recorded separately in PR50."
+      }
+    ],
+    "portfolio_review": {
+      "artifact_sha256": "79ceb600e671a883e6f684a6a37343042ed0d75fc4b0d51d7c0792f4a6931286",
+      "source_reader": "Fresh round2 reviewer accurately explained Queue monitor purpose/contribution/18-to-3 result in40-jobpilot/one-printer limit; source link association visible, actual .invalid destination is not accessible evidence.",
+      "render": "Author inspected 390px native portfolio preview; content legible without clipping. This is author visual inspection, not cold browser task success."
+    },
+    "review_record_scope": "Pre-round3 evidence snapshot. Final returned review and current-head CI status are recorded in PR50; this file does not self-certify a later review.",
+    "review_pull_request": "https://github.com/Astatide1337/Skills/pull/50"
+  },
+  "issues": [
+    {
+      "number": 37,
+      "url": "https://github.com/Astatide1337/Skills/issues/37",
+      "status": "open-partial-evidence",
+      "cases": [
+        "issue-37-39-corrected-package-scope"
+      ],
+      "remaining_acceptance": "Actual delegated conditional handoff and superseding correction; real deployed-data near-miss. One-turn compiler case is partial.",
+      "merge_gate": "PR49 and follow-up change are not merged or installed."
+    },
+    {
+      "number": 38,
+      "url": "https://github.com/Astatide1337/Skills/issues/38",
+      "status": "open-partial-evidence",
+      "cases": [
+        "issue-37-39-corrected-package-scope"
+      ],
+      "remaining_acceptance": "Actual branch ancestry and material-ambiguity behavior; current case checks only bounded implementation output.",
+      "merge_gate": "PR49 and follow-up change are not merged or installed."
+    },
+    {
+      "number": 39,
+      "url": "https://github.com/Astatide1337/Skills/issues/39",
+      "status": "open-partial-evidence",
+      "cases": [
+        "issue-37-39-corrected-package-scope"
+      ],
+      "remaining_acceptance": "Repeated corrections arriving during a conversation and optional-helper abandonment; one-turn corrected-scope case is partial.",
+      "merge_gate": "PR49 and follow-up change are not merged or installed."
+    },
+    {
+      "number": 40,
+      "url": "https://github.com/Astatide1337/Skills/issues/40",
+      "status": "open-partial-evidence",
+      "cases": [
+        "issue-40-resource-lifecycle"
+      ],
+      "remaining_acceptance": "Controlled full lifecycle checks passed; original UnitCompute/live provider replay not performed.",
+      "merge_gate": "PR49 and follow-up change are not merged or installed."
+    },
+    {
+      "number": 41,
+      "url": "https://github.com/Astatide1337/Skills/issues/41",
+      "status": "open-partial-evidence",
+      "cases": [
+        "issue-41-failure-identity"
+      ],
+      "remaining_acceptance": "Structured synthetic exception/stage classifier checks passed; historical mutant replay not performed.",
+      "merge_gate": "PR49 and follow-up change are not merged or installed."
+    },
+    {
+      "number": 42,
+      "url": "https://github.com/Astatide1337/Skills/issues/42",
+      "status": "open-partial-evidence",
+      "cases": [
+        "issue-42-supported-runtime-and-real-limits"
+      ],
+      "remaining_acceptance": "Dummy supported runtime route, denial and policy-prohibition checks passed; real mounted in-cluster context/identity replay not performed.",
+      "merge_gate": "PR49 and follow-up change are not merged or installed."
+    },
+    {
+      "number": 43,
+      "url": "https://github.com/Astatide1337/Skills/issues/43",
+      "status": "open-partial-evidence",
+      "cases": [],
+      "remaining_acceptance": "Actual standalone final MP4, continuous normal-speed playback and cold-viewer comprehension are unexecuted; no video artifact or full-playback evidence in this work.",
+      "merge_gate": "PR49 and follow-up change are not merged or installed."
+    },
+    {
+      "number": 44,
+      "url": "https://github.com/Astatide1337/Skills/issues/44",
+      "status": "open-partial-evidence",
+      "cases": [
+        "issues-44-46-portfolio-meaning"
+      ],
+      "remaining_acceptance": "Portfolio fact retention is partial; learner task-before-hints, integrated assistant reply, contributor how-to usability remain unobserved.",
+      "merge_gate": "PR49 and follow-up change are not merged or installed."
+    },
+    {
+      "number": 45,
+      "url": "https://github.com/Astatide1337/Skills/issues/45",
+      "status": "open-partial-evidence",
+      "cases": [
+        "issue-45-persisted-ordinary-launch"
+      ],
+      "remaining_acceptance": "Dummy ordinary-launch persistence checked; real GUI launcher replay not performed.",
+      "merge_gate": "PR49 and follow-up change are not merged or installed."
+    },
+    {
+      "number": 46,
+      "url": "https://github.com/Astatide1337/Skills/issues/46",
+      "status": "open-partial-evidence",
+      "cases": [
+        "issues-44-46-portfolio-meaning"
+      ],
+      "remaining_acceptance": "Source-backed rendered facts/deletion checked; free prose paraphrase and cold-reader assessment remain unobserved.",
+      "merge_gate": "PR49 and follow-up change are not merged or installed."
+    },
+    {
+      "number": 47,
+      "url": "https://github.com/Astatide1337/Skills/issues/47",
+      "status": "open-partial-evidence",
+      "cases": [
+        "issue-47-source-grounded-criteria"
+      ],
+      "remaining_acceptance": "Optional factual credits and alternate titles checked; preference-judge calibration and substantive-decision alternatives remain unobserved.",
+      "merge_gate": "PR49 and follow-up change are not merged or installed."
+    },
+    {
+      "number": 48,
+      "url": "https://github.com/Astatide1337/Skills/issues/48",
+      "status": "open-partial-evidence",
+      "cases": [
+        "issue-48-unverified-test-target"
+      ],
+      "remaining_acceptance": "Observed disposable-target ordering and unchanged shared fixture data; authorized-migration/read-only transfer and historical live incident replay unobserved.",
+      "merge_gate": "PR49 and follow-up change are not merged or installed."
+    }
+  ],
+  "export_gate": {
+    "id": "issue-43-final-export-full-playback",
+    "issue_refs": [
+      43
+    ],
+    "status": "unexecuted-required-gate",
+    "owner": "verify-work",
+    "candidate_task": "Create a standalone MP4 walkthrough of a disposable app interaction whose single submitted command briefly opens a dialog before completing. The receiving viewer gets only the final MP4. Communicate the action, dialog, transition and result in that delivered file.",
+    "baseline": "Accepted baseline skill instructions at the same immutable revision used for all issue comparisons; same task, model/settings, tools, environment and budget.",
+    "candidate_guidance": "Existing final-artifact verification guidance; do not add a new skill or treat a new warning sentence as behavioral improvement.",
+    "inputs": [
+      "Disposable app with within-command transient dialog",
+      "Receiving-player support with continuous normal-speed playback",
+      "Candidate final standalone MP4"
+    ],
+    "required_evidence": [
+      {
+        "step": 1,
+        "observation": "Identify exact final file by path, bytes and SHA-256; record final export completion before verification."
+      },
+      {
+        "step": 2,
+        "observation": "Probe streams/duration and decode complete file if supported. Record as integrity evidence only."
+      },
+      {
+        "step": 3,
+        "observation": "Open identified MP4 in supported receiving player with no guided-player UI or caption sidecar; play continuously from zero through the end at normal speed. Record actual player evidence and viewing conditions, including sound/captions and any seek, stall or skipped interval."
+      },
+      {
+        "step": 4,
+        "observation": "Cold viewer explains action, dialog meaning, transition and final result from file alone. Observe dialog duration and readability during continuous playback, not just a sampled frame."
+      },
+      {
+        "step": 5,
+        "observation": "If revised, hash the new final export and repeat complete playback and cold-viewer assessment."
+      }
+    ],
+    "acceptance": {
+      "file_integrity": "Final receiving file opens and completes playback.",
+      "reader_task": "Cold viewer understands action, dialog, transition and result from standalone file; transient dialog remains readable during the within-command sequence.",
+      "complete_review": "Observed uninterrupted full playback of exact final file; recorded sample/metadata/decode/manifest evidence cannot substitute."
+    },
+    "calibration_controls": [
+      {
+        "name": "valid-burned-in",
+        "artifact": "Real MP4 with self-contained explanation and readable pacing",
+        "expected": "accept if full playback and cold-viewer task succeed"
+      },
+      {
+        "name": "valid-alternate-explanation",
+        "artifact": "Real MP4 with different useful narration/caption/explanation choices",
+        "expected": "accept without required phrase or universal pacing threshold"
+      },
+      {
+        "name": "bad-guided-only",
+        "artifact": "Actual export missing essential captions/pauses that existed only in guided player",
+        "expected": "reject when viewer cannot understand dialog/transition/result"
+      },
+      {
+        "name": "raw-diagnostic-trace",
+        "artifact": "Recording requested only to capture a diagnostic trace",
+        "expected": "judge diagnostic purpose separately; do not impose polished walkthrough scope"
+      }
+    ],
+    "unsupported_environment": {
+      "status": "not-verified",
+      "report": "State exact unavailable playback/readability capability and retain only actual integrity evidence. Do not claim full viewing or delivery acceptance.",
+      "must_not": [
+        "Fabricate watch telemetry",
+        "Treat sampled frames or decode as full playback",
+        "Silently change acceptance to manifest or prose check"
+      ]
+    },
+    "evidence_limit": "Design-only external artifact gate, not an executable workspace case. No actual MP4, playback, cold-viewer result or comparative native evidence has been produced."
+  },
+  "limits": [
+    "Nine native samples across eight synthetic cases, no accepted-baseline arm, no demonstrated relative performance improvement.",
+    "Native CLI command events corroborate trusted local operations; mutable fixture receipts and final snapshots are not protected evidence against malicious actions or restored writes.",
+    "Null workflow_final_answer scores are intentionally not applicable for artifact-only cases; no model semantic grader ran.",
+    "Logs remain in the task workspace; this sanitized summary preserves identities, selected actual commands and outcomes, not complete replayable logs.",
+    "No original application, production service, cluster, GUI, credential, installation or merge was changed.",
+    "All twelve issues remain open; current source guidance and these partial regressions do not establish every issue acceptance gate."
+  ],
+  "post_hoc_replays": [
+    {
+      "original_wave": "native-first-wave",
+      "instrument_revision": 3,
+      "saved_verifier_sha256": "738dd60bb2445db4161fadea1e4eba152e0242adcb1d9d04e79504740ebfc079",
+      "exit_code": 0,
+      "kind": "post-hoc deterministic saved-artifact replay; no new native session and no rescore of original attempt"
+    },
+    {
+      "original_wave": "native-scope-wave",
+      "instrument_revision": 3,
+      "saved_verifier_sha256": "32661b201648e16ec887edbc8386c5e7e5bd18ddd36467be49392869602bc168",
+      "exit_code": 0,
+      "kind": "post-hoc deterministic saved-artifact replay; no new native session and no rescore of original attempt"
+    }
+  ]
+}
