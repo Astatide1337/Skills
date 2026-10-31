@@ -105,10 +105,11 @@ to load updated instructions and hooks.
 ## Delivery and review defaults
 
 Implementation requests normally include a scoped PR unless the user requests
-local-only work or sets another restriction. Every delivered PR receives three
-independent review rounds, including clean and mechanical changes; up to five
-are available for consequential findings. [Better Call Sol](skills/better-call-sol/SKILL.md)
-orchestrates the existing review standard. Review limits never waive final-code
+local-only work or sets another restriction. Every delivered PR receives at least
+one independent review. Follow the dynamic review budget in
+[pull-requests](skills/pull-requests/SKILL.md): usually one to three rounds,
+with five as a hard cap. [Better Call Sol](skills/better-call-sol/SKILL.md)
+orchestrates that standard. Review limits never waive final-code
 coverage, required checks or human approvals. Never merge, auto-merge or deploy.
 
 The coordinator preserves outcome, authority, deliverable format and acceptance
@@ -322,8 +323,10 @@ capability and remain blocked before model launch under the current native
 profile, which protects `.git`. Host calibration does not prove native Git
 writes are supported. Missing, truncated or cancelled turn observations are
 unscored; an observed scope violation is a failure. Effects scores do not
-judge whether a response asked an appropriate question; the ambiguous-scope
-fixture retains an independent response-assessment gate.
+judge whether a response asked an appropriate question. The scope fixture's
+independent response review checks bounded work and accurate reporting of an
+unrelated open decision. Question-before-dependent-work remains unmeasured
+because completing its schema does not require the desktop integration choice.
 
 Run the branch/scope calibration and continuation lifecycle checks with:
 

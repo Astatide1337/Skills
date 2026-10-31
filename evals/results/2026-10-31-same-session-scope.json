@@ -266,7 +266,7 @@
         ]
       },
       "wave": "batch-a-logs",
-      "interpretation": "Original instrument rejected settled schema edits before delivering choice. That rejection is not valid clarification measurement. Initial response did not ask a question; retain separate semantic assessment."
+      "interpretation": "Original instrument rejected safe settled schema edits before delivering the scripted message. That rejection is invalid as clarification measurement. The task does not require the unrelated desktop decision; no question was necessary to complete the schema."
     },
     {
       "case": "issue-38-repository-settled-scope",
@@ -461,21 +461,27 @@
         ]
       },
       "wave": "repair-logs",
-      "interpretation": "Instrument revision2: two turns delivered on same thread; effects passed. No initial question observed. Independent assessment of question necessity is separate; no efficacy comparison."
+      "interpretation": "Instrument revision2: two turns delivered on the same thread; effects passed. Implementing the settled schema and accurately leaving desktop integration open was legitimate. The fixture does not measure question necessity or a clarification exchange."
     }
   ],
   "instrument_changes": [
     {
       "revision": 2,
-      "reason": "Review1: capability gate Git writes; keep unavailable evidence unscored; permit safe settled edits before scope choice; preserve all original scores and disclose instrument change. No skill guidance or permission-profile change."
+      "reason": "Review1: capability gate Git writes; keep unavailable evidence unscored; permit safe settled edits before scope choice; preserve all original scores and disclose instrument change. No skill guidance or permission-profile change. Both scope prompts also explicitly named permitted test-file outputs; the settled-scope pass used the original prompt and was not rerun under revision2."
+    },
+    {
+      "revision": 3,
+      "reason": "Review2 wording correction only: remove a requirement to ask about an unrelated desktop choice. Independent assessment concerns scoped work and honest open decisions. Question-before-dependent-work remains unmeasured. No new native sample or changed original score."
     }
   ],
   "verification_snapshot": {
-    "prior_full_suite": "make verify exit0;380 tests passed on pre-repair source. Current full suite running; final checks and review recorded in PR.",
+    "prior_full_suite": "make verify exit0;380 tests passed on pre-repair source.",
     "focused_controls": "22 tests passed after repair",
     "supplemental_lint": "Ruff F,B012,B018 passed on three changed Python files",
     "native_boundary": "Model-free canaries passed both workspace-write/read-only profiles with9 denied reads each; excludes hosted tools.",
-    "review1": "Returned Opus5.5 review identified three measurement defects; this file is a pre-review2 evidence snapshot, not self-certification."
+    "review1": "Returned Opus5.5 review identified three measurement defects; this file is a pre-review2 evidence snapshot, not self-certification.",
+    "repaired_full_suite": "make verify exit0;384 tests passed on repaired source. Tool completion confirmed exit0; log SHA256 591182447226f5d8221bfc9ed0187e4e1b3860f499d199602d35a489eab64014. Later rubric-only wording corrections retain affected structural checks and review.",
+    "review2": "Opus5.5 found no code or acceptance-logic defects; required wording correction to distinguish unrelated scope decisions from necessary clarification. This snapshot records that correction; final-head CI remains a separate PR gate."
   },
   "issues": [
     {
@@ -486,7 +492,7 @@
     {
       "number": 38,
       "status": "open-partial-evidence",
-      "remaining_acceptance": "Native independent/stacked ancestry remains unavailable under protected .git; actual remote PR base unobserved. Same-session scope choice delivered in one repaired case, but initial question/recommendation/trade-off was not observed. Cross-domain transfer and legitimate complex-work cases still needed. No issue closure."
+      "remaining_acceptance": "Native independent/stacked ancestry remains unavailable under protected .git; actual remote PR base unobserved. One repaired case observed same-session continuation and legitimate schema-only completion with desktop integration left open. Question-before-dependent-work is unmeasured and needs a task that actually depends on the unresolved choice. Cross-domain transfer and legitimate complex-work cases remain. No issue closure."
     },
     {
       "number": 39,
@@ -547,6 +553,7 @@
     "Branch controls are host calibration only; native git-write capability remains blocked, profile unchanged.",
     "Effects success is not evidence of an appropriate clarification question.",
     "Sanitized evidence retains identities, responses and command names; complete logs remain in task workspace.",
-    "All twelve issues remain open; no installed skills, live service, remote PR base or original incident changed."
+    "All twelve issues remain open; no installed skills, live service, remote PR base or original incident changed.",
+    "The settled-scope pass used instrument revision1; its revised prompt was not rerun. Revision3 changes rubric wording only and has no new native attempt."
   ]
 }
