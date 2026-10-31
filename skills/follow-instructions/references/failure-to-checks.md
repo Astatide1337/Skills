@@ -41,7 +41,7 @@ A structural rule is justified when an observed recurrence or safety boundary ca
 
 ## Later regression coverage
 
-These cases extend the existing [workflow dataset](../../../evals/cases/workflows.json).
+These cases extend the existing [workflow dataset](https://github.com/Astatide1337/Skills/blob/main/evals/cases/workflows.json).
 Each target and runner assertion is defined before candidate execution and kept
 outside the candidate prompt. The case's `audit_provenance` distinguishes the
 source class, unestablished machine identity, and limited implementation claim.
@@ -96,11 +96,11 @@ reliability or resolve attribution to K-Agent versus Lestatide.
 
 The table lists procedures to perform when their triggers arise; its prose is
 not an installed automated guard. Implemented checks are separate: the
-[workflow contract tests](../../../evals/tests/test_workflows.py) exercise
+[workflow contract tests](https://github.com/Astatide1337/Skills/blob/main/evals/tests/test_workflows.py) exercise
 runner-owned acceptance, and the
-[candidate-output regression](../../../evals/tests/test_skills_lifecycle.py)
+[candidate-output regression](https://github.com/Astatide1337/Skills/blob/main/evals/tests/test_skills_lifecycle.py)
 rejects a missing required answer even when the expected answer is available.
-The [CI workflow](../../../.github/workflows/ci.yml)
+The [CI workflow](https://github.com/Astatide1337/Skills/blob/main/.github/workflows/ci.yml)
 runs catalog structure and case validation plus these model-free, local/mocked
 unit contracts on the cluster runner. Its hosted `workspace-tests` job installs
 Bubblewrap from Ubuntu's package repository and attempts the full model-free

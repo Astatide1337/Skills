@@ -7,9 +7,7 @@ execution. Derive cases from observed failures; include ordinary tasks and
 valid near-misses, not only adversarial traps. Reserve held-out cases before
 choosing instruction changes. Repetitions are not independent tasks.
 
-For the approved engineering workflow, implement the complete candidate,
-portable lint repairs and deterministic lifecycle tests before comparison.
-Obtain independent review of that final candidate. Freeze the baseline and
+Obtain independent review of the final candidate. Freeze the baseline and
 candidate catalogs/globals, project files, organic tasks, settings, held-out
 checks and a finite candidate/grader budget together. Use the current explicitly
 authorized, runtime-verified model and settings identically in both arms. Named
@@ -297,22 +295,15 @@ Workflow repository `AGENTS.md` is preserved; personal instructions are installe
 separately in the isolated native home, with both identities logged. The
 repository-instruction fixture exercises precedence over a global default.
 
-For a coordinator ablation use the same `workflows` task, catalog, model,
-effort, grader, fixtures and checks with `mandatory_coordinator=true` and
-`false`. Only the mandate clause changes; authority, evidence and security
-rules remain. The global shipped mandate remains until results justify a change.
-Include ordinary work and valid near-misses, not only boundary failures.
+For a coordinator ablation, use the explicit baseline/candidate catalog and
+global-instruction paths above. Keep the catalog, model, effort, grader,
+fixtures and checks identical; change only the identified mandate clause in
+the frozen candidate instructions. The legacy `mandatory_coordinator=false`
+helper accepts retired policy wording, not the current shipped instructions.
+Keep the shipped mandate until results justify a change. Include ordinary work
+and valid near-misses, not only boundary failures.
 
-Historically, the PR20 [gap closure plan](../../../evals/results/pr20-gap-plan.md) froze
-four paired cases, one paired ordinary-task repeat, explicit settings and a
-reversal criterion: ten candidates and at most twelve grader calls. It superseded
-the earlier planned coordinator/routing budget; that attempt recorded six
-unavailable samples and zero native launches. Stop at the new declared budget;
-never bypass Bubblewrap or tune cases after seeing outcomes. Its unavailable
-host result and restricted pilot scope are historical evidence, not a current
-capability check or a restriction on the approved complete-workflow request.
-Retaining the mandate remains pending efficacy evidence despite overhead
-signals. Record explicit CLI
-settings; provider-internal effort is unobserved. Model diversity alone does not
+Record explicit CLI settings; provider-internal effort is unobserved.
+Model diversity alone does not
 establish independence. Final review starts from the original request, actual
 artifacts and raw evidence, with author claims assessed after the artifact.
