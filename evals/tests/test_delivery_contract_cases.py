@@ -99,6 +99,26 @@ class DeliveryContractControls(unittest.TestCase):
         })
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_bom_does_not_hide_html_in_markdown(self):
+        result = self.check_candidate('workflow-native-contract-format-user-override', {
+            'proposal.md': '\ufeff<!-- Owner -->\n<!doctype html><html><body>Plan</body></html>',
+        })
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('requested Markdown plan missing', result.stderr)
+
+    def test_bom_markdown_is_accepted(self):
+        result = self.check_candidate('workflow-native-contract-format-user-override', {
+            'proposal.md': '\ufeff<!-- Owner -->\n# Retry plan\n\nUse bounded retries.',
+        })
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_bom_html_is_accepted_for_html_contract(self):
+        contract = CASES['workflow-native-contract-format-retained']['metadata']['fixture_contract']
+        result = self.check_candidate('workflow-native-contract-format-retained', {
+            'plan.html': '\ufeff' + contract['write_content'],
+        })
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_html_default_cannot_override_explicit_markdown_request(self):
         result = self.check_candidate('workflow-native-contract-format-user-override',
                                       {'plan.html': '<!doctype html>'})
