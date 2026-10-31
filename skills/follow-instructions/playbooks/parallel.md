@@ -33,6 +33,11 @@ bounded. Parallelism is not a replacement process or mandatory committee.
    evidence into each task. Keep one integration owner; only that owner resolves
    a cross-worker plan change under the
    [approved-plan contract](../references/approved-plans.md).
+   Preserve each requirement's condition and evidence: "migrate if deployed
+   data exists" must not become an unconditional importer task. Superseding
+   corrections update dependent worker briefs and checks before work resumes.
+   For separately delivered branches, inspect actual ancestry and the intended
+   PR base before delegation; disclose an intentional stacked dependency.
 4. Inspect returned diffs/artifacts and checks yourself. Resolve overlap at
    its owner, integrate coherently, and exercise the affected end-to-end path.
 5. Stop delegation when coordination costs exceed its benefit. If no tool is
