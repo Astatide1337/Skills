@@ -114,7 +114,7 @@ proportional where the paths are unaffected.
 The [PR delivery policy](../pull-requests/SKILL.md#review-budget) owns round counts
 and stopping. [Better Call Sol](../better-call-sol/SKILL.md) orchestrates the
 reviewer; it does not define a second quality standard. Ordinary standalone
-reviews retain their requested scope and do not automatically run three rounds.
+reviews retain their requested scope; PR delivery uses the linked risk-based budget.
 
 ## Select detail only when relevant
 

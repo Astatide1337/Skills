@@ -42,7 +42,7 @@ cannot. Explicitly requested skills and repository-required procedures win.
    the actual requested path: a passing build cannot prove a user journey.
 4. For local-only work, report the observed result and material limits, then
    finish. Otherwise continue through [PR delivery](../pull-requests/SKILL.md#complete-authorized-delivery),
-   including its three returned review rounds. A clean diff reread is author
+   including its risk-based independent review. A clean diff reread is author
    review and cannot replace those independent rounds.
 
 This path owns routine engineering diagnosis, verification and author diff review. Do not load

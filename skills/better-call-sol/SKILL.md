@@ -35,11 +35,12 @@ On another host, use its supported fresh-context reviewer with the same limits.
 
 ## Resolve and continue
 
-Use the delivery policy's three rounds and conditional maximum of five. Each
+Use the delivery policy's risk-based round count and hard maximum of five. Each
 brief includes the original contract, current candidate identity, permitted
 effects, coverage focus and raw evidence. Later rounds include changed code and
 open finding IDs while retaining the original outcome and access to relevant
-context. A clean round counts and does not waive the remaining required rounds.
+context. Stop after a clean round when the current artifact has adequate coverage
+and no unresolved material findings; another round needs a concrete reason.
 
 For each returned finding, verify the premise. Repair a real in-scope defect
 and rerun affected checks, or decline an unsupported finding with evidence.
