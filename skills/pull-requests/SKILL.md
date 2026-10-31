@@ -180,32 +180,36 @@ explain why a ready flag alone is insufficient; the actual project remains autho
 
 ### Review budget
 
-For every PR/MR delivered under this policy, complete three independent
-[returned rounds](../code-review-and-quality/SKILL.md#returned-review-rounds),
-including typo-only changes and a clean first round. Use
-[Better Call Sol](../better-call-sol/SKILL.md) for orchestration. Obtain required
-CI as early as possible so repairs can receive final review within the budget.
+For every PR/MR delivered under this policy, obtain at least one independent
+[returned round](../code-review-and-quality/SKILL.md#returned-review-rounds),
+normally using one to three rounds. Use
+[Better Call Sol](../better-call-sol/SKILL.md) for orchestration. Start with one
+round covering the original outcome, scope, contracts, affected callers and
+verification. Stop when the current artifact has adequate independent coverage,
+material findings are resolved and checks support acceptance. A clean first round
+can be enough, including for typo-only changes.
 
-1. Review the complete change against the original outcome, scope, contracts
-   and affected callers.
-2. Review repairs and open findings, with particular attention to relevant
-   lifecycle, failure, migration and queued-work consequences.
-3. Review the current candidate, remaining findings, verification adequacy and
-   delivered artifact. Retain earlier coverage where unaffected; inspect every
-   changed delta and wider consequence that invalidates it.
+Commission a second or third round when repairs need independent verification,
+important paths remain unreviewed, or a distinct risk needs further assessment.
+Give that round a concrete coverage goal, including relevant lifecycle, failure,
+migration or queued-work consequences. Retain unaffected evidence. Do not run
+another round merely to reach a count, repeat unchanged coverage or invent findings.
+Obtain required CI early so repairs can be reviewed within the budget.
 
-Every round may raise defects in any area. Run round four and, if necessary,
-five only for evidenced security, authorization, data-integrity, shared-state
-or similarly consequential findings requiring further review. All independent
-delta rechecks count toward the same total. Never reset the counter silently.
+Every round may raise defects in any area. On substantial work, use round four
+and, if necessary, five only when evidenced security, permission, authorization,
+data-integrity, shared-state or similarly consequential findings require further
+review of repairs or affected paths. Size alone does not justify extra rounds.
+All independent delta rechecks count toward the same total; a push does not reset
+it. Use justified rounds within this policy without another permission request.
 
 A later code or configuration change invalidates affected review evidence,
 including a CI-only repair. Refresh affected checks and obtain delta coverage
 within the available budget before claiming readiness. If an ordinary finding
 needs another review after round three, or any finding/final delta remains
 uncovered at round five, finish safe authorized repairs but retain pending
-review and a non-ready PR. Report the exact gap; the cap does not waive acceptance.
-A changed budget requires an explicit user decision, not relabeling the defect.
+review and a non-ready PR. Five is a hard cap: stop commissioning reviews and
+report the exact gap. Do not waive acceptance or relabel a defect to fit the budget.
 Unsupported preferences may be declined with evidence and need no repair.
 
 Engineering acceptance and host eligibility are separate facts. If agent-owned
