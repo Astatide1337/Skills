@@ -289,6 +289,22 @@ retain actual failures and unavailable outcomes. Installed procedures and
 passing harness tests do not establish improved model efficacy. See the
 [evaluation procedure](skills/skill-creator/references/evaluation.md).
 
+Issue-derived local regressions are opt-in cases in
+`evals/cases/skills-comparison.json`, selected through `workflows(case_ids=...)`.
+Run their known-valid alternatives and targeted-defect controls without model
+calls:
+
+```bash
+uv run --frozen python -m unittest evals.tests.test_issue_resolution_cases evals.tests.test_issue_scope evals.tests.test_issue_completion -v
+```
+
+The [October 31 issue evidence](evals/results/2026-10-31-issue-regressions.json)
+records every native attempt, the classifier fixture correction, and remaining
+acceptance for all twelve issues. These synthetic cases test selected decisions;
+they do not establish improved relative performance or close the issues.
+Full export playback, real runtime/launcher replay, longitudinal corrections
+and reader-task assessment retain their separate evidence requirements.
+
 The fake tracker is intentionally limited to those optional publication-contract
 diagnostics. It stays under `evals/`, is not installed with the skills, and is
 not needed for ordinary diagnosis, implementation, review, or issue drafting.
