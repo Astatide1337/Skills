@@ -305,6 +305,32 @@ they do not establish improved relative performance or close the issues.
 Full export playback, real runtime/launcher replay, longitudinal corrections
 and reader-task assessment retain their separate evidence requirements.
 
+Opt-in `user_turns` fixture metadata delivers up to eight additional scripted
+user messages through `codex exec resume` in one owned session. Each entry has
+`text` and `allowed_paths_before`: the latter bounds cumulative persisted
+changes before that message is delivered. Model, effort, guidance, workspace
+and permission overrides stay fixed. The runner records each response, native
+usage and workspace snapshot, and stops continuation on a missing session ID
+or an invalid effects observation. Ordinary runs remain ephemeral; existing
+`approval_turn` and interruption continuations still use fresh sessions.
+This observes scripted same-session corrections, not adaptive users, child
+agent behavior, compaction or writes restored between snapshots. Pre-turn
+contracts currently prohibit Git metadata and index changes. The separate
+branch-ancestry fixtures authorize local commits and enforce their scope with
+runner-held acceptance checks. They declare `git-write` as a required
+capability and remain blocked before model launch under the current native
+profile, which protects `.git`. Host calibration does not prove native Git
+writes are supported. Missing, truncated or cancelled turn observations are
+unscored; an observed scope violation is a failure. Effects scores do not
+judge whether a response asked an appropriate question; the ambiguous-scope
+fixture retains an independent response-assessment gate.
+
+Run the branch/scope calibration and continuation lifecycle checks with:
+
+```bash
+uv run --frozen python -m unittest evals.tests.test_issue_branch_scope evals.tests.test_skills_lifecycle.UserTurnLifecycleTests -v
+```
+
 The fake tracker is intentionally limited to those optional publication-contract
 diagnostics. It stays under `evals/`, is not installed with the skills, and is
 not needed for ordinary diagnosis, implementation, review, or issue drafting.

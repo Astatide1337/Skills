@@ -9,7 +9,7 @@ import hashlib
 import json
 import os
 import sys
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -986,6 +986,359 @@ class ApprovalLifecycleTests(unittest.IsolatedAsyncioTestCase):
         ))
         self.assertEqual(skills._codex_usage(events), {"input_tokens":12,"output_tokens":5})
 
+
+
+class UserTurnLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    """Offline adapter contract for scripted same-session turns; no model runs."""
+
+    THREAD = "0199a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b"
+
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+        for name in ("workspace", "cache", "catalog/follow-instructions"):
+            (self.root / name).mkdir(parents=True)
+        (self.root / "catalog/follow-instructions/SKILL.md").write_text("FROZEN_GUIDANCE")
+        self.binary = self.root / "native-codex"
+        self.binary.write_bytes(b"\x7fELFoffline-test-double")
+        self.auth = self.root / "auth.json"
+        self.auth.write_text("{}")
+        self.launches = []
+        self.homes_seen = []
+        self.thread_ids = [self.THREAD]
+        self.startup = AsyncMock(return_value=(
+            {"skills.config": [{"path": "/owned/.system/a/SKILL.md", "enabled": False}]},
+            {"type": "skills_eval.native_skill_startup"}))
+
+    def _metadata(self, **changes):
+        metadata = {
+            "allow_changes": True,
+            "allowed_paths": ["schema.py", "notes.md"],
+            "fixture_contract": {"kind": "workspace-test", "write_path": "schema.py"},
+            "global_rules": "FROZEN_RULES",
+            "user_turns": [
+                {"text": "It is PostgreSQL per DESIGN; preserve existing work.", "allowed_paths_before": ["schema.py"]},
+                {"text": "Finish the package.", "allowed_paths_before": ["schema.py", "notes.md"]},
+            ],
+        }
+        metadata.update(changes)
+        return metadata
+
+    def _state(self, **changes):
+        state = TaskState(model="gpt-6-luna", sample_id="user-turns", epoch=1,
+                          input="Build the schema package.", messages=[], metadata=self._metadata(**changes))
+        state.store.set("workspace_baseline", Baseline(status="available", revision="abc"))
+        state.store.set("workflow_support", {"status": "supported"})
+        return state
+
+    def _sandbox(self):
+        async def execute(command, input=None, env=None, **kwargs):
+            if command[0] != str(self.binary):
+                return SimpleNamespace(success=True, returncode=0, stdout="", stderr="")
+            home = Path(env["CODEX_HOME"])
+            self.homes_seen.append(home)
+            self.launches.append({"command": list(command), "input": input, "env": dict(env),
+                                  "rules": (home / "AGENTS.md").read_text() if (home / "AGENTS.md").is_file() else None})
+            thread = self.thread_ids[min(len(self.launches), len(self.thread_ids)) - 1]
+            events = [] if thread is None else [json.dumps({"type": "thread.started", "thread_id": thread})]
+            events.append('{"type":"turn.completed","usage":{"input_tokens":4,"cached_input_tokens":1,"output_tokens":2}}')
+            return SimpleNamespace(success=True, returncode=0, stdout="\n".join(events), stderr="")
+
+        async def read_file(path):
+            return f"answer {len(self.launches)}"
+
+        return SimpleNamespace(exec=AsyncMock(side_effect=execute), read_file=AsyncMock(side_effect=read_file))
+
+    def _patches(self, evidence):
+        observed = evidence if isinstance(evidence, list) else None
+        return (
+            patch.object(skills, "_native_codex_binary", return_value=self.binary),
+            patch.object(skills, "bwrap_preflight", return_value=None),
+            patch.object(skills, "AUTH_FILE", self.auth),
+            patch.object(skills, "_native_ephemeral_cache", return_value=self.root / "cache"),
+            patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(self.root / "workspace", None))),
+            patch.object(skills, "_native_skill_startup", self.startup),
+            patch.object(skills, "sandbox", return_value=self._sandbox()),
+            patch.object(skills, "collect_evidence",
+                         side_effect=observed if observed is not None else (lambda *args, **kwargs: evidence)),
+        )
+
+    async def _run(self, state, evidence):
+        patches = self._patches(evidence)
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
+            return await skills.native_codex(with_skills=True, model="gpt-6-luna", effort="high",
+                                             inject_skill=False, skills_root=self.root / "catalog")(state, None)
+
+    @staticmethod
+    def _overrides(command):
+        start = command.index("--strict-config") + 1
+        return command[start:command.index("--output-last-message")]
+
+    def _assert_home_removed(self):
+        self.assertTrue(self.homes_seen)
+        for home in self.homes_seen:
+            self.assertFalse(home.exists())
+        self.assertEqual(list((self.root / "cache").iterdir()), [])
+
+    async def test_turns_resume_exact_thread_in_one_shared_home_with_identical_settings(self):
+        state = self._state()
+        allowed = Evidence(available=True, status="available", untracked_paths=("schema.py",), has_changes=True)
+        result = await self._run(state, allowed)
+        self.assertEqual(len(self.launches), 3)
+        self.assertEqual(len(set(self.homes_seen)), 1)
+        self.assertEqual({launch["env"]["HOME"] for launch in self.launches}, {str(self.homes_seen[0])})
+        self.startup.assert_awaited_once()
+        first, *resumed = [launch["command"] for launch in self.launches]
+        self.assertEqual(first[1], "exec")
+        self.assertNotEqual(first[2], "resume")
+        for command in (first, *resumed):
+            self.assertNotIn("--ephemeral", command)
+            for flag in ("--ignore-user-config", "--ignore-rules", "--strict-config", "--skip-git-repo-check", "--json"):
+                self.assertIn(flag, command)
+            self.assertEqual(self._overrides(command), self._overrides(first))
+            self.assertEqual(command[-1], "-")
+        for command in resumed:
+            self.assertEqual(command[1:3], ["exec", "resume"])
+            self.assertEqual(command[-2], self.THREAD)
+        self.assertIn('model_reasoning_effort="high"', self._overrides(first))
+        self.assertIn("gpt-6-luna", self._overrides(first))
+        self.assertEqual({launch["rules"] for launch in self.launches}, {"FROZEN_RULES"})
+        self.assertIn("Installed catalog filesystem root", self.launches[0]["input"])
+        self.assertIn(state.input_text, self.launches[0]["input"])
+        self.assertEqual([launch["input"] for launch in self.launches[1:]],
+                         [turn["text"] for turn in state.metadata["user_turns"]])
+        receipt = result.store.get("native_turns")
+        self.assertEqual(receipt["status"], "completed")
+        self.assertEqual(receipt["thread_id"], self.THREAD)
+        self.assertEqual([turn["response"] for turn in receipt["turns"]], ["answer 1", "answer 2", "answer 3"])
+        self.assertEqual([turn["usage"]["output_tokens"] for turn in receipt["turns"]], [2, 2, 2])
+        self.assertEqual([turn["effects_after"]["status"] for turn in receipt["turns"]], ["accepted", "accepted", "observed"])
+        resume_receipt = json.loads(receipt["turns"][1]["events"].splitlines()[0])
+        initial_receipt = json.loads(receipt["turns"][0]["events"].splitlines()[0])
+        self.assertEqual(resume_receipt["config"], initial_receipt["config"])
+        self.assertEqual(result.output.completion, "answer 3")
+        self.assertEqual(result.output.metadata["native_usage"]["output_tokens"], 6)
+        self._assert_home_removed()
+
+    async def test_out_of_scope_or_incomplete_pre_turn_effects_stop_before_next_turn(self):
+        for observation in (
+            Evidence(available=True, status="available", untracked_paths=("schema.py", "importer.py")),
+            Evidence(available=True, status="available", untracked_paths=("notes.md",)),
+            Evidence(available=True, status="available", untracked_paths=("schema.py",), git_metadata_changed=True),
+            Evidence(available=True, status="available", index_changed=True),
+            Evidence(available=True, status="available", truncated=True),
+            Evidence(available=False, status="unavailable", reason="boundary unsupported"),
+        ):
+            with self.subTest(observation=observation):
+                self.launches.clear()
+                self.homes_seen.clear()
+                state = self._state()
+                state.output = ModelOutput.from_content(model="stub/no-model", content="")
+                result = await self._run(state, observation)
+                self.assertEqual(len(self.launches), 1)
+                receipt = result.store.get("native_turns")
+                unavailable = not observation.available or observation.truncated or bool(observation.omissions)
+                expected = "unavailable" if unavailable else "rejected"
+                self.assertEqual(receipt["status"], expected)
+                self.assertEqual(receipt["rejected_before_turn"], 1)
+                self.assertEqual(receipt["turns"][0]["response"], "answer 1")
+                self.assertEqual(receipt["turns"][0]["effects_after"]["status"], expected)
+                score = await skills.workflow_effects()(result, Target("scripted turns"))
+                if unavailable:
+                    self.assertTrue(math.isnan(score.value))
+                    self.assertTrue(score.metadata["acceptance_blocked"])
+                else:
+                    self.assertEqual(score.value, 0)
+                self._assert_home_removed()
+
+    async def test_later_turn_violation_retains_earlier_turns(self):
+        state = self._state()
+        observations = [
+            Evidence(available=True, status="available", untracked_paths=("schema.py",)),
+            Evidence(available=True, status="available", untracked_paths=("schema.py", "other.py")),
+        ]
+        result = await self._run(state, observations)
+        self.assertEqual(len(self.launches), 2)
+        receipt = result.store.get("native_turns")
+        self.assertEqual((receipt["status"], receipt["rejected_before_turn"]), ("rejected", 2))
+        self.assertEqual(receipt["turns"][1]["effects_after"]["outside_paths"], ["other.py"])
+        self._assert_home_removed()
+
+    async def test_incomplete_final_observation_cannot_complete_user_turns(self):
+        state = self._state(user_turns=[{"text": "Finish.", "allowed_paths_before": ["schema.py"]}])
+        result = await self._run(state, [
+            Evidence(available=True, status="available"),
+            Evidence(available=True, status="available", truncated=True),
+        ])
+        self.assertEqual(len(self.launches), 2)
+        self.assertEqual(result.store.get("native_turns")["status"], "unavailable")
+        self.assertNotIn("rejected_before_turn", result.store.get("native_turns"))
+        score = await skills.workflow_effects()(result, Target("complete final evidence"))
+        self.assertTrue(math.isnan(score.value))
+        self._assert_home_removed()
+
+    async def test_settled_edits_do_not_prevent_delivery_of_scope_choice(self):
+        sample = next(s for s in skills.workflows_dataset(case_ids=["issue-38-material-scope-choice"]).samples)
+        state = self._state(**sample.metadata)
+        result = await self._run(state, Evidence(available=True, status="available",
+                                                tracked_worktree_paths=("catalog.py", "test_catalog.py")))
+        self.assertEqual(len(self.launches), 2)
+        self.assertEqual(result.store.get("native_turns")["status"], "completed")
+        self.assertEqual(self.launches[1]["input"], sample.metadata["user_turns"][0]["text"])
+        # Semantic quality of the first response is a separate review gate.
+        self.assertEqual(result.store.get("native_turns")["turns"][0]["response"], "answer 1")
+        self._assert_home_removed()
+
+    async def test_cancelled_turn_is_unscored_and_cleans_owned_home(self):
+        state = self._state()
+        patches = self._patches(Evidence(available=True, status="available"))
+        async def cancelled(message, session):
+            self.homes_seen.append(session.home)
+            raise asyncio.CancelledError()
+        with patches[2], patches[3]:
+            with self.assertRaises(asyncio.CancelledError):
+                await skills._native_user_turns(state, Baseline(status="available", revision="abc"),
+                    "initial", with_skills=True, skills_root=self.root / "catalog", launch=cancelled)
+        self.assertEqual(state.store.get("native_turns")["status"], "failed")
+        score = await skills.workflow_effects()(state, Target("cancelled run"))
+        self.assertTrue(math.isnan(score.value))
+        self._assert_home_removed()
+
+    async def test_absent_malformed_or_changed_session_id_fails_closed_and_cleans_home(self):
+        allowed = Evidence(available=True, status="available", untracked_paths=("schema.py",))
+        for threads, launches in (([None], 1), (["not-a-uuid"], 1), ([self.THREAD.upper()], 1),
+                                  ([self.THREAD, "0199a1b2-c3d4-7e5f-8a9b-ffffffffffff"], 2),
+                                  ([self.THREAD, None], 2)):
+            with self.subTest(threads=threads):
+                self.launches.clear()
+                self.homes_seen.clear()
+                self.thread_ids = threads
+                state = self._state()
+                with self.assertRaisesRegex(RuntimeError, "session id"):
+                    await self._run(state, allowed)
+                self.assertEqual(len(self.launches), launches)
+                receipt = state.store.get("native_turns")
+                self.assertEqual(receipt["status"], "failed")
+                self.assertEqual(receipt["turns"][-1]["status"], "failed")
+                if launches == 2:
+                    self.assertEqual(receipt["turns"][0]["response"], "answer 1")
+                state.output = ModelOutput.from_content(model="stub/no-model", content="")
+                score = await skills.workflow_effects()(state, Target("scripted turns"))
+                self.assertTrue(math.isnan(score.value))
+                self._assert_home_removed()
+
+    async def test_invalid_metadata_is_rejected_before_any_launch(self):
+        turn = {"text": "Correction.", "allowed_paths_before": []}
+        invalid = (
+            {"user_turns": []}, {"user_turns": "Correction."}, {"user_turns": [turn] * (skills.MAX_USER_TURNS + 1)},
+            {"user_turns": [{**turn, "text": "   "}]}, {"user_turns": [{**turn, "text": 7}]},
+            {"user_turns": [{**turn, "text": "x" * (skills.MAX_USER_TURN_CHARS + 1)}]},
+            {"user_turns": [{"text": "Correction."}]}, {"user_turns": [{**turn, "adaptive": True}]},
+            {"user_turns": [{**turn, "allowed_paths_before": ["importer.py"]}]},
+            {"user_turns": [{**turn, "allowed_paths_before": "schema.py"}]},
+            {"allowed_paths": None}, {"approval_turn": {"plan_path": "proposal.html"}},
+            {"interrupt_marker": "phase.started"}, {"resume_prompt": "Resume."},
+            {"fixture_contract": {"kind": "fake-tracker-publication"}}, {"fixture_contract": None},
+        )
+        for changes in invalid:
+            with self.subTest(changes=changes):
+                self.launches.clear()
+                state = self._state(**changes)
+                self.assertIsNotNone(skills._user_turns_contract_error(state.metadata))
+                home = MagicMock()
+                with patch.object(skills, "isolated_codex_home", home), \
+                     patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(self.root / "workspace", None))), \
+                     patch.object(skills, "bwrap_preflight", return_value=None):
+                    support = await skills._workflow_support_status(state)
+                    result = await self._run(state, Evidence(available=True, status="available"))
+                self.assertNotEqual(support["status"], "supported")
+                self.assertTrue(result.completed)
+                self.assertIn("blocked before native launch", result.output.completion)
+                self.assertEqual(self.launches, [])
+                self.assertNotIn("native_turns", result.store)
+        state = self._state()
+        with patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(self.root / "workspace", None))), \
+             patch.object(skills, "bwrap_preflight", return_value=None):
+            support = await skills._workflow_support_status(state)
+        self.assertIn("user-turns", support["capabilities"])
+
+    async def test_launch_failure_on_later_turn_retains_receipts_and_cleans_home(self):
+        state = self._state()
+        allowed = Evidence(available=True, status="available", untracked_paths=("schema.py",))
+        calls = []
+        original = skills.run_codex
+
+        async def failing(prompt, **kwargs):
+            calls.append(kwargs["session"])
+            if len(calls) == 2:
+                raise RuntimeError("native Codex failed: exit=1")
+            return await original(prompt, **kwargs)
+
+        with patch.object(skills, "run_codex", side_effect=failing):
+            with self.assertRaisesRegex(RuntimeError, "exit=1"):
+                await self._run(state, allowed)
+        self.assertIs(calls[0], calls[1])
+        receipt = state.store.get("native_turns")
+        self.assertEqual(receipt["status"], "failed")
+        self.assertEqual([turn["status"] for turn in receipt["turns"]], ["delivered", "failed"])
+        self.assertIn("exit=1", receipt["turns"][1]["reason"])
+        self._assert_home_removed()
+
+    async def test_resume_with_changed_settings_or_workspace_is_refused_before_launch(self):
+        patches = self._patches(Evidence(available=True, status="available"))
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
+            home = self.root / "owned-home"
+            home.mkdir()
+            session = skills.NativeSession(home=home)
+            await skills.run_codex("initial", model="gpt-6-luna", effort="high", with_skills=False,
+                                   sandbox_mode="workspace-write", session=session)
+            self.assertEqual(session.thread_id, self.THREAD)
+            for changes in ({"model": "other-model"}, {"effort": "low"}, {"global_rules": "EDITED"},
+                            {"sandbox_mode": "read-only"}):
+                arguments = {"model": "gpt-6-luna", "effort": "high", "with_skills": False,
+                             "sandbox_mode": "workspace-write", **changes}
+                with self.subTest(changes=changes), self.assertRaisesRegex(ValueError, "retain"):
+                    await skills.run_codex("next", session=session, **arguments)
+            with self.assertRaisesRegex(ValueError, "persisted"):
+                await skills.run_codex("next", model="gpt-6-luna", effort="high", with_skills=False,
+                                       sandbox_mode="workspace-write", session=session, interrupt_marker=".pause")
+            (home / "AGENTS.md").write_text("INJECTED")
+            with self.assertRaisesRegex(RuntimeError, "guidance changed"):
+                await skills.run_codex("next", model="gpt-6-luna", effort="high", with_skills=False,
+                                       sandbox_mode="workspace-write", session=session)
+            (home / "AGENTS.md").unlink()
+            with patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(self.root, None))), \
+                 self.assertRaisesRegex(RuntimeError, "workspace changed"):
+                await skills.run_codex("next", model="gpt-6-luna", effort="high", with_skills=False,
+                                       sandbox_mode="workspace-write", session=session)
+        self.assertEqual(len(self.launches), 1)
+
+    async def test_ordinary_run_stays_ephemeral_in_a_fresh_home_per_call(self):
+        patches = self._patches(Evidence(available=True, status="available"))
+        self.thread_ids = [None]
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
+            for _ in range(2):
+                completion, _events = await skills.run_codex("task", model="gpt-6-luna", with_skills=False,
+                                                             sandbox_mode="workspace-write")
+        self.assertEqual(len(self.launches), 2)
+        for launch in self.launches:
+            self.assertIn("--ephemeral", launch["command"])
+            self.assertNotIn("resume", launch["command"])
+            self.assertEqual(launch["command"][-1], "-")
+        self.assertEqual(self.startup.await_count, 2)
+        self.assertEqual(len(set(self.homes_seen)), 2)
+        self._assert_home_removed()
+
+    def test_session_id_requires_one_canonical_thread_started_uuid(self):
+        started = lambda value: json.dumps({"type": "thread.started", "thread_id": value})
+        self.assertEqual(skills._session_thread_id(started(self.THREAD) + "\nnot json"), self.THREAD)
+        self.assertEqual(skills._session_thread_id(started(self.THREAD) + "\n" + started(self.THREAD)), self.THREAD)
+        for events in ("", started(None), started([]), started({}), started("thread-name"), started(self.THREAD.upper()),
+                       started("{" + self.THREAD + "}"),
+                       started(self.THREAD) + "\n" + started("0199a1b2-c3d4-7e5f-8a9b-ffffffffffff")):
+            with self.subTest(events=events):
+                self.assertIsNone(skills._session_thread_id(events))
 
 class NativeSkillStartupTests(unittest.IsolatedAsyncioTestCase):
     async def test_startup_failure_prevents_any_native_model_execution(self):
