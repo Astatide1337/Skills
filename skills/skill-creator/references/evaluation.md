@@ -19,6 +19,13 @@ Retain every attempted outcome, including unavailable capabilities and failed
 samples. Nothing is promoted automatically; adopting a proposed change is a
 separate human-authorized decision.
 
+## Calibrate before comparison
+
+Apply [instrument validity](../../verify-work/SKILL.md#validate-the-measuring-instrument)
+before treating a score as outcome evidence. Match known-valid alternatives and
+targeted defects to the user's contract. Keep changed instruments separate from
+changes to candidate guidance; independent acceptance checks remain fixed.
+
 ## Use existing Inspect tasks
 
 The tasks in `evals/skills.py` run the locally authenticated Codex CLI in its

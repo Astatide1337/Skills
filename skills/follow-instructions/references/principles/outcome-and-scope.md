@@ -16,6 +16,21 @@ shape. Inspect existing capabilities and delete unnecessary work before adding
 moving parts. For a planned migration or rewrite, optimize for the intended
 verified target rather than preserving temporary states that have no owner.
 
+The smallest complete change satisfies every requested outcome and evidenced
+contract with coherent ownership and maintainable interfaces. It is not the
+fewest changed lines or a patch for only the reported symptom. Trace relevant
+failure, retry, persistence, migration and queued-consumer paths. Preserve
+compatibility when deployed data, actual consumers or supported public contracts
+require it; assistant-created prototypes and fixtures do not create obligations.
+Check for those consumers before adding or dropping compatibility. Keep legitimate
+complexity when it serves the outcome; exclude speculative extensibility and
+unrelated cleanup.
+
+For UI and prose, assess the intended reader's task and preserved meaning.
+Removing padding must retain useful explanations and necessary warnings unless
+their removal was requested. Technical completeness and a passing build do not
+establish that a learner or contributor can use the result.
+
 ## Procedure
 
 1. State what a user, caller, operator, or maintainer should observe when done.

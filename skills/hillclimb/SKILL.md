@@ -7,6 +7,10 @@ description: "Improves one measured metric through repeated baseline-and-experim
 
 Improve the measured result without sacrificing the system around it.
 
+Use [instrument validity](../verify-work/SKILL.md#validate-the-measuring-instrument)
+when introducing or repairing a metric; an explicitly authorized instrument
+repair is not permission to weaken the outcome or compare incompatible scores.
+
 ## Establish a trustworthy ruler
 
 Before changing the candidate:
