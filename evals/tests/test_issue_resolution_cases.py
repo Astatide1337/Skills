@@ -101,13 +101,29 @@ class IssueResolutionControls(unittest.TestCase):
     t=r['target']
     actual=(r['selected_test'],r['stage'],r['actual_error'],r['assertion_id'])
     expected=(t['test'],t['stage'],t['error'],t['assertion_id'])
-    return 'killed' if r['returncode'] == 1 and actual == expected else 'invalid'
+    return 'killed' if actual == expected else 'invalid'
 """)
         (root / "classification.json").write_text(
             '["killed","invalid","invalid","survived","invalid"]'
         )
         result = self.acceptance(root, sample)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_mutation_rejects_exit_one_only_classifier(self):
+        root, sample = self.prepare(CASE_IDS[1])
+        (root / "verifier.py").write_text("""def classify(r):
+    if r['returncode'] == 0:
+        return 'survived'
+    t = r['target']
+    matches = (r['selected_test'], r['stage'], r['actual_error'], r['assertion_id']) == (t['test'], t['stage'], t['error'], t['assertion_id'])
+    return 'killed' if r['returncode'] == 1 and matches else 'invalid'
+""")
+        (root / "classification.json").write_text(
+            '["killed","invalid","invalid","survived","invalid"]'
+        )
+        result = self.acceptance(root, sample)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("matching nonzero execution incorrectly rejected", result.stderr)
 
     def test_criteria_rejects_nonempty_credits_as_acceptance(self):
         root, sample = self.prepare(CASE_IDS[2])

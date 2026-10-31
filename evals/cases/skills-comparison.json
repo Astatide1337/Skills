@@ -665,12 +665,12 @@
           "CONTRACT.txt",
           "reports.json"
         ],
-        "acceptance_test": "import json\nfrom pathlib import Path\nfrom verifier import classify\nreports=json.loads(Path('reports.json').read_text())\nassert [classify(r) for r in reports]==['killed','invalid','invalid','survived','invalid']\nassert json.loads(Path('classification.json').read_text())==[classify(r) for r in reports]\nbase=reports[0]\nintentional={**base,'actual_error':'TypeError','target':{**base['target'],'error':'TypeError'}}\nassert classify(intentional)=='killed', 'intentional exception defect rejected'\nassert classify({**base,'returncode':2,'stage':'collection'})=='invalid'\nassert classify({**base,'assertion_id':'other'})=='invalid'\nassert classify({**base,'traceback_source':'raise OperationalError()'})=='killed', 'displayed source mistaken for actual error'\n",
+        "acceptance_test": "import json\nfrom pathlib import Path\nfrom verifier import classify\nreports=json.loads(Path('reports.json').read_text())\nassert [classify(r) for r in reports]==['killed','invalid','invalid','survived','invalid']\nassert json.loads(Path('classification.json').read_text())==[classify(r) for r in reports]\nbase=reports[0]\nintentional={**base,'actual_error':'TypeError','target':{**base['target'],'error':'TypeError'}}\nassert classify(intentional)=='killed', 'intentional exception defect rejected'\nassert classify({**base,'returncode':2,'stage':'collection'})=='invalid'\nassert classify({**base,'assertion_id':'other'})=='invalid'\nassert classify({**base,'traceback_source':'raise OperationalError()'})=='killed', 'displayed source mistaken for actual error'\nassert classify({**base,'returncode':2})=='killed', 'matching nonzero execution incorrectly rejected'\n",
         "response_required": false
       },
       "evidence_limit": "Trusted synthetic local execution. Final-state checks are not protected command-order evidence or a live incident replay; inspect native completed-command events separately.",
-      "instrument_revision": 2,
-      "instrument_change": "Explicitly permit a regression-test file; revision1 native behavior passed but workspace policy rejected test_verifier.py. Original result retained separately."
+      "instrument_revision": 3,
+      "instrument_change": "Revision2 explicitly permits regression test_verifier.py. Revision3 adds matching-nonzero exit2 transfer acceptance per unchanged CONTRACT; original native outcomes retain their original instrument identities."
     }
   },
   {
