@@ -557,7 +557,7 @@
           "proposal.md",
           "client.py"
         ],
-        "acceptance_test": "from pathlib import Path\nimport hashlib\ntext=Path('proposal.md').read_text()\nassert text.strip() and not text.lstrip().lower().startswith('<!doctype html'), 'requested Markdown plan missing'\nassert not Path('plan.html').exists(), 'explicit Markdown override ignored'\nassert hashlib.sha256(Path('client.py').read_bytes()).hexdigest() == 'a1d883b25dffa2307691f73d1faa272f0eb5c5cba1314b80750511797d71b3fb', 'source changed'\n",
+        "acceptance_test": "from pathlib import Path\nimport hashlib\nfrom html.parser import HTMLParser\nclass FirstToken(HTMLParser):\n    def __init__(self):\n        super().__init__(); self.seen=False; self.is_document=False\n    def handle_decl(self, decl):\n        if not self.seen:\n            self.seen=True\n            self.is_document=decl.lower().split()[:2] == ['doctype', 'html']\n    def handle_starttag(self, tag, attrs):\n        if not self.seen:\n            self.seen=True; self.is_document=tag == 'html'\n    def handle_data(self, data):\n        if data.strip(): self.seen=True\ntext=Path('proposal.md').read_text()\nfirst=FirstToken(); first.feed(text)\nassert text.strip() and not first.is_document, 'requested Markdown plan missing'\nassert not Path('plan.html').exists(), 'explicit Markdown override ignored'\nassert hashlib.sha256(Path('client.py').read_bytes()).hexdigest() == 'a1d883b25dffa2307691f73d1faa272f0eb5c5cba1314b80750511797d71b3fb', 'source changed'\n",
         "response_required": false
       },
       "optional_skills": [

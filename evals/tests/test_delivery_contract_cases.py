@@ -82,6 +82,23 @@ class DeliveryContractControls(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('requested Markdown plan missing', result.stderr)
 
+    def test_leading_comments_cannot_hide_an_html_document(self):
+        for opening in ('<!doctype html><html lang="en">', '<html lang="en">'):
+            with self.subTest(opening=opening):
+                result = self.check_candidate('workflow-native-contract-format-user-override', {
+                    'proposal.md': '<!-- Owner -->\n <!-- Another comment -->\n' + opening
+                        + '<head><title>Plan</title></head><body><main><h1>Plan</h1>'
+                        + '</main></body></html>',
+                })
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('requested Markdown plan missing', result.stderr)
+
+    def test_markdown_may_quote_html_without_becoming_an_html_document(self):
+        result = self.check_candidate('workflow-native-contract-format-user-override', {
+            'proposal.md': '<!-- Owner -->\n# Plan\n\n```html\n<!doctype html>\n```\n',
+        })
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_html_default_cannot_override_explicit_markdown_request(self):
         result = self.check_candidate('workflow-native-contract-format-user-override',
                                       {'plan.html': '<!doctype html>'})
