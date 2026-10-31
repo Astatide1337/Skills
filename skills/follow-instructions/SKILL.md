@@ -1,11 +1,11 @@
 ---
 name: follow-instructions
-description: "Selects the smallest workflow and supporting skills. Use whenever a catalog skill applies, including diagnosis, review, implementation, writing and retrospectives. Initialize once."
+description: "Selects workflows and skills for non-trivial work. Use for unclear causes, consequential boundaries or substantial delivery. Skip only low-risk local fixes with clear owners, callers and checks."
 ---
 
 # Follow instructions
 
-Initialize once when catalog skills apply. Choose the procedure that reaches
+Initialize once for non-trivial work when catalog skills apply. Choose the procedure that reaches
 the requested result; leaf skills must not call this coordinator recursively.
 Resolve each relative reference from the directory containing its owning
 `SKILL.md`; use the supplied skill locator rather than guessing directories.
@@ -98,9 +98,7 @@ then read the relevant detail. Source context is optional:
 ## Authority and delivery
 
 Use [plans and authority](references/approved-plans.md) for a substantial design
-or an explicit approval gate. Reuse authorization already given. Keep required
-outcomes, preferred methods and illustrative examples distinct; choose a justified
-alternative when the default does not fit.
+or an explicit approval gate. Reuse authorization already given.
 
 When implementation and PR/MR delivery are authorized, retain the original objective
 and follow [delivery completion](../pull-requests/SKILL.md#complete-authorized-delivery).

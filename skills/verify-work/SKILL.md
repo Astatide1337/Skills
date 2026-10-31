@@ -1,6 +1,6 @@
 ---
 name: verify-work
-description: "Proves claims with current evidence at each layer, from build to deployed behavior, and builds project verifiers. Use before saying something is done, fixed, deployed or working."
+description: "Proves claims with current evidence and builds project verifiers. Use for verification requests or consequential changes. Low-risk local fixes with a clear existing check use direct verification."
 ---
 
 # Verify Work
