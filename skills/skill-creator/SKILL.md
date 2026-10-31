@@ -67,7 +67,7 @@ Every skill requires `SKILL.md` with YAML frontmatter containing `name` and
   non-trigger when it prevents a collision. The body is unavailable until
   after selection.
 - Stay within the catalog validator's
-  [description budget](../../scripts/validate_catalog.py) on one line; keep
+  [description budget](https://github.com/Astatide1337/Skills/blob/main/scripts/validate_catalog.py) on one line; keep
   procedure in the body. This is a local budget, not a harness guarantee.
 - Good: `Drafts, opens, reviews or monitors GitHub PRs and GitLab MRs. Use for
   any PR/MR task. Never merges.` Bad: `Helps with pull requests.` Also bad:

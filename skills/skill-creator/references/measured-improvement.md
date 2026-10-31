@@ -72,7 +72,7 @@ information or a materially changed method. At a real budget or permission
 boundary, retain an unresolved result. Do not lower the standard or add a new
 rule merely to make the experiment end positively.
 
-## Promotion and the next milestone
+## Promotion
 
 Nothing is promoted automatically. A catalog change must answer an observed
 failure (two distinct occurrences, or one on a safety boundary), use the
@@ -85,11 +85,5 @@ explicit authorized decision. Permission and verifier changes cannot be justifie
 by an aggregate score alone. Deletion is a valid improvement. Reassess methods
 when models, tools or the workload change.
 
-One real delivery is M1, not proof of superiority. A task-family comparison is
-M2. Several task types, continuation and a credible follow-up support a repository
-maintainer. Transfer and sustained real work in a second repository support the
-practical finish line. Breadth, difficulty and authority advance separately.
 Do not impose universal 30-task, 90-percent or four-week thresholds. Predeclare
 criteria suited to the actual workload and report raw counts and limitations.
-After the method works, spend effort on the applications rather than indefinite
-framework expansion.

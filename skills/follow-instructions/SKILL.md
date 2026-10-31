@@ -111,9 +111,7 @@ then read the relevant detail. Source context is optional:
 ## Authority and delivery
 
 Use [plans and authority](references/approved-plans.md) for a substantial design
-or an explicit approval gate. Reuse authorization already given. Keep required
-outcomes, preferred methods and illustrative examples distinct; choose a justified
-alternative when the default does not fit.
+or an explicit approval gate. Reuse authorization already given.
 
 For implementation, apply the user's standing PR-delivery authority unless a
 local-only request or other restriction overrides it. Retain the original objective

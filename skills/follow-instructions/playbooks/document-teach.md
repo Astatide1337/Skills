@@ -20,10 +20,12 @@ methods, and [`unslop`](../../unslop/SKILL.md) only for an explicit rewrite.
 
 1. Inspect the authoritative implementation and relevant callers/state before
    explaining. Separate source facts, inference, and open questions.
-2. Choose the smallest useful structure: flow, invariant, trade-off, example,
-   and next location to change. Verify commands/examples against source or a
-   safe run. For UI or motion, inspect the actual rendered state rather than a
-   mockup.
+2. Structure the explanation for the reader's task. Check executable recipes
+   against their actual bindings and effects, not just comments or syntax.
+   For state-changing instructions, inspect relevant writers and readers of
+   that state: establish preconditions, expected effects, and states that must
+   remain denied. Use source or an authorized isolated run; distinguish those
+   proof layers. For UI or motion claims, inspect the rendered state.
 3. Deliver in the requested channel. Add a teach-back prompt only when it
    materially helps learning; do not turn every explanation into homework.
 
@@ -42,8 +44,12 @@ it depicts.
 
 ## Example
 
-Teach a maintainer the request flow by tracing the actual router, service, and
-state owner, then show one real success/error path and where a future fix lives.
+A maintenance guide reverses a disable operation by setting `enabled: true`.
+But the same state also represents quarantine, with the reason recorded in
+another field. A valid update can silently undo that policy. Inspect the other
+writers and the consumer before recommending the inverse: routine disablement
+may be reversed after its preconditions are met; quarantine needs its own
+review. A wording-only edit can reuse unchanged, covering evidence.
 
 ## Near-miss
 
