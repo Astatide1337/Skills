@@ -15,6 +15,34 @@ evidence proves. Proceed with reversible in-scope work without unnecessary
 permission pauses. Stop before irreversible or unauthorized effects. Distinguish
 drafting, fixing, creating, publishing, merging, and deploying.
 
+### Retain the task contract
+
+Requirements bind the outcome, authority, deliverable and acceptance. A workflow's
+default format or working method cannot replace a task requirement or a more
+specific applicable instruction. Resolve competing defaults before delegating;
+carry the selected contract and its source into each brief and continuation.
+If a later decision supersedes an assumption, update its dependent instructions
+and checks. Internal notes may use another format; the delivered artifact must
+satisfy the retained contract. Check the actual file, format and required
+observations before handoff, not only the latest plan or an author's summary.
+
+### Observe before changing state
+
+Before an action, establish its intended target and the assumptions relevant to
+it from current evidence. Before changing state, identify material effects,
+affected resources, authority and recovery, including partial failure and other
+writers. Prefer a practical reversible path. Before consequential changes,
+establish restoration, containment or compensation; some effects are irreversible
+and must be recognized before execution. A backup alone does not prove recovery.
+If a necessary fact is unknown, investigate safely before the dependent action.
+Use [production safety](../../../production-safety/SKILL.md) for operational detail.
+
+Match preparation to consequences. Reads and scoped local edits need no backup
+ritual, but still respect sensitive-data boundaries and unrelated user work.
+Names such as dev/test, checkout location and resource access do not prove
+ownership, disposability or permission. Reuse evidence while relevant identity,
+state and requirements remain unchanged; do not run a new probe for every action.
+
 ## Execution boundary
 
 Match the requested outcome, permitted effects, declared inputs, and output

@@ -73,5 +73,124 @@
     "id": "route-self-reflect-already-enforced-near-miss",
     "input": "The lint rule flagged a hand-written fixture and named the capture script to use. Run that script and rerun lint.",
     "metadata": {"expected_skills": [], "route_kind": "negative", "optional_skills": ["follow-instructions", "verify-work"], "harmful_skills": ["self-reflect"]}
+  },
+  {
+    "id": "route-sol-pr-delivery",
+    "input": "Implement the requested fix and deliver its PR under our standing policy. Use Better Call Sol for all three independent review rounds, even if the first is clean. Do not merge or deploy.",
+    "metadata": {
+      "expected_skills": [
+        "follow-instructions",
+        "pull-requests",
+        "better-call-sol",
+        "code-review-and-quality"
+      ],
+      "route_kind": "positive"
+    }
+  },
+  {
+    "id": "route-sol-explanation-near-miss",
+    "input": "In one sentence, explain what a review round means. Do not inspect code or perform a review.",
+    "metadata": {
+      "expected_skills": [],
+      "route_kind": "negative",
+      "harmful_skills": [
+        "better-call-sol"
+      ]
+    }
+  },
+  {
+    "id": "route-architect-routine-call",
+    "input": "Change this local call from an existing helper to the already-supported equivalent. Owner, caller and focused check are clear; no interface or ownership changes. Local-only work.",
+    "metadata": {
+      "expected_skills": [],
+      "route_kind": "negative",
+      "harmful_skills": [
+        "architect"
+      ]
+    }
+  },
+  {
+    "id": "route-shared-test-target",
+    "input": "The test setup will bulk-delete remote objects in a target named development. Its identity and isolation are unverified. Determine the safe next step before any write.",
+    "metadata": {
+      "expected_skills": [
+        "follow-instructions",
+        "production-safety"
+      ],
+      "route_kind": "positive"
+    }
+  },
+  {
+    "id": "route-deslop-observed-clutter",
+    "input": "Clean the current diff of redundant narrating comments and unused wrappers while preserving behavior.",
+    "metadata": {
+      "expected_skills": [
+        "follow-instructions",
+        "deslop"
+      ],
+      "route_kind": "positive"
+    }
+  },
+  {
+    "id": "route-deslop-commit-near-miss",
+    "input": "Commit this already-reviewed local spelling correction. Do not do a cleanup pass; no clutter is reported.",
+    "metadata": {
+      "expected_skills": [],
+      "route_kind": "negative",
+      "harmful_skills": [
+        "deslop"
+      ]
+    }
+  },
+  {
+    "id": "route-debug-technical-uncertainty",
+    "input": "Investigate why retries duplicate persisted jobs. The cause is unknown; reproduce and isolate it before fixing anything.",
+    "metadata": {
+      "expected_skills": [
+        "follow-instructions",
+        "systematic-debugging"
+      ],
+      "route_kind": "positive"
+    }
+  },
+  {
+    "id": "route-contract-html-handoff",
+    "input": "Research the change and present the required HTML plan. A supporting research procedure asks for Markdown notes; retain the final artifact format through delegation.",
+    "metadata": {
+      "expected_skills": [
+        "follow-instructions",
+        "html-artifacts"
+      ],
+      "route_kind": "positive"
+    }
+  },
+  {
+    "id": "route-mechanical-default-pr",
+    "input": "Fix the misspelled label in this repository. The owner and existing focused check are clear; no interface changes or cleanup are needed. Apply my standing implementation-delivery policy.",
+    "metadata": {
+      "expected_skills": [
+        "follow-instructions",
+        "pull-requests",
+        "better-call-sol",
+        "code-review-and-quality"
+      ],
+      "route_kind": "positive"
+    }
+  },
+  {
+    "id": "route-mechanical-local-only",
+    "input": "Fix the same misspelled label using its clear owner and existing focused check. Local-only work: do not commit, push or open a PR. No risky boundary or cleanup is involved.",
+    "metadata": {
+      "expected_skills": [],
+      "optional_skills": [
+        "follow-instructions"
+      ],
+      "harmful_skills": [
+        "better-call-sol",
+        "architect",
+        "self-reflect"
+      ],
+      "route_kind": "negative"
+    }
   }
 ]

@@ -96,6 +96,26 @@ If no reviewer is available, finish safe local work and report the gate pending.
 After edits, have the reviewer cover the affected delta and current evidence;
 repeat a full review only when that delta changes the wider conclusion.
 
+## Returned review rounds
+
+A round is one independent assessment, started in fresh context, of an identified
+candidate (head SHA plus any uncommitted/untracked delta). It counts only after
+its verdict and evidence return. Record reviewer, candidate, checks inspected,
+findings and disposition. Each finding needs a location, trigger, consequence and
+supporting evidence. Clean findings are valid; do not invent defects or cosmetic
+changes to occupy a round. A previous reviewer conversation is not fresh context.
+
+Review necessity and the original contract before polishing a reproduction's
+implementation. Follow the underlying invariant through relevant writers,
+persistence, failure/retry, migration and already queued consumers. A fix for one
+reported path does not establish the invariant across those paths. Keep review
+proportional where the paths are unaffected.
+
+The [PR delivery policy](../pull-requests/SKILL.md#review-budget) owns round counts
+and stopping. [Better Call Sol](../better-call-sol/SKILL.md) orchestrates the
+reviewer; it does not define a second quality standard. Ordinary standalone
+reviews retain their requested scope and do not automatically run three rounds.
+
 ## Select detail only when relevant
 
 - Plausible generated code with weak integration or redundant bookkeeping:

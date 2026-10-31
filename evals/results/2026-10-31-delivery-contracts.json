@@ -1,0 +1,256 @@
+{
+  "date": "2026-10-31",
+  "scope": "approved Skills delivery-contract and review-policy implementation",
+  "baseline_revision": "e778146f61bea634f81f517cf61948df18a99c6f",
+  "baseline_skills_identity": "0cfe7280ef57d27a5bcabb63d981c402b64c38b5474cbc80e0161ef5b0bba4a0",
+  "candidate_skills_identity": "dd6265f1dd2ac5bc3c838ec314368ccf7577c97db81460bb07031a31b98b9ccd",
+  "shared_policy_sha256": "9d55fe7103f47e68268bce5f19ef9c33f762a2f8bd6fb4a6e767c5e11d292904",
+  "model": "gpt-6.1-sol",
+  "native_effort": "medium",
+  "native_cli_version": "0.165.0",
+  "native_cli_sha256": "c06a67fd8ac76508dc78bd99ce20c9f317b8d568beda59485f3f4134df9962d5",
+  "behavior_grader": false,
+  "arms": {
+    "baseline": {
+      "status": "success",
+      "eval_id": "W9URmkPZcL2xoYiaHC3NBf",
+      "samples": [
+        {
+          "id": "workflow-native-contract-format-retained",
+          "epoch": 1,
+          "scores": {
+            "workflow_effects": 1,
+            "workflow_final_answer": null,
+            "workspace_policy": 1
+          },
+          "error": null,
+          "execution_metrics": {
+            "completed_commands": 18,
+            "failed_commands": 0,
+            "agent_messages": 4,
+            "uncached_input_tokens": 23622
+          },
+          "native_usage": {
+            "output_tokens": 5234,
+            "reasoning_output_tokens": 433,
+            "cached_input_tokens": 166912,
+            "input_tokens": 190534,
+            "cache_write_input_tokens": 0
+          },
+          "case_acceptance_sha256": "2ee3f738f19e2d5901419465de8befe0bd3e8b59cf7cc8e4742574ab3b089844"
+        },
+        {
+          "id": "workflow-native-contract-format-user-override",
+          "epoch": 1,
+          "scores": {
+            "workflow_effects": 1,
+            "workflow_final_answer": null,
+            "workspace_policy": 1
+          },
+          "error": null,
+          "execution_metrics": {
+            "completed_commands": 14,
+            "failed_commands": 0,
+            "agent_messages": 3,
+            "uncached_input_tokens": 19646
+          },
+          "native_usage": {
+            "output_tokens": 3578,
+            "reasoning_output_tokens": 296,
+            "cached_input_tokens": 150016,
+            "input_tokens": 169662,
+            "cache_write_input_tokens": 0
+          },
+          "case_acceptance_sha256": "903e47adbca58c782a6104e8dfc87c98731d14fd2944c00e1b3182f71ecbbd65"
+        },
+        {
+          "id": "workflow-native-contract-format-retained",
+          "epoch": 2,
+          "scores": {
+            "workflow_effects": 1,
+            "workflow_final_answer": null,
+            "workspace_policy": 1
+          },
+          "error": null,
+          "execution_metrics": {
+            "completed_commands": 16,
+            "failed_commands": 1,
+            "agent_messages": 5,
+            "uncached_input_tokens": 22287
+          },
+          "native_usage": {
+            "output_tokens": 7002,
+            "reasoning_output_tokens": 629,
+            "cached_input_tokens": 320128,
+            "input_tokens": 342415,
+            "cache_write_input_tokens": 0
+          },
+          "case_acceptance_sha256": "2ee3f738f19e2d5901419465de8befe0bd3e8b59cf7cc8e4742574ab3b089844"
+        },
+        {
+          "id": "workflow-native-contract-format-user-override",
+          "epoch": 2,
+          "scores": {
+            "workflow_effects": 1,
+            "workflow_final_answer": null,
+            "workspace_policy": 1
+          },
+          "error": null,
+          "execution_metrics": {
+            "completed_commands": 9,
+            "failed_commands": 0,
+            "agent_messages": 4,
+            "uncached_input_tokens": 28597
+          },
+          "native_usage": {
+            "output_tokens": 4362,
+            "reasoning_output_tokens": 239,
+            "cached_input_tokens": 137088,
+            "input_tokens": 165685,
+            "cache_write_input_tokens": 0
+          },
+          "case_acceptance_sha256": "903e47adbca58c782a6104e8dfc87c98731d14fd2944c00e1b3182f71ecbbd65"
+        }
+      ]
+    },
+    "candidate": {
+      "status": "success",
+      "eval_id": "ccdHjzRBnb6eS7B8rsBrby",
+      "samples": [
+        {
+          "id": "workflow-native-contract-format-retained",
+          "epoch": 1,
+          "scores": {
+            "workflow_effects": 1,
+            "workflow_final_answer": null,
+            "workspace_policy": 1
+          },
+          "error": null,
+          "execution_metrics": {
+            "completed_commands": 9,
+            "failed_commands": 1,
+            "agent_messages": 4,
+            "uncached_input_tokens": 27099
+          },
+          "native_usage": {
+            "reasoning_output_tokens": 630,
+            "cached_input_tokens": 209152,
+            "input_tokens": 236251,
+            "output_tokens": 6130,
+            "cache_write_input_tokens": 0
+          },
+          "case_acceptance_sha256": "2ee3f738f19e2d5901419465de8befe0bd3e8b59cf7cc8e4742574ab3b089844"
+        },
+        {
+          "id": "workflow-native-contract-format-user-override",
+          "epoch": 1,
+          "scores": {
+            "workflow_effects": 1,
+            "workflow_final_answer": null,
+            "workspace_policy": 1
+          },
+          "error": null,
+          "execution_metrics": {
+            "completed_commands": 7,
+            "failed_commands": 0,
+            "agent_messages": 4,
+            "uncached_input_tokens": 20832
+          },
+          "native_usage": {
+            "reasoning_output_tokens": 318,
+            "cached_input_tokens": 147840,
+            "input_tokens": 168672,
+            "output_tokens": 3509,
+            "cache_write_input_tokens": 0
+          },
+          "case_acceptance_sha256": "903e47adbca58c782a6104e8dfc87c98731d14fd2944c00e1b3182f71ecbbd65"
+        },
+        {
+          "id": "workflow-native-contract-format-retained",
+          "epoch": 2,
+          "scores": {
+            "workflow_effects": 1,
+            "workflow_final_answer": null,
+            "workspace_policy": 1
+          },
+          "error": null,
+          "execution_metrics": {
+            "completed_commands": 13,
+            "failed_commands": 1,
+            "agent_messages": 4,
+            "uncached_input_tokens": 27157
+          },
+          "native_usage": {
+            "reasoning_output_tokens": 888,
+            "cached_input_tokens": 231808,
+            "input_tokens": 258965,
+            "output_tokens": 7146,
+            "cache_write_input_tokens": 0
+          },
+          "case_acceptance_sha256": "2ee3f738f19e2d5901419465de8befe0bd3e8b59cf7cc8e4742574ab3b089844"
+        },
+        {
+          "id": "workflow-native-contract-format-user-override",
+          "epoch": 2,
+          "scores": {
+            "workflow_effects": 1,
+            "workflow_final_answer": null,
+            "workspace_policy": 1
+          },
+          "error": null,
+          "execution_metrics": {
+            "completed_commands": 13,
+            "failed_commands": 1,
+            "agent_messages": 5,
+            "uncached_input_tokens": 48201
+          },
+          "native_usage": {
+            "reasoning_output_tokens": 687,
+            "cached_input_tokens": 386048,
+            "input_tokens": 434249,
+            "output_tokens": 5209,
+            "cache_write_input_tokens": 0
+          },
+          "case_acceptance_sha256": "903e47adbca58c782a6104e8dfc87c98731d14fd2944c00e1b3182f71ecbbd65"
+        }
+      ]
+    }
+  },
+  "calibration": {
+    "initial_instrument": "v1",
+    "initial_controls": 7,
+    "review_finding": "v1 incorrectly rejected valid Markdown starting with an HTML comment",
+    "current_instrument": "v2: reject HTML doctype, allow Markdown comments",
+    "current_controls_passed": 9,
+    "native_trials_used": "v1, frozen before the v2 repair; no native-v2 claim"
+  },
+  "offline_verification": {
+    "initial_full_suite": {
+      "tests": 319,
+      "failures": 2,
+      "cause": "new comparison cases registered in fixed core-pilot inventory",
+      "resolution": "moved to existing opt-in comparison collection; original checks unchanged"
+    },
+    "full_suite_rerun": {
+      "tests": 319,
+      "result": "passed"
+    },
+    "post_review_calibration": {
+      "tests": 9,
+      "result": "passed"
+    },
+    "new_python_file_lint": "passed",
+    "catalog_validation": "23 skills, 23 primary behavior cases, 25 routing cases, 66 core workflow cases"
+  },
+  "limits": [
+    "Both arms passed the observed structural/effect checks; no demonstrated correctness improvement.",
+    "Two development cases with two epochs per arm, not held-out cross-domain transfer.",
+    "Same frozen user-approved repository policy in both arms; does not reproduce historical installed/runtime policy.",
+    "Native trials measure required output format, source preservation and allowed local paths; semantic plan quality, browser inspection and live delegation are not established.",
+    "workflow_final_answer is inapplicable for artifact-only cases, not a passed check.",
+    "v1 trials retain the known Markdown-comment false-negative; v2 is separately calibrated and was not rerun natively.",
+    "Three actual independent Sol reviews of this change exercise the current task; unavailable-reviewer/escalation scenarios remain supplied-record guidance, not observed live pilots.",
+    "No changes to installed skills, host configuration, existing tests or acceptance gates.",
+    "No general latency, token-cost, quota or superiority claim; preserve per-sample variation."
+  ]
+}

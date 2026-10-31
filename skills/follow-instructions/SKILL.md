@@ -1,17 +1,27 @@
 ---
 name: follow-instructions
-description: "Selects the smallest workflow and supporting skills. Use whenever a catalog skill applies, including diagnosis, review, implementation, writing and retrospectives. Initialize once."
+description: "Selects workflows and skills for non-trivial work. Use for unclear causes, consequential boundaries or substantial delivery. Clear local work with known owners and checks uses the short path."
 ---
 
 # Follow instructions
 
-Initialize once when catalog skills apply. Choose the procedure that reaches
+Initialize once per active task; reuse its record across domain-skill loads,
+continuations and compaction. Reclassify when the outcome or boundary changes,
+not merely because another skill applies. Choose the procedure that reaches
 the requested result; leaf skills must not call this coordinator recursively.
 Resolve each relative reference from the directory containing its owning
 `SKILL.md`; use the supplied skill locator rather than guessing directories.
 Read repository guidance and apply the shared
 [execution boundary](references/principles/authority-and-claims.md#execution-boundary).
 A skill supplies procedure, never permission to edit, publish, merge, or deploy.
+
+Retain the requested outcome, permitted effects, deliverable format and
+acceptance across workflow selection, delegation and handoff. Include these
+constraints in worker briefs. Supporting procedures choose working methods;
+they do not replace the task's requirements. Before delivery compare the actual
+artifact with this contract, including its required format and evidence.
+Use [authority and claims](references/principles/authority-and-claims.md) for
+requirement precedence and proportional action/recovery decisions.
 
 ## Short task path
 
@@ -30,13 +40,16 @@ cannot. Explicitly requested skills and repository-required procedures win.
 2. Make the smallest authorized correction. Preserve existing negative cases.
 3. Run the focused check on the final code and inspect the diff/scope. Exercise
    the actual requested path: a passing build cannot prove a user journey.
-4. Report the observed result and material limits, then finish. A clean diff
-   reread is author review, not independent review.
+4. For local-only work, report the observed result and material limits, then
+   finish. Otherwise continue through [PR delivery](../pull-requests/SKILL.md#complete-authorized-delivery),
+   including its three returned review rounds. A clean diff reread is author
+   review and cannot replace those independent rounds.
 
-This path owns routine diagnosis, verification and diff review. Do not load
+This path owns routine engineering diagnosis, verification and author diff review. Do not load
 full playbooks, principle details or additional owner skills merely to repeat
 these steps. No formal plan, competing hypotheses, durable checkpoint,
-reflection or reviewer is required for this path. Escalate to the route below
+reflection or reviewer is required for local-only work without a review-risk
+trigger. PR delivery still requires its independent rounds. Escalate to the route below
 if the cause, ownership or check becomes unclear, a check contradicts the
 explanation, or a consequential boundary appears. Never use the short path to
 skip a required check or silently downgrade a real blocker.
@@ -102,7 +115,8 @@ or an explicit approval gate. Reuse authorization already given. Keep required
 outcomes, preferred methods and illustrative examples distinct; choose a justified
 alternative when the default does not fit.
 
-When implementation and PR/MR delivery are authorized, retain the original objective
+For implementation, apply the user's standing PR-delivery authority unless a
+local-only request or other restriction overrides it. Retain the original objective
 and follow [delivery completion](../pull-requests/SKILL.md#complete-authorized-delivery).
 Ordinary failed checks and in-scope findings create the next engineering action.
 Read-only requests and local-only changes retain their own stopping conditions.
@@ -127,7 +141,7 @@ checkpoint procedure when work needs durable continuation beyond temporary stora
 
 Keep only obligations that can change action, order, permission, stopping or
 completion in the task record:
-`Outcome / Route / Domains / Effects / Constraints / Done`.
+`Outcome / Route / Domains / Effects / Constraints (including format) / Done`.
 For substantive work, link authoritative inputs, acceptance, candidate identity,
 current evidence and unresolved decisions in that same record, not a new ledger.
 A simple answer needs no formal record. Use current CLI/model settings; when

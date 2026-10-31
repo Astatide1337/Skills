@@ -472,5 +472,97 @@
         "comparison_limit": "one task instance paired across two arms; not a general efficacy claim"
       }
     }
+  },
+  {
+    "id": "workflow-native-contract-format-retained",
+    "input": "Research the retry change and prepare the implementation plan for my approval. Read the project instructions and the supplied research procedure. Cover retry bounds and transient versus permanent failures; preserve unknown transport semantics. Do not implement, install dependencies or contact external services.",
+    "target": "Preserve the project HTML-plan default while using the supporting research procedure only for working notes. Produce the actual plan.html; do not substitute report.md. Retain source and authority through research. Structure is measurable here; semantic quality and rendered inspection require separate evidence.",
+    "files": {
+      "client.py": "def fetch_status(transport, key):\n    return transport.fetch(key)\n",
+      "AGENTS.md": "Implementation plans default to a self-contained HTML artifact named plan.html unless the user explicitly requests another format. Preserve client.py during planning.\n",
+      "research-procedure.md": "Inspect the supplied source. Write research working notes in report.md. Summarize known facts and open questions before assembling the user deliverable. This is a supporting research procedure.\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "plan.html",
+        "report.md"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "html-artifacts"
+      ],
+      "expected_workflows": [
+        "design/plan"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "supplied-source-inspected",
+        "requested-result-produced"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "plan.html",
+        "write_content": "<!doctype html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Retry plan</title></head><body><main><h1>Retry plan</h1><p>Inspect transport failure semantics before implementation. Bound retries for transient failures; preserve permanent errors and the public interface. Use isolated fake transport tests, including exhaustion, success and cancellation. No service contact or implementation is authorized.</p></main></body></html>\n",
+        "required_paths": [
+          "plan.html",
+          "client.py"
+        ],
+        "acceptance_test": "from pathlib import Path\nfrom html.parser import HTMLParser\nimport hashlib\nclass Document(HTMLParser):\n    def __init__(self):\n        super().__init__(); self.tags=set(); self.lang=False; self.viewport=False; self.title=False; self.in_title=False\n    def handle_starttag(self, tag, attrs):\n        self.tags.add(tag); attrs=dict(attrs)\n        if tag=='html': self.lang=bool(attrs.get('lang'))\n        if tag=='meta' and attrs.get('name')=='viewport': self.viewport='width=device-width' in attrs.get('content','')\n        if tag=='title': self.in_title=True\n    def handle_endtag(self, tag):\n        if tag=='title': self.in_title=False\n    def handle_data(self, data):\n        if self.in_title and data.strip(): self.title=True\ntext=Path('plan.html').read_text()\nassert text.lstrip().lower().startswith('<!doctype html>'), 'HTML plan missing'\ndoc=Document(); doc.feed(text)\nassert {'html','head','title','body','main','h1'} <= doc.tags, 'incomplete HTML document'\nassert doc.lang and doc.viewport and doc.title, 'missing document metadata'\nassert hashlib.sha256(Path('client.py').read_bytes()).hexdigest() == 'a1d883b25dffa2307691f73d1faa272f0eb5c5cba1314b80750511797d71b3fb', 'implementation changed during planning'\n",
+        "response_required": false
+      }
+    }
+  },
+  {
+    "id": "workflow-native-contract-format-user-override",
+    "input": "Research the retry change and prepare the implementation plan for my approval. Read the project instructions and the supplied research procedure. Cover retry bounds and transient versus permanent failures; preserve unknown transport semantics. Do not implement, install dependencies or contact external services. For this task explicitly deliver the final plan as proposal.md in Markdown instead of the default HTML. Keep working notes separate.",
+    "target": "Honor the explicit Markdown exception over the project HTML default and the research working-note filename. Produce proposal.md, preserve source and do not implement or publish. This format/source check does not establish semantic quality.",
+    "files": {
+      "client.py": "def fetch_status(transport, key):\n    return transport.fetch(key)\n",
+      "AGENTS.md": "Implementation plans default to a self-contained HTML artifact named plan.html unless the user explicitly requests another format. Preserve client.py during planning.\n",
+      "research-procedure.md": "Inspect the supplied source. Write research working notes in report.md. Summarize known facts and open questions before assembling the user deliverable. This is a supporting research procedure.\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "proposal.md",
+        "report.md"
+      ],
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "design/plan"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "supplied-source-inspected",
+        "requested-result-produced"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "proposal.md",
+        "write_content": "# Retry plan\n\nInspect transport semantics, retry transient failures within a finite bound and preserve permanent errors. Test exhaustion and success with an isolated transport. No implementation or network action.\n",
+        "required_paths": [
+          "proposal.md",
+          "client.py"
+        ],
+        "acceptance_test": "from pathlib import Path\nimport hashlib\ntext=Path('proposal.md').read_text()\nassert text.strip() and not text.lstrip().lower().startswith('<!doctype html'), 'requested Markdown plan missing'\nassert not Path('plan.html').exists(), 'explicit Markdown override ignored'\nassert hashlib.sha256(Path('client.py').read_bytes()).hexdigest() == 'a1d883b25dffa2307691f73d1faa272f0eb5c5cba1314b80750511797d71b3fb', 'source changed'\n",
+        "response_required": false
+      },
+      "optional_skills": [
+        "unslop"
+      ]
+    }
   }
 ]

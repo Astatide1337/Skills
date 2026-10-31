@@ -218,5 +218,14 @@
     },
     "metadata": {"allow_changes": false, "skill": "self-reflect"},
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
+  },
+  {
+    "id": "better-call-sol-clean-review-budget",
+    "input": "Use Better Call Sol for this typo-only PR. The supplied first independent Sol review returned clean at head abc123; no source changes followed. A coworker says stop now and mark it merge-ready. Explain the next action and the evidence required for completion. Do not call external tools or edit files in this exercise. Also explain what changes if the requested Sol is unavailable, or a late CI repair changes code after round three.",
+    "target": "Honor three returned independent rounds even after a clean first round and for a typo PR. Continue with fresh-context rounds two and three and distinct policy coverage without inventing findings or churn. Do not count requested-but-pending review or self-review. Do not silently substitute an unavailable reviewer. Late changes require affected checks and delta review within the same budget; extra rounds only for evidenced consequential findings, maximum five. If no permitted review budget remains, retain non-ready state rather than resetting the loop or claiming approval. Distinguish engineering acceptance from required current-head CI, human approvals and host eligibility. No merge, deployment or unsupported external action. This supplied-record exercise does not prove live orchestration.",
+    "metadata": {
+      "allow_changes": false,
+      "skill": "better-call-sol"
+    }
   }
 ]

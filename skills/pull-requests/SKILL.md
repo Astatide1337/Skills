@@ -16,7 +16,7 @@ Treat GitHub pull requests and GitLab merge requests as the same review artifact
 | Review or re-review a PR/MR or coworker's branch | Review | Read source and checks; return private findings/drafts. No source edits or remote writes. |
 | Check/watch/status a PR/MR | Monitor | Read remote state only; no code, push, or retry effect is implied. |
 | Monitor and fix/address named in-scope defects | Monitor-and-fix | Repair only the authorized scope, then verify and push when that lifecycle is authorized. |
-| Deliver an approved feature/issue as a PR/MR ready for human merge | Approved delivery | Create a draft, finish in-scope fixes/commits/pushes and inspect current-head review/CI. Never merge or enable auto-merge. |
+| Implement a feature/issue, unless local-only work or another restriction applies | Approved delivery | Under the standing policy, commit/push the scoped change, create a draft and finish current-head checks and reviews. Never merge or enable auto-merge. |
 | Post, reply, comment, or suggest on a PR/MR | Communicate | Post that specific checked comment only. |
 | Merge, close, reopen, rebase, or deploy | Separate action | Require explicit authorization for that action. |
 
@@ -177,6 +177,41 @@ established. Keep permission to merge separate: never merge, enable auto-merge o
 deploy under this delivery contract. [Host draft behavior](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/changing-the-stage-of-a-pull-request)
 and [branch rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
 explain why a ready flag alone is insufficient; the actual project remains authoritative.
+
+### Review budget
+
+For every PR/MR delivered under this policy, complete three independent
+[returned rounds](../code-review-and-quality/SKILL.md#returned-review-rounds),
+including typo-only changes and a clean first round. Use
+[Better Call Sol](../better-call-sol/SKILL.md) for orchestration. Obtain required
+CI as early as possible so repairs can receive final review within the budget.
+
+1. Review the complete change against the original outcome, scope, contracts
+   and affected callers.
+2. Review repairs and open findings, with particular attention to relevant
+   lifecycle, failure, migration and queued-work consequences.
+3. Review the current candidate, remaining findings, verification adequacy and
+   delivered artifact. Retain earlier coverage where unaffected; inspect every
+   changed delta and wider consequence that invalidates it.
+
+Every round may raise defects in any area. Run round four and, if necessary,
+five only for evidenced security, authorization, data-integrity, shared-state
+or similarly consequential findings requiring further review. All independent
+delta rechecks count toward the same total. Never reset the counter silently.
+
+A later code or configuration change invalidates affected review evidence,
+including a CI-only repair. Refresh affected checks and obtain delta coverage
+within the available budget before claiming readiness. If an ordinary finding
+needs another review after round three, or any finding/final delta remains
+uncovered at round five, finish safe authorized repairs but retain pending
+review and a non-ready PR. Report the exact gap; the cap does not waive acceptance.
+A changed budget requires an explicit user decision, not relabeling the defect.
+Unsupported preferences may be declined with evidence and need no repair.
+
+Engineering acceptance and host eligibility are separate facts. If agent-owned
+work is complete but a required human approval remains, report that approval
+as pending. Say merge-ready only when both facts are established at the current
+head. Never manufacture approval, merge, enable auto-merge or deploy.
 
 ## Monitor without scope creep
 

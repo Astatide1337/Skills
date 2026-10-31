@@ -1,6 +1,6 @@
 ---
 name: production-safety
-description: "Observes before changing live systems: target, source of truth, backups, rollback, blast radius. Use for production, credentials, databases, Kubernetes, deploys, migrations or deletes."
+description: "Checks targets, effects and recovery for operational changes. Use for shared or unverified write targets, credentials, databases, clusters, migrations or deletes, including test setup."
 ---
 
 # Production Safety
@@ -65,6 +65,12 @@ offline, or no-command task, do not run `kubectl`, `oc`, `dig`,
 the supplied evidence, label live topology and identity as unknown, and list
 the exact read-only commands an authorized operator would run later. Never
 turn a failed probe into evidence that a production dependency is absent.
+
+Apply the general [pre-action rule](../follow-instructions/references/principles/authority-and-claims.md#observe-before-changing-state)
+before operational changes. Tests, setup, previews and local processes can write
+to shared backing resources. Verify target identity and isolation before schema
+synchronization, seed/reset, cleanup or bulk replacement; do not infer
+disposability from a dev/test name or an available connection.
 
 ## 3. Separate facts from assumptions
 
