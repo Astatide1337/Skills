@@ -4,8 +4,10 @@
   when it is installed; it picks the procedure and the domain skills to load.
 - Never add AI-agent co-author or session trailers to commits, including
   `Co-Authored-By: Codex` or `Codex-Session`.
-- You may commit and push changes made for a requested implementation task
-  unless I say otherwise. Never merge, enable auto-merge, or deploy.
+- Implementation requests normally include committing, pushing and opening a
+  scoped PR unless I request local-only work or set another restriction.
+  Planning, explanation and review-only requests retain their requested effects.
+  Never merge, enable auto-merge, or deploy.
 
 ## Personal context
 
@@ -43,3 +45,8 @@
 - If a test, lint rule or verify step blocks you and you believe the check
   itself is wrong or the task is impossible as specified, stop and report
   `BLOCKED: <reason>`. Never edit, skip or loosen the check to get past it.
+- When I explicitly authorize building or repairing an evaluator, changes to
+  that evaluator are in scope. Preserve independent acceptance checks, validate
+  the instrument against valid alternatives and targeted defects, and report
+  changed measurements separately. This does not authorize weakening the
+  underlying user outcome or an unrelated task gate.

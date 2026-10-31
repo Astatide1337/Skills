@@ -17,6 +17,11 @@ For uncertain UI direction, exercise one representative interaction before
 expanding screens; use [UI prototyping](../../web-interface/references/ui-prototyping.md)
 when a prototype is relevant.
 
+Preserve this deliverable choice through research and delegation. A supporting
+workflow may request Markdown working notes without changing the HTML plan owed
+to the user. Verify the final file's format and inspect the required render
+before delivery; an internal draft is not the requested plan.
+
 ## Apply the actual approval gate
 
 When the user or project requires a design approval, prepare the concrete
@@ -32,6 +37,12 @@ repairs and safe independent work. Ask before dependent work only when the chang
 needs unavailable authority or an essential product decision, changes an explicitly
 approved contract, or crosses a user/project approval gate. A reviewer suggestion
 is evidence to assess, not permission or a new requirement.
+
+Resolve routine engineering choices from the request, source, conventions and
+prior decisions. Ask only when an essential product choice remains unresolved
+or the action needs authority not already given. State the recommended option
+and practical consequence; continue work independent of that answer. A broad
+prompt calls for grounded judgment, not invented requirements or repeated approval.
 
 ## Continue and retain acceptance
 

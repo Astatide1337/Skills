@@ -1,6 +1,6 @@
 ---
 name: architect
-description: "Designs module boundaries, interfaces, types and ownership from real caller usage. Use before code crosses a function or module boundary, or for API, schema or data-shape design."
+description: "Designs ownership, interfaces and data shapes from real callers. Use for API/schema design or uncertain module boundaries. Routine calls across established interfaces need no architecture procedure."
 ---
 
 # Architect

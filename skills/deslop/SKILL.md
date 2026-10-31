@@ -1,6 +1,6 @@
 ---
 name: deslop
-description: "Removes AI-generated clutter from a code diff: narrating comments, dead code, needless abstraction, defensive noise. Use before review or commit. Not for prose (unslop) or redesign."
+description: "Removes redundant comments, dead code and needless abstraction from a diff. Use for code cleanup or observed clutter during review. Not for every commit, prose (unslop) or redesign."
 ---
 
 # Deslop

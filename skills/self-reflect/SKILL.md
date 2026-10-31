@@ -54,6 +54,14 @@ Read-only authority forbids mutation, publication, and other named effects; it
 does not by itself forbid inspecting files or running a local read-only check.
 Honor an explicit command prohibition, but do not invent one from `do not edit`.
 
+Before selecting the next action after a correction, failure or resume, compare
+it with the original outcome. Retire obsolete assumptions and dependent briefs;
+drop optional work that no longer serves the request. Repair necessary setup
+when the outcome still depends on it. Historical project examples remain evidence
+unless the user requests changes to those projects. Judge recovery by the next
+action and artifact, not by an apology or repeated restatement. Keep this check
+internal unless communicating the changed decision helps the user.
+
 ## Classify before acting
 
 Choose one state from the evidence:

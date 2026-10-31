@@ -102,6 +102,27 @@ restores originals if a write fails. The backup receipt maps each target to its
 saved original. A second identical apply makes no changes. Restart agent sessions
 to load updated instructions and hooks.
 
+## Delivery and review defaults
+
+Implementation requests normally include a scoped PR unless the user requests
+local-only work or sets another restriction. Every delivered PR receives three
+independent review rounds, including clean and mechanical changes; up to five
+are available for consequential findings. [Better Call Sol](skills/better-call-sol/SKILL.md)
+orchestrates the existing review standard. Review limits never waive final-code
+coverage, required checks or human approvals. Never merge, auto-merge or deploy.
+
+The coordinator preserves outcome, authority, deliverable format and acceptance
+through research, delegation and continuation. Plans default to rendered HTML;
+Markdown working notes do not replace that deliverable. Existing artifact and
+profile checkers can validate an explicitly selected file contract; there is no
+universal T3/Codex stop hook enforcing arbitrary temporary-artifact delivery.
+
+[Verifier validity](skills/verify-work/SKILL.md#validate-the-measuring-instrument)
+applies beyond evaluation scores. Explicit evaluator repair may change its
+instrument while independent acceptance and the user outcome remain protected.
+Structural tests and supplied examples do not establish improved agent behavior;
+matched comparisons retain their recorded model, policy, environment and limits.
+
 ## Global instructions
 
 [`global-instructions/AGENTS.md`](global-instructions/AGENTS.md) is the

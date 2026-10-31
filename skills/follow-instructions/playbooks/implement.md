@@ -3,8 +3,9 @@
 ## When
 
 Use when the requested outcome changes repository behavior or structure. Pick
-`bug`, `feature`, or `refactor`; add a PR route only when publication is also
-requested or included in approved delivery. Mechanical local changes use the
+`bug`, `feature`, or `refactor`; include the PR route under the standing
+implementation-delivery authority unless local-only work or another restriction
+overrides it. Mechanical local changes use the
 coordinator's short path instead. Substantial design decisions use [design](design.md) and
 [plans and authority](../references/approved-plans.md); an existing implementation
 authorization does not require a separate presentation or confirmation.
@@ -37,8 +38,9 @@ handoff.
    alternatives.
    For a feature, define observable states and extend existing interfaces. For
    a refactor, state behavior/contracts that must remain unchanged.
-3. Choose the smallest correction or coherent feature sequence. Preserve
-   architecture and compatibility; do not add speculative abstractions. When
+3. Choose the [smallest complete change](../references/principles/outcome-and-scope.md),
+   preserving evidenced contracts and coherent ownership. Do not turn a prototype
+   or assistant-authored fixture into a compatibility requirement. When
    changing boundary data or shared state, apply [construction decisions](../references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples);
    an already-clear local edit needs no extra design procedure. Reuse the
    approved behavior, interfaces and owners; resolve material deviations through

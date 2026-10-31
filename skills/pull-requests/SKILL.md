@@ -16,7 +16,7 @@ Treat GitHub pull requests and GitLab merge requests as the same review artifact
 | Review or re-review a PR/MR or coworker's branch | Review | Read source and checks; return private findings/drafts. No source edits or remote writes. |
 | Check/watch/status a PR/MR | Monitor | Read remote state only; no code, push, or retry effect is implied. |
 | Monitor and fix/address named in-scope defects | Monitor-and-fix | Repair only the authorized scope, then verify and push when that lifecycle is authorized. |
-| Deliver an approved feature/issue as a PR/MR ready for human merge | Approved delivery | Create a draft, finish in-scope fixes/commits/pushes and inspect current-head review/CI. Never merge or enable auto-merge. |
+| Implement a feature/issue, unless local-only work or another restriction applies | Approved delivery | Under the standing policy, commit/push the scoped change, create a draft and finish current-head checks and reviews. Never merge or enable auto-merge. |
 | Post, reply, comment, or suggest on a PR/MR | Communicate | Post that specific checked comment only. |
 | Merge, close, reopen, rebase, or deploy | Separate action | Require explicit authorization for that action. |
 
@@ -177,6 +177,45 @@ established. Keep permission to merge separate: never merge, enable auto-merge o
 deploy under this delivery contract. [Host draft behavior](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/changing-the-stage-of-a-pull-request)
 and [branch rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
 explain why a ready flag alone is insufficient; the actual project remains authoritative.
+
+### Review budget
+
+For every PR/MR delivered under this policy, obtain at least one independent
+[returned round](../code-review-and-quality/SKILL.md#returned-review-rounds),
+normally using one to three rounds. Use
+[Better Call Sol](../better-call-sol/SKILL.md) for orchestration. Start with one
+round covering the original outcome, scope, contracts, affected callers and
+verification. Stop when the current artifact has adequate independent coverage,
+material findings are resolved and checks support acceptance. A clean first round
+can be enough, including for typo-only changes.
+
+Commission a second or third round when repairs need independent verification,
+important paths remain unreviewed, or a distinct risk needs further assessment.
+Give that round a concrete coverage goal, including relevant lifecycle, failure,
+migration or queued-work consequences. Retain unaffected evidence. Do not run
+another round merely to reach a count, repeat unchanged coverage or invent findings.
+Obtain required CI early so repairs can be reviewed within the budget.
+
+Every round may raise defects in any area. On substantial work, use round four
+and, if necessary, five only when evidenced security, permission, authorization,
+data-integrity, shared-state or similarly consequential findings require further
+review of repairs or affected paths. Size alone does not justify extra rounds.
+All independent delta rechecks count toward the same total; a push does not reset
+it. Use justified rounds within this policy without another permission request.
+
+A later code or configuration change invalidates affected review evidence,
+including a CI-only repair. Refresh affected checks and obtain delta coverage
+within the available budget before claiming readiness. If an ordinary finding
+needs another review after round three, or any finding/final delta remains
+uncovered at round five, finish safe authorized repairs but retain pending
+review and a non-ready PR. Five is a hard cap: stop commissioning reviews and
+report the exact gap. Do not waive acceptance or relabel a defect to fit the budget.
+Unsupported preferences may be declined with evidence and need no repair.
+
+Engineering acceptance and host eligibility are separate facts. If agent-owned
+work is complete but a required human approval remains, report that approval
+as pending. Say merge-ready only when both facts are established at the current
+head. Never manufacture approval, merge, enable auto-merge or deploy.
 
 ## Monitor without scope creep
 

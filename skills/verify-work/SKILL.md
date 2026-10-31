@@ -1,6 +1,6 @@
 ---
 name: verify-work
-description: "Proves claims with current evidence at each layer, from build to deployed behavior, and builds project verifiers. Use before saying something is done, fixed, deployed or working."
+description: "Proves claims with current evidence and builds project verifiers. Use for verification requests or consequential changes. Clear low-risk fixes with existing checks use direct verification."
 ---
 
 # Verify Work
@@ -124,6 +124,37 @@ teaching diagnostics, not acceptance for an actual application.
    - Say exactly what was verified.
    - Say exactly what was not verified.
    - Do not use "done," "fixed," "working," "deployed," or equivalent language beyond the evidence obtained.
+
+## Validate the measuring instrument
+
+When introducing or changing a verifier, rubric, mutation classifier or evaluation,
+calibrate it against a known-valid result, a materially different valid alternative
+and a targeted defect before trusting the verdict. Derive those expectations
+from the user outcome and authoritative contracts. Failure identity and stage
+must establish the intended defect: setup errors, syntax failures, wrong test
+selection and unrelated exceptions are invalid evidence for that defect, not
+successful mutation kills. An exception is valid when that exception behavior
+is the specified target. Ordinary established regressions need no ritual
+recalibration on each run.
+
+Do not edit, skip or loosen a task gate to pass it. Explicitly authorized evaluator
+repair may change that instrument while preserving independent acceptance checks
+and the underlying outcome. Report the changed measurement separately; do not
+compare scores across different instruments as though they were the same trial.
+
+## Complete the supported user path
+
+Verify through the entry point and receiving artifact the user will actually use,
+with persistent supported configuration where required. A diagnostic flag,
+prepared developer state, player preview or sampled frames proves only that
+observation. For a delivered recording, watch the final export and check that
+needed context survives outside its player. For a library, its public API can
+be the intended boundary. Local-only work does not authorize deployment.
+
+An honest caveat does not complete implementation while a necessary safe,
+authorized step remains. Continue that step; if required evidence is unavailable,
+retain the exact gate. Trace relevant writers, persistence, partial failures,
+migrations and pre-existing queued consumers when validating a lifecycle repair.
 
 ## Native tools, failures and retrieved evidence
 
