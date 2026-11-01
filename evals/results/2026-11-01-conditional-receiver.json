@@ -179,7 +179,7 @@
         "output_tokens": 1348
       },
       "log_sha256": "2406cc9eca20e7186e73755aa5ac4b9e28acb32a3a8ba3278855a8fd2a73e11f",
-      "assessment": "Artifact/workspace checks passed. Final semantic assessment of predicate/evidence trace is separate and pending independent review."
+      "assessment": "Independent Opus review verified actual record reads before editing, retained-source handling, regression coverage, scores and final response. This supports the bounded recipient choice; identical final code cannot itself establish a predicate check or causal guidance effect."
     },
     {
       "case": "issue-37-conditional-receiver-prototype",
@@ -230,7 +230,7 @@
         "output_tokens": 1352
       },
       "log_sha256": "2406cc9eca20e7186e73755aa5ac4b9e28acb32a3a8ba3278855a8fd2a73e11f",
-      "assessment": "Artifact/workspace checks passed. Final semantic assessment of predicate/evidence trace is separate and pending independent review."
+      "assessment": "Independent Opus review verified actual record reads before editing, retained-source handling, regression coverage, scores and final response. This supports the bounded recipient choice; identical final code cannot itself establish a predicate check or causal guidance effect."
     }
   ],
   "historical_corroboration": {
@@ -262,8 +262,8 @@
     ],
     "limits": "Independent source corroboration of bounded historical correction. No original environment, database or historical tests rerun; no claim that current Skills caused that result."
   },
-  "controls": "16 focused tests passed, including actual fixture-history validation; Ruff, catalog and diff checks pass. Final full suite pending.",
-  "review_scope": "Revision1 Opus findings repaired; source guidance unchanged. Both new revision2 samples passed artifact checks. Final independent delta review and final-head CI pending.",
+  "controls": "make verify completed with exit0 and388 tests on repaired source610e630;16focusedcontrols,catalog,diffcheck and RuffF/B012/B018 passed. Final explicit check=False test-option and provenance-only delta retains focused checks; final-head CI remains separate.",
+  "review_scope": "Final Opus repair review found no blocking findings; SPEC cues, history, case hashes and raw revision2 observations verified. Minor subprocess-option and runtime-revision clarity nits addressed. No instruction change or issue closure justified.",
   "limits": [
     "Four total one-turn synthetic recipient samples, two per instrument revision; original revision1 was cued. No candidate-guidance arm or relative improvement evidence.",
     "Authoritative operator records here are fixture facts, not a live deployment audit.",
@@ -298,5 +298,6 @@
       "issue-37-conditional-receiver-deployed": "b11bbc7df24203bd7a35aaa45b95e611798a73a8fa99f6c850a25649d5df193b"
     },
     "change": "Remove explicit evidence-check cue and prototype description from SPEC; put obsolete implementation in assistant-prototype commit; deduplicate paths. Original native attempts retained, not rescored."
-  }
+  },
+  "runtime_revision_note": "Revision2 logs record runtime checkout71fe22a with uncommitted fixture repairs. Instruction baselinead01b4c is a content identity: skills/ and global-instructions/ bytes are unchanged, verified by source diff and independent review. Runtime revision and guidance baseline are distinct."
 }

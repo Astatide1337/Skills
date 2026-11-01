@@ -88,7 +88,7 @@ class ScopeIssueAcceptanceTests(unittest.TestCase):
                 for name, content in case['files'].items():
                     (root / name).write_text(content)
                 setup = subprocess.run(case['setup'], cwd=root, shell=True,
-                                       capture_output=True, text=True, timeout=10)
+                                       capture_output=True, text=True, check=False, timeout=10)
                 self.assertEqual(setup.returncode, 0, setup.stderr)
                 initial = subprocess.check_output(
                     ['git', 'ls-tree', '--name-only', 'HEAD^'], cwd=root, text=True).splitlines()
