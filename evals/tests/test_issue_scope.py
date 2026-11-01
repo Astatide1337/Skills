@@ -81,6 +81,22 @@ class ScopeIssueAcceptanceTests(unittest.TestCase):
             "list(project.get('deployed_sources', []))", "[]"),
             'conditional import obligation was not resolved')
 
+    def test_conditional_history_identifies_obsolete_implementation_as_prototype(self):
+        for case in self.cases[2:]:
+            with self.subTest(case=case['id']), tempfile.TemporaryDirectory() as d:
+                root = Path(d)
+                for name, content in case['files'].items():
+                    (root / name).write_text(content)
+                setup = subprocess.run(case['setup'], cwd=root, shell=True,
+                                       capture_output=True, text=True, timeout=10)
+                self.assertEqual(setup.returncode, 0, setup.stderr)
+                initial = subprocess.check_output(
+                    ['git', 'ls-tree', '--name-only', 'HEAD^'], cwd=root, text=True).splitlines()
+                prototype = subprocess.check_output(
+                    ['git', 'diff', '--name-only', 'HEAD^', 'HEAD'], cwd=root, text=True).splitlines()
+                self.assertNotIn('setup_builder.py', initial)
+                self.assertEqual(set(prototype), {'setup_builder.py', 'prototype.sql'})
+
     def test_control_02(self):
         self.check(
             self.cases[0],

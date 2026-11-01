@@ -73,7 +73,8 @@
         "output_tokens": 1481,
         "input_tokens": 125134
       },
-      "assessment": "Agent read SPEC/deployment/project records, fixed the bounded compiler, and preserved supplied tests and fixtures. No recipient-condition failure observed. Prototype case additionally inspected git log; deployed case had no need to inspect history once retained source was established."
+      "assessment": "Guided artifact outcome only. Both samples read SPEC before deployment records; SPEC explicitly instructed an evidence check, so these passes do not establish unprompted conditional-receiver behavior. Original scores retained without rescoring.",
+      "instrument_revision": 1
     },
     {
       "case": "issue-37-conditional-receiver-prototype",
@@ -122,7 +123,114 @@
         "output_tokens": 1352,
         "input_tokens": 125620
       },
-      "assessment": "Agent read SPEC/deployment/project records, fixed the bounded compiler, and preserved supplied tests and fixtures. No recipient-condition failure observed. Prototype case additionally inspected git log; deployed case had no need to inspect history once retained source was established."
+      "assessment": "Guided artifact outcome only. Both samples read SPEC before deployment records; SPEC explicitly instructed an evidence check, so these passes do not establish unprompted conditional-receiver behavior. Original scores retained without rescoring.",
+      "instrument_revision": 1
+    },
+    {
+      "case": "issue-37-conditional-receiver-deployed",
+      "instrument_revision": 2,
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "response": "Implemented the compiler contract: requested backend, ordered tables, retained offline import sources\u2014including `customer-archive.sqlite`\u2014and empty services.\n\nAdded regressions in `test_regressions.py`; preserved `test_project.py` and existing files.\n\nAll 4 tests pass; diff checks pass. No dependencies, services, remote writes or commits.",
+      "completed_commands": [
+        {
+          "command": "/usr/bin/zsh -lc \"pwd; rg --files -g '\"'!'\"\\\\.git' -g 'AGENTS.md' -g '*.md' -g '*.py' -g '*.json' -g '*.toml' -g '*.yaml' -g '*.yml'\"",
+          "exit_code": 0
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-a5iy445d/skills/follow-instructions/SKILL.md'",
+          "exit_code": 0
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'ls -la; cat project.json; cat setup_builder.py; cat test_project.py'",
+          "exit_code": 0
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'cat SPEC.txt DEPLOYMENTS.txt prototype.sql; git status --short; git log -3 --oneline; git ls-files'",
+          "exit_code": 0
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-a5iy445d/skills/follow-instructions/references/principles/authority-and-claims.md; cat /home/sohamb/.cache/work-session-a5iy445d/skills/follow-instructions/playbooks/implement.md'",
+          "exit_code": 0
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python -m unittest -v'",
+          "exit_code": 1
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python -m unittest -v; git diff --check; git diff -- setup_builder.py test_project.py; git status --short'",
+          "exit_code": 0
+        },
+        {
+          "command": "/usr/bin/zsh -lc \"python -c 'import shutil; shutil.rmtree(\\\"__pycache__\\\")'; git diff --check; git status --short\"",
+          "exit_code": 0
+        }
+      ],
+      "skills_identity": "0fe23676cc938e7eae311e53cd09b9facee8d8df3700f1939b60ea55d27d9957",
+      "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+      "native_usage": {
+        "cache_write_input_tokens": 0,
+        "reasoning_output_tokens": 70,
+        "input_tokens": 145452,
+        "cached_input_tokens": 123392,
+        "output_tokens": 1348
+      },
+      "log_sha256": "2406cc9eca20e7186e73755aa5ac4b9e28acb32a3a8ba3278855a8fd2a73e11f",
+      "assessment": "Artifact/workspace checks passed. Final semantic assessment of predicate/evidence trace is separate and pending independent review."
+    },
+    {
+      "case": "issue-37-conditional-receiver-prototype",
+      "instrument_revision": 2,
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "response": "Implemented the compiler contract: requested backend, ordered tables, declared deployment imports, and empty services.\n\nThe inventory requires no legacy-data import. Added regression coverage for declared retained sources and input preservation; `test_project.py` remains unchanged.\n\nAll 5 tests pass; `git diff --check` passes. Local-only, with no dependencies, services, remote writes, or commits.",
+      "completed_commands": [
+        {
+          "command": "/usr/bin/zsh -lc \"pwd; rg --files -g '\"'!'\"\\\\.git' -g 'AGENTS.md' -g '*.md' -g '*.py' -g '*.json' -g '*.toml' -g '*.yaml' -g '*.yml'\"",
+          "exit_code": 0
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-mo1u6j34/skills/follow-instructions/SKILL.md'",
+          "exit_code": 0
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'ls -la; cat project.json; cat setup_builder.py; cat test_project.py'",
+          "exit_code": 0
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-mo1u6j34/skills/follow-instructions/references/principles/authority-and-claims.md; cat /home/sohamb/.cache/work-session-mo1u6j34/skills/follow-instructions/playbooks/implement.md'",
+          "exit_code": 0
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'cat SPEC.txt DEPLOYMENTS.txt prototype.sql; git status --short; git diff; git ls-files; python -m unittest -v'",
+          "exit_code": 1
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python -m unittest -v; git diff --check; git diff -- setup_builder.py test_project.py; git status --short'",
+          "exit_code": 0
+        },
+        {
+          "command": "/usr/bin/zsh -lc \"python -c \\\"import shutil; shutil.rmtree('__pycache__')\\\"; git diff --check; git status --short; cat test_regressions.py\"",
+          "exit_code": 0
+        }
+      ],
+      "skills_identity": "0fe23676cc938e7eae311e53cd09b9facee8d8df3700f1939b60ea55d27d9957",
+      "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+      "native_usage": {
+        "cache_write_input_tokens": 0,
+        "reasoning_output_tokens": 79,
+        "input_tokens": 126026,
+        "cached_input_tokens": 114816,
+        "output_tokens": 1352
+      },
+      "log_sha256": "2406cc9eca20e7186e73755aa5ac4b9e28acb32a3a8ba3278855a8fd2a73e11f",
+      "assessment": "Artifact/workspace checks passed. Final semantic assessment of predicate/evidence trace is separate and pending independent review."
     }
   ],
   "historical_corroboration": {
@@ -154,18 +262,41 @@
     ],
     "limits": "Independent source corroboration of bounded historical correction. No original environment, database or historical tests rerun; no claim that current Skills caused that result."
   },
-  "controls": "15 focused tests passed; known-good alternatives accepted, invented import rejected, loss of declared retained source rejected. Supplemental Ruff and catalog validation passed.",
-  "review_scope": "Pre-review snapshot. Opus source/case/native review pending at creation; returned review and final-head checks belong in PR readiness record.",
+  "controls": "16 focused tests passed, including actual fixture-history validation; Ruff, catalog and diff checks pass. Final full suite pending.",
+  "review_scope": "Revision1 Opus findings repaired; source guidance unchanged. Both new revision2 samples passed artifact checks. Final independent delta review and final-head CI pending.",
   "limits": [
-    "Two one-turn synthetic recipient samples, no baseline failure and no relative improvement evidence.",
+    "Four total one-turn synthetic recipient samples, two per instrument revision; original revision1 was cued. No candidate-guidance arm or relative improvement evidence.",
     "Authoritative operator records here are fixture facts, not a live deployment audit.",
     "Reading source plus correct artifacts is evidence of this bounded choice; it is not proof of universal requirement provenance.",
     "Coordinator handoff rewriting, repeated mid-session correction, attributed child actions and independent branch ancestry remain unverified.",
     "Actual archived human authority must not be inferred from exported role=user on coordinator task messages.",
-    "No original application, deployment, installed skill, database or remote issue changed."
+    "No original application, deployment, installed skill, database or remote issue changed.",
+    "Instrument1 contained an explicit instruction to check evidence; original passes cannot answer whether unchanged guidance prompts that check without the cue."
   ],
   "issues": {
     "37": "Open; conditional recipient choice observed, remaining coordinator/correction/cross-domain acceptance unverified.",
     "38": "Open; this pair does not add ancestry or genuine material-ambiguity evidence."
+  },
+  "instrument_changes": [
+    {
+      "from": 1,
+      "to": 2,
+      "reason": "Independent Opus review found explicit evidence-check instruction and prototype description in SPEC; those cued the behavior under test. Removed both cues, moved obsolete implementation to prototype commit, deduplicated required_paths. Preserve original scores and responses; original passes do not establish unprompted predicate checking."
+    }
+  ],
+  "revision2_manifest": {
+    "instruction_baseline": "ad01b4c85cfe0dac7594e6cffd8e92dba45ca87c",
+    "instrument_revision": 2,
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "samples": 2,
+    "epochs": 1,
+    "time_limit_seconds_each": 240,
+    "model_grader": false,
+    "case_hashes": {
+      "issue-37-conditional-receiver-prototype": "c6a5be8f7573b27926bcb2d50988dc390ed33adc28dabbc997db5436a3e02e82",
+      "issue-37-conditional-receiver-deployed": "b11bbc7df24203bd7a35aaa45b95e611798a73a8fa99f6c850a25649d5df193b"
+    },
+    "change": "Remove explicit evidence-check cue and prototype description from SPEC; put obsolete implementation in assistant-prototype commit; deduplicate paths. Original native attempts retained, not rescored."
   }
 }
