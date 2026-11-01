@@ -104,6 +104,11 @@ its verdict and evidence return. Record reviewer, candidate, checks inspected,
 findings and disposition. Each finding needs a location, trigger, consequence and
 supporting evidence. Clean findings are valid; do not invent defects or cosmetic
 changes to occupy a round. A previous reviewer conversation is not fresh context.
+When a round re-reviews a repair and a finding's origin affects the decision, say
+whether it misses the original contract, was introduced by the repair, or asks
+for new scope. The first two are repair work. Decline or defer optional scope
+additions; obtain the requester's decision before expanding the agreed scope.
+No per-finding label is needed where the origin is obvious.
 
 Review necessity and the original contract before polishing a reproduction's
 implementation. Follow the underlying invariant through relevant writers,
