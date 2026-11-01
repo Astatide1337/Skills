@@ -61,10 +61,14 @@ acceptance or rejection for the intended reason. A syntax error does not show
 that an authorization or persistence defect will be caught. A verifier that
 rejects every result also fails.
 
-For a new visual assessor, include accepted/rejected examples, unseen compositions
-and multiple successful styles. Treat uncalibrated instructional illustrations
-as teaching material, not externally validated taste. Permit disagreement and
-insufficient evidence. Record false rejection as well as false acceptance.
+For a new judge of subjective quality (visual, prose, plan or issue usefulness),
+include accepted/rejected examples, including the intended reader's demonstrated
+acceptance when available, unseen cases and multiple successful styles. Treat
+uncalibrated instructional illustrations as teaching material, not externally
+validated taste. Permit disagreement and insufficient evidence. Investigate and
+report a disagreement with demonstrated acceptance before trusting the judge or
+claiming improvement; acceptance calibrates usefulness, not factual or safety
+requirements. Record false rejection as well as false acceptance.
 Known controls belong to development after exposure, not future held-out claims.
 
 ## Decision

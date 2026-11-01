@@ -134,8 +134,11 @@ from the user outcome and authoritative contracts. Failure identity and stage
 must establish the intended defect: setup errors, syntax failures, wrong test
 selection and unrelated exceptions are invalid evidence for that defect, not
 successful mutation kills. An exception is valid when that exception behavior
-is the specified target. Ordinary established regressions need no ritual
-recalibration on each run.
+is the specified target. Read that identity from structured results (exception
+type, stage, assertion), not source lines or log text a traceback merely
+displays. Keep the raw failure and the unmutated control, and report valid
+kills, survivors, invalid and unrun checks separately. Ordinary established
+regressions need no ritual recalibration on each run.
 
 Do not edit, skip or loosen a task gate to pass it. Explicitly authorized evaluator
 repair may change that instrument while preserving independent acceptance checks
@@ -146,9 +149,11 @@ compare scores across different instruments as though they were the same trial.
 
 Verify through the entry point and receiving artifact the user will actually use,
 with persistent supported configuration where required. A diagnostic flag,
-prepared developer state, player preview or sampled frames proves only that
-observation. For a delivered recording, watch the final export and check that
-needed context survives outside its player. For a library, its public API can
+prepared developer state or player preview proves only that observation.
+Sampled frames and successful decoding prove only the visible sampled states,
+not unseen intervals, continuity, pacing or missed transients. For a delivered
+recording, watch the final export and check that needed context survives outside
+its player. For a library, its public API can
 be the intended boundary. Local-only work does not authorize deployment.
 
 An honest caveat does not complete implementation while a necessary safe,
