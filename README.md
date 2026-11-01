@@ -105,10 +105,11 @@ to load updated instructions and hooks.
 ## Delivery and review defaults
 
 Implementation requests normally include a scoped PR unless the user requests
-local-only work or sets another restriction. Every delivered PR receives three
-independent review rounds, including clean and mechanical changes; up to five
-are available for consequential findings. [Better Call Sol](skills/better-call-sol/SKILL.md)
-orchestrates the existing review standard. Review limits never waive final-code
+local-only work or sets another restriction. Every delivered PR receives at least
+one independent review. Follow the dynamic review budget in
+[pull-requests](skills/pull-requests/SKILL.md): usually one to three rounds,
+with five as a hard cap. [Better Call Sol](skills/better-call-sol/SKILL.md)
+orchestrates that standard. Review limits never waive final-code
 coverage, required checks or human approvals. Never merge, auto-merge or deploy.
 
 The coordinator preserves outcome, authority, deliverable format and acceptance
@@ -304,6 +305,34 @@ acceptance for all twelve issues. These synthetic cases test selected decisions;
 they do not establish improved relative performance or close the issues.
 Full export playback, real runtime/launcher replay, longitudinal corrections
 and reader-task assessment retain their separate evidence requirements.
+
+Opt-in `user_turns` fixture metadata delivers up to eight additional scripted
+user messages through `codex exec resume` in one owned session. Each entry has
+`text` and `allowed_paths_before`: the latter bounds cumulative persisted
+changes before that message is delivered. Model, effort, guidance, workspace
+and permission overrides stay fixed. The runner records each response, native
+usage and workspace snapshot, and stops continuation on a missing session ID
+or an invalid effects observation. Ordinary runs remain ephemeral; existing
+`approval_turn` and interruption continuations still use fresh sessions.
+This observes scripted same-session corrections, not adaptive users, child
+agent behavior, compaction or writes restored between snapshots. Pre-turn
+contracts currently prohibit Git metadata and index changes. The separate
+branch-ancestry fixtures authorize local commits and enforce their scope with
+runner-held acceptance checks. They declare `git-write` as a required
+capability and remain blocked before model launch under the current native
+profile, which protects `.git`. Host calibration does not prove native Git
+writes are supported. Missing, truncated or cancelled turn observations are
+unscored; an observed scope violation is a failure. Effects scores do not
+judge whether a response asked an appropriate question. The scope fixture's
+independent response review checks bounded work and accurate reporting of an
+unrelated open decision. Question-before-dependent-work remains unmeasured
+because completing its schema does not require the desktop integration choice.
+
+Run the branch/scope calibration and continuation lifecycle checks with:
+
+```bash
+uv run --frozen python -m unittest evals.tests.test_issue_branch_scope evals.tests.test_skills_lifecycle.UserTurnLifecycleTests -v
+```
 
 The fake tracker is intentionally limited to those optional publication-contract
 diagnostics. It stays under `evals/`, is not installed with the skills, and is

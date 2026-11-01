@@ -18,7 +18,7 @@ from contextlib import contextmanager, nullcontext
 from html.parser import HTMLParser
 from pathlib import Path
 import shutil
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset, Sample, json_dataset
@@ -344,6 +344,44 @@ async def _native_skill_startup(
     return selectors, receipt
 
 
+class NativeSession:
+    """One runner-owned persisted native session shared by scripted user turns.
+
+    The first launch records the thread id, workspace, exact permission config
+    and settings; every resume must reuse them unchanged.
+    """
+
+    def __init__(self, home: Path):
+        self.home = home
+        self.thread_id: str | None = None
+        self.workspace: Path | None = None
+        self.config: dict[str, object] | None = None
+        self.settings: dict[str, object] | None = None
+
+
+def _session_thread_id(events: str) -> str | None:
+    """Return the single canonical UUID from ``thread.started``, else None."""
+
+    found: set[str] = set()
+    for line in events.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(event, dict) and event.get("type") == "thread.started":
+            value = event.get("thread_id")
+            if not isinstance(value, str):
+                return None
+            found.add(value)
+    if len(found) != 1:
+        return None
+    (value,) = found
+    try:
+        return value if isinstance(value, str) and str(UUID(value)) == value else None
+    except ValueError:
+        return None
+
+
 async def run_codex(
     prompt: str,
     *,
@@ -363,14 +401,36 @@ async def run_codex(
     timeout: int = 1800,
     interrupt_marker: str | None = None,
     interrupt_absent: str | None = None,
+    session: NativeSession | None = None,
 ) -> tuple[str, str]:
-    """Run signed-in Codex in the current Inspect local sandbox workspace."""
+    """Run signed-in Codex in the current Inspect local sandbox workspace.
+
+    Without ``session`` each call is an ephemeral session in its own home.
+    With ``session`` the caller owns the home; the first call persists the
+    session and later calls resume its exact thread id.
+    """
 
     _validate_effort(effort)
     if sandbox_mode not in {"workspace-write", "read-only"}:
         raise ValueError("native evaluation supports only workspace-write or read-only")
     if extra_env and {"HOME", "CODEX_HOME"} & extra_env.keys():
         raise ValueError("native evaluation home cannot be overridden by fixture environment")
+    resuming = session is not None and session.thread_id is not None
+    if session is not None:
+        if isolate_workspace or interrupt_marker is not None:
+            raise ValueError("persisted native sessions support only the sample workspace without interruption")
+        settings = {
+            "model": model, "effort": effort, "with_skills": with_skills,
+            "sandbox_mode": sandbox_mode,
+            "skills_root": str(skills_root) if skills_root is not None else None,
+            "global_rules_sha256": (hashlib.sha256(global_rules.encode()).hexdigest()
+                                    if global_rules is not None else None),
+            "extra_env": dict(extra_env or {}),
+            "output_schema": str(output_schema) if output_schema is not None else None,
+        }
+        if resuming and (session.settings != settings or session.config is None
+                         or session.workspace is None):
+            raise ValueError("native resume must retain the initial model, effort, guidance and permissions")
     binary = _native_codex_binary()
     with binary.open("rb") as source:
         binary_sha256 = hashlib.file_digest(source, "sha256").hexdigest()
@@ -380,15 +440,20 @@ async def run_codex(
             f"native Codex launch blocked by execution prerequisite: {preflight_error}"
         )
     with (
-        isolated_codex_home(with_skills, skills_root=skills_root) as codex_home,
+        isolated_codex_home(with_skills, skills_root=skills_root)
+        if session is None else nullcontext(str(session.home)) as codex_home,
         tempfile.TemporaryDirectory(
             prefix="review-workspace-", dir=str(_native_ephemeral_cache()),
         )
         if isolate_workspace else nullcontext(None) as review_directory,
     ):
-        if global_rules is not None:
+        if resuming:
+            rules = Path(codex_home) / "AGENTS.md"
+            if (rules.read_text() if rules.is_file() else None) != global_rules:
+                raise RuntimeError("native resume global guidance changed")
+        elif global_rules is not None:
             (Path(codex_home) / "AGENTS.md").write_text(global_rules)
-        if with_skills:
+        if with_skills and not resuming:
             # Catalog locators can use short root aliases. Give the native
             # candidate a real filesystem root rather than relying on it to
             # infer an alias or search outside its isolated home.
@@ -405,14 +470,26 @@ async def run_codex(
             if workspace is None or workspace_error:
                 raise RuntimeError(workspace_error or "native workspace is unavailable")
             workspace = workspace.resolve()
-        permissions = _native_permission_config(
-            binary=binary, workspace=workspace, home=Path(codex_home),
-            sandbox_mode=sandbox_mode,
-            skills_root=(skills_root or SKILLS_ROOT) if with_skills else None,
-        )
-        skill_config, startup = await _native_skill_startup(binary=binary, workspace=workspace,
-            home=Path(codex_home), permissions=permissions)
-        permissions.update(skill_config)
+        if resuming:
+            if workspace != session.workspace:
+                raise RuntimeError("native resume workspace changed")
+            # Bundles were initialized and disabled by the first launch; the
+            # same exact selectors and permission profile apply to the resume.
+            permissions = dict(session.config)
+            startup = {"type": "skills_eval.native_session_resume", "model_turns": 0,
+                       "resume_thread_id": session.thread_id,
+                       "scope": "owned persisted native home; initial configuration reused"}
+        else:
+            permissions = _native_permission_config(
+                binary=binary, workspace=workspace, home=Path(codex_home),
+                sandbox_mode=sandbox_mode,
+                skills_root=(skills_root or SKILLS_ROOT) if with_skills else None,
+            )
+            skill_config, startup = await _native_skill_startup(binary=binary, workspace=workspace,
+                home=Path(codex_home), permissions=permissions)
+            permissions.update(skill_config)
+            if session is not None:
+                session.workspace, session.config, session.settings = workspace, dict(permissions), settings
         # This receipt records the requested configuration. It does not assert
         # that candidate commands executed or that every native tool is isolated.
         launch_receipt = json.dumps({
@@ -424,9 +501,11 @@ async def run_codex(
         command = [
             str(binary),
             "exec",
+            *(["resume"] if resuming else []),
             "--ignore-user-config",
             "--ignore-rules",
-            "--ephemeral",
+            # Scripted user turns need the session record to resume it.
+            *(["--ephemeral"] if session is None else []),
             "--skip-git-repo-check",
             "--strict-config",
             *_native_config_overrides(permissions),
@@ -449,6 +528,8 @@ async def run_codex(
             command.extend(["--cd", review_directory])
         if output_schema is not None:
             command.extend(["--output-schema", str(output_schema)])
+        if resuming:
+            command.append(session.thread_id)
         command.append("-")
         if interrupt_marker is not None:
             command = [sys.executable, str(REPO_ROOT / "evals/interruption.py"),
@@ -485,6 +566,14 @@ async def run_codex(
                     f"exit={result.returncode}; stderr={result.stderr.strip()}; "
                     f"stdout={result.stdout[-4000:]}; requested_permissions={launch_receipt.strip()}"
                 )
+            if session is not None:
+                thread_id = _session_thread_id(result.stdout)
+                if thread_id is None or (resuming and thread_id != session.thread_id):
+                    raise RuntimeError(
+                        "native session id is absent, ambiguous, malformed or changed: "
+                        f"expected={session.thread_id}; stdout={result.stdout[-4000:]}"
+                    )
+                session.thread_id = thread_id
             completion = await sandbox().read_file(output_file)
             return completion.strip(), launch_receipt + result.stdout
         finally:
@@ -525,6 +614,15 @@ def native_codex(
                 ),
                 "candidate_skipped": True,
             }
+            state.completed = True
+            return state
+        turns_error = _user_turns_contract_error(state.metadata or {})
+        if turns_error:
+            state.output = ModelOutput.from_content(
+                model="runner/workflow-boundary",
+                content=f"Candidate blocked before native launch: {turns_error}",
+            )
+            state.output.metadata = {"workflow_support_status": "blocked", "candidate_skipped": True}
             state.completed = True
             return state
         contract = (state.metadata or {}).get("fixture_contract")
@@ -596,18 +694,28 @@ def native_codex(
                         f"<task_guidance>\n{instructions}\n</task_guidance>\n\n"
                         f"{prompt}"
                     )
-                completion, events = await run_codex(
-                    prompt,
-                    model=model,
-                    effort=effort,
-                    with_skills=with_skills,
-                    sandbox_mode="workspace-write",
-                    extra_env=tracker.environment() if tracker is not None else None,
-                    skills_root=loaded_root,
-                    global_rules=state.metadata.get("global_rules"),
-                    interrupt_marker=(state.metadata or {}).get("interrupt_marker"),
-                    interrupt_absent=contract.get("write_path") if (state.metadata or {}).get("interrupt_marker") else None,
-                )
+                if (state.metadata or {}).get("user_turns") is not None:
+                    completion, events = await _native_user_turns(
+                        state, baseline, prompt, with_skills=with_skills, skills_root=loaded_root,
+                        launch=lambda message, session: run_codex(
+                            message, model=model, effort=effort, with_skills=with_skills,
+                            sandbox_mode="workspace-write", skills_root=loaded_root,
+                            global_rules=state.metadata.get("global_rules"), session=session,
+                        ),
+                    )
+                else:
+                    completion, events = await run_codex(
+                        prompt,
+                        model=model,
+                        effort=effort,
+                        with_skills=with_skills,
+                        sandbox_mode="workspace-write",
+                        extra_env=tracker.environment() if tracker is not None else None,
+                        skills_root=loaded_root,
+                        global_rules=state.metadata.get("global_rules"),
+                        interrupt_marker=(state.metadata or {}).get("interrupt_marker"),
+                        interrupt_absent=contract.get("write_path") if (state.metadata or {}).get("interrupt_marker") else None,
+                    )
                 if (state.metadata or {}).get("approval_turn"):
                     approval = await _observe_preapproval(state, baseline)
                     approval["initial_response"] = completion[:8000]
@@ -673,6 +781,9 @@ def native_codex(
         if "native_approval" in state.store:
             state.output.metadata["native_approval"] = state.store.get("native_approval")
             state.output.metadata["usage_scope"] = "all emitted completed-turn usage; fresh-session approval continuation"
+        if "native_turns" in state.store:
+            state.output.metadata["native_turns"] = state.store.get("native_turns")
+            state.output.metadata["usage_scope"] = "all emitted completed-turn usage; one persisted session across scripted user turns"
         native_usage = _codex_usage(events)
         if native_usage is not None:
             state.output.metadata["native_usage"] = native_usage
@@ -1775,6 +1886,11 @@ async def _workflow_support_status(state: TaskState) -> dict[str, object]:
                 "capabilities": sorted(observed)}
     if metadata.get("approval_turn"):
         observed.add("approval-turn")
+    turns_error = _user_turns_contract_error(metadata)
+    if turns_error:
+        return {"status": "blocked", "reason": turns_error, "capabilities": sorted(observed)}
+    if metadata.get("user_turns") is not None:
+        observed.add("user-turns")
     required = metadata.get("required_capabilities", [])
     if not isinstance(required, list) or not all(isinstance(item, str) for item in required):
         return {"status": "blocked", "reason": "workflow required-capabilities contract is invalid",
@@ -1835,6 +1951,124 @@ def _approval_contract_error(metadata: Mapping) -> str | None:
     if metadata.get("fixture_contract", {}).get("kind") not in {"workspace-test", "workspace-artifact"}:
         return "approval continuation requires a supported workspace fixture"
     return None
+
+
+MAX_USER_TURNS = 8
+MAX_USER_TURN_CHARS = 20000
+USER_TURN_LIMITS = (
+    "scripted runner-owned user messages in one resumed native session, not an adaptive user; "
+    "persisted snapshots between turns do not detect writes later restored; "
+    "child agent sessions are not captured or attributed"
+)
+
+
+def _user_turns_contract_error(metadata: Mapping) -> str | None:
+    """Validate scripted same-session user turns before any native launch."""
+
+    turns = metadata.get("user_turns")
+    if turns is None:
+        return None
+    if not isinstance(turns, list) or not 1 <= len(turns) <= MAX_USER_TURNS:
+        return f"user turns must be a list of 1 to {MAX_USER_TURNS} runner-owned messages"
+    permitted = metadata.get("allowed_paths")
+    if not isinstance(permitted, list) or not all(isinstance(item, str) for item in permitted):
+        return "user turns require explicit permitted workspace paths"
+    for turn in turns:
+        if not isinstance(turn, dict) or set(turn) != {"text", "allowed_paths_before"}:
+            return "each user turn must contain exactly text and allowed_paths_before"
+        text, allowed = turn["text"], turn["allowed_paths_before"]
+        if not isinstance(text, str) or not text.strip() or len(text) > MAX_USER_TURN_CHARS:
+            return f"user turn text must be nonempty and at most {MAX_USER_TURN_CHARS} characters"
+        if (not isinstance(allowed, list) or not all(isinstance(item, str) for item in allowed)
+                or not set(allowed).issubset(permitted)):
+            return "user turn pre-turn paths must be within the permitted workspace effects"
+    for key in ("approval_turn", "interrupt_marker", "resume_prompt"):
+        if metadata.get(key) is not None:
+            return f"user turns combined with the {key} lifecycle are unsupported"
+    contract = metadata.get("fixture_contract")
+    if (not isinstance(contract, dict) or not isinstance(contract.get("kind"), str)
+            or contract["kind"] == "fake-tracker-publication"):
+        return "user turns require a runner-observed workspace fixture without fake publication"
+    return None
+
+
+async def _observe_turn_effects(baseline: Baseline, allowed: list[str] | None) -> dict[str, object]:
+    """Snapshot persisted effects after a turn; enforce ``allowed`` when given."""
+
+    receipt: dict[str, object] = {"status": "unavailable"}
+    workspace, error = await _sandbox_workspace_path()
+    if error or workspace is None:
+        receipt["reason"] = error or "workspace unavailable"
+        return receipt
+    evidence = collect_evidence(workspace, baseline, max_bytes=60000)
+    receipt["evidence"] = evidence.as_text()
+    if not evidence.available or evidence.truncated or evidence.omissions:
+        receipt["reason"] = "complete pre-turn workspace evidence is unavailable"
+        return receipt
+    changed = sorted(set(evidence.tracked_worktree_paths + evidence.tracked_index_paths
+                         + evidence.committed_paths + evidence.untracked_paths))
+    receipt["changed_paths"] = changed
+    if allowed is None:
+        receipt["status"] = "observed"
+        return receipt
+    outside = sorted(set(changed) - set(allowed))
+    if outside or evidence.git_metadata_changed or evidence.index_changed:
+        receipt.update(status="rejected", reason="effects outside the pre-turn contract occurred", outside_paths=outside,
+                       git_metadata_changed=evidence.git_metadata_changed,
+                       index_changed=evidence.index_changed)
+        return receipt
+    receipt["status"] = "accepted"
+    return receipt
+
+
+async def _native_user_turns(state: TaskState, baseline: Baseline, prompt: str, *,
+                             with_skills: bool, skills_root: Path, launch) -> tuple[str, str]:
+    """Deliver the initial input then each scripted turn in one persisted session.
+
+    The owned home holds the session record for all turns and is removed on
+    any exit. Effects outside a turn's pre-turn contract stop delivery.
+    """
+
+    turns = state.metadata["user_turns"]
+    receipt: dict[str, object] = {"source": "runner-owned", "status": "running",
+                                  "thread_id": None, "turns": [], "limits": USER_TURN_LIMITS}
+    state.store.set("native_turns", receipt)
+    messages = [prompt] + [turn["text"] for turn in turns]
+    completion, all_events = "", []
+    with isolated_codex_home(with_skills, skills_root=skills_root) as home:
+        session = NativeSession(home=Path(home))
+        for index, message in enumerate(messages):
+            record: dict[str, object] = {"index": index,
+                                         "prompt_sha256": hashlib.sha256(message.encode()).hexdigest()}
+            receipt["turns"].append(record)
+            try:
+                completion, events = await launch(message, session)
+            except BaseException as exc:
+                record.update(status="failed", reason=str(exc)[:8000])
+                receipt.update(status="failed", thread_id=session.thread_id,
+                               reason=f"native turn {index} failed")
+                state.store.set("native_turns", receipt)
+                raise
+            all_events.append(events)
+            record.update(status="delivered", thread_id=session.thread_id, response=completion[:8000],
+                          usage=_codex_usage(events), execution_metrics=_execution_metrics(events),
+                          events=events)
+            receipt["thread_id"] = session.thread_id
+            following = turns[index]["allowed_paths_before"] if index < len(turns) else None
+            effects = await _observe_turn_effects(baseline, following)
+            record["effects_after"] = effects
+            state.store.set("native_turns", receipt)
+            if effects["status"] in {"rejected", "unavailable"}:
+                receipt.update(status=effects["status"], stopped_after_turn=index,
+                               reason=str(effects.get("reason")))
+                if following is not None:
+                    receipt["rejected_before_turn"] = index + 1
+                state.store.set("native_turns", receipt)
+                break
+        else:
+            receipt["status"] = "completed"
+            state.store.set("native_turns", receipt)
+    return completion, "\n".join(all_events)
 
 
 def _plan_digest(workspace: Path, path: str) -> tuple[str | None, str | None]:
@@ -2224,6 +2458,17 @@ async def workspace_evidence(state: TaskState) -> str:
             "The runner captured persisted workspace effects and a bounded HTML file before supplying a digest-specific user confirmation. "
             "Continuation uses a fresh session and the same frozen catalog. This is not actual peer review, browser inspection, remote CI, "
             "or proof against writes restored between snapshots.\n" + json.dumps(approval, sort_keys=True)
+        )
+    turns = state.store.get("native_turns")
+    if isinstance(turns, dict):
+        summary = {**turns, "turns": [{key: value for key, value in record.items() if key != "events"}
+                                      for record in turns.get("turns", []) if isinstance(record, dict)]}
+        sections.append(
+            "RUNNER-OWNED USER-TURN OBSERVATION:\n"
+            "The runner delivered scripted user messages by resuming one persisted native session and "
+            "snapshotted persisted workspace effects after each turn. It is not an adaptive user, does not "
+            "detect writes restored between snapshots, and does not observe delegated child sessions.\n"
+            + json.dumps(summary, sort_keys=True)
         )
     execution_records: list[str] = []
     tool_records: list[str] = []
@@ -2752,6 +2997,17 @@ def workflow_effects():
             digest, error = _plan_digest(workspace, str(approval["plan_path"]))
             if error or digest != approval.get("plan_sha256"):
                 return Score(value=0, explanation="implementation cannot rely on a changed or missing approved plan",
+                             metadata={"status": "rejected", "acceptance": "runner-controlled"})
+        if metadata.get("user_turns") is not None:
+            turns = state.store.get("native_turns")
+            if not isinstance(turns, dict) or turns.get("source") != "runner-owned":
+                return Score.unscored(explanation="runner-owned user-turn receipts are unavailable",
+                                      metadata={"status": "unavailable", "acceptance_blocked": True})
+            if turns.get("status") in {"failed", "unavailable", "running"}:
+                return Score.unscored(explanation=str(turns.get("reason", "native turn launch failed")),
+                                      metadata={"status": "unavailable", "acceptance_blocked": True})
+            if turns.get("status") != "completed":
+                return Score(value=0, explanation=str(turns.get("reason", "scripted user turns were not all delivered")),
                              metadata={"status": "rejected", "acceptance": "runner-controlled"})
         if _response_required(metadata) and not completion.strip():
             return Score(value=0, explanation="required candidate response is missing")
