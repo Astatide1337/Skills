@@ -726,5 +726,17 @@
       "Add observed architect and code-review reference reads."
     ],
     "limits": "Reviewer checked hash-matched decoded observations, not an independent decoding of raw eval zip; earlier native-task semantics reviewed only to recorded checks. Evidence-only readiness, not performance improvement or issue closure."
+  },
+  "main_integration": {
+    "main_revision": "b5e348c2ed080a0041de14e201da42646632d441",
+    "resolution": "Union the independent appended cases; all common IDs and all three reviewed v2 hashes retain exact equality. No instruction, adapter or case definition changed.",
+    "focused_controls": 22,
+    "make_verify": {
+      "tests": 394,
+      "exit_code": 0,
+      "log": "/tmp/skills-goal-scope.ZMJSue/material-main-integration-verify.log",
+      "sha256": "ca5ca89f8fff39d4311a6c525305d83d9e1f8e83886efc821991a55ae9105132"
+    },
+    "review_scope": "Mechanical integration of reviewed PR56 and PR57; unchanged semantic case definitions. Existing independent review retained."
   }
 }
