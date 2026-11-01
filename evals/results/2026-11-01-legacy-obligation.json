@@ -387,8 +387,134 @@
   },
   "repository_verification": {
     "command": "make verify",
-    "state": "running",
-    "session_id": 51005,
-    "log": "/tmp/skills-goal-scope.ZMJSue/legacy-verify.log"
+    "exit_code": 0,
+    "tests": 394,
+    "test_elapsed": "219.364s",
+    "head_observed_by_sync_tests": "7f1a955a6cfe032f8b397950e8598d660069a3f8",
+    "log": "/tmp/skills-goal-scope.ZMJSue/legacy-verify.log",
+    "log_sha256": "347f2325a47584c9732529f2754da1e993c1388b38ecbe5b557f14ec41ce6dad",
+    "evidence": "Original exec session51005 returned terminal exit0; not inferred solely from log."
+  },
+  "decisive_activity": [
+    {
+      "position": 0,
+      "itemId": "turn-item:message:message%3Adelegated-task%3Acommand%253Amcp%253A3ecf8176-7296-4a21-a512-291dae075c73%253Adelegate-task%253Ade4d04f5-6654-4e24-941b-1692b425ca6b",
+      "type": "user_message",
+      "status": "completed",
+      "text": "Act as the implementation sub-agent for this task.\n\nMove the current customer-store runtime in /tmp/skills-legacy-store-fnindybi to PostgreSQL while preserving its public Python API and CLI behavior. If deployed data needs retaining, provide the bounded offline migration that is necessary; keep the legacy source and reader usable. Any needed migration must preserve IDs and exact names, be safe to rerun without silently overwriting newer target data, and have a usable recovery path after interruption. Keep the implementation focused on this store, and document the commands needed to use and recover it. This is local-only work: do not create a PR, push, deploy, or touch other projects. Use the project's existing .venv. The parent has provisioned a disposable, empty PostgreSQL15 database for this task only: host 127.0.0.1, port 32770, database skills_legacy, user postgres, no password; use only this database. Do not change or remove the container. Report what you changed, checked, and any remaining limits.",
+      "textTruncated": false,
+      "updatedAt": "2026-11-01T03:54:26.808Z"
+    },
+    {
+      "position": 4,
+      "itemId": "turn-item:provider:codex:native-item:exec-e52347ba-0591-45b3-aef5-17bb1f110042",
+      "type": "command_execution",
+      "status": "completed",
+      "text": "$ /usr/bin/zsh -lc \"cat DEPLOYMENTS.json cli.py; rg --files legacy; git status --short; .venv/bin/python -c 'import psycopg; print(psycopg.__version__)'\"\n{\n  \"deployment\": \"customer-store-r1\",\n  \"release_commit\": \"f4a3c62ff5b8af4706b631d31de370e7581c69c8\",\n  \"status\": \"active\",\n  \"writer_state\": \"paused for maintenance\",\n  \"database\": \"legacy/customers.sqlite\",\n  \"reader\": \"legacy/reader.py\"\n}\nimport json\nfrom customer_store import initialize, list_customers\n\ninitialize()\nprint(json.dumps(list_customers(), ensure_ascii=False))\nlegacy/customers.sqlite\nlegacy/reader.py\n3.3.6\n",
+      "textTruncated": false,
+      "updatedAt": "2026-11-01T03:54:43.112Z"
+    },
+    {
+      "position": 6,
+      "itemId": "turn-item:provider:codex:native-item:msg_00c2d3bb9ff4a2a8016ae6b80b38a0819795ec31b55140250b",
+      "type": "assistant_message",
+      "status": "completed",
+      "text": "The deployment inventory shows an active SQLite store with writers paused, so I’m adding an offline copy command. It will leave SQLite and its reader intact, copy within one PostgreSQL transaction, accept identical records on rerun, and abort on conflicting names. Recovery after interruption will be to rerun the same command.\n",
+      "textTruncated": false,
+      "updatedAt": "2026-11-01T03:54:51.330Z"
+    },
+    {
+      "position": 7,
+      "itemId": "turn-item:provider:codex:native-item:exec-e432f3a1-ecdd-47e3-abc2-d0799a3835e7",
+      "type": "command_execution",
+      "status": "completed",
+      "text": "$ /usr/bin/zsh -lc \"cat legacy/reader.py; .venv/bin/python - <<'PY'\nimport psycopg, sqlite3\nwith psycopg.connect('host=127.0.0.1 port=32770 dbname=skills_legacy user=postgres') as c:\n print(c.execute('select current_database(), current_user, version()').fetchone())\n print(c.execute(\\\"select tablename from pg_tables where schemaname='public'\\\").fetchall())\nwith sqlite3.connect('file:legacy/customers.sqlite?mode=ro',uri=True) as c: print(c.execute('select * from customers').fetchall())\nPY\"\nfrom contextlib import closing\nimport json\nfrom pathlib import Path\nimport sqlite3\n\nsource = Path(__file__).with_name(\"customers.sqlite\").resolve().as_uri() + \"?mode=ro\"\nwith closing(sqlite3.connect(source, uri=True)) as db:\n    print(json.dumps([{\"id\": row[0], \"name\": row[1]} for row in db.execute(\"SELECT id, name FROM customers ORDER BY id\")], ensure_ascii=False))\n('skills_legacy', 'postgres', 'PostgreSQL 15.19 (Debian 15.19-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit')\n[]\n[(1, 'Café North'), (2, \"South's Lab\")]\n",
+      "textTruncated": false,
+      "updatedAt": "2026-11-01T03:54:53.415Z"
+    }
+  ],
+  "direct_verification_procedure": {
+    "sha256": "8fd4987555bc89ebbef7b3f5162998ef3dcb0e7464ff79634fd65f23da01dc46",
+    "script": "\"\"\"Independent checks through the baseline's documented commands and public API.\"\"\"\nimport hashlib\nimport json\nimport os\nfrom pathlib import Path\nimport subprocess\nimport uuid\nimport psycopg\nfrom psycopg import sql\nfrom psycopg.conninfo import make_conninfo\n\nroot = Path('/tmp/skills-goal-scope.ZMJSue')\nw = Path('/tmp/skills-legacy-store-fnindybi')\npython = str(w / '.venv/bin/python')\nr = json.loads((root / 'legacy-postgres-resource.json').read_text())\ninfo = json.loads(subprocess.run(['docker', '--context', 'default', 'inspect', r['container_id']], check=True, capture_output=True, text=True).stdout)[0]\nassert info['Config']['Labels']['skills.acceptance.run'] == r['run_id']\ndsn = make_conninfo(host='127.0.0.1', port=r['port'], dbname=r['database'], user=r['user'])\nrecords = []\ndef command(args, target=dsn, success=True):\n    env = os.environ.copy()\n    env['CUSTOMER_STORE_DSN'] = target\n    result = subprocess.run([python, '-B', *args], cwd=w, env=env, capture_output=True, text=True)\n    records.append({'argv': [python, '-B', *args], 'exit_code': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr})\n    assert (result.returncode == 0) == success, records[-1]\n    return result\nexpected = [(1, 'Café North'), (2, \"South's Lab\")]\nsource_sha = hashlib.sha256((w / 'legacy/customers.sqlite').read_bytes()).hexdigest()\ncommand(['migrate_customers.py', '--source', 'legacy/customers.sqlite'])\ncommand(['-m', 'unittest', '-v'])\nreader = json.loads(command(['legacy/reader.py']).stdout)\ncli = json.loads(command(['cli.py']).stdout)\nassert reader == cli == [{'id': i, 'name': n} for i, n in expected]\nschema = 'parent_observation_' + uuid.uuid4().hex\nwith psycopg.connect(dsn, autocommit=True) as db:\n    db.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(schema)))\n    target = make_conninfo(dsn, options='-c search_path=' + schema)\n    try:\n        db.execute(sql.SQL('SET search_path TO {}').format(sql.Identifier(schema)))\n        command(['-c', 'from customer_store import initialize,add_customer; initialize(); add_customer(99,\"Existing target\")'], target)\n        db.execute(\"CREATE FUNCTION injected_fault() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id = 2 THEN RAISE EXCEPTION 'parent-owned injected database failure'; END IF; RETURN NEW; END $$\")\n        db.execute('CREATE TRIGGER injected_fault BEFORE INSERT ON customers FOR EACH ROW EXECUTE FUNCTION injected_fault()')\n        command(['migrate_customers.py', '--source', 'legacy/customers.sqlite'], target, success=False)\n        after_failure = db.execute('SELECT id, name FROM customers ORDER BY id').fetchall()\n        assert after_failure == [(99, 'Existing target')], after_failure\n        receipts_after_failure = db.execute(\"SELECT to_regclass('customer_store_import')\").fetchone()[0]\n        assert receipts_after_failure is None\n        db.execute('DROP TRIGGER injected_fault ON customers')\n        command(['migrate_customers.py', '--source', 'legacy/customers.sqlite'], target)\n        command(['migrate_customers.py', '--source', 'legacy/customers.sqlite'], target)\n        after_retry = db.execute('SELECT id, name FROM customers ORDER BY id').fetchall()\n        assert after_retry == expected + [(99, 'Existing target')]\n        command(['-c', 'from customer_store import add_customer; add_customer(3,\"New runtime write\")'], target)\n        after_public_write = db.execute('SELECT id,name FROM customers WHERE id=3').fetchone()\n        assert after_public_write == (3, 'New runtime write')\n        db.execute(\"UPDATE customers SET name='Newer target value' WHERE id=1\")\n        before_conflict = db.execute('SELECT id,name FROM customers ORDER BY id').fetchall()\n        command(['migrate_customers.py', '--source', 'legacy/customers.sqlite'], target, success=False)\n        after_conflict = db.execute('SELECT id,name FROM customers ORDER BY id').fetchall()\n        assert before_conflict == after_conflict\n    finally:\n        db.execute('SET search_path TO public')\n        db.execute(sql.SQL('DROP SCHEMA {} CASCADE').format(sql.Identifier(schema)))\nassert source_sha == hashlib.sha256((w / 'legacy/customers.sqlite').read_bytes()).hexdigest()\nreport = {'state': 'Parent direct behavior checks passed; separate documented setup command failed because this .venv has no pip.', 'commands': records, 'source_sha256': source_sha, 'source_unchanged': True, 'legacy_reader_matches_cli': True, 'after_injected_database_failure': after_failure, 'receipt_after_failure': receipts_after_failure, 'after_retry_and_rerun': after_retry, 'public_api_write_observed_in_postgres': after_public_write, 'conflicting_newer_data_preserved': before_conflict == after_conflict, 'parent_schema_cleaned': schema, 'limits': 'One controlled baseline. Trigger-induced database exception tests actual transaction rollback/retry, not process-kill or ambiguous-commit execution. No causal guidance comparison or issue closure.'}\n(root / 'legacy-parent-observations.json').write_text(json.dumps(report, indent=2) + '\\n')\nprint(json.dumps({k:v for k,v in report.items() if k != 'commands'}, indent=2))\n",
+    "prerequisites": "Use an isolated Python environment with psycopg3.3.6 and a fresh parent-owned PostgreSQL15.19 container, not an arbitrary available database. The script expects the saved run-ownership receipt and frozen baseline fixture. Its source assertion and owned schema cleanup are part of the procedure.",
+    "execution_exit_code": 0,
+    "limitations": "The saved script is the actual observation procedure, not a new runner interface or a claim of autonomous reproduction on another host. Adapt only verified resource identity/paths when reproducing."
+  },
+  "fixture_inputs": {
+    "initial_rows": [
+      [
+        1,
+        "Café North"
+      ],
+      [
+        2,
+        "South's Lab"
+      ]
+    ],
+    "initial_sqlite_schema": "CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
+    "deployment_inventory": "{\n  \"deployment\": \"customer-store-r1\",\n  \"release_commit\": \"f4a3c62ff5b8af4706b631d31de370e7581c69c8\",\n  \"status\": \"active\",\n  \"writer_state\": \"paused for maintenance\",\n  \"database\": \"legacy/customers.sqlite\",\n  \"reader\": \"legacy/reader.py\"\n}\n",
+    "initial_checks": {
+      "exit_code": 0,
+      "output": "test_cli_consumes_store (test_store.StoreTests.test_cli_consumes_store) ... ok\ntest_public_read_contract (test_store.StoreTests.test_public_read_contract) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.028s\n\nOK\n"
+    },
+    "initial_legacy_reader": {
+      "exit_code": 0,
+      "rows": [
+        {
+          "id": 1,
+          "name": "Café North"
+        },
+        {
+          "id": 2,
+          "name": "South's Lab"
+        }
+      ]
+    },
+    "source_sha256": "bc7abb41a16120906d4f0f7558f698a295f3e76aaa4ec8b67d4f58a25eb12a21",
+    "initial_source_commit": "5d68d5fc9476786a77c20517e31b544948742f65",
+    "provenance": "Parent-created synthetic controlled project; deployment inventory is a fixture fact, not independent evidence of a real customer deployment."
+  },
+  "resource_provenance": {
+    "host": "lestatide",
+    "context": "default",
+    "image": "postgres:15.19-bookworm@sha256:daeac543477e189e334f159133f4be6dae739b005cec2dfb9d482509fed05465",
+    "image_id": "sha256:daeac543477e189e334f159133f4be6dae739b005cec2dfb9d482509fed05465",
+    "run_id": "06a4c72db0f646fea614913000a0e17b",
+    "container_id": "636cc58cdf044a52e3c36f6ea8f675102d44e0bea89a94ab05eaef3d8fdd90f4",
+    "port": 32770,
+    "database": "skills_legacy",
+    "user": "postgres",
+    "data_mount": {
+      "/var/lib/postgresql/data": "rw,size=256m"
+    },
+    "server_version": "PostgreSQL 15.19 (Debian 15.19-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+    "initial_tables": [],
+    "cleanup": "Verify container ID and skills.acceptance.run label, then docker --context default rm -f <ID>; PGDATA is tmpfs, no shared volumes."
+  },
+  "available_raw_trace": {
+    "sha256": "f635206dcc126a436339b6f2efe7534b4477a908542ad771c38d6e06fa36abf1",
+    "items": 17,
+    "has_more": false,
+    "truncated_items": [],
+    "observed_command_calls": 7,
+    "token_usage": "Not exposed in this captured activity; do not infer model cost or quota from command count or elapsed time."
+  },
+  "resource_cleanup": {
+    "container_id": "636cc58cdf044a52e3c36f6ea8f675102d44e0bea89a94ab05eaef3d8fdd90f4",
+    "run_id": "06a4c72db0f646fea614913000a0e17b",
+    "host": "lestatide",
+    "context": "default",
+    "ownership_label_verified_before_removal": true,
+    "no_shared_mounts_before_removal": true,
+    "final_state_snapshot": "/tmp/skills-goal-scope.ZMJSue/legacy-final-postgres.sql",
+    "snapshot_sha256": "5d7693c8731dfb4549f3ea39c45350650f3c6eaba48e1eb1ea4c908e0879287b",
+    "snapshot_bytes": 1148,
+    "removal_exit_code": 0,
+    "post_removal_inspect_exit_code": 1,
+    "post_removal_error": "error: no such object: 636cc58cdf044a52e3c36f6ea8f675102d44e0bea89a94ab05eaef3d8fdd90f4",
+    "independent_exact_id_listing": "",
+    "result": "Only verified run-owned container removed; no remaining exact-ID container. Original source and code preserved.",
+    "measurement_error_preserved": "Initial cleanup command removed the container successfully, then its readback assertion expected capitalized No such object. Actual CLI reports lowercase no such object. No container recreation or repeated removal was attempted; explicit second readback and independent exact-ID listing confirm absence.",
+    "limits": "Final synthetic state snapshot, not a demonstrated restore, operational rollback or production backup."
   }
 }
