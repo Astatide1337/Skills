@@ -46,10 +46,10 @@ context or wrapper does not show the session is off the target machine or lacks
 access. Before escalating a capability blocker, establish where the session runs
 (host, user, working directory; presence only of mounted workload identity or
 in-cluster environment) and the client's documented route to it. Separate no
-configuration, no client, authentication failure and authorization denial. Work
-inside the existing authority: stop at an actual denial, a new credential or
-grant, or a route the task prohibits, and ask only for what observation cannot
-settle.
+configuration, no client, authentication failure and authorization denial.
+Use an already-authorized authentication renewal when applicable; a new identity
+or broader grant needs authority not already given. Respect actual denials and
+prohibited routes, and ask only for what observation cannot settle.
 
 For Linux, network, and container incident diagnosis, use the
 [layer-by-layer incident procedure](../systematic-debugging/references/linux-network-container-incidents.md)
@@ -81,15 +81,16 @@ before operational changes. Tests, setup, previews and local processes can write
 to shared backing resources. Verify target identity and isolation before schema
 synchronization, seed/reset, cleanup or bulk replacement; do not infer
 disposability from a dev/test name or an available connection.
-Take the identity (host, database, environment) from the writing tool's own
-read-only status or dry run, since the file you inspected may not be the one it
-loads, and never print the connection string. If the target is not verified
-disposable, use an isolated one, or establish authorization and a recovery point
-as for any destructive action before the write. A flag that suppresses the
-tool's own data-loss guard (`--accept-data-loss`, `--force`) is neither a
-connectivity check nor error recovery; it needs that same target and recovery
-evidence. Read-only inspection and verified disposable local targets need no
-approval or backup.
+Resolve the writing tool's effective resource and environment through supported
+read-only status, dry run or configuration resolution; the file you inspected
+may not be the one it loads. Report target identity without credentials. Do not
+write merely to discover the target. If it is not verified disposable, use an
+isolated target or establish authority and a recovery path proportionate to the
+effects before writing. A flag that suppresses a tool's data-loss guard
+(`--accept-data-loss`, `--force`) is neither a connectivity check nor evidence
+that recovery is safe; verify the target, effects and recovery first. Read-only
+inspection and authorized work on verified disposable local targets need no
+extra approval or backup ritual.
 
 ## 3. Separate facts from assumptions
 

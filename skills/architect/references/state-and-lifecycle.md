@@ -20,11 +20,12 @@ legal transitions, the commit boundary, and observed success/failure effects.
    retained as unfinished work; it does not erase verification evidence.
 7. When a state, guard or quota controls release, deletion or a new launch,
    treat uncertainty as a state. Persist an identity as soon as it exists,
-   before a later step can fail. Keep a record migrated without identity
-   unresolved, and release only on positive evidence for every resource that may
-   exist: an empty lookup is not that evidence. Scope a new guard to the owning
-   actor so it also covers already-queued work and pre-upgrade records, and keep
-   the cleanup path open.
+   before a later step can fail. Keep records migrated without identity
+   unresolved until resources whose creation may have completed are reconciled.
+   An empty lookup over known IDs does not resolve unknown resources or partial
+   failures. Apply an owner-wide guard at producers and consumers, including
+   already-queued work and pre-upgrade records, while keeping authorized cleanup
+   possible.
 
 Test normal completion, rejection/conflict, interruption before commit, and
 interruption after commit wherever those states exist. Choose expected effects
