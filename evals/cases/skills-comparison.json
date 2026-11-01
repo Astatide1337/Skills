@@ -1996,5 +1996,230 @@
       },
       "evidence_limit": "Trusted offline fixture with actual local state transition, snapshot and supported persisted read. Review completed native commands for inspect/snapshot/migrate/read ordering and final response for correct rollback limits; mutable JSON snapshots alone do not prove ordering. No real database rollout, concurrency, live backups or credential claim."
     }
+  },
+  {
+    "id": "issue-46-portfolio-correction",
+    "input": "Improve the explanations in this portfolio for a visitor who has never seen these projects. Each example should explain the problem, my contribution, the observed result and its limitation, and retain a source link. Use only the factual source. Edit content.json and regenerate portfolio.html with the supplied renderer. Keep source.json and render.py unchanged. Local files only; focused regression checks may go in test_regressions.py.",
+    "target": "After a forceful correction, produce a coherent plain portfolio preserving the established factual reader task and source access. Honor explicit section deletion. Mechanical acceptance covers publishing, fields, links and source integrity; independent semantic review decides factual fidelity, qualifications, plainness and both-turn behavior. Faithful paraphrases are valid.",
+    "files": {
+      "source.json": "{\n  \"projects\": [\n    {\n      \"id\": \"queue\",\n      \"name\": \"Queue monitor\",\n      \"facts\": {\n        \"purpose\": \"Show delayed print jobs before a shift starts.\",\n        \"role\": \"Built the polling worker and the operator screen.\",\n        \"result\": \"Reduced stale jobs from 18 to 3 in a 40-job pilot.\",\n        \"limit\": \"The pilot covered one printer, not the full building.\"\n      },\n      \"repo\": \"https://example.invalid/queue\"\n    },\n    {\n      \"id\": \"archive\",\n      \"name\": \"Photo archive\",\n      \"facts\": {\n        \"purpose\": \"Find scanned family photos by person and date.\",\n        \"role\": \"Built local indexing and a correction form.\",\n        \"result\": \"Indexed 1200 photos from 6 albums.\",\n        \"limit\": \"Unknown faces still require manual labels.\"\n      },\n      \"repo\": \"https://example.invalid/archive\"\n    }\n  ]\n}\n",
+      "content.json": "{\n  \"heading\": \"Unlocking a revolutionary constellation of game-changing outcomes\",\n  \"intro\": \"I made the following tools. Each example records the problem, my part, the observed result and its limit.\",\n  \"sections\": [\n    \"projects\",\n    \"recognition\"\n  ],\n  \"project_label\": \"Explore my transformative impact\",\n  \"project_fields\": [\n    \"purpose\",\n    \"role\",\n    \"result\",\n    \"limit\"\n  ],\n  \"recognition\": \"Outstanding thought leader\"\n}\n",
+      "render.py": "import html,json\nfrom pathlib import Path\nsource=json.loads(Path('source.json').read_text());c=json.loads(Path('content.json').read_text());e=html.escape\nout=['<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Projects</title><body><main>', '<h1>'+e(c['heading'])+'</h1>','<p>'+e(c['intro'])+'</p>']\nfor section in c['sections']:\n if section=='recognition': out.append('<section id=\"recognition\"><h2>Recognition</h2><p>'+e(c['recognition'])+'</p></section>')\n if section=='projects':\n  out.append('<section id=\"projects\"><h2>'+e(c['project_label'])+'</h2>')\n  for project in source['projects']:\n   out.append('<article id=\"'+e(project['id'])+'\"><h3>'+e(project['name'])+'</h3><dl>')\n   for key in c['project_fields']:\n    out.append('<dt>'+e(key.title())+'</dt><dd data-fact=\"'+e(key)+'\">'+e(c.get('project_explanations',{}).get(project['id'],{}).get(key,project['facts'][key]))+'</dd>')\n   out.append('</dl><a href=\"'+e(project['repo'])+'\">Source for '+e(project['name'])+'</a></article>')\n  out.append('</section>')\nout.append('</main></body></html>');Path('portfolio.html').write_text(''.join(out))\n",
+      "README.txt": "python render.py produces the standalone portfolio.html from source.json and content.json. Edit content.json for copy and selected sections/fields. source.json is the factual record; render.py is the independent publisher. Preserve both. The recognition claim is unsupported and must be removed from the published page. No network access is needed.\n Optional content.json project_explanations maps project IDs to fact-key text overrides. Faithful paraphrases are allowed; source.json remains authoritative and unchanged.\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "content.json",
+        "portfolio.html",
+        "test_regressions.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "unslop",
+        "web-interface",
+        "verify-work"
+      ],
+      "expected_workflows": [
+        "verify-work/verify"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "owning-source-inspected",
+        "actual-result-produced"
+      ],
+      "execution_mode": "execution-ready",
+      "issue_refs": [
+        46
+      ],
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "content.json",
+        "write_content": "{\n  \"heading\": \"Projects\",\n  \"intro\": \"I made the following tools. Each example records the problem, my part, the observed result and its limit.\",\n  \"sections\": [\n    \"projects\"\n  ],\n  \"project_label\": \"What I built\",\n  \"project_fields\": [\n    \"purpose\",\n    \"role\",\n    \"result\",\n    \"limit\"\n  ],\n  \"recognition\": \"Outstanding thought leader\"\n}\n",
+        "required_paths": [
+          "source.json",
+          "content.json",
+          "render.py",
+          "README.txt",
+          "portfolio.html"
+        ],
+        "acceptance_test": "import json,hashlib,subprocess,sys\nfrom pathlib import Path\nfrom html.parser import HTMLParser\nassert hashlib.sha256(Path('source.json').read_bytes()).hexdigest()=='9dc62a2c70dfdf59451136a61f6a42f8889e741bba0bfb44942e236e0f58fc43', 'factual source changed'\nassert hashlib.sha256(Path('render.py').read_bytes()).hexdigest()=='1809050e1827b2647d28f9de29503e7ed8e192fc7582596f765f125405074079', 'independent renderer changed'\nclass Surface(HTMLParser):\n def __init__(self): super().__init__();self.articles={};self.ids=set();self.article=None;self.fact=None;self.capture=None\n def handle_starttag(self,tag,attrs):\n  a=dict(attrs)\n  if 'id' in a:self.ids.add(a['id'])\n  if tag=='article': self.article=a['id'];self.articles[self.article]={'facts':{},'links':[]}\n  if tag=='dd': self.fact=a.get('data-fact');self.capture=[]\n  if tag=='a' and self.article: self.articles[self.article]['links'].append(a.get('href'))\n def handle_data(self,data):\n  if self.capture is not None:self.capture.append(data)\n def handle_endtag(self,tag):\n  if tag=='dd': self.articles[self.article]['facts'][self.fact]=''.join(self.capture);self.fact=None;self.capture=None\n  if tag=='article':self.article=None\ndef check():\n p=Surface();p.feed(Path('portfolio.html').read_text());source=json.loads(Path('source.json').read_text())\n assert 'recognition' not in p.ids,'explicitly deleted section remains'\n assert set(p.articles)=={v['id'] for v in source['projects']},'project examples removed'\n for v in source['projects']:\n  assert set(p.articles[v['id']]['facts'])==set(v['facts']),'visitor lost an explanation field'\n  assert all(text.strip() for text in p.articles[v['id']]['facts'].values()),'visitor received an empty explanation'\n  assert p.articles[v['id']]['links']==[v['repo']],'project source not reachable'\ncheck()\nsubprocess.run([sys.executable,'-B','render.py'],check=True)\ncheck()\n",
+        "response_required": false
+      },
+      "evidence_limit": "New correction case, not a rescore of the original portfolio fixture. Optional publisher-supported prose overrides permit faithful paraphrases while keeping factual source immutable. Machine checks only field selection/nonempty text, explicit deletion, source links and publisher integrity. Independent review must assess semantic fidelity, removal of unsupported claims, both turns and actual final surface; a mechanical pass alone is insufficient. Scripted turns do not establish adaptive correction reliability.",
+      "required_capabilities": [
+        "user-turns"
+      ],
+      "user_turns": [
+        {
+          "text": "The labels are still too much. Cut the bloated prose. Be blunt and simple: \"Explore my transformative impact\" should just be \"Projects\". Delete the recognition section entirely; that claim is unsupported. Finish the revised page.",
+          "allowed_paths_before": [
+            "content.json",
+            "portfolio.html",
+            "test_regressions.py"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "issues-44-46-content-howto",
+    "input": "Rewrite guide.md as a practical operator how-to for publishing a configuration to workspace atlas. The current guide is wordy and its recovery promise needs checking. Keep the necessary commands, decisions, material consequences and qualifications. Use SOURCE.txt as authority. A deep architecture essay would get in the way of this task. Edit only guide.md; local files only, no application changes, commands against services, installs, commits or publication.",
+    "target": "Preserve source-grounded operational facts and safety limits while selecting depth and structure for the requested reader. Independent semantic and reader-task review is mandatory; nonempty-file acceptance alone does not establish quality.",
+    "files": {
+      "SOURCE.txt": "# Operator source record\nA local client publishes a workspace configuration to a named shared workspace.\nThe operator must check the effective workspace name before publishing; the folder name does not identify it.\nPublishing replaces that workspace configuration. It does not delete user documents.\nExample for workspace atlas: client status --workspace atlas; client export --workspace atlas --out before.json; client publish --workspace atlas --file next.json; client read --workspace atlas.\nThe export must finish successfully before publish. If export fails, stop; do not publish.\nA read after publish must show the intended configuration. On failure, restore the exported configuration with client publish --workspace atlas --file before.json and read again.\nRestoring the configuration does not restore user document edits made after the export. Preserve document data and avoid reset/delete operations.\nDesign: the client resolves workspace identity through server status; export captures only configuration. Publish replaces configuration atomically. Read checks the persisted server value, not the local preview. The distinction between configuration and document storage limits rollback claims.\nNo automatic backups, full-data rollback or zero-downtime guarantee is established by this source.\n",
+      "guide.md": "# Deploy excellence\nOur next-generation orchestration platform provides effortless operations and comprehensive resilience. Before beginning your transformation journey, orient yourself around the complete layered platform vision.\nThe client resolves the workspace against server state. Export captures configuration, while documents have a separate lifecycle. Atomic replacement and a separate persisted read let operators separate local previews from stored state.\nPublish the new config. If anything goes wrong, restore everything from the snapshot. Resets are a convenient way to get back to a clean slate.\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "guide.md"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "unslop"
+      ],
+      "expected_workflows": [
+        "document-teach/document"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "owning-source-inspected",
+        "actual-result-produced"
+      ],
+      "execution_mode": "execution-ready",
+      "issue_refs": [
+        44,
+        46
+      ],
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "guide.md",
+        "write_content": "A source-grounded guide selected for its requested reader.",
+        "required_paths": [
+          "SOURCE.txt",
+          "guide.md"
+        ],
+        "acceptance_test": "from pathlib import Path\nassert Path('guide.md').read_text().strip(), 'requested guide missing'\n",
+        "response_required": false
+      },
+      "evidence_limit": "Mechanical scoring checks delivery only. A fresh semantic review must verify target identification, export-before-write and stop-on-failed-export, exact effects, persisted read, configuration-only recovery without post-export document restoration, document preservation, no unsupported guarantees, and how-to versus architecture depth. Different faithful wording and useful structures are valid; no phrase or length rubric. Fixture commands are inert source text; executing any service operation is outside authority."
+    }
+  },
+  {
+    "id": "issues-44-46-content-architecture",
+    "input": "Rewrite guide.md as an architecture explanation for a maintainer deciding how configuration publish and recovery work. Explain the ownership boundary, operation ordering, persisted-state verification and recovery limits from SOURCE.txt in enough depth to maintain the design. A terse command checklist alone would not answer this request. Edit only guide.md; local files only, no application changes, commands against services, installs, commits or publication.",
+    "target": "Preserve source-grounded operational facts and safety limits while selecting depth and structure for the requested reader. Independent semantic and reader-task review is mandatory; nonempty-file acceptance alone does not establish quality.",
+    "files": {
+      "SOURCE.txt": "# Operator source record\nA local client publishes a workspace configuration to a named shared workspace.\nThe operator must check the effective workspace name before publishing; the folder name does not identify it.\nPublishing replaces that workspace configuration. It does not delete user documents.\nExample for workspace atlas: client status --workspace atlas; client export --workspace atlas --out before.json; client publish --workspace atlas --file next.json; client read --workspace atlas.\nThe export must finish successfully before publish. If export fails, stop; do not publish.\nA read after publish must show the intended configuration. On failure, restore the exported configuration with client publish --workspace atlas --file before.json and read again.\nRestoring the configuration does not restore user document edits made after the export. Preserve document data and avoid reset/delete operations.\nDesign: the client resolves workspace identity through server status; export captures only configuration. Publish replaces configuration atomically. Read checks the persisted server value, not the local preview. The distinction between configuration and document storage limits rollback claims.\nNo automatic backups, full-data rollback or zero-downtime guarantee is established by this source.\n",
+      "guide.md": "# Deploy excellence\nOur next-generation orchestration platform provides effortless operations and comprehensive resilience. Before beginning your transformation journey, orient yourself around the complete layered platform vision.\nThe client resolves the workspace against server state. Export captures configuration, while documents have a separate lifecycle. Atomic replacement and a separate persisted read let operators separate local previews from stored state.\nPublish the new config. If anything goes wrong, restore everything from the snapshot. Resets are a convenient way to get back to a clean slate.\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "guide.md"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "unslop"
+      ],
+      "expected_workflows": [
+        "document-teach/document"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "owning-source-inspected",
+        "actual-result-produced"
+      ],
+      "execution_mode": "execution-ready",
+      "issue_refs": [
+        44,
+        46
+      ],
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "guide.md",
+        "write_content": "A source-grounded guide selected for its requested reader.",
+        "required_paths": [
+          "SOURCE.txt",
+          "guide.md"
+        ],
+        "acceptance_test": "from pathlib import Path\nassert Path('guide.md').read_text().strip(), 'requested guide missing'\n",
+        "response_required": false
+      },
+      "evidence_limit": "Mechanical scoring checks delivery only. A fresh semantic review must verify target identification, export-before-write and stop-on-failed-export, exact effects, persisted read, configuration-only recovery without post-export document restoration, document preservation, no unsupported guarantees, and how-to versus architecture depth. Different faithful wording and useful structures are valid; no phrase or length rubric. Fixture commands are inert source text; executing any service operation is outside authority."
+    }
+  },
+  {
+    "id": "issue-44-learner-and-assistant-flow",
+    "input": "Repair this local training page for a learner. It currently shows developer material before the workspace and its assistant does not give a useful answer. Use APP_CONTRACT.txt and the supplied client to determine the right content and flow. Preserve existing notes/tasks, DOM hooks and the client file. Edit index.html only; focused local tests may go in test_ui.py. No installs, servers, external calls, commits or child agents.",
+    "target": "Learner flow retains workspace and immediate action, hides solution before start, displays the actual client answer through normal form submission, and preserves effects/consent/reset meaning. Actual DOM interaction and reader-task review are mandatory; file delivery alone is not usability evidence.",
+    "files": {
+      "index.html": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Queue practice</title></head><body>\n<h1>Queue practice</h1>\n<section id=\"hint\"><h2>Fault plan and repair</h2><p>Pause the training worker. Restart the worker to resume processing.</p></section>\n<section id=\"transport\"><h2>Transport details</h2><pre>POST /fixture/answer; diagnostics are shown as the response.</pre></section>\n<section><h2>Start</h2><p id=\"effects\">Starting injects a simulated fault into this local training workspace. Exercise requests may fail. Notes and tasks are kept. Reset returns the training state to ready.</p><label><input id=\"consent\" type=\"checkbox\">I understand the training effects.</label><button id=\"start\">Start exercise</button><button id=\"reset\">Reset exercise</button><p id=\"status\" role=\"status\"></p></section>\n<main id=\"workspace\" data-phase=\"ready\" hidden><h2>Workspace</h2><label for=\"notes\">Notes</label><textarea id=\"notes\">Observe the queue before changing it.</textarea><h3>Tasks</h3><ul id=\"tasks\"><li>Inspect the training queue.</li><li>Record what changed.</li></ul>\n<form id=\"chat\"><label for=\"question\">Ask the assistant</label><input id=\"question\" value=\"Where are my notes?\"><button id=\"ask\" type=\"submit\">Ask</button></form><output id=\"answer\" aria-live=\"polite\"></output></main>\n<script src=\"reply-client.js\"></script><script>\nconst workspace=document.getElementById('workspace');\ndocument.getElementById('start').onclick=()=>{workspace.hidden=false;workspace.dataset.phase='running';document.getElementById('status').textContent='Exercise running';};\ndocument.getElementById('reset').onclick=()=>{workspace.dataset.phase='ready';document.getElementById('status').textContent='Exercise ready';};\ndocument.getElementById('chat').onsubmit=async event=>{event.preventDefault();const reply=await ReplyClient.ask(document.getElementById('question').value);document.getElementById('answer').textContent=JSON.stringify(reply.diagnostics);};\n</script></body></html>",
+      "reply-client.js": "(() => {\n const calls=[];\n const reply={answer:'Your notes and tasks stay in the workspace. Start the exercise to investigate the queue.',diagnostics:{transport:'fixture-json',request_id:'local-demo'}};\n window.ReplyClient=Object.freeze({get requests(){return calls.slice();},ask:async question=>{calls.push(question);return {...reply,diagnostics:{...reply.diagnostics}};}});\n})();\n",
+      "APP_CONTRACT.txt": "Local learner-facing training UI. Keep the named DOM IDs and workspace data-phase hook: ready initially/reset, running only after Start with consent. Notes, tasks and assistant question/answer are the user's workspace; their content must survive start/reset/chat. Learners may request a hint after starting, but the solution must not be visible before they begin. Developer diagnostics belong behind an optional collapsed detail, not in the normal answer path. ReplyClient.ask(question) is the existing immutable provider contract and must remain the source of the shown answer; this offline client intentionally returns fixture data, not a live AI service. Display its answer, not its diagnostics. Starting affects only the simulated training state; retain visible material effects, explicit consent and the supported reset/recovery explanation. Do not claim a real model/server integration. This is a content/flow repair, not a redesign or new framework.\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "index.html",
+        "test_ui.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "web-interface",
+        "verify-work"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "execution_mode": "execution-ready",
+      "issue_refs": [
+        44
+      ],
+      "required_observations": [
+        "owning-source-inspected",
+        "actual-result-produced"
+      ],
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "index.html",
+        "write_content": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Queue practice</title></head><body>\n<h1>Queue practice</h1>\n<section id=\"hint\"><h2>Fault plan and repair</h2><p>Pause the training worker. Restart the worker to resume processing.</p></section>\n<section id=\"transport\"><h2>Transport details</h2><pre>POST /fixture/answer; diagnostics are shown as the response.</pre></section>\n<section><h2>Start</h2><p id=\"effects\">Starting injects a simulated fault into this local training workspace. Exercise requests may fail. Notes and tasks are kept. Reset returns the training state to ready.</p><label><input id=\"consent\" type=\"checkbox\">I understand the training effects.</label><button id=\"start\">Start exercise</button><button id=\"reset\">Reset exercise</button><p id=\"status\" role=\"status\"></p></section>\n<main id=\"workspace\" data-phase=\"ready\" hidden><h2>Workspace</h2><label for=\"notes\">Notes</label><textarea id=\"notes\">Observe the queue before changing it.</textarea><h3>Tasks</h3><ul id=\"tasks\"><li>Inspect the training queue.</li><li>Record what changed.</li></ul>\n<form id=\"chat\"><label for=\"question\">Ask the assistant</label><input id=\"question\" value=\"Where are my notes?\"><button id=\"ask\" type=\"submit\">Ask</button></form><output id=\"answer\" aria-live=\"polite\"></output></main>\n<script src=\"reply-client.js\"></script><script>\nconst workspace=document.getElementById('workspace');\ndocument.getElementById('start').onclick=()=>{workspace.hidden=false;workspace.dataset.phase='running';document.getElementById('status').textContent='Exercise running';};\ndocument.getElementById('reset').onclick=()=>{workspace.dataset.phase='ready';document.getElementById('status').textContent='Exercise ready';};\ndocument.getElementById('chat').onsubmit=async event=>{event.preventDefault();const reply=await ReplyClient.ask(document.getElementById('question').value);document.getElementById('answer').textContent=JSON.stringify(reply.diagnostics);};\n</script></body></html>",
+        "required_paths": [
+          "index.html",
+          "reply-client.js",
+          "APP_CONTRACT.txt"
+        ],
+        "acceptance_test": "from pathlib import Path\nimport hashlib\nassert Path('index.html').read_text().strip(),'page missing'\nassert hashlib.sha256(Path('reply-client.js').read_bytes()).hexdigest()=='44f07b05558dc70b5f1ba01b2894c0610a86e50b2b2be05c535581c419c5e796','provider contract changed'\n",
+        "response_required": false
+      },
+      "semantic_acceptance": {
+        "required": true,
+        "requirements": [
+          "Before start, learner sees workspace and immediate action without solution disclosure or developer diagnostics replacing work.",
+          "Unchecked Start must not start; effects and reset explanation stay visible, and consented Start changes phase without losing notes/tasks.",
+          "Submit a normal question through supplied ReplyClient; actual answer appears, diagnostics are separate, and reset restores training phase without deleting workspace content.",
+          "Assess actual browser-rendered initial/started/answered states and meaningful interaction; static checks or unreturned reviewer claim cannot establish usability."
+        ]
+      },
+      "evidence_limit": "Offline HTML/JS fixture and immutable async client, not a real AI/backend service. Mechanical checks cover delivery and client integrity only. Parent browser probes and independent reader review must evaluate actual DOM transitions, visible content, consent and preserved workspace. No real-user study or arbitrary visual-style ranking."
+    }
   }
 ]

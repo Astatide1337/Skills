@@ -1,0 +1,834 @@
+{
+  "kind": "accepted-guidance baseline, no intervention or comparison arm",
+  "guidance_revision": "03e76f2bcb53955bb93d8ea79a04e74bfd250ad7",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "native_binary_sha256": "c06a67fd8ac76508dc78bd99ce20c9f317b8d568beda59485f3f4134df9962d5",
+  "adapter_sha256": "9cc39ab99c531ea10c4d8b456cf1336e6dea55efd43f03f8ebfbbbb339bab17a",
+  "raw_log": {
+    "path": "/tmp/skills-parallel-artifacts/baseline-logs/2026-11-01T21-59-18-00-00_workflows_47fzGsWQ4Z2GvCQGGfgHPL.eval",
+    "sha256": "526adac3e1b8427f3d5cf695f585902a7340e77e9cd5b71a8aaad11f22b0728f",
+    "status": "success"
+  },
+  "budget": {
+    "samples": 3,
+    "native_parent_turns_max": 4,
+    "native_parent_turns_observed": 4,
+    "seconds_per_sample": 600,
+    "retries": 0,
+    "model_graders": 0
+  },
+  "attempts": [
+    {
+      "case": "issue-46-portfolio-correction",
+      "case_sha256": "6e8cbb96449e9d015a054a3205272d21202c84bca406c93a34b0bf2cc3ebaa2c",
+      "case_source_revision": "e434ed5bde89f4376471bafacbda4eb0cf8f86d3",
+      "instrument_revision": null,
+      "started_at": "2026-11-01T21:59:19.042524+00:00",
+      "completed_at": "2026-11-01T22:00:29.422428+00:00",
+      "error": null,
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "0b267cb9b728e6ea2aad24ede7163fcbaa3f89543b237ac5830f5dd4090978d3",
+        "heldout_examples": false,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "turns": {
+        "status": "completed",
+        "source": "runner-owned",
+        "thread_id": "01a1991f-daa3-7ae2-a864-f7f1325216ca",
+        "turns": [
+          {
+            "index": 0,
+            "status": "delivered",
+            "thread_id": "01a1991f-daa3-7ae2-a864-f7f1325216ca",
+            "prompt_sha256": "6dc3193631997d1f1e43dd70ab3f4d2eea8a75fb7a804ff79e40f9a8adcf4d2b",
+            "response": "Updated [content.json](/tmp/tmpxg1hkukv/content.json) and regenerated [portfolio.html](/tmp/tmpxg1hkukv/portfolio.html).\n\nBoth examples now explain the problem, your contribution, the observed result and its limitation, with original source links retained. Removed unsupported recognition and promotional language.\n\nChecks passed for rendered content, links and reproducibility. `source.json` and `render.py` remain unchanged.",
+            "usage": {
+              "input_tokens": 134812,
+              "output_tokens": 2508,
+              "cache_write_input_tokens": 0,
+              "reasoning_output_tokens": 355,
+              "cached_input_tokens": 122496
+            },
+            "execution_metrics": {
+              "completed_commands": 7,
+              "failed_commands": 0,
+              "agent_messages": 3,
+              "uncached_input_tokens": 12316
+            }
+          },
+          {
+            "index": 1,
+            "status": "delivered",
+            "thread_id": "01a1991f-daa3-7ae2-a864-f7f1325216ca",
+            "prompt_sha256": "b0c6cade0f795d4ee4c918e1cf9fd1da99ab47efe9bc86abb07a786c3e3082bd",
+            "response": "Finished [portfolio.html](/tmp/tmpxg1hkukv/portfolio.html): shortened the prose, kept \u201cProjects,\u201d and removed recognition entirely. Each example retains the problem, contribution, result, limitation and source link.\n\nChecks passed. `source.json` and `render.py` are unchanged.",
+            "usage": {
+              "input_tokens": 241799,
+              "output_tokens": 3373,
+              "cache_write_input_tokens": 0,
+              "reasoning_output_tokens": 355,
+              "cached_input_tokens": 219392
+            },
+            "execution_metrics": {
+              "completed_commands": 2,
+              "failed_commands": 0,
+              "agent_messages": 2,
+              "uncached_input_tokens": 22407
+            }
+          }
+        ]
+      },
+      "artifacts": {
+        "content.json": "{\n  \"heading\": \"Tools for print queues and family photos\",\n  \"intro\": \"What I built, what happened and what remains limited.\",\n  \"sections\": [\n    \"projects\"\n  ],\n  \"project_label\": \"Projects\",\n  \"project_fields\": [\n    \"purpose\",\n    \"role\",\n    \"result\",\n    \"limit\"\n  ],\n  \"project_explanations\": {\n    \"queue\": {\n      \"purpose\": \"Show delayed print jobs before a shift starts.\",\n      \"role\": \"I built the worker that checks print jobs and the operator screen.\",\n      \"result\": \"Stale jobs fell from 18 to 3 in a 40-job pilot.\",\n      \"limit\": \"The pilot covered one printer, not the full building.\"\n    },\n    \"archive\": {\n      \"purpose\": \"Find scanned family photos by person and date.\",\n      \"role\": \"I built the local photo index and correction form.\",\n      \"result\": \"Indexed 1,200 photos from 6 albums.\",\n      \"limit\": \"Unknown faces still need manual labels.\"\n    }\n  }\n}\n",
+        "portfolio.html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Projects</title><body><main><h1>Tools for print queues and family photos</h1><p>What I built, what happened and what remains limited.</p><section id=\"projects\"><h2>Projects</h2><article id=\"queue\"><h3>Queue monitor</h3><dl><dt>Purpose</dt><dd data-fact=\"purpose\">Show delayed print jobs before a shift starts.</dd><dt>Role</dt><dd data-fact=\"role\">I built the worker that checks print jobs and the operator screen.</dd><dt>Result</dt><dd data-fact=\"result\">Stale jobs fell from 18 to 3 in a 40-job pilot.</dd><dt>Limit</dt><dd data-fact=\"limit\">The pilot covered one printer, not the full building.</dd></dl><a href=\"https://example.invalid/queue\">Source for Queue monitor</a></article><article id=\"archive\"><h3>Photo archive</h3><dl><dt>Purpose</dt><dd data-fact=\"purpose\">Find scanned family photos by person and date.</dd><dt>Role</dt><dd data-fact=\"role\">I built the local photo index and correction form.</dd><dt>Result</dt><dd data-fact=\"result\">Indexed 1,200 photos from 6 albums.</dd><dt>Limit</dt><dd data-fact=\"limit\">Unknown faces still need manual labels.</dd></dl><a href=\"https://example.invalid/archive\">Source for Photo archive</a></article></section></main></body></html>"
+      },
+      "binary_evidence_notes": [],
+      "artifact_sha256": {
+        "content.json": "6ad9794d7c3b1e9c7202b33145519d3a0e4dd67ac7dd22c8e03f52865d1521b8",
+        "portfolio.html": "91433a36aba01b4efc59c40a682bcb0db754cf074f168afe9efafb8e8ed8f732"
+      },
+      "commands": [
+        {
+          "event_index": 6,
+          "command": "/usr/bin/zsh -lc \"pwd && rg --files -g '\"'!portfolio.html'\"' -g '\"'!source.json'\"' -g '\"'!content.json'\"'\"",
+          "exit_code": 0,
+          "output_excerpt": "/tmp/tmpxg1hkukv\nrender.py\nREADME.txt\n",
+          "output_sha256": "910e317b005480b2649140aa66d206ce8354a9e50ef8e0ed3b09f2536e1f9efe",
+          "output_truncated": false
+        },
+        {
+          "event_index": 10,
+          "command": "/usr/bin/zsh -lc 'cat README.txt content.json source.json render.py'",
+          "exit_code": 0,
+          "output_excerpt": "python render.py produces the standalone portfolio.html from source.json and content.json. Edit content.json for copy and selected sections/fields. source.json is the factual record; render.py is the independent publisher. Preserve both. The recognition claim is unsupported and must be removed from the published page. No network access is needed.\n Optional content.json project_explanations maps project IDs to fact-key text overrides. Faithful paraphrases are allowed; source.json remains authoritative and unchanged.\n{\n  \"heading\": \"Unlocking a revolutionary constellation of game-changing outcomes\",\n  \"intro\": \"I made the following tools. Each example records the problem, my part, the observed result and its limit.\",\n  \"sections\": [\n    \"projects\",\n    \"recognition\"\n  ],\n  \"project_label\": \"Explore my transformative impact\",\n  \"project_fields\": [\n    \"purpose\",\n    \"role\",\n    \"result\",\n    \"limit\"\n  ],\n  \"recognition\": \"Outstanding thought leader\"\n}\n{\n  \"projects\": [\n    {\n      \"id\": \"queue\",\n      \"name\": \"Queue monitor\",\n      \"facts\": {\n        \"purpose\": \"Show delayed print jobs before a shift starts.\",\n        \"role\": \"Built the polling worker and the operator screen.\",\n        \"result\": \"Reduced stale jobs from 18 to 3 in a 40-job pilot.\",\n        \"limit\": \"The pilot covered one printer, not the full building.\"\n      },\n      \"repo\": \"https://example.invalid/queue\"\n    },\n    {\n      \"id\": \"archive\",\n      \"name\": \"Photo archive\",\n      \"facts\": {\n        \"purpose\": \"Find scanned family photos by person and date.\",\n        \"role\": \"Built local indexing and a correction form.\",\n        \"result\": \"Indexed 1200 photos from 6 albums.\",\n        \"limit\": \"Unknown faces still require manual labels.\"\n      },\n      \"repo\": \"https://example.invalid/archive\"\n    }\n  ]\n}\nimp",
+          "output_sha256": "1998b4a86c63203e07a955b34be32d07fd597c0f9952a68dce3192ff59a9402c",
+          "output_truncated": true
+        },
+        {
+          "event_index": 15,
+          "command": "/usr/bin/zsh -lc 'sha256sum source.json render.py'",
+          "exit_code": 0,
+          "output_excerpt": "9dc62a2c70dfdf59451136a61f6a42f8889e741bba0bfb44942e236e0f58fc43  source.json\n1809050e1827b2647d28f9de29503e7ed8e192fc7582596f765f125405074079  render.py\n",
+          "output_sha256": "8454c5f48a5b5f92543dae81d34954e1c9af341a860b492ba10110afd41916f3",
+          "output_truncated": false
+        },
+        {
+          "event_index": 19,
+          "command": "/usr/bin/zsh -lc 'python render.py'",
+          "exit_code": 0,
+          "output_excerpt": "",
+          "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "output_truncated": false
+        },
+        {
+          "event_index": 21,
+          "command": "/usr/bin/zsh -lc \"python -c 'import hashlib, json, subprocess\nfrom html.parser import HTMLParser\nfrom pathlib import Path\n\nexpected_hashes = {\n    \\\"source.json\\\": \\\"9dc62a2c70dfdf59451136a61f6a42f8889e741bba0bfb44942e236e0f58fc43\\\",\n    \\\"render.py\\\": \\\"1809050e1827b2647d28f9de29503e7ed8e192fc7582596f765f125405074079\\\",\n}\nfor name, expected in expected_hashes.items():\n    assert hashlib.sha256(Path(name).read_bytes()).hexdigest() == expected, name\n\nclass PortfolioParser(HTMLParser):\n    def __init__(self):\n        super().__init__()\n        self.projects = {}\n        self.current = None\n        self.field = None\n    def handle_starttag(self, tag, attrs):\n        attrs = dict(attrs)\n        if tag == \\\"article\\\":\n            self.current = attrs[\\\"id\\\"]\n            self.projects[self.current] = {\\\"facts\\\": {}, \\\"links\\\": []}\n        elif tag == \\\"dd\\\":\n            self.field = attrs[\\\"data-fact\\\"]\n            self.projects[self.current][\\\"facts\\\"][self.field] = \\\"\\\"\n        elif tag == \\\"a\\\" and self.current:\n            self.projects[self.current][\\\"links\\\"].append(attrs[\\\"href\\\"])\n    def handle_data(self, data):\n        if self.field:\n            self.projects[self.current][\\\"facts\\\"][self.field] += data\n    def handle_endtag(self, tag):\n        if tag == \\\"dd\\\":\n            self.field = None\n        elif tag == \\\"article\\\":\n            self.current = None\n\ncontent = json.loads(Path(\\\"content.json\\\").read_text())\nsource = json.loads(Path(\\\"source.json\\\").read_text())\npage = Path(\\\"portfolio.html\\\").read_bytes()\nparser = PortfolioParser()\nparser.feed(page.decode())\nassert set(parser.projects) == {p[\\\"id\\\"] for p in source[\\\"projects\\\"]}\nfor project in source[\\\"projects\\\"]:\n    rendered = parser.projects[project[\\\"id\\\"]]\n    assert set(rendered[\\\"facts\\\"]) == {\\\"purpose\\\", \\\"role\\\", \\\"result\\\", \\\"limit\\\"}\n    assert rendered[\\\"facts\\\"] == content[\\\"project_explanations\\\"][project[\\\"id\\\"]]\n    assert rendered[\\\"links\\\"] == [project[\\\"repo\\\"]]\nassert \\\"recognition\\\" not in page.decode().lower()\nassert \\\"Outstanding thought leader\\\" not in page.decode()\nsubprocess.run([\\\"python\\\", \\\"render.py\\\"], check=True)\nassert Path(\\\"portfolio.html\\\").read_bytes() == page\nprint(\\\"PASS: both projects render all four explanations and original source links; unsupported recognition is absent; rendering is reproducible; source.json and render.py are unchanged.\\\")\nprint(page.decode())\n'\"",
+          "exit_code": 0,
+          "output_excerpt": "PASS: both projects render all four explanations and original source links; unsupported recognition is absent; rendering is reproducible; source.json and render.py are unchanged.\n<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Projects</title><body><main><h1>Tools for print queues and family photos</h1><p>These projects address two tasks: spotting delayed print jobs and finding scanned family photos. Each example explains what I built, the observed result and its limits.</p><section id=\"projects\"><h2>Projects</h2><article id=\"queue\"><h3>Queue monitor</h3><dl><dt>Purpose</dt><dd data-fact=\"purpose\">The goal was to make delayed print jobs visible before a shift starts.</dd><dt>Role</dt><dd data-fact=\"role\">I built the worker that checks for delayed print jobs and the screen for operators to view them.</dd><dt>Result</dt><dd data-fact=\"result\">In a pilot of 40 print jobs, stale jobs fell from 18 to 3.</dd><dt>Limit</dt><dd data-fact=\"limit\">The pilot covered one printer, so the result does not establish how the monitor would work across the full building.</dd></dl><a href=\"https://example.invalid/queue\">Source for Queue monitor</a></article><article id=\"archive\"><h3>Photo archive</h3><dl><dt>Purpose</dt><dd data-fact=\"purpose\">The goal was to find scanned family photos by person and date.</dd><dt>Role</dt><dd data-fact=\"role\">I built a local photo index for finding scans and a form for corrections.</dd><dt>Result</dt><dd data-fact=\"result\">The archive indexed 1,200 photos from 6 albums.</dd><dt>Limit</dt><dd data-fact=\"limit\">Photos of unknown faces still need manual labels.</dd></dl><a href=\"https://example.invalid/archive\">Source for Photo archive</a></article></section></main></body></html>\n",
+          "output_sha256": "14fca3bc604a0c2b88fec4595d91cad38a5ef8ca958eb0e22ced4ab084f68e66",
+          "output_truncated": false
+        },
+        {
+          "event_index": 30,
+          "command": "/usr/bin/zsh -lc 'cat content.json source.json render.py'",
+          "exit_code": 0,
+          "output_excerpt": "{\n  \"heading\": \"Tools for print queues and family photos\",\n  \"intro\": \"These projects address two tasks: spotting delayed print jobs and finding scanned family photos. Each example explains what I built, the observed result and its limits.\",\n  \"sections\": [\n    \"projects\"\n  ],\n  \"project_label\": \"Projects\",\n  \"project_fields\": [\n    \"purpose\",\n    \"role\",\n    \"result\",\n    \"limit\"\n  ],\n  \"project_explanations\": {\n    \"queue\": {\n      \"purpose\": \"The goal was to make delayed print jobs visible before a shift starts.\",\n      \"role\": \"I built the worker that checks for delayed print jobs and the screen for operators to view them.\",\n      \"result\": \"In a pilot of 40 print jobs, stale jobs fell from 18 to 3.\",\n      \"limit\": \"The pilot covered one printer, so the result does not establish how the monitor would work across the full building.\"\n    },\n    \"archive\": {\n      \"purpose\": \"The goal was to find scanned family photos by person and date.\",\n      \"role\": \"I built a local photo index for finding scans and a form for corrections.\",\n      \"result\": \"The archive indexed 1,200 photos from 6 albums.\",\n      \"limit\": \"Photos of unknown faces still need manual labels.\"\n    }\n  }\n}\n{\n  \"projects\": [\n    {\n      \"id\": \"queue\",\n      \"name\": \"Queue monitor\",\n      \"facts\": {\n        \"purpose\": \"Show delayed print jobs before a shift starts.\",\n        \"role\": \"Built the polling worker and the operator screen.\",\n        \"result\": \"Reduced stale jobs from 18 to 3 in a 40-job pilot.\",\n        \"limit\": \"The pilot covered one printer, not the full building.\"\n      },\n      \"repo\": \"https://example.invalid/queue\"\n    },\n    {\n      \"id\": \"archive\",\n      \"name\": \"Photo archive\",\n      \"facts\": {\n        \"purpose\": \"Find scanned family photos by person and date.\",\n        \"role\": \"Built ",
+          "output_sha256": "452a3fe2a1c18b1bb41c3494c77967ce3aa43a9f8b33c4470d97ce6997fb47fa",
+          "output_truncated": true
+        },
+        {
+          "event_index": 34,
+          "command": "/usr/bin/zsh -lc \"python -c 'import hashlib, json, subprocess\nfrom pathlib import Path\nfrom html import escape\nbefore = {name: Path(name).read_bytes() for name in (\\\"source.json\\\", \\\"render.py\\\")}\nsubprocess.run([\\\"python\\\", \\\"render.py\\\"], check=True)\nc = json.loads(Path(\\\"content.json\\\").read_text())\ns = json.loads(Path(\\\"source.json\\\").read_text())\npage = Path(\\\"portfolio.html\\\").read_text()\nassert c[\\\"project_label\\\"] == \\\"Projects\\\"\nassert c[\\\"sections\\\"] == [\\\"projects\\\"]\nassert \\\"recognition\\\" not in c\nassert \\\"recognition\\\" not in page.lower()\nassert \\\"transformative\\\" not in page.lower()\nfor project in s[\\\"projects\\\"]:\n    assert escape(project[\\\"repo\\\"]) in page\n    for field in (\\\"purpose\\\", \\\"role\\\", \\\"result\\\", \\\"limit\\\"):\n        assert escape(c[\\\"project_explanations\\\"][project[\\\"id\\\"]][field]) in page\nfor name, original in before.items():\n    assert Path(name).read_bytes() == original\nsubprocess.run([\\\"python\\\", \\\"render.py\\\"], check=True)\nassert Path(\\\"portfolio.html\\\").read_text() == page\nprint(\\\"PASS: Projects label, no recognition, all project facts and source links rendered, reproducible output, source and renderer unchanged.\\\")\n'\"",
+          "exit_code": 0,
+          "output_excerpt": "PASS: Projects label, no recognition, all project facts and source links rendered, reproducible output, source and renderer unchanged.\n",
+          "output_sha256": "8ae0c73f6082b2387caf3b402f76c1a3625bc701d02d348b3b245f9173fa8997",
+          "output_truncated": false
+        }
+      ],
+      "messages": [
+        {
+          "event_index": 4,
+          "text": "I\u2019ll read the factual source and renderer, revise each example for a first-time visitor, and regenerate the page. I\u2019m using the follow-instructions and unslop skills to guide the edits and checks."
+        },
+        {
+          "event_index": 13,
+          "text": "The source records two projects: a print-queue monitor tested on one printer and a photo archive containing 1,200 scans. I\u2019ll make the contributions clearer, keep those results and limits explicit, and remove the unsupported recognition claim."
+        },
+        {
+          "event_index": 22,
+          "text": "Updated [content.json](/tmp/tmpxg1hkukv/content.json) and regenerated [portfolio.html](/tmp/tmpxg1hkukv/portfolio.html).\n\nBoth examples now explain the problem, your contribution, the observed result and its limitation, with original source links retained. Removed unsupported recognition and promotional language.\n\nChecks passed for rendered content, links and reproducibility. `source.json` and `render.py` remain unchanged."
+        },
+        {
+          "event_index": 28,
+          "text": "I\u2019ll trim the copy, keep \u201cProjects\u201d as the label, and regenerate the page without the recognition section."
+        },
+        {
+          "event_index": 35,
+          "text": "Finished [portfolio.html](/tmp/tmpxg1hkukv/portfolio.html): shortened the prose, kept \u201cProjects,\u201d and removed recognition entirely. Each example retains the problem, contribution, result, limitation and source link.\n\nChecks passed. `source.json` and `render.py` are unchanged."
+        }
+      ],
+      "collaboration": [],
+      "native_stderr_review_failures": [],
+      "response": "Finished [portfolio.html](/tmp/tmpxg1hkukv/portfolio.html): shortened the prose, kept \u201cProjects,\u201d and removed recognition entirely. Each example retains the problem, contribution, result, limitation and source link.\n\nChecks passed. `source.json` and `render.py` are unchanged.",
+      "usage": {
+        "input_tokens": 376611,
+        "output_tokens": 5881,
+        "cache_write_input_tokens": 0,
+        "reasoning_output_tokens": 710,
+        "cached_input_tokens": 341888
+      },
+      "execution_metrics": {
+        "completed_commands": 9,
+        "failed_commands": 0,
+        "agent_messages": 5,
+        "uncached_input_tokens": 34723
+      },
+      "guidance_access": {
+        "observations": [
+          {
+            "reference": "follow-instructions/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-6nn4xpfn/skills/follow-instructions/SKILL.md /home/sohamb/.cache/work-session-6nn4xpfn/skills/unslop/SKILL.md'"
+          },
+          {
+            "reference": "unslop/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-6nn4xpfn/skills/follow-instructions/SKILL.md /home/sohamb/.cache/work-session-6nn4xpfn/skills/unslop/SKILL.md'"
+          },
+          {
+            "reference": "unslop/references/ai-patterns.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-6nn4xpfn/skills/unslop/references/ai-patterns.md /home/sohamb/.cache/work-session-6nn4xpfn/skills/follow-instructions/playbooks/document-teach.md'"
+          },
+          {
+            "reference": "follow-instructions/playbooks/document-teach.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-6nn4xpfn/skills/unslop/references/ai-patterns.md /home/sohamb/.cache/work-session-6nn4xpfn/skills/follow-instructions/playbooks/document-teach.md'"
+          }
+        ],
+        "limits": "path/tool mention does not prove read completion, comprehension or application; absent mentions do not prove absent access"
+      },
+      "skills_identity": "7c7a4c5f35d8a78bfb9aed5d9d62aa6b8927cc9f72f1d02176b9677e680dca9c",
+      "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+      "changed_paths": {
+        "tracked_paths": [
+          "content.json"
+        ],
+        "untracked_paths": [
+          "portfolio.html"
+        ],
+        "tracked_index_paths": [],
+        "committed_paths": []
+      }
+    },
+    {
+      "case": "issues-44-46-content-architecture",
+      "case_sha256": "0b2bf37c4625538bee112cd165980cfa64824738befd33a810b36b2ee854782a",
+      "case_source_revision": "e434ed5bde89f4376471bafacbda4eb0cf8f86d3",
+      "instrument_revision": null,
+      "started_at": "2026-11-01T22:01:01.898795+00:00",
+      "completed_at": "2026-11-01T22:01:54.504391+00:00",
+      "error": null,
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "634b56fd47cadae6a0d863177eced356da4e7e6b8fbc17f99f680bb4fa6cb15e",
+        "heldout_examples": false,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "turns": null,
+      "artifacts": {
+        "guide.md": "# Configuration publish and recovery\n\nA local client publishes configuration to a named shared workspace. The design combines an atomic configuration replacement with an operator-managed export and a read of the persisted result. Recovery uses that export to replace the configuration again. Its scope follows the storage boundary: configuration can be restored through this process; user document history cannot.\n\n## Ownership and workspace identity\n\nThe client resolves workspace identity through server status. Before publishing, the operator must check the effective workspace name reported by the server. The local folder name does not establish which shared workspace will receive the configuration. This check determines the target for both the export and the replacement, so it belongs before either operation.\n\nThe operator is responsible for confirming the target, obtaining a successful export, and checking the result after each publish. The client provides the status, export, publish, and read operations; the server holds the persisted configuration that the read verifies. A local preview cannot establish what the server stored.\n\nConfiguration and user documents have separate lifecycles. Export captures only configuration, and publish replaces only configuration. Publishing does not delete user documents. A maintainer must preserve this distinction when changing the workflow or describing its recovery behavior: a configuration export is not a backup of the workspace's document data.\n\n## Why the operations have this order\n\nPublishing must follow this sequence: confirm workspace identity, export the existing configuration successfully, publish the intended configuration, then read the persisted configuration. Each operation supplies evidence needed by the next step.\n\nFor a workspace named `atlas`, first inspect server status:\n\n```sh\nclient status --workspace atlas\n```\n\nAfter confirming the effective workspace name, capture its current configuration:\n\n```sh\nclient export --workspace atlas --out before.json\n```\n\nThe export must finish successfully before publishing. If it fails, stop. Proceeding would replace the configuration without the successfully exported recovery copy required by this workflow.\n\nOnce the export succeeds, publish the new configuration and read the server value:\n\n```sh\nclient publish --workspace atlas --file next.json\nclient read --workspace atlas\n```\n\nPublish replaces the workspace configuration atomically. Atomic replacement describes how that configuration changes; it does not establish that the submitted configuration is the intended one. The separate read provides the verification step. The operator must check that it shows the intended configuration before treating the publish as successful.\n\nThis distinction matters when maintaining the client: a local preview or completion of the publish command cannot substitute for reading persisted server state. The workflow depends on checking the value that was actually stored.\n\n## Recovery and its verification\n\nIf publishing or verification fails, restore the exported configuration to the same workspace and read again:\n\n```sh\nclient publish --workspace atlas --file before.json\nclient read --workspace atlas\n```\n\nRestoration uses the same configuration replacement mechanism as the original publish. It therefore needs the same persisted-state check: the read must show the exported configuration before restoration can be considered verified. Issuing the restore command alone does not establish recovery. If the subsequent read cannot confirm the restored configuration, recovery remains unverified; the source establishes no further recovery mechanism.\n\nThe export contains no user documents. Restoring it does not restore user document edits made after the export. Preserve document data and avoid reset or delete operations during recovery; those operations are outside the configuration restoration described here.\n\nThe source establishes no automatic backups, full-data rollback, or zero-downtime guarantee. Atomic configuration replacement does not extend those guarantees to document storage or service availability. Any broader recovery claim would require mechanisms and evidence beyond this design.\n"
+      },
+      "binary_evidence_notes": [],
+      "artifact_sha256": {
+        "guide.md": "9de212bda8e2b124a66a269444fe197a377da8217df2a5e6d6d84819abd84a2e"
+      },
+      "commands": [
+        {
+          "event_index": 6,
+          "command": "/usr/bin/zsh -lc \"pwd && rg --files -g 'AGENTS.md' -g 'SOURCE.txt' -g 'guide.md'\"",
+          "exit_code": 0,
+          "output_excerpt": "/tmp/tmp0iwlhtxw\nSOURCE.txt\nguide.md\n",
+          "output_sha256": "323b10b576ea4a33fc41cbbc4f0b8f4642d658f32ab1efb07ef025e2939128b9",
+          "output_truncated": false
+        },
+        {
+          "event_index": 10,
+          "command": "/usr/bin/zsh -lc 'cat SOURCE.txt guide.md'",
+          "exit_code": 0,
+          "output_excerpt": "# Operator source record\nA local client publishes a workspace configuration to a named shared workspace.\nThe operator must check the effective workspace name before publishing; the folder name does not identify it.\nPublishing replaces that workspace configuration. It does not delete user documents.\nExample for workspace atlas: client status --workspace atlas; client export --workspace atlas --out before.json; client publish --workspace atlas --file next.json; client read --workspace atlas.\nThe export must finish successfully before publish. If export fails, stop; do not publish.\nA read after publish must show the intended configuration. On failure, restore the exported configuration with client publish --workspace atlas --file before.json and read again.\nRestoring the configuration does not restore user document edits made after the export. Preserve document data and avoid reset/delete operations.\nDesign: the client resolves workspace identity through server status; export captures only configuration. Publish replaces configuration atomically. Read checks the persisted server value, not the local preview. The distinction between configuration and document storage limits rollback claims.\nNo automatic backups, full-data rollback or zero-downtime guarantee is established by this source.\n# Deploy excellence\nOur next-generation orchestration platform provides effortless operations and comprehensive resilience. Before beginning your transformation journey, orient yourself around the complete layered platform vision.\nThe client resolves the workspace against server state. Export captures configuration, while documents have a separate lifecycle. Atomic replacement and a separate persisted read let operators separate local previews from stored state.\nPublish the new config. If a",
+          "output_sha256": "d0144e57d98428ef65fe5a82a0433d3a09ecd85d2d8671697fe7a9d5a8415460",
+          "output_truncated": true
+        },
+        {
+          "event_index": 17,
+          "command": "/usr/bin/zsh -lc 'cat guide.md'",
+          "exit_code": 0,
+          "output_excerpt": "# Configuration publish and recovery\n\nA local client publishes configuration to a named shared workspace. The design combines an atomic configuration replacement with an operator-managed export and a read of the persisted result. Recovery uses that export to replace the configuration again. Its scope follows the storage boundary: configuration can be restored through this process; user document history cannot.\n\n## Ownership and workspace identity\n\nThe client resolves workspace identity through server status. Before publishing, the operator must check the effective workspace name reported by the server. The local folder name does not establish which shared workspace will receive the configuration. This check determines the target for both the export and the replacement, so it belongs before either operation.\n\nThe operator is responsible for confirming the target, obtaining a successful export, and checking the result after each publish. The client provides the status, export, publish, and read operations; the server holds the persisted configuration that the read verifies. A local preview cannot establish what the server stored.\n\nConfiguration and user documents have separate lifecycles. Export captures only configuration, and publish replaces only configuration. Publishing does not delete user documents. A maintainer must preserve this distinction when changing the workflow or describing its recovery behavior: a configuration export is not a backup of the workspace's document data.\n\n## Why the operations have this order\n\nPublishing must follow this sequence: confirm workspace identity, export the existing configuration successfully, publish the intended configuration, then read the persisted configuration. Each operation supplies evidence needed by the next step.\n\nFor a",
+          "output_sha256": "9de212bda8e2b124a66a269444fe197a377da8217df2a5e6d6d84819abd84a2e",
+          "output_truncated": true
+        }
+      ],
+      "messages": [
+        {
+          "event_index": 4,
+          "text": "I\u2019ll read `SOURCE.txt` and `guide.md`, then use the prose-writing skill to rewrite the guide around the design\u2019s ownership, ordering, verification, and recovery boundaries."
+        },
+        {
+          "event_index": 13,
+          "text": "The source defines recovery as restoring configuration only; document data has a separate lifecycle. I\u2019ll make that boundary explicit and explain why server identity checks, a successful export, and persisted reads are necessary parts of publishing."
+        },
+        {
+          "event_index": 18,
+          "text": "Rewrote [guide.md](/tmp/tmp0iwlhtxw/guide.md) as a maintainer-focused architecture explanation covering ownership, operation ordering, persisted-state verification, and configuration-only recovery limits.\n\nChecked it against `SOURCE.txt`. Only `guide.md` was edited."
+        }
+      ],
+      "collaboration": [],
+      "native_stderr_review_failures": [],
+      "response": "Rewrote [guide.md](/tmp/tmp0iwlhtxw/guide.md) as a maintainer-focused architecture explanation covering ownership, operation ordering, persisted-state verification, and configuration-only recovery limits.\n\nChecked it against `SOURCE.txt`. Only `guide.md` was edited.",
+      "usage": {
+        "input_tokens": 97102,
+        "output_tokens": 2239,
+        "cache_write_input_tokens": 0,
+        "reasoning_output_tokens": 59,
+        "cached_input_tokens": 88448
+      },
+      "execution_metrics": {
+        "completed_commands": 5,
+        "failed_commands": 0,
+        "agent_messages": 3,
+        "uncached_input_tokens": 8654
+      },
+      "guidance_access": {
+        "observations": [
+          {
+            "reference": "unslop/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-5brt60dc/skills/unslop/SKILL.md'"
+          },
+          {
+            "reference": "unslop/references/ai-patterns.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-5brt60dc/skills/unslop/references/ai-patterns.md'"
+          }
+        ],
+        "limits": "path/tool mention does not prove read completion, comprehension or application; absent mentions do not prove absent access"
+      },
+      "skills_identity": "7c7a4c5f35d8a78bfb9aed5d9d62aa6b8927cc9f72f1d02176b9677e680dca9c",
+      "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+      "changed_paths": {
+        "tracked_paths": [
+          "guide.md"
+        ],
+        "untracked_paths": [],
+        "tracked_index_paths": [],
+        "committed_paths": []
+      }
+    },
+    {
+      "case": "issues-44-46-content-howto",
+      "case_sha256": "a4ff6e2138f26db2175a8a2407f379e7924b5a4103b2b6dd7b9679c8b3e7b8b6",
+      "case_source_revision": "e434ed5bde89f4376471bafacbda4eb0cf8f86d3",
+      "instrument_revision": null,
+      "started_at": "2026-11-01T22:00:29.609846+00:00",
+      "completed_at": "2026-11-01T22:01:01.753897+00:00",
+      "error": null,
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "634b56fd47cadae6a0d863177eced356da4e7e6b8fbc17f99f680bb4fa6cb15e",
+        "heldout_examples": false,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "turns": null,
+      "artifacts": {
+        "guide.md": "# Publish a configuration to workspace atlas\n\nPublishing atomically replaces the shared workspace configuration. It does not\ndelete user documents. Have the intended configuration ready in `next.json`.\n\n1. Check the effective workspace name against server status:\n\n   ```sh\n   client status --workspace atlas\n   ```\n\n   Confirm that the target is `atlas` before continuing. The local folder name\n   does not identify the workspace.\n\n2. Export the current configuration for recovery:\n\n   ```sh\n   client export --workspace atlas --out before.json\n   ```\n\n   The export must finish successfully before you publish. If it fails, stop;\n   do not publish.\n\n3. Publish the new configuration:\n\n   ```sh\n   client publish --workspace atlas --file next.json\n   ```\n\n4. Read back the persisted configuration:\n\n   ```sh\n   client read --workspace atlas\n   ```\n\n   Confirm that the result shows the intended configuration. This checks the\n   stored server value; a local preview is not sufficient. If publishing or\n   verification fails, restore the exported configuration below.\n\n## Restore the exported configuration\n\n```sh\nclient publish --workspace atlas --file before.json\nclient read --workspace atlas\n```\n\nCheck that the read shows the exported configuration.\n\n`before.json` contains configuration only. Restoring it does not restore user\ndocument edits made after the export. Preserve document data and avoid reset\nor delete operations. This procedure establishes no automatic backups,\nfull-data rollback, or zero-downtime guarantee.\n"
+      },
+      "binary_evidence_notes": [],
+      "artifact_sha256": {
+        "guide.md": "f39213f2e68bbdb9417873ba4cc120465eede2bd52431107647bea954bf46559"
+      },
+      "commands": [
+        {
+          "event_index": 6,
+          "command": "/usr/bin/zsh -lc \"pwd && rg --files -g 'guide.md' -g 'SOURCE.txt' -g 'AGENTS.md'\"",
+          "exit_code": 0,
+          "output_excerpt": "/tmp/tmp_u6v1wx1\nSOURCE.txt\nguide.md\n",
+          "output_sha256": "33d5a48099217eda6cc1072a30ee4ed05396c40e679121acd8430fd8b5cbde25",
+          "output_truncated": false
+        },
+        {
+          "event_index": 12,
+          "command": "/usr/bin/zsh -lc 'cat SOURCE.txt guide.md'",
+          "exit_code": 0,
+          "output_excerpt": "# Operator source record\nA local client publishes a workspace configuration to a named shared workspace.\nThe operator must check the effective workspace name before publishing; the folder name does not identify it.\nPublishing replaces that workspace configuration. It does not delete user documents.\nExample for workspace atlas: client status --workspace atlas; client export --workspace atlas --out before.json; client publish --workspace atlas --file next.json; client read --workspace atlas.\nThe export must finish successfully before publish. If export fails, stop; do not publish.\nA read after publish must show the intended configuration. On failure, restore the exported configuration with client publish --workspace atlas --file before.json and read again.\nRestoring the configuration does not restore user document edits made after the export. Preserve document data and avoid reset/delete operations.\nDesign: the client resolves workspace identity through server status; export captures only configuration. Publish replaces configuration atomically. Read checks the persisted server value, not the local preview. The distinction between configuration and document storage limits rollback claims.\nNo automatic backups, full-data rollback or zero-downtime guarantee is established by this source.\n# Deploy excellence\nOur next-generation orchestration platform provides effortless operations and comprehensive resilience. Before beginning your transformation journey, orient yourself around the complete layered platform vision.\nThe client resolves the workspace against server state. Export captures configuration, while documents have a separate lifecycle. Atomic replacement and a separate persisted read let operators separate local previews from stored state.\nPublish the new config. If a",
+          "output_sha256": "d0144e57d98428ef65fe5a82a0433d3a09ecd85d2d8671697fe7a9d5a8415460",
+          "output_truncated": true
+        },
+        {
+          "event_index": 17,
+          "command": "/usr/bin/zsh -lc 'git diff --check && git diff --stat'",
+          "exit_code": 0,
+          "output_excerpt": " guide.md | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++----\n 1 file changed, 52 insertions(+), 4 deletions(-)\n",
+          "output_sha256": "4ca3eea86aa5ff9582a6abf89dbcd79eb6e537215003ed533ce6a822d4580be4",
+          "output_truncated": false
+        }
+      ],
+      "messages": [
+        {
+          "event_index": 4,
+          "text": "I\u2019ll read the source and guide, check the recovery claim, and rewrite `guide.md` as a practical operator procedure. I\u2019m using the `unslop` skill for the prose edit."
+        },
+        {
+          "event_index": 13,
+          "text": "`SOURCE.txt` supports recovery of configuration only. I\u2019ll replace the full-recovery promise with the restore command, require a successful export before publishing, and make the persisted read the verification step."
+        },
+        {
+          "event_index": 18,
+          "text": "Rewrote [guide.md](/tmp/tmp_u6v1wx1/guide.md) as an operator procedure with workspace verification, export gating, publish/read commands, and recovery steps.\n\nCorrected the recovery promise to configuration only and preserved the source\u2019s limitations. Only `guide.md` changed; whitespace checks passed."
+        }
+      ],
+      "collaboration": [],
+      "native_stderr_review_failures": [],
+      "response": "Rewrote [guide.md](/tmp/tmp_u6v1wx1/guide.md) as an operator procedure with workspace verification, export gating, publish/read commands, and recovery steps.\n\nCorrected the recovery promise to configuration only and preserved the source\u2019s limitations. Only `guide.md` changed; whitespace checks passed.",
+      "usage": {
+        "input_tokens": 94612,
+        "output_tokens": 1448,
+        "cache_write_input_tokens": 0,
+        "reasoning_output_tokens": 34,
+        "cached_input_tokens": 77568
+      },
+      "execution_metrics": {
+        "completed_commands": 5,
+        "failed_commands": 0,
+        "agent_messages": 3,
+        "uncached_input_tokens": 17044
+      },
+      "guidance_access": {
+        "observations": [
+          {
+            "reference": "unslop/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-npl9mdt8/skills/unslop/SKILL.md'"
+          },
+          {
+            "reference": "unslop/references/ai-patterns.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-npl9mdt8/skills/unslop/references/ai-patterns.md'"
+          }
+        ],
+        "limits": "path/tool mention does not prove read completion, comprehension or application; absent mentions do not prove absent access"
+      },
+      "skills_identity": "7c7a4c5f35d8a78bfb9aed5d9d62aa6b8927cc9f72f1d02176b9677e680dca9c",
+      "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+      "changed_paths": {
+        "tracked_paths": [
+          "guide.md"
+        ],
+        "untracked_paths": [],
+        "tracked_index_paths": [],
+        "committed_paths": []
+      }
+    }
+  ],
+  "limits": [
+    "One sample per case, no causal improvement or reliability claim.",
+    "Artifact scores are not semantic acceptance; unavailable and failed claims remain separate.",
+    "Raw logs are retained locally, not committed. Durable record includes full changed artifacts, author messages and selected actual commands with output excerpts/hashes; guidance reads omitted.",
+    "Printed source/guide text is not execution of the commands it contains.",
+    "Final snapshots and local receipts are not protected command-order or live-service containment proof."
+  ],
+  "ui": {
+    "kind": "accepted-guidance baseline, no intervention or comparison arm",
+    "guidance_revision": "03e76f2bcb53955bb93d8ea79a04e74bfd250ad7",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "native_binary_sha256": "c06a67fd8ac76508dc78bd99ce20c9f317b8d568beda59485f3f4134df9962d5",
+    "adapter_sha256": "9cc39ab99c531ea10c4d8b456cf1336e6dea55efd43f03f8ebfbbbb339bab17a",
+    "raw_log": {
+      "path": "/tmp/skills-parallel-ui/baseline-logs/2026-11-01T23-07-39-00-00_workflows_SUXmYbXGFrJJ6ftTYZuLzV.eval",
+      "sha256": "6be6eac4957f03277718242abeadc407838b990ebfb6086be10414ac9f98e07e",
+      "status": "success"
+    },
+    "budget": {
+      "samples": 1,
+      "native_parent_turns_max": 1,
+      "native_parent_turns_observed": 1,
+      "seconds_per_sample": 600,
+      "retries": 0,
+      "model_graders": 0
+    },
+    "attempts": [
+      {
+        "case": "issue-44-learner-and-assistant-flow",
+        "case_sha256": "6d082d614501e84e4985cfb4568b77efc979b04175ef933ab6c48cd857ff8814",
+        "case_source_revision": "86738f7e272783e3adff6ebf87673c6c72317bf3",
+        "instrument_revision": null,
+        "started_at": "2026-11-01T23:07:39.706341+00:00",
+        "completed_at": "2026-11-01T23:09:49.199778+00:00",
+        "error": null,
+        "scores": {
+          "workflow_effects": 1,
+          "workflow_final_answer": null,
+          "workspace_policy": 1
+        },
+        "acceptance": {
+          "source": "runner-owned",
+          "test_sha256": "9a963958b1ba2de82d6d42e00cec882d90e25cdfad26be4c9ec14987579a6c01",
+          "heldout_examples": false,
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "turns": null,
+        "artifacts": {
+          "index.html": "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n  <title>Queue practice</title>\n</head>\n<body>\n  <h1>Queue practice</h1>\n  <main id=\"workspace\" data-phase=\"ready\">\n    <h2>Workspace</h2>\n    <label for=\"notes\">Notes</label>\n    <textarea id=\"notes\">Observe the queue before changing it.</textarea>\n    <h3>Tasks</h3>\n    <ul id=\"tasks\">\n      <li>Inspect the training queue.</li>\n      <li>Record what changed.</li>\n    </ul>\n    <p>The assistant uses fixed offline practice replies.</p>\n    <form id=\"chat\">\n      <label for=\"question\">Ask the assistant</label>\n      <input id=\"question\" value=\"Where are my notes?\">\n      <button id=\"ask\" type=\"submit\">Ask</button>\n    </form>\n    <output id=\"answer\" aria-live=\"polite\"></output>\n    <p id=\"chat-status\" role=\"status\"></p>\n  </main>\n\n  <section aria-labelledby=\"exercise-heading\">\n    <h2 id=\"exercise-heading\">Exercise</h2>\n    <p id=\"effects\">Starting injects a simulated fault into this local training workspace. Exercise requests may fail. Notes and tasks are kept. Reset returns the training state to ready. Your assistant question and answer are also kept.</p>\n    <label><input id=\"consent\" type=\"checkbox\" aria-describedby=\"effects\">I understand the training effects.</label>\n    <button id=\"start\" type=\"button\">Start exercise</button>\n    <button id=\"reset\" type=\"button\">Reset exercise</button>\n    <p id=\"status\" role=\"status\">Exercise ready</p>\n    <button id=\"show-hint\" type=\"button\" aria-controls=\"hint\" aria-expanded=\"false\" disabled>Show hint</button>\n    <section id=\"hint\" hidden aria-labelledby=\"hint-heading\">\n      <h3 id=\"hint-heading\">Exercise hint</h3>\n      <p>Pause the training worker. Restart the worker to resume processing.</p>\n    </section>\n  </section>\n\n  <details id=\"transport\">\n    <summary>Developer diagnostics (optional)</summary>\n    <p>The supplied local client returns fixture data. No model or server is connected.</p>\n    <pre id=\"diagnostics\">No request yet.</pre>\n  </details>\n\n  <script src=\"reply-client.js\"></script>\n  <script>\n    const workspace = document.getElementById('workspace');\n    const consent = document.getElementById('consent');\n    const status = document.getElementById('status');\n    const hint = document.getElementById('hint');\n    const showHint = document.getElementById('show-hint');\n\n    document.getElementById('start').onclick = () => {\n      if (!consent.checked) {\n        status.textContent = 'Confirm that you understand the training effects before starting.';\n        consent.focus();\n        return;\n      }\n      workspace.dataset.phase = 'running';\n      showHint.disabled = false;\n      status.textContent = 'Exercise running';\n    };\n\n    document.getElementById('reset').onclick = () => {\n      workspace.dataset.phase = 'ready';\n      hint.hidden = true;\n      showHint.disabled = true;\n      showHint.setAttribute('aria-expanded', 'false');\n      consent.checked = false;\n      status.textContent = 'Exercise ready';\n    };\n\n    showHint.onclick = () => {\n      if (workspace.dataset.phase !== 'running') return;\n      hint.hidden = false;\n      showHint.setAttribute('aria-expanded', 'true');\n    };\n\n    document.getElementById('chat').onsubmit = async event => {\n      event.preventDefault();\n      const ask = document.getElementById('ask');\n      const chatStatus = document.getElementById('chat-status');\n      if (ask.disabled) return;\n      ask.disabled = true;\n      chatStatus.textContent = 'Getting a practice reply\u2026';\n      try {\n        const reply = await ReplyClient.ask(document.getElementById('question').value);\n        document.getElementById('answer').textContent = reply.answer;\n        document.getElementById('diagnostics').textContent = JSON.stringify(reply.diagnostics, null, 2);\n        chatStatus.textContent = '';\n      } catch {\n        chatStatus.textContent = 'Could not get a practice reply. Your work is kept. Try Ask again.';\n      } finally {\n        ask.disabled = false;\n      }\n    };\n  </script>\n</body>\n</html>\n",
+          "test_ui.py": "\"\"\"Offline contract checks and handler tests; these do not render a browser.\"\"\"\nimport json\nfrom pathlib import Path\nimport subprocess\nimport unittest\nfrom html.parser import HTMLParser\n\n\nROOT = Path(__file__).resolve().parent\n\n\nclass Page(HTMLParser):\n    def __init__(self):\n        super().__init__()\n        self.nodes = []\n        self.stack = []\n        self.feed((ROOT / 'index.html').read_text())\n\n    def handle_starttag(self, tag, attrs):\n        node = dict(tag=tag, attrs=dict(attrs), text='', parents=self.stack.copy())\n        self.nodes.append(node)\n        if tag not in {'meta', 'input', 'br', 'link', 'hr'}:\n            self.stack.append(node)\n\n    def handle_endtag(self, tag):\n        if self.stack and self.stack[-1]['tag'] == tag:\n            self.stack.pop()\n\n    def handle_data(self, data):\n        for node in self.stack:\n            node['text'] += data\n\n\nclass TrainingPageTests(unittest.TestCase):\n    def setUp(self):\n        self.page = Page()\n        self.ids = {n['attrs']['id']: n for n in self.page.nodes if 'id' in n['attrs']}\n\n    def test_content_and_initial_visibility(self):\n        self.assertEqual(len(self.ids), sum('id' in n['attrs'] for n in self.page.nodes))\n        for name in ('workspace', 'notes', 'tasks', 'chat', 'question', 'ask',\n                     'answer', 'hint', 'transport', 'effects', 'consent', 'start',\n                     'reset', 'status'):\n            self.assertIn(name, self.ids)\n        self.assertEqual(self.ids['workspace']['attrs']['data-phase'], 'ready')\n        self.assertNotIn('hidden', self.ids['workspace']['attrs'])\n        self.assertIn('hidden', self.ids['hint']['attrs'])\n        self.assertIn('disabled', self.ids['show-hint']['attrs'])\n        self.assertEqual(self.ids['transport']['tag'], 'details')\n        self.assertNotIn('open', self.ids['transport']['attrs'])\n        self.assertIn(self.ids['transport'], self.ids['diagnostics']['parents'])\n        self.assertLess(self.page.nodes.index(self.ids['workspace']),\n                        self.page.nodes.index(self.ids['transport']))\n        self.assertEqual(self.ids['notes']['text'], 'Observe the queue before changing it.')\n        tasks = [n['text'] for n in self.page.nodes\n                 if n['tag'] == 'li' and self.ids['tasks'] in n['parents']]\n        self.assertEqual(tasks, ['Inspect the training queue.', 'Record what changed.'])\n        scripts = [n for n in self.page.nodes if n['tag'] == 'script']\n        self.assertEqual(scripts[0]['attrs'].get('src'), 'reply-client.js')\n        self.assertIn('Exercise requests may fail.', self.ids['effects']['text'])\n        self.assertIn('Reset returns the training state to ready.', self.ids['effects']['text'])\n\n    def test_exercise_and_assistant_handlers(self):\n        nodes = {key: {k: value[k] for k in ('attrs', 'text')}\n                 for key, value in self.ids.items()}\n        inline = '\\n'.join(n['text'] for n in self.page.nodes\n                           if n['tag'] == 'script' and 'src' not in n['attrs'])\n        payload = dict(nodes=nodes, script=inline, client=(ROOT / 'reply-client.js').read_text())\n        result = subprocess.run(['node', '-e', HANDLER_CHECKS], input=json.dumps(payload),\n                                capture_output=True, text=True, cwd=ROOT)\n        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)\n\n\nHANDLER_CHECKS = r\"\"\"\nconst fs = require('node:fs');\nconst vm = require('node:vm');\nconst assert = require('node:assert/strict');\nconst source = JSON.parse(fs.readFileSync(0, 'utf8'));\nconst nodes = {};\nfor (const [id, node] of Object.entries(source.nodes)) {\n  const attrs = {...node.attrs};\n  nodes[id] = {\n    attrs, textContent: node.text, value: attrs.value ?? node.text,\n    dataset: {phase: attrs['data-phase']}, hidden: 'hidden' in attrs,\n    disabled: 'disabled' in attrs, checked: 'checked' in attrs,\n    setAttribute(name, value) { this.attrs[name] = value; },\n    focus() { this.focused = true; }\n  };\n}\nconst context = vm.createContext({document: {getElementById: id => nodes[id]}});\ncontext.window = context;\nvm.runInContext(source.client, context);\nvm.runInContext(source.script, context);\nconst click = id => nodes[id].onclick();\nconst submit = () => nodes.chat.onsubmit({preventDefault() {}});\nconst phase = () => nodes.workspace.dataset.phase;\nconst snapshot = () => [nodes.notes.value, nodes.tasks.textContent,\n                        nodes.question.value, nodes.answer.textContent];\n(async () => {\n  assert.equal(phase(), 'ready');\n  nodes.notes.value = 'Learner notes';\n  nodes.tasks.textContent += '\\nLearner task';\n  nodes.question.value = 'A learner question?';\n  nodes.answer.textContent = 'Previous answer';\n  const saved = snapshot();\n  click('start');\n  assert.equal(phase(), 'ready');\n  assert.equal(nodes.consent.focused, true);\n  click('show-hint');\n  assert.equal(nodes.hint.hidden, true);\n  nodes.consent.checked = true;\n  click('start');\n  assert.equal(phase(), 'running');\n  assert.equal(nodes.hint.hidden, true);\n  assert.equal(nodes['show-hint'].disabled, false);\n  assert.deepEqual(snapshot(), saved);\n  click('show-hint');\n  assert.equal(nodes.hint.hidden, false);\n  assert.equal(nodes['show-hint'].attrs['aria-expanded'], 'true');\n  await submit();\n  assert.deepEqual(Array.from(context.ReplyClient.requests), ['A learner question?']);\n  assert.equal(nodes.answer.textContent,\n    'Your notes and tasks stay in the workspace. Start the exercise to investigate the queue.');\n  assert.match(nodes.diagnostics.textContent, /fixture-json/);\n  assert.equal(nodes.transport.attrs.open, undefined);\n  assert.deepEqual(snapshot().slice(0, 3), saved.slice(0, 3));\n  const answered = snapshot();\n  click('reset');\n  assert.equal(phase(), 'ready');\n  assert.equal(nodes.workspace.hidden, false);\n  assert.equal(nodes.hint.hidden, true);\n  assert.equal(nodes['show-hint'].disabled, true);\n  assert.equal(nodes['show-hint'].attrs['aria-expanded'], 'false');\n  assert.equal(nodes.consent.checked, false);\n  assert.deepEqual(snapshot(), answered);\n  click('start');\n  assert.equal(phase(), 'ready');\n  await submit();\n  assert.equal(phase(), 'ready');\n  assert.deepEqual(snapshot(), answered);\n  // An alternate provider result proves that answers are not hard-coded.\n  context.ReplyClient = {ask: async question => {\n    assert.equal(question, nodes.question.value);\n    return {answer: '<b>Different provider answer</b>', diagnostics: {debug: 'private'}};\n  }};\n  await submit();\n  assert.equal(nodes.answer.textContent, '<b>Different provider answer</b>');\n  context.ReplyClient = {ask: async () => {throw new Error('unavailable');}};\n  const beforeFailure = snapshot();\n  await submit();\n  assert.deepEqual(snapshot(), beforeFailure);\n  assert.match(nodes['chat-status'].textContent, /Try Ask again/);\n  assert.equal(nodes.ask.disabled, false);\n  let resolve;\n  let calls = 0;\n  context.ReplyClient = {ask: () => {\n    calls++;\n    return new Promise(done => {resolve = done;});\n  }};\n  const pending = submit();\n  assert.equal(nodes.ask.disabled, true);\n  await submit();\n  assert.equal(calls, 1);\n  click('reset');\n  assert.deepEqual(snapshot(), beforeFailure);\n  resolve({answer: 'Recovered answer', diagnostics: {}});\n  await pending;\n  assert.equal(nodes.answer.textContent, 'Recovered answer');\n  assert.equal(nodes.ask.disabled, false);\n  assert.equal(phase(), 'ready');\n  console.log('Consent, hint, preservation, provider, failure and pending checks passed.');\n})().catch(error => { console.error(error); process.exitCode = 1; });\n\"\"\"\n\n\nif __name__ == '__main__':\n    unittest.main(verbosity=2)\n"
+        },
+        "binary_evidence_notes": [],
+        "artifact_sha256": {
+          "index.html": "2d0e7d4b020f86c6ad4a8d752992c095c2a3f5431dc24c3391f1c8ab3424a50e",
+          "test_ui.py": "f5fcd663255fb6b0aa6d2b2d021711be252f92f316965e3a0f594aef0608e6eb"
+        },
+        "commands": [
+          {
+            "event_index": 6,
+            "command": "/usr/bin/zsh -lc \"pwd && rg --files -g '\"'!node_modules'\"' -g '\"'!'\"\\\\.git'\"",
+            "exit_code": 0,
+            "output_excerpt": "/tmp/tmphfxm5fld\nindex.html\nreply-client.js\nAPP_CONTRACT.txt\n",
+            "output_sha256": "8bcc8a10a4958670eadc192606a8620e9b8c176affaf944e395f18d2cb69c065",
+            "output_truncated": false
+          },
+          {
+            "event_index": 12,
+            "command": "/usr/bin/zsh -lc 'cat APP_CONTRACT.txt && cat reply-client.js && cat index.html'",
+            "exit_code": 0,
+            "output_excerpt": "Local learner-facing training UI. Keep the named DOM IDs and workspace data-phase hook: ready initially/reset, running only after Start with consent. Notes, tasks and assistant question/answer are the user's workspace; their content must survive start/reset/chat. Learners may request a hint after starting, but the solution must not be visible before they begin. Developer diagnostics belong behind an optional collapsed detail, not in the normal answer path. ReplyClient.ask(question) is the existing immutable provider contract and must remain the source of the shown answer; this offline client intentionally returns fixture data, not a live AI service. Display its answer, not its diagnostics. Starting affects only the simulated training state; retain visible material effects, explicit consent and the supported reset/recovery explanation. Do not claim a real model/server integration. This is a content/flow repair, not a redesign or new framework.\n(() => {\n const calls=[];\n const reply={answer:'Your notes and tasks stay in the workspace. Start the exercise to investigate the queue.',diagnostics:{transport:'fixture-json',request_id:'local-demo'}};\n window.ReplyClient=Object.freeze({get requests(){return calls.slice();},ask:async question=>{calls.push(question);return {...reply,diagnostics:{...reply.diagnostics}};}});\n})();\n<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Queue practice</title></head><body>\n<h1>Queue practice</h1>\n<section id=\"hint\"><h2>Fault plan and repair</h2><p>Pause the training worker. Restart the worker to resume processing.</p></section>\n<section id=\"transport\"><h2>Transport details</h2><pre>POST /fixture/answer; diagnostics are shown as the response.</pre></section>\n<s",
+            "output_sha256": "15938dba625a41c5655a9004f9de7ac1dced6a55868ff4d22c214c285ee463c8",
+            "output_truncated": true
+          },
+          {
+            "event_index": 17,
+            "command": "/usr/bin/zsh -lc \"python -c \\\"import importlib.util; print({m: importlib.util.find_spec(m) is not None for m in ['playwright','selenium','bs4']})\\\"\"",
+            "exit_code": 0,
+            "output_excerpt": "{'playwright': False, 'selenium': False, 'bs4': True}\n",
+            "output_sha256": "9bfc4f9fc3249116bbd3a36605f679941a7f885757e89a1b0a652c98554e1e66",
+            "output_truncated": false
+          },
+          {
+            "event_index": 19,
+            "command": "/usr/bin/zsh -lc \"node -e \\\"for(const m of ['playwright','puppeteer','jsdom']) { try { console.log(m,require.resolve(m)); } catch { console.log(m,'unavailable'); } }\\\"\"",
+            "exit_code": 0,
+            "output_excerpt": "playwright unavailable\npuppeteer unavailable\njsdom unavailable\n",
+            "output_sha256": "03a7d26361a50f0db7f76e1d574645b13235e79b4f324ef20101c7232163e818",
+            "output_truncated": false
+          },
+          {
+            "event_index": 21,
+            "command": "/usr/bin/zsh -lc 'wc -c index.html'",
+            "exit_code": 0,
+            "output_excerpt": "0 index.html\n",
+            "output_sha256": "ecbd6ac4d4fde7e36b5cc675eafc2049285b651a910b30106befe139b610b71f",
+            "output_truncated": false
+          },
+          {
+            "event_index": 28,
+            "command": "/usr/bin/zsh -lc 'python test_ui.py'",
+            "exit_code": 0,
+            "output_excerpt": "test_content_and_initial_visibility (__main__.TrainingPageTests.test_content_and_initial_visibility) ... ok\ntest_exercise_and_assistant_handlers (__main__.TrainingPageTests.test_exercise_and_assistant_handlers) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.078s\n\nOK\n",
+            "output_sha256": "60ec58696c28e3453f2fb2008592b245690ead88275334cfac5e20118a7ea4c5",
+            "output_truncated": false
+          },
+          {
+            "event_index": 30,
+            "command": "/usr/bin/zsh -lc \"python -c 'from pathlib import Path; from hashlib import sha256; print(\\\"Workspace files:\\\"); [print(p.name, p.stat().st_size) for p in sorted(Path(\\\".\\\").iterdir()) if p.is_file()]; print(\\\"Client SHA-256:\\\", sha256(Path(\\\"reply-client.js\\\").read_bytes()).hexdigest())'\"",
+            "exit_code": 0,
+            "output_excerpt": "Workspace files:\nAPP_CONTRACT.txt 957\nindex.html 4084\nreply-client.js 382\ntest_ui.py 7597\nClient SHA-256: 44f07b05558dc70b5f1ba01b2894c0610a86e50b2b2be05c535581c419c5e796\n",
+            "output_sha256": "774756446d2eeed3d7189dad807e4b743029681998bd759eeb707f5056331391",
+            "output_truncated": false
+          },
+          {
+            "event_index": 32,
+            "command": "/usr/bin/zsh -lc 'cat index.html && cat reply-client.js'",
+            "exit_code": 0,
+            "output_excerpt": "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n  <title>Queue practice</title>\n</head>\n<body>\n  <h1>Queue practice</h1>\n  <main id=\"workspace\" data-phase=\"ready\">\n    <h2>Workspace</h2>\n    <label for=\"notes\">Notes</label>\n    <textarea id=\"notes\">Observe the queue before changing it.</textarea>\n    <h3>Tasks</h3>\n    <ul id=\"tasks\">\n      <li>Inspect the training queue.</li>\n      <li>Record what changed.</li>\n    </ul>\n    <p>The assistant uses fixed offline practice replies.</p>\n    <form id=\"chat\">\n      <label for=\"question\">Ask the assistant</label>\n      <input id=\"question\" value=\"Where are my notes?\">\n      <button id=\"ask\" type=\"submit\">Ask</button>\n    </form>\n    <output id=\"answer\" aria-live=\"polite\"></output>\n    <p id=\"chat-status\" role=\"status\"></p>\n  </main>\n\n  <section aria-labelledby=\"exercise-heading\">\n    <h2 id=\"exercise-heading\">Exercise</h2>\n    <p id=\"effects\">Starting injects a simulated fault into this local training workspace. Exercise requests may fail. Notes and tasks are kept. Reset returns the training state to ready. Your assistant question and answer are also kept.</p>\n    <label><input id=\"consent\" type=\"checkbox\" aria-describedby=\"effects\">I understand the training effects.</label>\n    <button id=\"start\" type=\"button\">Start exercise</button>\n    <button id=\"reset\" type=\"button\">Reset exercise</button>\n    <p id=\"status\" role=\"status\">Exercise ready</p>\n    <button id=\"show-hint\" type=\"button\" aria-controls=\"hint\" aria-expanded=\"false\" disabled>Show hint</button>\n    <section id=\"hint\" hidden aria-labelledby=\"hint-heading\">\n      <h3 id=\"hint-heading\">Exercise hint</h3>\n      <p>Pause the training worker. Restart the worker to resume processing.</p>",
+            "output_sha256": "50b55b1f5d88aa552fc3ff5b80455c9c991b72f6e1a6441d31fa2c38fa58dc86",
+            "output_truncated": true
+          }
+        ],
+        "messages": [
+          {
+            "event_index": 4,
+            "text": "I\u2019ll read the app contract, supplied client, and page, then update `index.html` and check the learner flow locally. I\u2019ll use the `follow-instructions` skill to select the relevant guidance."
+          },
+          {
+            "event_index": 13,
+            "text": "The page hides the workspace until Start, ignores the consent checkbox, reveals the solution immediately, and shows diagnostics as the assistant\u2019s answer. I\u2019ll make the workspace visible from the outset, require consent to start, gate the hint behind a request during the exercise, and move diagnostics into a collapsed detail. I\u2019m also applying the `web-interface` skill for this flow repair."
+          },
+          {
+            "event_index": 24,
+            "text": "The flow changes are in place. I\u2019ll check consent, hint gating, workspace preservation, and use of the supplied client\u2019s answer. No local browser tooling is installed, so I\u2019ll use structural checks and execute the page\u2019s handlers in a DOM stub; rendered appearance will remain unverified."
+          },
+          {
+            "event_index": 33,
+            "text": "Repaired `index.html`: workspace visible immediately, consent required to start, hints available on request after starting, and diagnostics collapsed. The assistant displays `ReplyClient`\u2019s answer. Notes, tasks, DOM hooks, and client file are preserved.\n\n`python test_ui.py` passes. Browser rendering remains unverified because local browser tooling is unavailable."
+          }
+        ],
+        "collaboration": [],
+        "native_stderr_review_failures": [],
+        "response": "Repaired `index.html`: workspace visible immediately, consent required to start, hints available on request after starting, and diagnostics collapsed. The assistant displays `ReplyClient`\u2019s answer. Notes, tasks, DOM hooks, and client file are preserved.\n\n`python test_ui.py` passes. Browser rendering remains unverified because local browser tooling is unavailable.",
+        "usage": {
+          "input_tokens": 335212,
+          "cache_write_input_tokens": 0,
+          "reasoning_output_tokens": 729,
+          "output_tokens": 9365,
+          "cached_input_tokens": 294912
+        },
+        "execution_metrics": {
+          "completed_commands": 11,
+          "failed_commands": 1,
+          "agent_messages": 4,
+          "uncached_input_tokens": 40300
+        },
+        "guidance_access": {
+          "observations": [
+            {
+              "reference": "follow-instructions/SKILL.md",
+              "event": "command-reference",
+              "exit_code": 0,
+              "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-_vwlvpv8/skills/follow-instructions/SKILL.md'"
+            },
+            {
+              "reference": "web-interface/SKILL.md",
+              "event": "command-reference",
+              "exit_code": 0,
+              "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-_vwlvpv8/skills/web-interface/SKILL.md'"
+            },
+            {
+              "reference": "web-interface/references/web-audit.md",
+              "event": "command-reference",
+              "exit_code": 1,
+              "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-_vwlvpv8/skills/web-interface/references/web-audit.md && command -v node && command -v python && command -v chromium && command -v firefox'"
+            }
+          ],
+          "limits": "path/tool mention does not prove read completion, comprehension or application; absent mentions do not prove absent access"
+        },
+        "skills_identity": "7c7a4c5f35d8a78bfb9aed5d9d62aa6b8927cc9f72f1d02176b9677e680dca9c",
+        "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+        "changed_paths": {
+          "tracked_paths": [
+            "index.html"
+          ],
+          "untracked_paths": [
+            "test_ui.py"
+          ],
+          "tracked_index_paths": [],
+          "committed_paths": []
+        }
+      }
+    ],
+    "limits": [
+      "One sample per case, no causal improvement or reliability claim.",
+      "Artifact scores are not semantic acceptance; unavailable and failed claims remain separate.",
+      "Raw logs are retained locally, not committed. Durable record includes full changed artifacts, author messages and selected actual commands with output excerpts/hashes; guidance reads omitted.",
+      "Printed source/guide text is not execution of the commands it contains.",
+      "Final snapshots and local receipts are not protected command-order or live-service containment proof."
+    ]
+  },
+  "issues": {
+    "43": {
+      "status": "open-capability-gap",
+      "remaining": "Original MP4 metadata inspected only. No full playback/continuity or standalone reader-comprehension observation.",
+      "metadata": [
+        {
+          "artifact": "linktree-domain-feature-20261014.mp4",
+          "sha256": "43d5744a219e09624ca273ab80f18798ef20ee887c65819bbf62d99ca7a8c53a",
+          "metadata_probe_exit": 0,
+          "metadata": {
+            "programs": [],
+            "stream_groups": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 2560,
+                "height": 1600,
+                "nb_frames": "900"
+              }
+            ],
+            "format": {
+              "duration": "30.000000"
+            }
+          },
+          "viewing": "Metadata only; no complete playback or comprehension claim."
+        },
+        {
+          "artifact": "linktree-explained-demo.mp4",
+          "sha256": "77b1c4b949cfaa73926280c39e0473d7befcc08f780b5743c348f3f2a6a20636",
+          "metadata_probe_exit": 0,
+          "metadata": {
+            "programs": [],
+            "stream_groups": [],
+            "streams": [
+              {
+                "codec_name": "h264",
+                "width": 1280,
+                "height": 1000,
+                "nb_frames": "2668"
+              }
+            ],
+            "format": {
+              "duration": "89.000000"
+            }
+          },
+          "viewing": "Metadata only; no complete playback or comprehension claim."
+        }
+      ]
+    },
+    "44": {
+      "status": "bounded-offline-acceptance-supported-review-pending",
+      "coverage": {
+        "1": "Browser shows usable workspace and hides solution before start.",
+        "2": "Normal question reaches immutable async fixture client and returned answer is visible; diagnostics do not replace it.",
+        "3": "How-to gives direct target/export/publish/recovery steps rather than internal investigation narrative.",
+        "4": "Architecture guide retains component responsibilities, ordering, persisted state and limits at requested depth.",
+        "5": "Consequences and unchecked consent remain visible; start is blocked until consent; reset preserves notes/tasks.",
+        "6": "Native author explicitly reports browser unverified. Parent separately verifies browser flow and keeps mock/live limits clear."
+      },
+      "limits": "Local deterministic reply client, not live AI/backend, deployment or human usability study."
+    },
+    "45": {
+      "status": "open-capability-gap",
+      "remaining": "Actual ordinary GUI window launch/reopen unavailable. Installed package/configuration/process observations cannot establish visible app success.",
+      "effects": "No desktop config changes, package installation or application launch attempted in this batch."
+    },
+    "46": {
+      "status": "bounded-content-acceptance-supported-review-pending",
+      "coverage": {
+        "1": "Portfolio keeps both project purposes, contributions, supported results, limits and source links.",
+        "2": "How-to remains actionable and retains safety/recovery constraints; architecture twin keeps appropriate depth.",
+        "3": "Forceful shorten/cut correction preserves meaning and required links.",
+        "4": "Unsupported recognition removed, plain Projects label applied, factual descriptions retained.",
+        "5": "Deleted overstrict equality gate permits faithful paraphrase; factual support remains independent semantic acceptance."
+      },
+      "limits": "One sample per case, not a comparative style benchmark or real-reader population study."
+    }
+  },
+  "portfolio_calibration": [
+    {
+      "control": "plain-publisher",
+      "mechanical_acceptance": true,
+      "semantic_expected": "accept",
+      "limit": "Unsupported prose is deliberately a semantic-review gate, not established by mechanical acceptance."
+    },
+    {
+      "control": "faithful-paraphrase",
+      "mechanical_acceptance": true,
+      "semantic_expected": "accept",
+      "limit": "Unsupported prose is deliberately a semantic-review gate, not established by mechanical acceptance."
+    },
+    {
+      "control": "lost-limitation",
+      "mechanical_acceptance": false,
+      "semantic_expected": "reject",
+      "limit": "Unsupported prose is deliberately a semantic-review gate, not established by mechanical acceptance."
+    },
+    {
+      "control": "ignored-deletion",
+      "mechanical_acceptance": false,
+      "semantic_expected": "reject",
+      "limit": "Unsupported prose is deliberately a semantic-review gate, not established by mechanical acceptance."
+    },
+    {
+      "control": "unsupported-result",
+      "mechanical_acceptance": true,
+      "semantic_expected": "reject for unsupported factual claim",
+      "limit": "Unsupported prose is deliberately a semantic-review gate, not established by mechanical acceptance."
+    }
+  ],
+  "ui_browser": {
+    "source_sha256": "2d0e7d4b020f86c6ad4a8d752992c095c2a3f5431dc24c3391f1c8ab3424a50e",
+    "probe": "(async()=>{\n const checks=[];\n const el=id=>{const node=document.getElementById(id);if(!node)throw Error('Missing hook: '+id);return node;};\n const check=(name,ok)=>{checks.push({name,pass:Boolean(ok)});console.log('TRAINING_QA '+(ok?'PASS ':'FAIL ')+name);};\n const visible=node=>{const r=node.getBoundingClientRect();return r.width>0&&r.height>0;};\n const textVisible=node=>{const out=[];const walker=document.createTreeWalker(node,NodeFilter.SHOW_TEXT);let n;while((n=walker.nextNode())){const range=document.createRange();range.selectNodeContents(n);let shown=true;for(let parent=n.parentElement;parent;parent=parent.parentElement){const style=getComputedStyle(parent);if(style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0)shown=false;if(parent.tagName==='DETAILS'&&!parent.open){const summary=parent.querySelector(':scope > summary');if(!summary||!summary.contains(n))shown=false;}}if(shown&&[...range.getClientRects()].some(r=>r.width>0&&r.height>0))out.push(n.textContent);}return out.join(' ').replace(/\\s+/g,' ').trim();};\n const frame=()=>Promise.resolve();\n await frame();\n check('initial workspace usable',visible(el('workspace')));\n check('solution not disclosed before start',!(/restart the worker|pause the training worker/i.test(textVisible(el('hint')))));\n check('effects visible before consent',visible(el('effects')));\n check('developer diagnostics collapsed on normal path',!(/POST \\/fixture\\/answer|fixture-json|request_id/.test(textVisible(el('transport')))));\n check('consent not preselected',!el('consent').checked);\n el('notes').value='Keep this observation.';el('notes').dispatchEvent(new Event('input',{bubbles:true}));\n const tasks=el('tasks').textContent;\n if(el('consent').checked)el('consent').click();\n el('start').click();await frame();\n check('unchecked start does not run',el('workspace').dataset.phase==='ready');\n el('reset').click();\n if(!el('consent').checked)el('consent').click();\n el('start').click();await frame();\n check('consented start runs',el('workspace').dataset.phase==='running');\n check('start retains notes and tasks',el('notes').value==='Keep this observation.'&&el('tasks').textContent===tasks);\n const before=ReplyClient.requests.length;\n el('question').value='Where are my notes?';el('question').dispatchEvent(new Event('input',{bubbles:true}));\n el('ask').click();await frame();await frame();\n const calls=ReplyClient.requests;\n check('normal question reaches client',calls.length>before&&calls[calls.length-1]==='Where are my notes?');\n const answer=textVisible(el('answer'));\n check('actual client answer visible',answer.includes('Your notes and tasks stay in the workspace. Start the exercise to investigate the queue.'));\n check('diagnostics do not replace answer',!(/request_id|fixture-json|transport/.test(answer)));\n el('reset').click();await frame();\n check('reset restores training phase',el('workspace').dataset.phase==='ready');\n check('reset retains notes and tasks',el('notes').value==='Keep this observation.'&&el('tasks').textContent===tasks);\n document.body.dataset.qa='complete';\n const qa=document.createElement('pre');qa.id='training-qa-results';qa.style.cssText='display:block!important;white-space:pre-wrap;background:white;color:black;padding:12px;font:12px monospace';qa.textContent='TRAINING_QA_COMPLETE\\n'+JSON.stringify(checks,null,2);document.body.append(qa);\n console.log('TRAINING_QA_COMPLETE '+JSON.stringify({checks:checks.length,failed:checks.filter(c=>!c.pass).map(c=>c.name)}));\n})().catch(error=>{console.error('TRAINING_QA_ERROR '+error.stack);});\n",
+    "probe_sha256": "6893d8612e8c43ceabcedd7b66af3363167f0066913d629e027b896c12ac1419",
+    "observations": {
+      "final-initial-desktop-preview.json": {
+        "state": "initial-desktop",
+        "metadata": [
+          "{\"width\":728,\"contentHeight\":576,\"capturedHeight\":576,\"consoleMessages\":[],\"screenshot\":{\"mimeType\":\"image/png\",\"width\":728,\"height\":576}}"
+        ],
+        "note": "QA bundle inlines the unchanged supplied client; original final.html untouched. Interaction probe is a separate parent-owned temporary observer."
+      },
+      "final-initial-phone-preview.json": {
+        "state": "initial-phone",
+        "metadata": [
+          "{\"width\":390,\"contentHeight\":639,\"capturedHeight\":639,\"consoleMessages\":[],\"screenshot\":{\"mimeType\":\"image/png\",\"width\":390,\"height\":639}}"
+        ],
+        "note": "QA bundle inlines the unchanged supplied client; original final.html untouched. Interaction probe is a separate parent-owned temporary observer."
+      },
+      "final-interaction-preview.json": {
+        "state": "interaction",
+        "metadata": [
+          "{\"width\":728,\"contentHeight\":1414,\"capturedHeight\":1414,\"consoleMessages\":[{\"level\":\"log\",\"text\":\"TRAINING_QA PASS initial workspace usable\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS solution not disclosed before start\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS effects visible before consent\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS developer diagnostics collapsed on normal path\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS consent not preselected\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS unchecked start does not run\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS consented start runs\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS start retains notes and tasks\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS normal question reaches client\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS actual client answer visible\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS diagnostics do not replace answer\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS reset restores training phase\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS reset retains notes and tasks\"},{\"level\":\"log\",\"text\":\"TRAINING_QA_COMPLETE {\\\"checks\\\":13,\\\"failed\\\":[]}\"}],\"screenshot\":{\"mimeType\":\"image/png\",\"width\":728,\"height\":1414}}"
+        ],
+        "note": "QA bundle inlines the unchanged supplied client; original final.html untouched. Interaction probe is a separate parent-owned temporary observer."
+      },
+      "known-bad-preview3.json": {
+        "control": "known-bad",
+        "metadata": [
+          "{\"width\":728,\"contentHeight\":1498,\"capturedHeight\":1498,\"consoleMessages\":[{\"level\":\"log\",\"text\":\"TRAINING_QA FAIL initial workspace usable\"},{\"level\":\"log\",\"text\":\"TRAINING_QA FAIL solution not disclosed before start\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS effects visible before consent\"},{\"level\":\"log\",\"text\":\"TRAINING_QA FAIL developer diagnostics collapsed on normal path\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS consent not preselected\"},{\"level\":\"log\",\"text\":\"TRAINING_QA FAIL unchecked start does not run\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS consented start runs\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS start retains notes and tasks\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS normal question reaches client\"},{\"level\":\"log\",\"text\":\"TRAINING_QA FAIL actual client answer visible\"},{\"level\":\"log\",\"text\":\"TRAINING_QA FAIL diagnostics do not replace answer\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS reset restores training phase\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS reset retains notes and tasks\"},{\"level\":\"log\",\"text\":\"TRAINING_QA_COMPLETE {\\\"checks\\\":13,\\\"failed\\\":[\\\"initial workspace usable\\\",\\\"solution not disclosed before start\\\",\\\"developer diagnostics collapsed on normal path\\\",\\\"unchecked start does not run\\\",\\\"actual client answer visible\\\",\\\"diagnostics do not replace answer\\\"]}\"}],\"screenshot\":{\"mimeType\":\"image/png\",\"width\":728,\"height\":1498}}"
+        ],
+        "repair": "Explicit microtask completion; per-check logs; hidden details/ancestors accounted for. Earlier capture and false-rejection results preserved separately."
+      },
+      "known-valid-preview3.json": {
+        "control": "known-valid",
+        "metadata": [
+          "{\"width\":728,\"contentHeight\":1362,\"capturedHeight\":1362,\"consoleMessages\":[{\"level\":\"log\",\"text\":\"TRAINING_QA PASS initial workspace usable\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS solution not disclosed before start\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS effects visible before consent\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS developer diagnostics collapsed on normal path\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS consent not preselected\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS unchecked start does not run\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS consented start runs\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS start retains notes and tasks\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS normal question reaches client\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS actual client answer visible\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS diagnostics do not replace answer\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS reset restores training phase\"},{\"level\":\"log\",\"text\":\"TRAINING_QA PASS reset retains notes and tasks\"},{\"level\":\"log\",\"text\":\"TRAINING_QA_COMPLETE {\\\"checks\\\":13,\\\"failed\\\":[]}\"}],\"screenshot\":{\"mimeType\":\"image/png\",\"width\":728,\"height\":1362}}"
+        ],
+        "repair": "Explicit microtask completion; per-check logs; hidden details/ancestors accounted for. Earlier capture and false-rejection results preserved separately."
+      }
+    },
+    "invalid_prior_measurements": "Initial asynchronous capture incomplete. V2 visibility probe falsely treated closed-details body as visible. Both retained locally under original names; corrected v3 accounts for ancestors/details and explicit completion.",
+    "observer_boundary": "Parent-owned probe is separate from final output; standalone bundle inlines unchanged supplied client. Source artifact not edited for QA."
+  },
+  "independent_reviews": [
+    {
+      "path": "/tmp/skills-parallel-artifacts/luna-construct-review.md",
+      "sha256": "5847af0da39d0c2cff74227afdca7614c6d26d8e56ee1814642f0d0eaacdc925",
+      "text": "# Construct review: three content cases\n\n**Verdict: revise one fixture check; otherwise approve the prompts as construct-valid.** This is a source/prompt review only; no model was run, and no delivered behavior or score is established.\n\n## Finding (actionable): exact portfolio fact equality can reject faithful plain rewrites\n\nAt `evals/cases/skills-comparison.json:1768`, the portfolio acceptance test requires each rendered `data-fact` value to equal the source JSON string exactly (`p.articles[v['id']]['facts']==v['facts']`). But the task at line 1720 asks for improved explanations for a new visitor, and the correction at lines 1777\u20131781 specifically says to cut bloated prose and be blunt/simple while retaining the explanatory purpose established in the first turn. Exact string equality can fail an accurate, clearer paraphrase even when the visitor still understands the supported problem, contribution, result and limitation. This risks scoring the issue\u2019s valid correction as a failure because it changes wording. The check can instead require all source-supported facts/qualifications to remain semantically represented, with exact invariants retained for section removal, project presence and source links; keep semantic review independent as line 1771 already requires.\n\nEvidence against overreading the prompt: this is not a claim that any paraphrase is valid. Issue #46 acceptance requires concise explanations that retain problem, contribution and result where supported, explicit section deletion and removal of unsupported claims; it rejects a minimum word count or prescribed phrasing ([issue #46](https://github.com/Astatide1337/Skills/issues/46), especially acceptance at lines 159\u2013173). The input and correction at JSON lines 1720 and 1777 make the intended facts and deletion discoverable, without requiring a particular wording.\n\n## Other two cases\n\nThe paired #44 cases are a useful control, not a false asymmetry: the how-to request at line 1789 asks for necessary commands, decisions, consequences and qualifications, while the architecture request at line 1837 explicitly asks for enough design depth and says a terse checklist is insufficient. Both use the same source and an intentionally mechanical nonempty-file check (lines 1829 and 1877), and both explicitly disclose that semantic quality is unmeasured mechanically and needs independent reader-task review (lines 1832 and 1880). Those disclosures prevent the fixture from implying that scores establish safety, factual completeness or fit. The requested structures are distinct and source-grounded, not a generic preference for short prose.\n\nScope: I inspected only the three appended cases, repository review guidance and the cited issue acceptance. Source-derived construct assessment; no tests, model runs or behavioral claims.\n"
+    },
+    {
+      "path": "/tmp/skills-parallel-artifacts/luna-behavior-review.md",
+      "sha256": "f928fea7b5e94c5fc2f8d6d6431e95be83440ef876d9bcaa1331f6b780dea0af",
+      "text": "# Independent semantic acceptance review\n\n## Portfolio correction (issue 44, followed by issue 46)\n\n**Supported: all five substantive criteria in the narrow synthetic task.** The final rendered artifact at `/tmp/skills-parallel-artifacts/portfolio-final.html` presents both projects with (1) the problem/purpose, (2) the author's contribution, (3) the observed result, (4) its limitation, and (5) the original project link. The content and rendered surface are recorded in `issue-46-portfolio-correction-sample.json`, `store.workspace_evidence.content` (changed `content.json` and `portfolio.html`); facts align with the issue fixture's immutable `source.json` in `evals/cases/skills-comparison.json` under `issues-44-46-portfolio-meaning`. \u201cStale jobs fell from 18 to 3 in a 40-job pilot\u201d and \u201cIndexed 1,200 photos from 6 albums\u201d preserve the measures and scope; each limitation remains adjacent to its result. The page names the tools plainly and drops the unsupported recognition section and promotional labels.\n\nThe forceful correction is handled coherently across both native turns. Turn 0 produced full explanations and removed recognition; turn 1 shortened the copy and retained the `Projects` label, while preserving both explanations, links, deletion, and the source/renderer boundary. The final HTML and turn-1 event trace support that the correction changed presentation without restoring the deleted content or emptying the project examples (`store.native_turns.turns[0..1]`, `store.workspace_evidence.content`; final artifact above).\n\nThe five criteria are supported at the level of this renderer-backed synthetic fixture. They do not establish visual hierarchy, actual visitor comprehension, link availability, or behavior in an integrated site/assistant flow. The original case also explicitly leaves arbitrary paraphrase quality and broad reader usefulness to human review; its mechanical checks alone do not prove those qualities.\n\n## Operator how-to (issues 44\u201346 content how-to sample)\n\n**Semantically sound for the requested operator task.** `issues-44-46-content-howto-sample.json`, `store.workspace_evidence.content` (changed `guide.md`) gives the operator a usable order: verify the server-reported workspace, export and stop on export failure, publish, then read persisted state. Recovery republishes the export and requires a read-back. It correctly bounds the export and recovery to configuration, says document edits are not restored, warns against reset/delete, and makes no automatic-backup, full-data rollback, or zero-downtime promise. This resolves the recovery wording while staying concise for an operator; it is not an architecture essay.\n\nThe event record has no service execution: the user explicitly barred service commands, and observed commands are local inspection/validation. The runner-owned workspace evidence shows only `guide.md` changed; no application, install, commit, or publication effect is evidenced (`store.workspace_evidence` and native event/command trace). The source evidence in the case records `SOURCE.txt` as immutable input (hash `5610b38d\u2026` in `store.workspace_baseline.snapshot`); review here relies on the frozen case evidence and source-grounded claims preserved in the output.\n\n## Maintainer architecture explanation (issues 44\u201346 content architecture sample)\n\n**Appropriate and sufficiently deep for maintenance.** `issues-44-46-content-architecture-sample.json`, `store.workspace_evidence.content` (changed `guide.md`) explains server-resolved workspace identity, operator/client/server ownership, why status \u2192 successful export \u2192 publish \u2192 persisted read is ordered, and why atomic configuration replacement is not proof of intent or a document-data backup. It carries the same recovery and safety limits as the how-to, and explains why failed verification leaves recovery unconfirmed. Its extra explanation serves the maintainer prompt; it would be unnecessary weight in the operator how-to.\n\n## Evidence limits and nits\n\nAll three samples show authorized local content edits and workspace evidence; the portfolio case additionally records source/renderer hashes and reproducible rendering. These are three distinct task effects, not a controlled causal comparison: they do not show that a particular skill or guidance change caused the outcomes. The architecture and how-to workspaces report the same baseline input hashes, and their outputs are in the sample evidence; `SOURCE.txt` itself is not embedded in the final diff, so the frozen fixture/source hash is the authority available for this review.\n\n1. **Scope of the portfolio verdict:** phrase the five-of-five result as fixture-level semantic support, not general portfolio quality. There is no evidence of real visitors, visual testing, or integrated assistant flow.\n2. **How-to recovery edge:** the guide says to restore after a publish or verification failure and tells the operator to read back, but offers no further recovery path if that restoration read fails. The source establishes no further mechanism, and the guide appropriately avoids inventing one; the limitation should remain explicit in any quality summary.\n"
+    }
+  ]
+}
