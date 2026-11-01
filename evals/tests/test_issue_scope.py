@@ -20,7 +20,8 @@ class ScopeIssueAcceptanceTests(unittest.TestCase):
     def setUpClass(cls):
         path = Path(__file__).resolve().parents[1] / "cases" / "skills-comparison.json"
         all_cases = json.loads(path.read_text())
-        ids = ["issue-37-39-corrected-package-scope", "issue-40-resource-lifecycle"]
+        ids = ["issue-37-39-corrected-package-scope", "issue-40-resource-lifecycle",
+               "issue-37-conditional-receiver-prototype", "issue-37-conditional-receiver-deployed"]
         cls.cases = [
             next(case for case in all_cases if case["id"] == case_id) for case_id in ids
         ]
@@ -62,6 +63,23 @@ class ScopeIssueAcceptanceTests(unittest.TestCase):
         self.check(
             self.cases[0], "valid-contract-implementation", CONTROLS["scope_good"]
         )
+
+    def test_conditional_receiver_accepts_valid_alternatives_in_both_environments(self):
+        for case in self.cases[2:]:
+            for code in (CONTROLS['scope_good'], CONTROLS['scope_good'].replace(
+                    "list(project.get('deployed_sources', []))", "[*project.get('deployed_sources', [])]")):
+                with self.subTest(case=case['id'], code=code):
+                    self.check(case, 'valid conditional behavior', code)
+
+    def test_conditional_receiver_rejects_unconditional_prototype_import(self):
+        self.check(self.cases[2], 'invented importer', CONTROLS['scope_good'].replace(
+            "list(project.get('deployed_sources', []))", "['prototype.sqlite']"),
+            'conditional import obligation was not resolved')
+
+    def test_conditional_receiver_rejects_lost_retained_source(self):
+        self.check(self.cases[3], 'dropped deployed source', CONTROLS['scope_good'].replace(
+            "list(project.get('deployed_sources', []))", "[]"),
+            'conditional import obligation was not resolved')
 
     def test_control_02(self):
         self.check(
