@@ -2,7 +2,7 @@
   "kind": "Source-grounded manual outcome calibration, no model trial or improvement claim",
   "guidance_revision": "03e76f2bcb53955bb93d8ea79a04e74bfd250ad7",
   "issue": 47,
-  "status": "bounded-calibration-supported-review-pending",
+  "status": "bounded-manual-calibration-supported",
   "primary_evidence": {
     "thread": "80eca91d-96b8-4e4b-bdff-cc16c7ab91b0",
     "messages": [
@@ -105,5 +105,14 @@
     "failed_ordering_samples": 1,
     "unsupported_peer_review_claims": 3,
     "unused_budget_not_a_delivery_stop": "Remaining work is evidence integration, independent PR review and CI, not more model samples."
-  }
+  },
+  "final_independent_review": {
+    "candidate": "979cd31",
+    "round": 3,
+    "path": "/tmp/skills-parallel-evaluator/stack-final-review.md",
+    "sha256": "1b8eb3c9f253628b387e4b013b75cc83f310fd9eafbcb772b16b0fdfc4b42db4",
+    "text": "# Final independent review \u2014 outcome calibration stack\n\n## Readiness\n\n**Ready for bounded #47 closure as manual, source-grounded outcome calibration; no evaluator adoption or performance claim.** Reviewed candidate `979cd31` and the complete diff `90c59d2..979cd31` (one new artifact: `evals/results/2026-11-01-outcome-calibration-batch.json`). Inspected the correction and calibration packet, the prior independent Luna review, the named issue and plan draft sources, their source hashes, and the existing #47 contract fixture and tests. The correction\u2019s supplied user messages establish a request for one concise, direct issue covering three defects and reproductions, with qualified acceptance of the shorter rewrite. They do not waive correctness or safe reproduction. The long draft\u2019s reader rejection, accepted short draft\u2019s qualified utility, omission counterexample, faithful alternate plan, and branded plan missing the consequential stack decision support the separate usefulness/factual-floor judgments.\n\nThe record preserves the source-message IDs and capture digest, hashes each key draft/control, records the correction mapping, and keeps historical outcomes distinct from this manual assessment (`:6-15`, `:17-53`, `:56-84`). Its limits explicitly disclaim a model trial, held-out result, population calibration, or promotion; it also states historical failures remain untouched (`:2-5`, `:84`, `:91-107`). The existing evaluator fixture and tests support only its narrow publisher/source-grounding behavior, including optional attribution and rejection of unsupported attribution (`evals/cases/skills-comparison.json:677-725`; `evals/tests/test_issue_resolution_cases.py:276-285`). The record correctly does not claim that fixture automates reader usefulness or all manual criteria.\n\n## Findings\n\n1. **Actionable safety nit, non-blocking for the calibration record:** The short issue is judged useful and factually complete, while one reproduction is expressly recorded as lacking a mock/disposable boundary (`:25-29`). The independent review recommends using the existing mocked request alternative (`:89`). This is properly disclosed and does not invalidate the observed reader outcome; do not revise or relabel the historical draft as part of this record. If the separate alternative reproduction is retained, keep its mock/disposable boundary explicit and label it as an alternative, not a historical pass.\n\n2. **Closure is supported only at the stated manual scope:** The artifact supports bounded #47 closure based on the observed controls and user correction. It does not reproduce the literal issue acceptance criteria as an inspectable checklist; it summarizes the criteria and evidence instead (`:14-15`, `:55`, `:91-94`). Keep the closure claim tied to these named criteria and controls. Do not present it as automated coverage, general judge calibration, or evidence that any evaluator improved. This is a claim-boundary limitation, not a request for more experiments.\n\nNo other material finding. The batch accounting (16 samples, 20 native parent turns, one withheld turn after the scope violation) is recorded without suggesting unused budget blocks delivery (`:96-107`). No model run, evaluator/guidance edit, historical rewrite, or remote write was performed in this review.\n",
+    "identity_limit": "Fresh independent Codex review context; requested gpt-6-luna. Memo model self-attribution is not independently verified runtime identity."
+  },
+  "final_review_disposition": "Reproduction-safety nit preserved: separate alternative explicitly uses mock/disposable boundaries; no historical artifact relabeled. Closure stays limited to named manual controls, not judge adoption or comparative improvement."
 }
