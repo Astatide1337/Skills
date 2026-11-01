@@ -135,7 +135,7 @@ class IssueResolutionControls(unittest.TestCase):
             VALID_CLASSIFIER.replace("        return 'unrun'\n", "        return 'survived'\n")
         )
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("zero selected tests counted as survival", result.stderr)
+        self.assertIn("zero selected tests not reported as unrun", result.stderr)
 
     def test_mutation_rejects_null_receipt_as_survived(self):
         result = self.classify_with(
@@ -149,7 +149,7 @@ class IssueResolutionControls(unittest.TestCase):
             VALID_CLASSIFIER.replace("        return 'unrun'\n", "        return 'invalid'\n")
         )
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("zero selected tests counted as survival", result.stderr)
+        self.assertIn("zero selected tests not reported as unrun", result.stderr)
 
     def test_mutation_rejects_wrong_selection_as_survived(self):
         result = self.classify_with("""def classify(r):
