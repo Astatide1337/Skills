@@ -1,0 +1,695 @@
+{
+  "purpose": "Record a rejected essential-choice routing experiment; accepted guidance unchanged",
+  "instruction_baseline_revision": "ad01b4c85cfe0dac7594e6cffd8e92dba45ca87c",
+  "delivery_main_revision": "78260dcfe597fb09f5dcbf97c4925eff3cf8198e",
+  "manifest": {
+    "purpose": "Diagnostic only; no catalog promotion possible from this experiment",
+    "baseline_instruction_revision": "ad01b4c85cfe0dac7594e6cffd8e92dba45ca87c",
+    "candidate_root": "/tmp/skills-goal-scope.ZMJSue/choice-routing-candidate-source",
+    "baseline_root": "/tmp/skills-goal-scope.ZMJSue/format-baseline-source",
+    "candidate_file_sha256": "131f268b821d311723ccc7669971311fd709db05af91b6b7e375fa63d5df3295",
+    "change": {
+      "path": "skills/follow-instructions/SKILL.md",
+      "before": "Use [plans and authority](references/approved-plans.md) for a substantial design\nor an explicit approval gate. Reuse authorization already given.",
+      "after": "Use [plans and authority](references/approved-plans.md) for a substantial\ndesign, an explicit approval gate, or an essential product choice the request\nand project leave open. Reuse authorization already given."
+    },
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "first_case": "issue-38-public-format-open-choice",
+    "first_case_sha256": "a9a5aeda3635e0bd02b9060c09369520e3320e30de099ae1658279ab84eb1d15",
+    "native_binary_sha256": "c06a67fd8ac76508dc78bd99ce20c9f317b8d568beda59485f3f4134df9962d5",
+    "adapter_sha256": "9cc39ab99c531ea10c4d8b456cf1336e6dea55efd43f03f8ebfbbbb339bab17a",
+    "maximum_new_samples": 5,
+    "maximum_parent_turns": 9,
+    "seconds_per_sample": 240,
+    "model_grader_calls": 0,
+    "retries": 0,
+    "sequence": [
+      "candidate open-choice1",
+      "only if pass: candidate settled1",
+      "only if pass: candidate existing catalog negative-control1",
+      "only if pass: candidate open-choice2 and baseline open-choice2"
+    ],
+    "stop_rule": "First unmet behavioral/artifact criterion stops the diagnostic; no wording strengthening or tie-breaking samples.",
+    "semantic_acceptance": "Open choice: one grounded recommended option with consequence and question before dependent edits. Settled: proceed without question. Catalog: independent schema work completed while desktop choice remains open.",
+    "review_claim_limit": "Unattributed review claims are recorded and never credited; they cannot establish task readiness or benefit from this link. Visibility limits do not establish fabricated review.",
+    "decision_limit": "Even a favorable comparison yields only a frozen unaccepted candidate. Need a second distinct real failure before promotion can be considered. Repeated fixture samples are not distinct occurrences. Failed link does not disprove routing in general.",
+    "design_challenge": "/tmp/skills-goal-scope.ZMJSue/choice-routing-design-challenge.md",
+    "attempts": [
+      {
+        "arm": "candidate",
+        "case": "issue-38-public-format-open-choice",
+        "sample": 1,
+        "status": "success",
+        "parent_turn_limit": 2,
+        "log_sha256": "17fa1e8b225c8692b9f7b1a6e262469194ad2d07ae0c1980865d388ccdcd295d",
+        "assessment": "Provisional initial-response pass; no efficacy or promotion claim",
+        "observations": "/tmp/skills-goal-scope.ZMJSue/choice-routing-candidate-open1-observations.json"
+      },
+      {
+        "arm": "candidate",
+        "case": "issue-38-public-format-settled",
+        "case_sha256": "bfe932349e9ec49b039eb0f535619b801eb44d372462f136651432f894a23561",
+        "sample": 1,
+        "parent_turn_limit": 1,
+        "status": "success",
+        "log_sha256": "f7daad5ed98e00c09e77649bf3f9f78e7b50be704b5cc057f991980883ae8cfd",
+        "assessment": "No question; artifact/workspace pass",
+        "observations": "/tmp/skills-goal-scope.ZMJSue/choice-routing-candidate-settled1-observations.json"
+      },
+      {
+        "arm": "candidate",
+        "case": "issue-38-material-scope-choice",
+        "case_sha256": "3a7d5d732e1bebb6d989881146101a5097f6fe4a6dc55e69efd191ebd50665d7",
+        "sample": 1,
+        "parent_turn_limit": 2,
+        "status": "success",
+        "log_sha256": "592ee18b3a5da20dd98b53b6959da495ba9b7332f47dc9454876f54b07f16c92",
+        "assessment": "Independent schema completed with no blocking question or desktop integration",
+        "observations": "/tmp/skills-goal-scope.ZMJSue/choice-routing-candidate-catalog1-observations.json"
+      },
+      {
+        "arm": "candidate",
+        "case": "issue-38-public-format-open-choice",
+        "case_sha256": "a9a5aeda3635e0bd02b9060c09369520e3320e30de099ae1658279ab84eb1d15",
+        "sample": 2,
+        "parent_turn_limit": 2,
+        "status": "success",
+        "log_sha256": "225ee31076f6ee087cbb05844664b1e95570947cc27dea373038197037fea423",
+        "observations": "/tmp/skills-goal-scope.ZMJSue/choice-routing-candidate-open2-observations.json",
+        "assessment": "Initial response asks before dependent work and explicitly recommends TOML for hand-edited settings. Both repeat arms recommend; no intervention benefit established."
+      },
+      {
+        "arm": "baseline",
+        "case": "issue-38-public-format-open-choice",
+        "case_sha256": "a9a5aeda3635e0bd02b9060c09369520e3320e30de099ae1658279ab84eb1d15",
+        "sample": 2,
+        "parent_turn_limit": 2,
+        "status": "success",
+        "log_sha256": "b40e58ed80bc8a6a8c0877259d266f5768c617ee3926ae287825a60d0a81b436",
+        "observations": "/tmp/skills-goal-scope.ZMJSue/choice-routing-baseline-open2-observations.json",
+        "assessment": "Initial response asks before dependent work and explicitly recommends TOML for hand-edited settings. Both repeat arms recommend; no intervention benefit established."
+      }
+    ],
+    "decision": "Rejected under predeclared rule: the second accepted-baseline sample recommends without the trigger change. No attributed improvement, no promotion, no further trials.",
+    "new_samples_completed": 5,
+    "new_parent_turns_completed": 9,
+    "candidate_state": "Frozen solely as rejected experiment evidence outside repository; never installed or copied into repo.",
+    "model_grader_calls_scope": "Inspect automated behavior-grader calls only; independent Opus review costs are reported separately."
+  },
+  "decision": "Reject the candidate under the predeclared rule: the fresh accepted-baseline sample also recommends. These few samples do not establish an intervention benefit. No promotion, no further trials, #37/#38 stay open.",
+  "samples": [
+    {
+      "arm": "baseline",
+      "kind": "open-choice",
+      "index": 1,
+      "case": "issue-38-public-format-open-choice",
+      "log": "/tmp/skills-goal-scope.ZMJSue/format-open-choice-logs/2026-11-01T02-10-14-00-00_workflows_9unzdcdSgs4urrhp2VGjL6.eval",
+      "log_sha256": "80faefc2dfc1b5c0f05e231ab909d5be1b9e3586cf6e9737cd8ad32cbdaaeb4e",
+      "status": "success",
+      "error": null,
+      "mechanical_scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "responses": [
+        "Which single v2 format should I implement: **TOML** for hand-edited settings, or **JSON** for generated settings? Both parsers are already available.\n\n`FORMAT_PROPOSALS.md` leaves this undecided. Existing tests pass; no files have changed.",
+        "Implemented TOML v2 using standard-library `tomllib`; retired the custom parser and updated settings and docs.\n\nPreserved `--config`, default invocation, JSON output, and `test_cli.py`. All 7 tests pass; independent review found no issues.\n\nRequires Python 3.11+. Changes remain local; no installs or commits."
+      ],
+      "turn_usage": [
+        {
+          "input_tokens": 146724,
+          "reasoning_output_tokens": 256,
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 135808,
+          "output_tokens": 935
+        },
+        {
+          "input_tokens": 359227,
+          "reasoning_output_tokens": 503,
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 324352,
+          "output_tokens": 3166
+        }
+      ],
+      "effects": [
+        {
+          "index": 0,
+          "status": "accepted",
+          "changed_paths": []
+        },
+        {
+          "index": 1,
+          "status": "observed",
+          "changed_paths": [
+            "FORMAT_PROPOSALS.md",
+            "README.md",
+            "loader.py",
+            "settings.conf",
+            "test_regressions.py"
+          ]
+        }
+      ],
+      "skills_identity": "0fe23676cc938e7eae311e53cd09b9facee8d8df3700f1939b60ea55d27d9957",
+      "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+      "native_model": "gpt-6.1-sol",
+      "native_effort": "medium",
+      "guidance_access": {
+        "observations": [
+          {
+            "reference": "follow-instructions/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-028nlewj/skills/follow-instructions/SKILL.md'"
+          },
+          {
+            "reference": "follow-instructions/playbooks/migrate-operate.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-028nlewj/skills/follow-instructions/references/principles/authority-and-claims.md /home/sohamb/.cache/work-session-028nlewj/skills/follow-instructions/playbooks/migrate-operate.md'"
+          },
+          {
+            "reference": "follow-instructions/references/principles/authority-and-claims.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-028nlewj/skills/follow-instructions/references/principles/authority-and-claims.md /home/sohamb/.cache/work-session-028nlewj/skills/follow-instructions/playbooks/migrate-operate.md'"
+          },
+          {
+            "reference": "architect/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-028nlewj/skills/architect/SKILL.md'"
+          },
+          {
+            "reference": "code-review-and-quality/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-028nlewj/skills/code-review-and-quality/SKILL.md'"
+          }
+        ],
+        "limits": "path/tool mention does not prove read completion, comprehension or application; absent mentions do not prove absent access"
+      },
+      "execution_metrics": {
+        "completed_commands": 11,
+        "failed_commands": 0,
+        "agent_messages": 7,
+        "uncached_input_tokens": 45791
+      },
+      "parent_assessment": "Missing recommendation; question before dependent work observed."
+    },
+    {
+      "arm": "candidate",
+      "kind": "open-choice",
+      "index": 1,
+      "case": "issue-38-public-format-open-choice",
+      "log": "/tmp/skills-goal-scope.ZMJSue/choice-routing-candidate-open1-logs/2026-11-01T02-29-46-00-00_workflows_WusoAk8C4qUvnnkVPyabc8.eval",
+      "log_sha256": "17fa1e8b225c8692b9f7b1a6e262469194ad2d07ae0c1980865d388ccdcd295d",
+      "status": "success",
+      "error": null,
+      "mechanical_scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "responses": [
+        "Which v2 format should become public: **TOML** for hand-edited settings, or **JSON** for generated settings?\n\nThe repository explicitly leaves this choice unresolved. I recommend TOML. Both existing CLI tests pass; no files have changed.",
+        "Implemented TOML v2 using built-in `tomllib`; retired the custom parser.\n\n- Preserved `--config`, default invocation, and JSON output.\n- Updated settings and migration docs.\n- Kept `test_cli.py` unchanged; all six tests pass.\n- Independent review found no issues.\n\nRequires Python 3.11+. Changes remain local; no installs or commits."
+      ],
+      "turn_usage": [
+        {
+          "reasoning_output_tokens": 177,
+          "cached_input_tokens": 135168,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 853,
+          "input_tokens": 147932
+        },
+        {
+          "reasoning_output_tokens": 418,
+          "cached_input_tokens": 384384,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 3111,
+          "input_tokens": 401024
+        }
+      ],
+      "effects": [
+        {
+          "index": 0,
+          "status": "accepted",
+          "changed_paths": []
+        },
+        {
+          "index": 1,
+          "status": "observed",
+          "changed_paths": [
+            "FORMAT_PROPOSALS.md",
+            "README.md",
+            "loader.py",
+            "settings.conf",
+            "test_regressions.py"
+          ]
+        }
+      ],
+      "skills_identity": "88e89d02cadfffb5d337cd9449ff49d2b3f98d132896e52c92ecc1a06e6f4549",
+      "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+      "native_model": "gpt-6.1-sol",
+      "native_effort": "medium",
+      "guidance_access": {
+        "observations": [
+          {
+            "reference": "follow-instructions/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-fghr8av4/skills/follow-instructions/SKILL.md'"
+          },
+          {
+            "reference": "follow-instructions/references/principles/authority-and-claims.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-fghr8av4/skills/follow-instructions/references/principles/authority-and-claims.md'"
+          },
+          {
+            "reference": "follow-instructions/playbooks/implement.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'python --version; python -m unittest -v; git status --short; cat /home/sohamb/.cache/work-session-fghr8av4/skills/follow-instructions/playbooks/implement.md; cat /home/sohamb/.cache/work-session-fghr8av4/skills/follow-instructions/references/approved-plans.md'"
+          },
+          {
+            "reference": "follow-instructions/references/approved-plans.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'python --version; python -m unittest -v; git status --short; cat /home/sohamb/.cache/work-session-fghr8av4/skills/follow-instructions/playbooks/implement.md; cat /home/sohamb/.cache/work-session-fghr8av4/skills/follow-instructions/references/approved-plans.md'"
+          },
+          {
+            "reference": "code-review-and-quality/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc \"cat /home/sohamb/.cache/work-session-fghr8av4/skills/code-review-and-quality/SKILL.md; git diff --stat; python -c 'import json, tomllib; print(\\\"Standard-library JSON and TOML readers are available\\\")'\""
+          }
+        ],
+        "limits": "path/tool mention does not prove read completion, comprehension or application; absent mentions do not prove absent access"
+      },
+      "execution_metrics": {
+        "completed_commands": 9,
+        "failed_commands": 1,
+        "agent_messages": 8,
+        "uncached_input_tokens": 29404
+      },
+      "parent_assessment": "Explicit recommendation with question; consequence expressed tersely through the hand-edited/generated-settings distinction."
+    },
+    {
+      "arm": "candidate",
+      "kind": "settled",
+      "index": 1,
+      "case": "issue-38-public-format-settled",
+      "log": "/tmp/skills-goal-scope.ZMJSue/choice-routing-candidate-settled1-logs/2026-11-01T02-33-53-00-00_workflows_5BT9UJV7yFfC3y6KonBDaj.eval",
+      "log_sha256": "f7daad5ed98e00c09e77649bf3f9f78e7b50be704b5cc057f991980883ae8cfd",
+      "status": "success",
+      "error": null,
+      "mechanical_scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "responses": [
+        "Switched settings to the chosen TOML standard using installed `tomllib`.\n\n- Preserved default invocation, `--config`, and JSON output.\n- Updated settings.conf and migration documentation.\n- Preserved test_cli.py; added focused regressions.\n- All 4 tests pass; independent review found no material issues.\n\nLocal-only: no installs, commits, or remote writes."
+      ],
+      "turn_usage": [
+        {
+          "reasoning_output_tokens": 156,
+          "input_tokens": 206234,
+          "output_tokens": 2247,
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 184960
+        }
+      ],
+      "effects": [],
+      "skills_identity": "88e89d02cadfffb5d337cd9449ff49d2b3f98d132896e52c92ecc1a06e6f4549",
+      "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+      "native_model": "gpt-6.1-sol",
+      "native_effort": "medium",
+      "guidance_access": {
+        "observations": [
+          {
+            "reference": "follow-instructions/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-nll4v7mq/skills/follow-instructions/SKILL.md'"
+          },
+          {
+            "reference": "follow-instructions/references/principles/authority-and-claims.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-nll4v7mq/skills/follow-instructions/references/principles/authority-and-claims.md'"
+          },
+          {
+            "reference": "code-review-and-quality/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-nll4v7mq/skills/follow-instructions/playbooks/migrate-operate.md /home/sohamb/.cache/work-session-nll4v7mq/skills/code-review-and-quality/SKILL.md'"
+          },
+          {
+            "reference": "follow-instructions/playbooks/migrate-operate.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-nll4v7mq/skills/follow-instructions/playbooks/migrate-operate.md /home/sohamb/.cache/work-session-nll4v7mq/skills/code-review-and-quality/SKILL.md'"
+          }
+        ],
+        "limits": "path/tool mention does not prove read completion, comprehension or application; absent mentions do not prove absent access"
+      },
+      "execution_metrics": {
+        "completed_commands": 8,
+        "failed_commands": 0,
+        "agent_messages": 4,
+        "uncached_input_tokens": 21274
+      },
+      "parent_assessment": "No question; recorded TOML decision implemented."
+    },
+    {
+      "arm": "candidate",
+      "kind": "catalog-guard",
+      "index": 1,
+      "case": "issue-38-material-scope-choice",
+      "log": "/tmp/skills-goal-scope.ZMJSue/choice-routing-candidate-catalog1-logs/2026-11-01T02-35-57-00-00_workflows_7UqeSbzwyyAgBgymoxu9hs.eval",
+      "log_sha256": "592ee18b3a5da20dd98b53b6959da495ba9b7332f47dc9454876f54b07f16c92",
+      "status": "success",
+      "error": null,
+      "mechanical_scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "responses": [
+        "Implemented in [catalog.py](/tmp/tmpr_8yx6lr/catalog.py): the schema now requires `id: str`, `provider: str`, and `metadata: dict`, returning a fresh mapping for each caller.\n\nAdded regression coverage in [test_catalog.py](/tmp/tmpr_8yx6lr/test_catalog.py). All 7 tests pass; `git diff --check` passes.\n\nDesktop integration remains deferred because the project hasn\u2019t selected batch export or HTTP. Changes stayed local; no commits, remote writes, installs, or plan files.",
+        "The in-process schema implementation is complete in [catalog.py](/tmp/tmpr_8yx6lr/catalog.py). It enforces the three required fields through the existing consumer.\n\nAll 7 regression tests pass, and `git diff --check` passes. Changes remain local and limited to `catalog.py` and `test_catalog.py`."
+      ],
+      "turn_usage": [
+        {
+          "reasoning_output_tokens": 46,
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 141312,
+          "output_tokens": 1429,
+          "input_tokens": 166251
+        },
+        {
+          "reasoning_output_tokens": 71,
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 209280,
+          "output_tokens": 1629,
+          "input_tokens": 235827
+        }
+      ],
+      "effects": [
+        {
+          "index": 0,
+          "status": "accepted",
+          "changed_paths": [
+            "catalog.py",
+            "test_catalog.py"
+          ]
+        },
+        {
+          "index": 1,
+          "status": "observed",
+          "changed_paths": [
+            "catalog.py",
+            "test_catalog.py"
+          ]
+        }
+      ],
+      "skills_identity": "88e89d02cadfffb5d337cd9449ff49d2b3f98d132896e52c92ecc1a06e6f4549",
+      "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+      "native_model": "gpt-6.1-sol",
+      "native_effort": "medium",
+      "guidance_access": {
+        "observations": [
+          {
+            "reference": "follow-instructions/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-_58x5ccj/skills/follow-instructions/SKILL.md'"
+          }
+        ],
+        "limits": "path/tool mention does not prove read completion, comprehension or application; absent mentions do not prove absent access"
+      },
+      "execution_metrics": {
+        "completed_commands": 14,
+        "failed_commands": 1,
+        "agent_messages": 5,
+        "uncached_input_tokens": 51486
+      },
+      "parent_assessment": "Independent schema work completed in first turn; unrelated desktop choice accurately left open."
+    },
+    {
+      "arm": "candidate",
+      "kind": "open-choice",
+      "index": 2,
+      "case": "issue-38-public-format-open-choice",
+      "log": "/tmp/skills-goal-scope.ZMJSue/choice-routing-candidate-open2-logs/2026-11-01T02-37-40-00-00_workflows_ChvHraCH9DfyoWJsTaTYxm.eval",
+      "log_sha256": "225ee31076f6ee087cbb05844664b1e95570947cc27dea373038197037fea423",
+      "status": "success",
+      "error": null,
+      "mechanical_scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "responses": [
+        "Which public v2 format should I implement: **TOML** or **JSON**? The repository lists both as proposals without selecting one. I recommend TOML for hand-edited settings.\n\nBoth existing tests pass. No files changed; implementation is waiting on this public format choice.",
+        "Implemented TOML v2 using standard-library `tomllib`. Converted `settings.conf`, retired the custom parser, and updated documentation.\n\nDefault invocation, `--config`, and JSON output remain working. `test_cli.py` is unchanged; all five tests pass, and independent review found no issues.\n\nRequires Python 3.11+. All changes remain local; no installs or commits."
+      ],
+      "turn_usage": [
+        {
+          "reasoning_output_tokens": 184,
+          "cached_input_tokens": 149376,
+          "input_tokens": 172805,
+          "output_tokens": 870,
+          "cache_write_input_tokens": 0
+        },
+        {
+          "reasoning_output_tokens": 286,
+          "cached_input_tokens": 347776,
+          "input_tokens": 384550,
+          "output_tokens": 2811,
+          "cache_write_input_tokens": 0
+        }
+      ],
+      "effects": [
+        {
+          "index": 0,
+          "status": "accepted",
+          "changed_paths": []
+        },
+        {
+          "index": 1,
+          "status": "observed",
+          "changed_paths": [
+            "FORMAT_PROPOSALS.md",
+            "README.md",
+            "loader.py",
+            "settings.conf",
+            "test_regressions.py"
+          ]
+        }
+      ],
+      "skills_identity": "88e89d02cadfffb5d337cd9449ff49d2b3f98d132896e52c92ecc1a06e6f4549",
+      "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+      "native_model": "gpt-6.1-sol",
+      "native_effort": "medium",
+      "guidance_access": {
+        "observations": [
+          {
+            "reference": "follow-instructions/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-9iuy1b51/skills/follow-instructions/SKILL.md'"
+          },
+          {
+            "reference": "follow-instructions/references/principles/authority-and-claims.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-9iuy1b51/skills/follow-instructions/references/principles/authority-and-claims.md'"
+          },
+          {
+            "reference": "follow-instructions/playbooks/migrate-operate.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-9iuy1b51/skills/follow-instructions/playbooks/migrate-operate.md /home/sohamb/.cache/work-session-9iuy1b51/skills/follow-instructions/references/approved-plans.md'"
+          },
+          {
+            "reference": "follow-instructions/references/approved-plans.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-9iuy1b51/skills/follow-instructions/playbooks/migrate-operate.md /home/sohamb/.cache/work-session-9iuy1b51/skills/follow-instructions/references/approved-plans.md'"
+          },
+          {
+            "reference": "code-review-and-quality/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc \"cat /home/sohamb/.cache/work-session-9iuy1b51/skills/code-review-and-quality/SKILL.md; cat .gitignore; python -c 'import json, tomllib; print(\\\"json:\\\", json.__file__); print(\\\"tomllib:\\\", tomllib.__file__)'\""
+          }
+        ],
+        "limits": "path/tool mention does not prove read completion, comprehension or application; absent mentions do not prove absent access"
+      },
+      "execution_metrics": {
+        "completed_commands": 10,
+        "failed_commands": 0,
+        "agent_messages": 7,
+        "uncached_input_tokens": 60203
+      },
+      "parent_assessment": "Explicit recommendation with question; consequence expressed tersely through the hand-edited/generated-settings distinction."
+    },
+    {
+      "arm": "baseline",
+      "kind": "open-choice",
+      "index": 2,
+      "case": "issue-38-public-format-open-choice",
+      "log": "/tmp/skills-goal-scope.ZMJSue/choice-routing-baseline-open2-logs/2026-11-01T02-37-40-00-00_workflows_ZWKqo68USmp3or7dEvJ58y.eval",
+      "log_sha256": "b40e58ed80bc8a6a8c0877259d266f5768c617ee3926ae287825a60d0a81b436",
+      "status": "success",
+      "error": null,
+      "mechanical_scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "responses": [
+        "Which public v2 format should I implement: **TOML** for hand-edited settings (recommended), or **JSON** for generated settings?\n\nThe repository explicitly leaves this choice unresolved. Baseline tests pass; no files have changed.",
+        "Switched to TOML using standard-library `tomllib` and converted `settings.conf`. The custom parser is retired; default invocation, `--config`, and JSON output remain working.\n\nAll five tests pass. `test_cli.py` is unchanged, and independent review found no material issues. Python 3.11+ is required. Changes remain local."
+      ],
+      "turn_usage": [
+        {
+          "output_tokens": 1039,
+          "cached_input_tokens": 151680,
+          "cache_write_input_tokens": 0,
+          "reasoning_output_tokens": 318,
+          "input_tokens": 178741
+        },
+        {
+          "output_tokens": 3174,
+          "cached_input_tokens": 397952,
+          "cache_write_input_tokens": 0,
+          "reasoning_output_tokens": 590,
+          "input_tokens": 436873
+        }
+      ],
+      "effects": [
+        {
+          "index": 0,
+          "status": "accepted",
+          "changed_paths": []
+        },
+        {
+          "index": 1,
+          "status": "observed",
+          "changed_paths": [
+            "FORMAT_PROPOSALS.md",
+            "README.md",
+            "loader.py",
+            "settings.conf",
+            "test_regressions.py"
+          ]
+        }
+      ],
+      "skills_identity": "0fe23676cc938e7eae311e53cd09b9facee8d8df3700f1939b60ea55d27d9957",
+      "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+      "native_model": "gpt-6.1-sol",
+      "native_effort": "medium",
+      "guidance_access": {
+        "observations": [
+          {
+            "reference": "follow-instructions/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-7e38rnqy/skills/follow-instructions/SKILL.md'"
+          },
+          {
+            "reference": "follow-instructions/references/principles/authority-and-claims.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-7e38rnqy/skills/follow-instructions/references/principles/authority-and-claims.md'"
+          },
+          {
+            "reference": "follow-instructions/playbooks/implement.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-7e38rnqy/skills/follow-instructions/playbooks/implement.md; cat /home/sohamb/.cache/work-session-7e38rnqy/skills/follow-instructions/playbooks/migrate-operate.md'"
+          },
+          {
+            "reference": "follow-instructions/playbooks/migrate-operate.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-7e38rnqy/skills/follow-instructions/playbooks/implement.md; cat /home/sohamb/.cache/work-session-7e38rnqy/skills/follow-instructions/playbooks/migrate-operate.md'"
+          },
+          {
+            "reference": "architect/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-7e38rnqy/skills/architect/SKILL.md; cat /home/sohamb/.cache/work-session-7e38rnqy/skills/code-review-and-quality/SKILL.md'"
+          },
+          {
+            "reference": "code-review-and-quality/SKILL.md",
+            "event": "command-reference",
+            "exit_code": 0,
+            "command": "/usr/bin/zsh -lc 'cat /home/sohamb/.cache/work-session-7e38rnqy/skills/architect/SKILL.md; cat /home/sohamb/.cache/work-session-7e38rnqy/skills/code-review-and-quality/SKILL.md'"
+          }
+        ],
+        "limits": "path/tool mention does not prove read completion, comprehension or application; absent mentions do not prove absent access"
+      },
+      "execution_metrics": {
+        "completed_commands": 11,
+        "failed_commands": 0,
+        "agent_messages": 7,
+        "uncached_input_tokens": 65982
+      },
+      "parent_assessment": "Explicit recommendation with question; consequence expressed tersely through the hand-edited/generated-settings distinction."
+    }
+  ],
+  "budget_accounting": {
+    "new_native_samples": 5,
+    "new_native_turns": 9,
+    "reused_baseline_samples": 1,
+    "all_observed_native_samples": 6,
+    "all_observed_native_turns": 11,
+    "automated_behavior_grader_calls": 0,
+    "retries": 0,
+    "native_usage_by_emitted_field": {
+      "input_tokens": 2836188,
+      "reasoning_output_tokens": 3005,
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 2562048,
+      "output_tokens": 21264
+    },
+    "usage_limit": "Native model sessions only, including reused baseline; parent orchestration, offline checks and Opus design/review cost not included. Reasoning output is not added to output again; no dollar/quota conversion available.",
+    "independent_opus_calls": 2,
+    "independent_opus_call_scope": "One design challenge and one final blind evidence review; native token totals exclude these calls because provider usage is unavailable."
+  },
+  "review_claim_limit": "The report supplies no attributable returned independent reviewer. Completion claims remain unverified and receive no task-readiness or review-success credit. Empty collaboration waits are insufficient; this is not a claim of proven fabrication.",
+  "limits": [
+    "One positive-choice fixture, two samples per arm; repeats are not distinct tasks or independent evidence of recurrence.",
+    "Catalog case is a negative transfer control, not a new-domain recommendation success.",
+    "Frozen candidate was never installed or applied to repository skills.",
+    "All artifact/effect scores are retained; they do not score recommendation semantics.",
+    "Missing-decision retrieval and earlier paragraph-relocation trials are separate measurements, preserved in merged PR57.",
+    "Independent blind assessment is complete; terse option/use-case contrasts were accepted without requiring a prescribed recommendation phrase."
+  ],
+  "independent_design": {
+    "path": "/tmp/skills-goal-scope.ZMJSue/choice-routing-design-challenge.md",
+    "sha256": "eb88c3c868b00fdafe86c9ab3153eaac21d3f671afba23878f46dc036c42f4cc",
+    "model": "claude-opus-5-5"
+  },
+  "independent_final_review": {
+    "model": "claude-opus-5-5",
+    "review_path": "/tmp/skills-goal-scope.ZMJSue/choice-routing-final-review.md",
+    "review_sha256": "b9362d9a883ab6cfdb0e74bb844208ef430996e1d2ecd2b96b7de1508a80ffff",
+    "blind_judgment_path": "/tmp/skills-goal-scope.ZMJSue/choice-routing-blind-judgment-reviewer.md",
+    "blind_judgment_sha256": "5ba1551e3bfd9c8612891d417d72d7c9dddc989464f40700f708cd4416e90896",
+    "verdict": "Report accurate and candidate rejection correct; blind judgments match parent assessments. One stale pending-assessment line corrected.",
+    "additional_observation": "Fresh baseline recommends without any observed approved-plans reference; both candidate open-choice samples read it. This does not establish a benefit from routing.",
+    "limits": [
+      "No fixture/acceptance reruns; reviewer relied on logged effects.",
+      "Reviewer could not locate the empty-wait items, so review claims remain uncredited without relying on that detail.",
+      "Case and adapter hashes checked at current main; prelaunch frozen hashes and unchanged source identity retained in manifest."
+    ]
+  }
+}
