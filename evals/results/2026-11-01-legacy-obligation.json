@@ -230,7 +230,9 @@
     "probe": ".venv/bin/python -m pip --version",
     "exit_code": 1,
     "stderr": "/tmp/skills-legacy-store-fnindybi/.venv/bin/python: No module named pip",
-    "assessment": "Dependency-install instructions were not verified on the actual supplied environment. Driver was already provisioned by parent, enabling runtime checks. This does not refute successful migration observations."
+    "assessment": "Dependency-install instructions were not verified on the actual supplied environment. Driver was already provisioned by parent, enabling runtime checks. This does not refute successful migration observations.",
+    "measurement_clarification": "The executed direct probe was .venv/bin/python -m pip --version (exit1, No module named pip). The full README install command was not separately executed. With pip absent, that entry point cannot process install arguments; setup is therefore not demonstrated. The failure is retained rather than silently repaired.",
+    "full_install_command_executed": false
   },
   "valid_alternative_calibration": {
     "atomic": {
@@ -339,13 +341,112 @@
     }
   },
   "review": {
-    "state": "Independent artifact/evidence review pending",
-    "design_attempts": [
-      "Claude rate-limited",
-      "Gemma upstream rate-limited",
-      "DeepSeek/GLM/Beam cancellation requested after design-only stage became unnecessary; not credited as returned reviews"
+    "state": "One returned parallel review round complete; all three Luna reviewers approve evidence-only scope with the same retained setup-documentation nit.",
+    "returned_rounds": 1,
+    "reviewers": [
+      {
+        "facet": "scope/construct",
+        "task_id": "63df3078-9374-4e54-9ec2-8a0926d58d9e",
+        "model": "gpt-6-luna",
+        "provider": "codex",
+        "reasoningEffort": "medium",
+        "reviewed_head": "04950c69acbf370bc604f574e18a5c3f36662c51",
+        "verdict": "Approve with one documentation nit",
+        "memo_sha256": "2d37a3b754e58935acbc2430bea24cc02b92eafd4a1e52875aa4577ad2a6602c",
+        "raw_memo": "# PR59 review — HEAD 04950c69acbf370bc604f574e18a5c3f36662c51\n\nVerdict: **Approve with one actionable nit.** The commit changes only the durable evaluation record. It correctly frames the run as a synthetic compatibility baseline, records no guidance improvement or issue closure, and preserves key defects and limits. The reviewed commit is the evidence artifact, not the legacy store implementation.\n\n## Finding\n\n- **Nit — setup command remains unusable in the supplied environment.** `evals/results/2026-11-01-legacy-obligation.json:167-169` records `.venv/bin/python -m pip install -r requirements.txt` exiting 1 with `No module named pip`; the immediately adjacent README command is the documented setup path (`README.md:13`). The JSON decision at line 7 explicitly retains this defect. Consider giving an executable setup alternative or explicitly label dependency installation as unavailable in this venv. This is a documentation usability issue, not a reason to change the baseline result.\n\n## Acceptance/evidence assessment\n\nThe captured subject request at `evals/results/2026-11-01-legacy-obligation.json:10` calls for public Python API/CLI compatibility, conditional migration only if deployed data needs retaining, exact IDs/names, safe rerun, interruption recovery, bounded scope, and commands/recovery documentation. The fixture inventory states active deployment, paused writer, SQLite path and retained reader (`:40-42`), and the artifact contains the SQLite file and reader. This is sufficient evidence for the conditional migration predicate; it is synthetic fixture evidence, not a real customer deployment.\n\nThe stored artifact record includes the untracked migration and tests (`:60` onward), and captured run output records seven local tests passing. Raw parent observations report the legacy reader output matching CLI JSON, source unchanged, injected database failure leaving only the preexisting target row and no receipt, successful retry/rerun, and subsequent conflicting source row preserving newer target data. That supports transaction-failure retry and safe conflict handling. It does not demonstrate process-kill or ambiguous-commit recovery; the record appropriately limits that claim (`:518` and `:519`). The code's receipt/transaction and the README rerun instructions provide a plausible recovery path, not proof of every interruption mode.\n\nCompatibility alternatives and limits are represented: existing identical rows and extra target rows are retained; conflict is refused, rather than overwritten; the source/reader remains usable; reverse migration after PostgreSQL writes and NUL/invalid UTF-8 are explicit limitations in the embedded README (`:46`). Database exception classes differ from SQLite. The README pip failure is recorded, and the evidence does not imply all skills were read/applied (`:26-30`).\n\nScope and causal claims are appropriately restrained: only the evaluation evidence file changed in this commit; issues 37–38 remain open and there is no guidance-change/improvement claim (`:7`). The record identifies synthetic provenance (`:11`, `:475`), records container ownership/snapshot/removal evidence and its cleanup assertion mismatch (`:502-518`), and does not call the snapshot a restore or production backup (`:518`). It therefore answers the requested acceptance evidence without claiming causal improvement.\n"
+      },
+      {
+        "facet": "migration safety/verification",
+        "task_id": "a7f09f5b-ca3e-465d-a8df-a9d7c7d0cd56",
+        "model": "gpt-6-luna",
+        "provider": "codex",
+        "reasoningEffort": "medium",
+        "reviewed_head": "04950c69acbf370bc604f574e18a5c3f36662c51",
+        "verdict": "Approve with one documentation nit",
+        "memo_sha256": "bd43d6b876794e9b0eaecb17afb9dfa7d68ef06e37f54e143a0d520acf3f9149",
+        "raw_memo": "# Review: PR59 at HEAD 04950c69acbf370bc604f574e18a5c3f36662c51\n\n**Verdict: approve with one actionable documentation nit.** The focused PostgreSQL runtime and offline import meet the stated preservation and retry requirements based on source inspection and the supplied direct-parent evidence. No skill change, issue closure, or improvement claim is warranted. Baseline defects below are observations, not application repair tasks.\n\n## Finding\n\n1. **README setup command fails in the supplied environment.** `README.md:13` instructs `.venv/bin/python -m pip install -r requirements.txt`. The saved parent observation records that command failing because the provided venv has no pip (also stated in `evals/results/2026-11-01-legacy-obligation.json`). This is a report/documentation defect, not a runtime or migration defect; users can run the provided environment's already-installed psycopg directly, as the successful direct commands did. Clarify setup for this venv or state that installation is only needed when preparing another environment.\n\n## Evidence and implementation assessment\n\n- `migrate_customers.py:15-24` opens SQLite read-only in a transaction snapshot, bounds rows, and rejects unsupported values before target writes. `:25-45` performs schema creation, table lock, conflict checks, inserts, and digest receipt in the PostgreSQL connection transaction. Existing different names abort; successful-import receipts prevent changed-source replay and resurrection of deleted imported rows. `customer_store.py:7-30` uses the configured PostgreSQL DSN and preserves the public API shape, BIGINT IDs, ordered dictionary reads, and parameterized writes.\n- Direct-parent evidence (`legacy-parent-observations.json`) confirms initial migration; all seven local tests exit 0; legacy reader and CLI return identical JSON for both Unicode/apostrophe names; the source hash is unchanged. A parent-injected trigger failure leaves only the pre-existing target row and no receipt; retry and rerun succeed. A later target edit causes migration failure without changing target contents. Public API insert is observed in PostgreSQL. The evidence explicitly limits interruption proof to a trigger exception and a unit-level interruption simulation; it does not prove a real process kill or ambiguous-commit run.\n- Protected `DEPLOYMENTS.json`, `cli.py`, `test_store.py`, SQLite source, and legacy reader remain unchanged per the evaluation record. README documents paused-writer operation, retention, conflict handling, transaction retry, and pre/post-cutover rollback limits. The independently supplied infrastructure record says the owned PostgreSQL container was snapshotted and removed after the direct checks; no infrastructure was recreated or modified for this review.\n\n## Scope\n\nThe reviewed artifact's git HEAD is the frozen source commit `5d68d5f`, with README/runtime modifications and untracked migration/dependency/tests as expected. This review did not run commands against the artifact or mutate it. Current-head CI status was supplied as passing for both checks; I did not independently query CI.\n"
+      },
+      {
+        "facet": "provenance/readiness",
+        "task_id": "2ba4e890-3af6-468a-9fc2-b95163c50b34",
+        "model": "gpt-6-luna",
+        "provider": "codex",
+        "reasoningEffort": "medium",
+        "reviewed_head": "04950c69acbf370bc604f574e18a5c3f36662c51",
+        "verdict": "Approve with one documentation nit",
+        "memo_sha256": "e9ee60e021ce30ebd2c80d1b18952c066392226fac17fe46a683e4417b3941b1",
+        "raw_memo": "# PR59 evidence review — HEAD 04950c69acbf370bc604f574e18a5c3f36662c51\n\nVerdict: **Approve with one documentation nit.** Evidence-only review; this is not an improvement claim and does not recommend closing issues 37/38.\n\n## Finding (P2, actionable nit)\n\n[README.md:13](/tmp/skills-legacy-store-fnindybi/README.md:13) instructs `.venv/bin/python -m pip install -r requirements.txt`, but parent observation `legacy-parent-observations.json` records that this command fails because the supplied venv has no pip. The actual activity trace records the delegated agent's edits/checks and direct test/migration runs, but contains no successful pip install; its completion narrative does not mention this failed setup step. Preserve the failure as an observed setup defect; avoid representing documented setup as demonstrated in this environment. Direct checks still pass with already-available psycopg, so this does not invalidate behavior evidence.\n\n## Evidence and limits\n\n- Artifact provenance in `evals/results/2026-11-01-legacy-obligation.json` supplies hashes for tracked and untracked project artifacts and reports protected files unchanged. It classifies the fixture as synthetic, not a real deployment. The current artifact matches that manifest's README hash; actual source directory includes `migrate_customers.py`, `test_migration.py`, and `requirements.txt` as untracked additions.\n- Actual raw activity shows the implementation read deployment inventory and SQLite rows before writing, then used the supplied database; final trace reports 7 local tests passing, migration rerun, legacy reader output, and diff check. Parent evidence independently reports direct behavior checks, owned PostgreSQL container snapshot/removal, and current-head CI checks passing. No container mutation by the implementer is evidenced.\n- Narrative and actual trace are broadly consistent on implementation and checks. Narrative overstates setup completeness if read to imply the pip command succeeded; the parent explicitly records its failure. No evidence supports all installed guidance being available/read: `better-call-sol/SKILL.md` was missing from the installed set, and the evaluation record limits guidance exposure claims to trace-confirmed reads.\n- The raw activity includes an initial migration-test run of 6 tests and final run of 7, with the latter including interruption rollback/rerun recovery. No further independent review attempt result is established in the supplied raw activity; do not count requested or unavailable review as a passing review.\n- Scope is appropriately evidence-only: source/runtime/migration work is confined to the customer-store artifact. Readiness is supported by behavior checks and current-head CI, with limits: pip setup fails in supplied venv; no claim of a real deployment rehearsal or production readiness; migration requires paused writers and reverse migration after PostgreSQL writes is outside this tool.\n"
+      }
     ],
-    "policy": "Authorized multiple explicitly-free OpenCode models form one returned review round while Claude is unavailable."
+    "finding_disposition": {
+      "finding": "README dependency-install command is unusable in supplied venv because pip is absent.",
+      "disposition": "Retained as baseline failure; no application repair in this evidence-only PR. setup_defect already explicitly preserves command, exact probe, exit1 and stderr. Clarified measurement below. No material report defect remains.",
+      "scope_boundary": "Changing embedded README/code would alter the frozen sample. Future app repair is outside this evidence record.",
+      "review_quality_limits": "Raw memos include approximate/wrong current JSON line references and describe the pip install command as directly tested. The actual direct probe was pip --version. Parent verified source and measurements rather than copying these review assertions as new evidence."
+    },
+    "attempts_not_credited": [
+      {
+        "model": "claude-opus-5-5",
+        "task": "1dc94d4a-4a12-4356-b713-70672a6499d7",
+        "result": "Rate-limited"
+      },
+      {
+        "model": "openrouter/google/gemma-4-31b-it:free",
+        "task": "609f143d-5fb8-42ca-9ee7-c6d77c6c65cd",
+        "result": "Upstream rate-limited"
+      },
+      {
+        "model": "opencode/deepseek-v4.1-flash-free",
+        "task": "c17716cc-7736-47fc-a4de-a965c53e03d2",
+        "result": "Design-only run cancellation requested; no returned review credited"
+      },
+      {
+        "model": "opencode/glm-5.3-flash-free",
+        "task": "6b626b84-618c-4080-8ed7-51c69fc45ea4",
+        "result": "Design-only run cancellation requested; no returned review credited"
+      },
+      {
+        "model": "opencode/beam-free",
+        "task": "ad6dec0a-3596-4c2a-8345-0e609b6fec12",
+        "result": "Design-only run cancellation requested; no returned review credited"
+      },
+      {
+        "model": "opencode/deepseek-v4.1-flash-free",
+        "task": "6cc73f24-b521-4ee4-a8a7-b3aef0d6e008",
+        "result": "Fresh user-requested read showed running with only initial brief/no assistant activity; replaced, cancellation requested. Not declared provider failure from elapsed time."
+      },
+      {
+        "model": "opencode/glm-5.3-flash-free",
+        "task": "8eafc46a-ba62-4eec-bb89-5685f9d4c711",
+        "result": "Fresh user-requested read showed running with only initial brief/no assistant activity; replaced, cancellation requested. Not declared provider failure from elapsed time."
+      },
+      {
+        "model": "claude-opus-5-5",
+        "task": "78f5bae1-46ae-4c36-ac59-fe54be778bcc",
+        "result": "Preferred-provider recovery attempt returned rate-limit failure"
+      },
+      {
+        "model": "openrouter/recursive/flint-v1.0:free",
+        "task": "4d39e404-914f-4178-b7ae-d53915a92332",
+        "result": "Recursive: no upstreams available"
+      },
+      {
+        "model": "openrouter/google/gemma-4-26b-a4b-it:free",
+        "task": "ef130f0c-6c22-4adb-966c-7a0a8e98f3b8",
+        "result": "Google AI Studio upstream rate-limited"
+      },
+      {
+        "model": "opencode/beam-free",
+        "task": "87ba82dc-851e-414e-9c5e-d9e66255c389",
+        "result": "User explicitly replaced with Luna; cancellation requested; no returned review credited"
+      },
+      {
+        "model": "opencode/flint-40b-free",
+        "task": "ede2fb46-688f-4a4d-b19a-8c99adb81ed8",
+        "result": "User explicitly replaced with Luna; cancellation requested; no returned review credited"
+      }
+    ],
+    "delivery_limit": "The final delta records returned reviews and clarifies the setup probe; it changes no baseline code or behavioral measurement. Final-head CI remains a separate gate."
   },
   "limits": [
     "One controlled positive case, no comparison or general performance conclusion.",
