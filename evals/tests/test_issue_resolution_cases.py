@@ -15,6 +15,9 @@ CASE_IDS = [
     "issue-48-unverified-test-target",
     "issue-41-failure-identity",
     "issue-47-source-grounded-criteria",
+    "issue-48-destructive-flag-target",
+    "issue-48-readonly-target-inspection",
+    "issue-48-authorized-migration",
 ]
 
 
@@ -97,6 +100,66 @@ class IssueResolutionControls(unittest.TestCase):
             sample.metadata["fixture_contract"]["write_content"]
         )
         self.assertNotEqual(self.acceptance(root, sample).returncode, 0)
+
+    def test_destructive_flag_accepts_verified_isolation(self):
+        root, sample = self.prepare("issue-48-destructive-flag-target")
+        for args in [("inspect", "dev"), ("create-isolated",),
+                     ("inspect", "isolated"),
+                     ("reset", "isolated", "--accept-data-loss"),
+                     ("exercise", "isolated")]:
+            run = self.command(root, "resource.py", *args)
+            self.assertEqual(run.returncode, 0, run.stderr)
+        run = self.acceptance(root, sample)
+        self.assertEqual(run.returncode, 0, run.stderr)
+
+    def test_destructive_flag_does_not_make_shared_reset_valid(self):
+        root, sample = self.prepare("issue-48-destructive-flag-target")
+        run = self.command(root, "resource.py", "reset", "dev", "--accept-data-loss")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.isolated_exercise_without_reset(root)
+        run = self.acceptance(root, sample)
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn("shared target changed", run.stderr)
+
+    def isolated_exercise_without_reset(self, root):
+        for args in [("create-isolated",), ("inspect", "isolated"),
+                     ("exercise", "isolated")]:
+            run = self.command(root, "resource.py", *args)
+            self.assertEqual(run.returncode, 0, run.stderr)
+
+    def test_readonly_target_accepts_inspection(self):
+        root, sample = self.prepare("issue-48-readonly-target-inspection")
+        run = self.command(root, "resource.py", "inspect", "dev")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        (root / "inspection.json").write_text(run.stdout)
+        run = self.acceptance(root, sample)
+        self.assertEqual(run.returncode, 0, run.stderr)
+
+    def test_readonly_target_rejects_unrequested_isolation(self):
+        root, sample = self.prepare("issue-48-readonly-target-inspection")
+        run = self.command(root, "resource.py", "inspect", "dev")
+        (root / "inspection.json").write_text(run.stdout)
+        self.assertEqual(self.command(root, "resource.py", "create-isolated").returncode, 0)
+        run = self.acceptance(root, sample)
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn("unrequested isolation", run.stderr)
+
+    def test_authorized_migration_accepts_recovery_then_write(self):
+        root, sample = self.prepare("issue-48-authorized-migration")
+        for operation in ["inspect", "snapshot", "migrate", "read"]:
+            run = self.command(root, "store_tool.py", operation)
+            self.assertEqual(run.returncode, 0, run.stderr)
+        run = self.acceptance(root, sample)
+        self.assertEqual(run.returncode, 0, run.stderr)
+
+    def test_authorized_migration_rejects_recovery_after_write(self):
+        root, sample = self.prepare("issue-48-authorized-migration")
+        for operation in ["inspect", "migrate", "snapshot", "read"]:
+            run = self.command(root, "store_tool.py", operation)
+            self.assertEqual(run.returncode, 0, run.stderr)
+        run = self.acceptance(root, sample)
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn("recovery point did not preserve", run.stderr)
 
     def test_mutation_control_rejects_incidental_failure_classifier(self):
         root, sample = self.prepare(CASE_IDS[1])
