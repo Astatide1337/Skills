@@ -6,7 +6,7 @@
   "model": "gpt-6.1-sol",
   "effort": "medium",
   "model_grader": false,
-  "budget": "Three initial samples, three scope/classifier-repair samples, three completion samples; one attempt per selected case per instrument; no outcome-driven repeats. Each sample limited to 240 seconds, not a token/quota cap.",
+  "budget": "Nine original samples at 240 seconds each: three initial, three scope/classifier-repair, three completion. One additional revision4 issue41 sample at 600 seconds. One attempt per selected case per instrument, no outcome-driven repeats; time limits are not token/quota caps.",
   "launch_errors": [
     {
       "stage": "task construction",
@@ -638,7 +638,8 @@
         "Malformed or null returncode is outside this fixture contract and is misclassified as killed by the saved classifier.",
         "Receipt0/null only affects exit0 per fixture contract; nonzero receipts are not validated.",
         "Final-state observations do not prove protected command order or hosted-tool containment."
-      ]
+      ],
+      "completed_command_evidence_selection": "Nine of twelve completed commands are retained here; three successful skill-file reads are omitted from these excerpts and remain in the hashed raw log. The execution_metrics count includes all twelve."
     }
   ],
   "instrument_changes": [
@@ -748,7 +749,7 @@
         "issue-41-failure-identity"
       ],
       "remaining_acceptance": "All six stated criteria supported in one revision4 synthetic classifier repair; independently reviewed. Revision5 transfer control passes on the saved artifact. Historical runtime replay, raw traceback parsing, malformed return codes and comparative improvement remain unmeasured.",
-      "merge_gate": "PR49 and follow-up change are not merged or installed."
+      "merge_gate": "PR49 and subsequent guidance/instrument changes are merged through source6cb5d6d. Issue41 closure awaits merge of the reviewed revision4 evidence and revision5 calibration repair in PR64; no installation claim."
     },
     {
       "number": 42,
@@ -895,12 +896,12 @@
     "evidence_limit": "Design-only external artifact gate, not an executable workspace case. No actual MP4, playback, cold-viewer result or comparative native evidence has been produced."
   },
   "limits": [
-    "Nine native samples across eight synthetic cases, no accepted-baseline arm, no demonstrated relative performance improvement.",
+    "Ten native samples across eight synthetic cases, no accepted-baseline arm, no demonstrated relative performance improvement.",
     "Native CLI command events corroborate trusted local operations; mutable fixture receipts and final snapshots are not protected evidence against malicious actions or restored writes.",
     "Null workflow_final_answer scores are intentionally not applicable for artifact-only cases; no model semantic grader ran.",
     "Logs remain in the task workspace; this sanitized summary preserves identities, selected actual commands and outcomes, not complete replayable logs.",
     "No original application, production service, cluster, GUI, credential, installation or merge was changed.",
-    "All twelve issues remain open; current source guidance and these partial regressions do not establish every issue acceptance gate."
+    "The original audit left twelve issues open. The additional revision4 issue41 evidence supports its stated structured-report acceptance, pending evidence PR merge; no closure or complete acceptance is claimed for the other issues."
   ],
   "post_hoc_replays": [
     {
