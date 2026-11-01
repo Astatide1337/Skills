@@ -41,6 +41,16 @@ Inspect before writing:
 
 Do not mutate the system merely to discover how it is configured.
 
+An absent client setting is only that observation. A missing kubeconfig,
+context or wrapper does not show the session is off the target machine or lacks
+access. Before escalating a capability blocker, establish where the session runs
+(host, user, working directory; presence only of mounted workload identity or
+in-cluster environment) and the client's documented route to it. Separate no
+configuration, no client, authentication failure and authorization denial. Work
+inside the existing authority: stop at an actual denial, a new credential or
+grant, or a route the task prohibits, and ask only for what observation cannot
+settle.
+
 For Linux, network, and container incident diagnosis, use the
 [layer-by-layer incident procedure](../systematic-debugging/references/linux-network-container-incidents.md)
 to order read-only observations. This does not widen command authorization;
@@ -71,6 +81,15 @@ before operational changes. Tests, setup, previews and local processes can write
 to shared backing resources. Verify target identity and isolation before schema
 synchronization, seed/reset, cleanup or bulk replacement; do not infer
 disposability from a dev/test name or an available connection.
+Take the identity (host, database, environment) from the writing tool's own
+read-only status or dry run, since the file you inspected may not be the one it
+loads, and never print the connection string. If the target is not verified
+disposable, use an isolated one, or establish authorization and a recovery point
+as for any destructive action before the write. A flag that suppresses the
+tool's own data-loss guard (`--accept-data-loss`, `--force`) is neither a
+connectivity check nor error recovery; it needs that same target and recovery
+evidence. Read-only inspection and verified disposable local targets need no
+approval or backup.
 
 ## 3. Separate facts from assumptions
 
