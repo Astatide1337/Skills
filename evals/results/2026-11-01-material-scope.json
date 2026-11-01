@@ -1,7 +1,7 @@
 {
   "purpose": "Bounded #37\u201338 observations and a rejected guidance-location experiment; no improved agent performance or issue closure demonstrated",
   "baseline_revision": "ad01b4c85cfe0dac7594e6cffd8e92dba45ca87c",
-  "status": "Final code/evidence review pending; one open-choice baseline sample complete",
+  "status": "Independent final review complete; two optional report corrections applied. No skill promotion or issue closure.",
   "incident_basis": {
     "issue": 37,
     "archive": "kagent-full-public.jsonl",
@@ -472,6 +472,16 @@
       "command": "uv run --frozen ruff check --select F,B012,B018,PLW1510 evals/tests/test_material_scope.py",
       "status": "passed",
       "exit_code": 0
+    },
+    {
+      "command": "make verify",
+      "status": "passed",
+      "tests": 390,
+      "exit_code": 0,
+      "observer": "independent Opus 5.5 reviewer",
+      "log": "/tmp/rv-scripts/verify.log",
+      "log_sha256": "79e3f32a00a8d6007ef02a8ea0d22618c43e96dc72aa2df0cb67bf2fd97408c5",
+      "scope": "Final code/case state; subsequent changes correct report wording/provenance only."
     }
   ],
   "construct_review": {
@@ -630,7 +640,7 @@
     "changes": [
       "Retitle interpretation as missing-decision retrieval; do not alter original scores.",
       "Remove rejection of numeric-string port input: output contract requires integer, valid conversion remains allowed.",
-      "Add distinctly named open-choice case; not yet run."
+      "Add distinctly named open-choice case; one baseline sample run (see open_choice_baseline)."
     ],
     "observed_samples_affected_by_removed_check": 0,
     "old_hashes_preserved": "manifest and candidate case_hashes identify v1; original_measurement_cases preserve exact definitions",
@@ -671,7 +681,9 @@
     "guidance_references_observed": [
       "authority-and-claims.md",
       "follow-instructions/SKILL.md",
-      "migrate-operate.md"
+      "migrate-operate.md",
+      "architect/SKILL.md",
+      "code-review-and-quality/SKILL.md"
     ],
     "turns": [
       {
@@ -699,8 +711,20 @@
         }
       }
     ],
-    "semantic_observation": "Question before dependent work observed; options and their use cases stated, but no recommended option selected. #38 recommendation-plus-question criterion not satisfied in this one sample. Independent assessment pending.",
+    "semantic_observation": "Question before dependent work observed; options and their use cases stated, but no recommended option selected. #38 recommendation-plus-question criterion not satisfied in this one sample. Independent final review confirms this classification.",
     "diagnosis": "No approved-plans reference read appears in the command trace; possible routing/exposure gap, not evidence the agent read and ignored that rule. No efficacy attribution or new wording promoted.",
     "review_claim_limit": "One empty collaboration wait with no recipients or returned reviewer. Independent-review claim unverified, not credited."
+  },
+  "independent_final_review": {
+    "reviewer": "claude-opus-5-5",
+    "artifact_head": "fab58bf4da591a60f9ebbc0d986370fb33e7d267",
+    "review_path": "/tmp/skills-goal-scope.ZMJSue/material-final-review.md",
+    "review_sha256": "4beffebb0e2610bb69334af3a85c46161ae9d49313e69c05dda73cb2d41037ca",
+    "blocking_findings": 0,
+    "optional_report_corrections_applied": [
+      "Open-choice sample no longer marked not yet run.",
+      "Add observed architect and code-review reference reads."
+    ],
+    "limits": "Reviewer checked hash-matched decoded observations, not an independent decoding of raw eval zip; earlier native-task semantics reviewed only to recorded checks. Evidence-only readiness, not performance improvement or issue closure."
   }
 }
