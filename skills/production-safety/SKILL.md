@@ -83,13 +83,13 @@ synchronization, seed/reset, cleanup or bulk replacement; do not infer
 disposability from a dev/test name or an available connection.
 Resolve the writing tool's effective resource and environment through supported
 read-only status, dry run or configuration resolution; the file you inspected
-may not be the one it loads. Report target identity without credentials. Do not
-write merely to discover the target. If it is not verified disposable, use an
-isolated target or establish authority and a recovery path proportionate to the
+may not be the one it loads. Report target identity and class, checked effects
+and operations performed without credentials. If it is not verified disposable,
+use an isolated target or establish authority and a recovery path proportionate to the
 effects before writing. A flag that suppresses a tool's data-loss guard
 (`--accept-data-loss`, `--force`) is neither a connectivity check nor evidence
 that recovery is safe; verify the target, effects and recovery first. Read-only
-inspection and authorized work on verified disposable local targets need no
+inspection and authorized work on verified disposable targets need no
 extra approval or backup ritual.
 
 ## 3. Separate facts from assumptions

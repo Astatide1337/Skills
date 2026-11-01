@@ -22,8 +22,9 @@ legal transitions, the commit boundary, and observed success/failure effects.
    treat uncertainty as a state. Persist an identity as soon as it exists,
    before a later step can fail. Keep records migrated without identity
    unresolved until resources whose creation may have completed are reconciled.
-   An empty lookup over known IDs does not resolve unknown resources or partial
-   failures. Apply an owner-wide guard at producers and consumers, including
+   Definitive absence for a verified identity may settle that resource; an empty
+   lookup over known IDs does not resolve unknown resources or partial failures.
+   Apply the same actor-scoped guard at producers and consumers, including
    already-queued work and pre-upgrade records, while keeping authorized cleanup
    possible.
 
