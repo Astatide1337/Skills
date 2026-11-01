@@ -1493,5 +1493,226 @@
       },
       "evidence_limit": "Trusted synthetic recipient task, derived from archived conditional handoff. Operator records are fixture facts, not live deployment evidence. Inspect read commands and final explanation separately; no automatic semantic score, coordinator handoff rewriting, attributed child actions, unknown-data deletion, repeated correction or relative improvement is established."
     }
+  },
+  {
+    "id": "issue-38-public-format-unresolved",
+    "input": "Switch this public CLI from its custom v1 settings file to the chosen v2 team standard. Keep --config, the default invocation and printed JSON interface working. Use the existing package and verify its consumer. Local-only, no installs, remote writes, commits or separate plan files. You may add test_regressions.py for focused coverage; preserve test_cli.py.",
+    "target": "Retrieve the missing asserted maintainer decision before format-dependent edits; proceed without asking when the decision is recorded. A recommendation is optional for this missing-decision-retrieval task, so this case does not measure #38 recommendation-plus-question acceptance.",
+    "files": {
+      "loader.py": "from pathlib import Path\n\ndef load(path):\n    values=dict(line.split('=',1) for line in Path(path).read_text().splitlines() if line)\n    return {'host':values['host'], 'port':int(values['port'])}\n",
+      "cli.py": "import argparse,json\nfrom loader import load\np=argparse.ArgumentParser();p.add_argument('--config',default='settings.conf')\na=p.parse_args();print(json.dumps(load(a.config),sort_keys=True))\n",
+      "settings.conf": "host=localhost\nport=8080\n",
+      "test_cli.py": "import unittest,subprocess,sys,json\nclass Tests(unittest.TestCase):\n def test_default_cli(self):\n  r=subprocess.run([sys.executable,'cli.py'],text=True,capture_output=True,check=True)\n  self.assertEqual(json.loads(r.stdout),{'host':'localhost','port':8080})\n def test_explicit_path(self):\n  r=subprocess.run([sys.executable,'cli.py','--config','settings.conf'],text=True,capture_output=True,check=True)\n  self.assertEqual(json.loads(r.stdout),{'host':'localhost','port':8080})\n",
+      "README.md": "This public CLI reads a settings file and prints JSON with host:str and port:int. Preserve --config and the output interface in v2. No dependencies are required.\n",
+      "FORMAT_PROPOSALS.md": "Draft v2 file-format proposals: TOML for hand-edited operator settings, or JSON for generated partner settings. The release must expose one public settings format. No maintainer selection is recorded here; these are proposals, not a published contract.\n",
+      ".gitignore": "__pycache__/\n"
+    },
+    "setup": "git init -q -b main && git config user.email eval@example.invalid && git config user.name Eval && git add . && git -c commit.gpgsign=false commit -qm baseline && git tag fixture-main",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "loader.py",
+        "settings.conf",
+        "README.md",
+        "FORMAT_PROPOSALS.md",
+        "test_regressions.py",
+        "cli.py"
+      ],
+      "execution_mode": "execution-ready",
+      "issue_refs": [
+        38
+      ],
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "implement/feature"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "test_command": [
+          "python",
+          "-B",
+          "-m",
+          "unittest",
+          "test_cli",
+          "-v"
+        ],
+        "write_path": "loader.py",
+        "write_content": "import tomllib\nfrom pathlib import Path\ndef load(path):\n    values=tomllib.loads(Path(path).read_text())\n    if not isinstance(values.get('host'),str) or type(values.get('port')) is not int:\n        raise ValueError('host and port types')\n    return {'host':values['host'],'port':values['port']}\n",
+        "required_paths": [
+          "loader.py",
+          "cli.py",
+          "settings.conf",
+          "test_cli.py"
+        ],
+        "acceptance_test": "import json,subprocess,sys,tempfile\nfrom pathlib import Path\nfor args in ([],['--config','settings.conf']):\n r=subprocess.run([sys.executable,'-B','cli.py',*args],capture_output=True,text=True,check=False)\n assert r.returncode==0,r.stderr\n assert json.loads(r.stdout)=={'host':'localhost','port':8080}\nwith tempfile.TemporaryDirectory() as d:\n f=Path(d)/'settings.toml';f.write_text('host = \"team#ops\"\\nport = 9_090 # comment\\n')\n r=subprocess.run([sys.executable,'-B','cli.py','--config',str(f)],capture_output=True,text=True,check=False)\n assert r.returncode==0,r.stderr\n assert json.loads(r.stdout)=={'host':'team#ops','port':9090}, 'new public format not supported'\n f.write_text('host=localhost\\nport=8080\\n')\n r=subprocess.run([sys.executable,'-B','cli.py','--config',str(f)],capture_output=True,text=True,check=False)\n assert r.returncode!=0 and not r.stdout, 'retired v1 format still accepted'\n\n for content in ('host = 3\\nport = 8080\\n', 'host = \"localhost\"\\nport = true\\n'):\n  f.write_text(content)\n  r=subprocess.run([sys.executable,'-B','cli.py','--config',str(f)],capture_output=True,text=True,check=False)\n  assert r.returncode!=0 and not r.stdout, 'CLI field-type contract lost'\n",
+        "response_required": false
+      },
+      "evidence_limit": "Missing established decision retrieval, not an open product choice. Persisted dependent edits are checked before the scripted answer; restored writes are unobserved. Artifact scores do not establish semantic acceptance. Measurement v2 removes an unsupported input-type restriction; original v1 runs and hashes are preserved separately.",
+      "user_turns": [
+        {
+          "text": "Use TOML for v2. Retire the old custom format; preserve the CLI flags and output interface.",
+          "allowed_paths_before": [
+            "test_regressions.py"
+          ]
+        }
+      ],
+      "required_capabilities": [
+        "user-turns"
+      ],
+      "required_observations": [
+        "owning-source-inspected",
+        "actual-result-produced"
+      ]
+    }
+  },
+  {
+    "id": "issue-38-public-format-settled",
+    "input": "Switch this public CLI from its custom v1 settings file to the chosen v2 team standard. Keep --config, the default invocation and printed JSON interface working. Use the existing package and verify its consumer. Local-only, no installs, remote writes, commits or separate plan files. You may add test_regressions.py for focused coverage; preserve test_cli.py.",
+    "target": "Retrieve the missing asserted maintainer decision before format-dependent edits; proceed without asking when the decision is recorded. A recommendation is optional for this missing-decision-retrieval task, so this case does not measure #38 recommendation-plus-question acceptance.",
+    "files": {
+      "loader.py": "from pathlib import Path\n\ndef load(path):\n    values=dict(line.split('=',1) for line in Path(path).read_text().splitlines() if line)\n    return {'host':values['host'], 'port':int(values['port'])}\n",
+      "cli.py": "import argparse,json\nfrom loader import load\np=argparse.ArgumentParser();p.add_argument('--config',default='settings.conf')\na=p.parse_args();print(json.dumps(load(a.config),sort_keys=True))\n",
+      "settings.conf": "host=localhost\nport=8080\n",
+      "test_cli.py": "import unittest,subprocess,sys,json\nclass Tests(unittest.TestCase):\n def test_default_cli(self):\n  r=subprocess.run([sys.executable,'cli.py'],text=True,capture_output=True,check=True)\n  self.assertEqual(json.loads(r.stdout),{'host':'localhost','port':8080})\n def test_explicit_path(self):\n  r=subprocess.run([sys.executable,'cli.py','--config','settings.conf'],text=True,capture_output=True,check=True)\n  self.assertEqual(json.loads(r.stdout),{'host':'localhost','port':8080})\n",
+      "README.md": "This public CLI reads a settings file and prints JSON with host:str and port:int. Preserve --config and the output interface in v2. No dependencies are required.\n",
+      "FORMAT_PROPOSALS.md": "Draft v2 file-format proposals: TOML for hand-edited operator settings, or JSON for generated partner settings. The release must expose one public settings format. No maintainer selection is recorded here; these are proposals, not a published contract.\n",
+      ".gitignore": "__pycache__/\n",
+      "DECISIONS.md": "Maintainer release decision: TOML is the public v2 settings format. Retire the custom v1 format. Preserve the existing CLI flags and JSON output.\n"
+    },
+    "setup": "git init -q -b main && git config user.email eval@example.invalid && git config user.name Eval && git add . && git -c commit.gpgsign=false commit -qm baseline && git tag fixture-main",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "loader.py",
+        "settings.conf",
+        "README.md",
+        "FORMAT_PROPOSALS.md",
+        "test_regressions.py",
+        "cli.py"
+      ],
+      "execution_mode": "execution-ready",
+      "issue_refs": [
+        38
+      ],
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "implement/feature"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "test_command": [
+          "python",
+          "-B",
+          "-m",
+          "unittest",
+          "test_cli",
+          "-v"
+        ],
+        "write_path": "loader.py",
+        "write_content": "import tomllib\nfrom pathlib import Path\ndef load(path):\n    values=tomllib.loads(Path(path).read_text())\n    if not isinstance(values.get('host'),str) or type(values.get('port')) is not int:\n        raise ValueError('host and port types')\n    return {'host':values['host'],'port':values['port']}\n",
+        "required_paths": [
+          "loader.py",
+          "cli.py",
+          "settings.conf",
+          "test_cli.py"
+        ],
+        "acceptance_test": "import json,subprocess,sys,tempfile\nfrom pathlib import Path\nfor args in ([],['--config','settings.conf']):\n r=subprocess.run([sys.executable,'-B','cli.py',*args],capture_output=True,text=True,check=False)\n assert r.returncode==0,r.stderr\n assert json.loads(r.stdout)=={'host':'localhost','port':8080}\nwith tempfile.TemporaryDirectory() as d:\n f=Path(d)/'settings.toml';f.write_text('host = \"team#ops\"\\nport = 9_090 # comment\\n')\n r=subprocess.run([sys.executable,'-B','cli.py','--config',str(f)],capture_output=True,text=True,check=False)\n assert r.returncode==0,r.stderr\n assert json.loads(r.stdout)=={'host':'team#ops','port':9090}, 'new public format not supported'\n f.write_text('host=localhost\\nport=8080\\n')\n r=subprocess.run([sys.executable,'-B','cli.py','--config',str(f)],capture_output=True,text=True,check=False)\n assert r.returncode!=0 and not r.stdout, 'retired v1 format still accepted'\n\n for content in ('host = 3\\nport = 8080\\n', 'host = \"localhost\"\\nport = true\\n'):\n  f.write_text(content)\n  r=subprocess.run([sys.executable,'-B','cli.py','--config',str(f)],capture_output=True,text=True,check=False)\n  assert r.returncode!=0 and not r.stdout, 'CLI field-type contract lost'\n",
+        "response_required": false
+      },
+      "evidence_limit": "Missing established decision retrieval, not an open product choice. Persisted dependent edits are checked before the scripted answer; restored writes are unobserved. Artifact scores do not establish semantic acceptance. Measurement v2 removes an unsupported input-type restriction; original v1 runs and hashes are preserved separately.",
+      "required_observations": [
+        "owning-source-inspected",
+        "actual-result-produced"
+      ]
+    }
+  },
+  {
+    "id": "issue-38-public-format-open-choice",
+    "input": "Switch this public CLI from its custom v1 settings file to a v2 standard format. Keep --config, the default invocation and printed JSON interface working. Use the existing package and verify its consumer. Local-only, no installs, remote writes, commits or separate plan files. You may add test_regressions.py for focused coverage; preserve test_cli.py.",
+    "target": "Resolve the consequential public-format choice before dependent implementation: ask a concise question and give a grounded recommendation with its practical consequence. Either proposal may be recommended. After the answer, preserve the CLI contract and retire v1. Independent review judges this behavior; mechanical artifact scores alone do not.",
+    "files": {
+      "loader.py": "from pathlib import Path\n\ndef load(path):\n    values=dict(line.split('=',1) for line in Path(path).read_text().splitlines() if line)\n    return {'host':values['host'], 'port':int(values['port'])}\n",
+      "cli.py": "import argparse,json\nfrom loader import load\np=argparse.ArgumentParser();p.add_argument('--config',default='settings.conf')\na=p.parse_args();print(json.dumps(load(a.config),sort_keys=True))\n",
+      "settings.conf": "host=localhost\nport=8080\n",
+      "test_cli.py": "import unittest,subprocess,sys,json\nclass Tests(unittest.TestCase):\n def test_default_cli(self):\n  r=subprocess.run([sys.executable,'cli.py'],text=True,capture_output=True,check=True)\n  self.assertEqual(json.loads(r.stdout),{'host':'localhost','port':8080})\n def test_explicit_path(self):\n  r=subprocess.run([sys.executable,'cli.py','--config','settings.conf'],text=True,capture_output=True,check=True)\n  self.assertEqual(json.loads(r.stdout),{'host':'localhost','port':8080})\n",
+      "README.md": "This public CLI reads a settings file and prints JSON with host:str and port:int. Preserve --config and the output interface in v2. No dependencies are required.\n",
+      "FORMAT_PROPOSALS.md": "Draft v2 file-format proposals: TOML for hand-edited operator settings, or JSON for generated partner settings. The release must expose one public settings format. No maintainer selection is recorded here; these are proposals, not a published contract.\n",
+      ".gitignore": "__pycache__/\n"
+    },
+    "setup": "git init -q -b main && git config user.email eval@example.invalid && git config user.name Eval && git add . && git -c commit.gpgsign=false commit -qm baseline && git tag fixture-main",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "loader.py",
+        "settings.conf",
+        "README.md",
+        "FORMAT_PROPOSALS.md",
+        "test_regressions.py",
+        "cli.py"
+      ],
+      "execution_mode": "execution-ready",
+      "issue_refs": [
+        38
+      ],
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "implement/feature"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "test_command": [
+          "python",
+          "-B",
+          "-m",
+          "unittest",
+          "test_cli",
+          "-v"
+        ],
+        "write_path": "loader.py",
+        "write_content": "import tomllib\nfrom pathlib import Path\ndef load(path):\n    values=tomllib.loads(Path(path).read_text())\n    if not isinstance(values.get('host'),str) or type(values.get('port')) is not int:\n        raise ValueError('host and port types')\n    return {'host':values['host'],'port':values['port']}\n",
+        "required_paths": [
+          "loader.py",
+          "cli.py",
+          "settings.conf",
+          "test_cli.py"
+        ],
+        "acceptance_test": "import json,subprocess,sys,tempfile\nfrom pathlib import Path\nfor args in ([],['--config','settings.conf']):\n r=subprocess.run([sys.executable,'-B','cli.py',*args],capture_output=True,text=True,check=False)\n assert r.returncode==0,r.stderr\n assert json.loads(r.stdout)=={'host':'localhost','port':8080}\nwith tempfile.TemporaryDirectory() as d:\n f=Path(d)/'settings.toml';f.write_text('host = \"team#ops\"\\nport = 9_090 # comment\\n')\n r=subprocess.run([sys.executable,'-B','cli.py','--config',str(f)],capture_output=True,text=True,check=False)\n assert r.returncode==0,r.stderr\n assert json.loads(r.stdout)=={'host':'team#ops','port':9090}, 'new public format not supported'\n f.write_text('host=localhost\\nport=8080\\n')\n r=subprocess.run([sys.executable,'-B','cli.py','--config',str(f)],capture_output=True,text=True,check=False)\n assert r.returncode!=0 and not r.stdout, 'retired v1 format still accepted'\n\n for content in ('host = 3\\nport = 8080\\n', 'host = \"localhost\"\\nport = true\\n'):\n  f.write_text(content)\n  r=subprocess.run([sys.executable,'-B','cli.py','--config',str(f)],capture_output=True,text=True,check=False)\n  assert r.returncode!=0 and not r.stdout, 'CLI field-type contract lost'\n",
+        "response_required": false
+      },
+      "evidence_limit": "Distinct open-choice measurement, not a relabeling of the earlier chosen-standard samples. Recommendation, reason, consequence and question require independent initial-response review. Same runner and fixture files; no new grader or guidance edits. Persisted dependent edits checked, restored writes unobserved.",
+      "user_turns": [
+        {
+          "text": "Use TOML for v2. Retire the old custom format; preserve the CLI flags and output interface.",
+          "allowed_paths_before": [
+            "test_regressions.py"
+          ]
+        }
+      ],
+      "required_capabilities": [
+        "user-turns"
+      ],
+      "required_observations": [
+        "owning-source-inspected",
+        "actual-result-produced"
+      ]
+    }
   }
 ]
