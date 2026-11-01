@@ -543,6 +543,12 @@
       "from": 2,
       "to": 3,
       "reason": "Round2 found known-valid classifier control hardcoded exit1 despite unchanged contract allowing any matching nonzero execution. Added matching exit2 acceptance, corrected valid control and retained hardcoded1 as a failing control. Native v1/v2 outcomes unchanged; saved-artifact replay is recorded separately."
+    },
+    {
+      "case": "issue-41-failure-identity",
+      "from": 3,
+      "to": 4,
+      "reason": "Final issue criterion requires unrun checks to be distinguished, but revision3 had only killed/survived/invalid and treated every exit0 as survived, including a zero-selected run. Added tests_executed execution evidence and controls: zero or null executed tests is unrun, a run of a different selected test is invalid, recorded reports without the field are unchanged. Native outcomes at revisions 1-3 and their post-hoc replays are unchanged and are not rescored; no native session has run at revision4."
     }
   ],
   "verification": {
@@ -625,7 +631,7 @@
       "cases": [
         "issue-41-failure-identity"
       ],
-      "remaining_acceptance": "Structured synthetic exception/stage classifier checks passed; historical mutant replay not performed.",
+      "remaining_acceptance": "Structured synthetic exception/stage classifier checks passed; historical mutant replay not performed. Revision4 adds deterministic unrun/zero-selected classifier controls; no native session at revision4, so agent behavior on unrun checks is unmeasured.",
       "merge_gate": "PR49 and follow-up change are not merged or installed."
     },
     {
