@@ -134,9 +134,10 @@ from the user outcome and authoritative contracts. Failure identity and stage
 must establish the intended defect: setup errors, syntax failures, wrong test
 selection and unrelated exceptions are invalid evidence for that defect, not
 successful mutation kills. An exception is valid when that exception behavior
-is the specified target. Read that identity from structured results (exception
-type, stage, assertion), not source lines or log text a traceback merely
-displays. Keep the raw failure and the unmutated control, and report valid
+is the specified target. Prefer structured results (exception type, stage,
+assertion) to establish that identity. If only text output is available, inspect
+the reported terminal failure and execution stage; a source line or quoted log
+string displayed in a traceback is not the failure identity. Keep the raw failure and the unmutated control, and report valid
 kills, survivors, invalid and unrun checks separately. Ordinary established
 regressions need no ritual recalibration on each run.
 
