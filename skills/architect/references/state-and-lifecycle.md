@@ -18,6 +18,15 @@ legal transitions, the commit boundary, and observed success/failure effects.
    transition through every clearly affected view rather than checking labels.
 6. Clean up only resources with inspectable run ownership. Failed cleanup is
    retained as unfinished work; it does not erase verification evidence.
+7. When a state, guard or quota controls release, deletion or a new launch,
+   treat uncertainty as a state. Persist an identity as soon as it exists,
+   before a later step can fail. Keep records migrated without identity
+   unresolved until resources whose creation may have completed are reconciled.
+   Definitive absence for a verified identity may settle that resource; an empty
+   lookup over known IDs does not resolve unknown resources or partial failures.
+   Apply the same actor-scoped guard at producers and consumers, including
+   already-queued work and pre-upgrade records, while keeping authorized cleanup
+   possible.
 
 Test normal completion, rejection/conflict, interruption before commit, and
 interruption after commit wherever those states exist. Choose expected effects
@@ -27,5 +36,6 @@ controlled callback fixtures prove only their bounded transition contract.
 
 These decisions respond to discarded drafts, duplicate retries, and divergent
 views in the original private audit summaries, plus the user-reported
-cancellation scenario. Machine attribution remains unestablished. This reference
+cancellation scenario; item 7 responds to the cleanup and quota repair rounds in
+Skills issue 40. Machine attribution remains unestablished. This reference
 does not claim the original applications were repaired.
