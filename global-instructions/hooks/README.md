@@ -48,6 +48,53 @@ Installing is an explicit, per-machine choice, like `global-instructions/AGENTS.
 
 Requires `python3` 3.11+ and `git` on `PATH`. Nothing else.
 
+## Opt-in task completion hook (Codex prototype)
+
+The existing `stop` check verifies changed code. It cannot detect a missing
+deliverable when the agent changed nothing. The separate `completion` command
+runs a task-specific acceptance check on every `Stop`, without relying on
+changes or the assistant's final wording:
+
+```sh
+python3 agent_gates.py completion python3 /trusted/task_acceptance.py < hook-input.json
+```
+
+The checker must be explicitly selected and reviewed for the actual task. Keep
+it outside the agent's writable workspace; hook trust covers the hook definition,
+not the contents of every script it calls. Do not let the assistant generate its
+own acceptance oracle and then treat it as independent. The hook never takes a
+command from the event payload, final reply or transcript.
+
+The command runs in the event's working directory, without a shell. It must
+exit zero and print exactly one JSON object with `status` and a nonempty `reason`.
+Do not print credentials or other diagnostics into this output.
+
+| Checker status | Hook behavior |
+| --- | --- |
+| `complete` | Allows stopping. The checker is responsible for proving the actual task outcome. |
+| `incomplete` | Returns `decision: block` and the reason, requesting another native continuation. |
+| `blocked`, `waiting`, `cancelled` | Allows stopping with an explicit **not complete** notice. The checker must establish the real authority/dependency, live wait or cancellation; assistant narration is not evidence. |
+| Invalid output, nonzero exit, timeout | Reports an unavailable check and requests recovery; never counts as acceptance. |
+
+It requests at most two continuations per stop episode. After that it yields
+with an unaccepted/manual-attention notice instead of creating an endless loop.
+A new user turn resets the allowance. Missing continuation state also yields an
+explicit unchecked notice. `Interrupt` and `SessionEnd` do not run the checker.
+The existing `AGENT_VERIFY_TIMEOUT` bounds the owned checker process group.
+
+`codex-completion.example.json` shows an opt-in `Stop` registration. Replace both
+absolute paths and merge it alongside existing hooks rather than overwriting
+them. Codex requires review and trust of non-managed definitions; see the
+[official hook reference](https://learn.chatgpt.com/docs/hooks). Do not bypass
+trust or install it globally to test it. First exercise a separate owned Codex
+home and disposable workspace, and verify the runtime actually invokes it.
+
+This prototype enforces only the selected acceptance contract. It does not
+infer an arbitrary user's intent, prove all instructions were followed, or
+establish that T3 restarts a terminated run. A passing repository test suite is
+not sufficient unless it covers the requested deliverable. The existing Claude
+verification/guard/format hooks are unchanged.
+
 ## CI check for application repositories
 
 ```yaml
@@ -81,4 +128,6 @@ python3 global-instructions/hooks/test_integrity.py --repo /path/to/app --base o
 - **Measured noise.** Replayed over the last 40 commits, it flagged 1 in `gitops` (removed experiment tests) and 2 in `Jobmark` (lint and test configuration changes). Each run took about 0.1 to 0.2 seconds per commit.
 - **Not everything is watched.** It covers Makefile and justfile only through the `verify` target and its prerequisites, and `package.json` only through check scripts and the scripts they call. It does not watch every possible test-selection setting.
 - **The guard matches patterns.** It catches common hook bypasses, not every way to disable a check. The CI check is the backstop.
-- **Hooks are Claude Code only.** The CI check works for any agent or person.
+- **The verification/guard/format registration is Claude Code only.** The opt-in
+  Codex completion prototype is separate; its runtime integration must be checked.
+  The CI check works for any agent or person.
