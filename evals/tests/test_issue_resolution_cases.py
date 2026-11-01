@@ -163,6 +163,32 @@ class IssueResolutionControls(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("wrong test selection counted as survival", result.stderr)
 
+    def test_mutation_rejects_hardcoded_target_stage(self):
+        result = self.classify_with(
+            VALID_CLASSIFIER.replace("t['stage']", "'test'")
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("target identity hardcoded", result.stderr)
+
+    def test_mutation_rejects_hardcoded_test_and_assertion(self):
+        result = self.classify_with(
+            VALID_CLASSIFIER.replace("t['test']", "'test_limit'").replace(
+                "t['assertion_id']", "'quota'"
+            )
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("target identity hardcoded", result.stderr)
+
+    def test_mutation_rejects_ignored_failure_stage(self):
+        result = self.classify_with(
+            VALID_CLASSIFIER.replace(
+                "r['stage']",
+                "('collection' if r['stage'] == 'collection' else t['stage'])",
+            )
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("failure stage ignored outside the original target", result.stderr)
+
     def test_mutation_rejects_exit_one_only_classifier(self):
         root, sample = self.prepare(CASE_IDS[1])
         (root / "verifier.py").write_text("""def classify(r):
