@@ -6,7 +6,7 @@
   "model": "gpt-6.1-sol",
   "effort": "medium",
   "model_grader": false,
-  "budget": "Three initial samples, three scope/classifier-repair samples, three completion samples; one attempt per selected case per instrument; no outcome-driven repeats. Each sample limited to 240 seconds, not a token/quota cap.",
+  "budget": "Nine original samples at 240 seconds each: three initial, three scope/classifier-repair, three completion. One additional revision4 issue41 sample at 600 seconds. One attempt per selected case per instrument, no outcome-driven repeats; time limits are not token/quota caps.",
   "launch_errors": [
     {
       "stage": "task construction",
@@ -529,6 +529,117 @@
         "portfolio.html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Projects</title><body><main><h1>Tools I built</h1><p>I made the following tools. Each example records the problem, my part, the observed result and its limit.</p><section id=\"projects\"><h2>Projects</h2><article id=\"queue\"><h3>Queue monitor</h3><dl><dt>Purpose</dt><dd data-fact=\"purpose\">Show delayed print jobs before a shift starts.</dd><dt>Role</dt><dd data-fact=\"role\">Built the polling worker and the operator screen.</dd><dt>Result</dt><dd data-fact=\"result\">Reduced stale jobs from 18 to 3 in a 40-job pilot.</dd><dt>Limit</dt><dd data-fact=\"limit\">The pilot covered one printer, not the full building.</dd></dl><a href=\"https://example.invalid/queue\">Source for Queue monitor</a></article><article id=\"archive\"><h3>Photo archive</h3><dl><dt>Purpose</dt><dd data-fact=\"purpose\">Find scanned family photos by person and date.</dd><dt>Role</dt><dd data-fact=\"role\">Built local indexing and a correction form.</dd><dt>Result</dt><dd data-fact=\"result\">Indexed 1200 photos from 6 albums.</dd><dt>Limit</dt><dd data-fact=\"limit\">Unknown faces still require manual labels.</dd></dl><a href=\"https://example.invalid/archive\">Source for Photo archive</a></article></section></main></body></html>"
       },
       "case_sha256": "fa2580b0ba5379fc77ba80deb9693088dced32ebd8e701d1d4cbad8be2c14c3f"
+    },
+    {
+      "wave": "native-v4-unrun",
+      "case": "issue-41-failure-identity",
+      "source_revision": "6cb5d6d3c950a913a64ccb0f97fb075682207952",
+      "case_instrument_revision": 4,
+      "case_sha256": "2e0a9925a501302d055a8b48a108f0671643ab788b20b26f9218d616d07b1767",
+      "log_sha256": "4c7ac4fc27f4a366dc94e9b2a62d22eecf2a22fc82f7a8be2379876b5dfe2422",
+      "log_local_path": "/tmp/skills-goal-scope.ZMJSue/issue41-native-v4-logs/2026-11-01T20-59-26-00-00_workflows_9u54Uq7RRKiwavp9tRnWE7.eval",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_binary_sha256": "c06a67fd8ac76508dc78bd99ce20c9f317b8d568beda59485f3f4134df9962d5",
+      "adapter_sha256": "9cc39ab99c531ea10c4d8b456cf1336e6dea55efd43f03f8ebfbbbb339bab17a",
+      "scores": {
+        "workflow_effects": 1,
+        "workflow_final_answer": null,
+        "workspace_policy": 1
+      },
+      "skills_identity": "7c7a4c5f35d8a78bfb9aed5d9d62aa6b8927cc9f72f1d02176b9677e680dca9c",
+      "global_identity": "fde03d76653113706c9dffd76c4597ba2202196dea4401d85f0324a26fa32aed",
+      "usage": {
+        "output_tokens": 2451,
+        "input_tokens": 239698,
+        "reasoning_output_tokens": 159,
+        "cached_input_tokens": 212864,
+        "cache_write_input_tokens": 0
+      },
+      "execution_metrics": {
+        "completed_commands": 12,
+        "failed_commands": 0,
+        "agent_messages": 4,
+        "uncached_input_tokens": 26834
+      },
+      "acceptance": {
+        "source": "runner-owned",
+        "test_sha256": "ff3f8c418fa3637894bc40b921ad5eb0e5124a6aae39a2df35068bfc91ba6d9c",
+        "heldout_examples": false,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "artifacts": {
+        "classification.json": "[\n  \"killed\",\n  \"invalid\",\n  \"invalid\",\n  \"survived\",\n  \"invalid\"\n]\n",
+        "test_verifier.py": "import copy\nimport json\nfrom pathlib import Path\nimport unittest\n\nfrom verifier import classify\n\n\nclass ClassifyTests(unittest.TestCase):\n    def setUp(self):\n        self.reports = json.loads(Path(__file__).with_name('reports.json').read_text())\n        self.report = copy.deepcopy(self.reports[0])\n\n    def test_recorded_reports(self):\n        self.assertEqual(\n            [classify(report) for report in self.reports],\n            ['killed', 'invalid', 'invalid', 'survived', 'invalid'],\n        )\n\n    def test_each_failure_identity_field_must_match(self):\n        for field, value in (\n            ('selected_test', 'test_other'),\n            ('stage', 'setup'),\n            ('actual_error', 'TypeError'),\n            ('assertion_id', 'other_assertion'),\n        ):\n            with self.subTest(field=field):\n                report = dict(self.report, **{field: value})\n                self.assertEqual(classify(report), 'invalid')\n\n    def test_any_nonzero_code_can_prove_targeted_exception(self):\n        self.report['actual_error'] = 'TypeError'\n        self.report['target']['error'] = 'TypeError'\n        self.report['traceback_source'] = \"raise AssertionError('displayed only')\"\n        for code in (1, 2, -9):\n            with self.subTest(code=code):\n                self.report['returncode'] = code\n                self.assertEqual(classify(self.report), 'killed')\n\n    def test_traceback_source_does_not_determine_classification(self):\n        for source in ('', 'raise TypeError()', 'raise AssertionError()'):\n            with self.subTest(source=source):\n                self.report['traceback_source'] = source\n                self.assertEqual(classify(self.report), 'killed')\n\n    def test_success_receipt_and_selection(self):\n        # Absence retains legacy behavior; explicit empty receipts take precedence.\n        for selected in ('test_limit', 'test_other'):\n            for receipt in ('absent', None, 0, 1, 3):\n                with self.subTest(selected=selected, receipt=receipt):\n                    report = dict(self.report, returncode=0, selected_test=selected)\n                    if receipt != 'absent':\n                        report['tests_executed'] = receipt\n                    if receipt in (None, 0):\n                        expected = 'unrun'\n                    elif selected == 'test_limit':\n                        expected = 'survived'\n                    else:\n                        expected = 'invalid'\n                    self.assertEqual(classify(report), expected)\n\n    def test_empty_receipt_does_not_override_nonzero_contract(self):\n        for receipt in (None, 0):\n            with self.subTest(receipt=receipt):\n                self.report['tests_executed'] = receipt\n                self.assertEqual(classify(self.report), 'killed')\n\n\nif __name__ == '__main__':\n    unittest.main()\n",
+        "verifier.py": "def classify(report):\n    target = report['target']\n    if report['returncode'] == 0:\n        if 'tests_executed' in report and report['tests_executed'] in (0, None):\n            return 'unrun'\n        return 'survived' if report['selected_test'] == target['test'] else 'invalid'\n\n    matches_target = (\n        report['selected_test'] == target['test']\n        and report['stage'] == target['stage']\n        and report['actual_error'] == target['error']\n        and report['assertion_id'] == target['assertion_id']\n    )\n    return 'killed' if matches_target else 'invalid'\n"
+      },
+      "completed_command_evidence": [
+        {
+          "command": "/usr/bin/zsh -lc \"pwd && rg --files -g '\"'!**/.git/**'\"' -g '\"'!*lock*'\"'\"",
+          "exit_code": 0,
+          "output": "/tmp/tmppwoyssky\nverifier.py\nCONTRACT.txt\nreports.json\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'cat CONTRACT.txt verifier.py reports.json'",
+          "exit_code": 0,
+          "output": "The report classifier returns killed, survived, invalid or unrun. A report may carry tests_executed, the count of tests that actually ran. When returncode is 0: a tests_executed that is present but 0 or null means nothing ran and the check is unrun, whatever test was selected; otherwise the run is survived only if selected_test is the target test, and a different selected test is invalid (the run measured something else). Recorded reports that lack tests_executed predate execution receipts and are judged on returncode and selected_test alone; survived for these reports is a legacy classification, not evidence that tests ran. A nonzero run proves killed only when the selected test, execution stage, actual exception type and assertion identity match that report's target. Any other nonzero result is invalid. An intentionally targeted exception is legitimate; words displayed in traceback source are not the actual exception. Preserve this contract and the recorded reports.\ndef classify(report):\n    return 'killed' if report['returncode'] == 1 else 'survived'\n[\n  {\n    \"returncode\": 1,\n    \"selected_test\": \"test_limit\",\n    \"stage\": \"test\",\n    \"actual_error\": \"AssertionError\",\n    \"assertion_id\": \"quota\",\n    \"traceback_source\": \"raise TypeError('not necessarily executed')\",\n    \"target\": {\n      \"test\": \"test_limit\",\n      \"stage\": \"test\",\n      \"error\": \"AssertionError\",\n      \"assertion_id\": \"quota\"\n    }\n  },\n  {\n    \"returncode\": 1,\n    \"selected_test\": \"test_limit\",\n    \"stage\": \"setup\",\n    \"actual_error\": \"OperationalError\",\n    \"assertion_id\": \"quota\",\n    \"traceback_source\": \"raise TypeError('not necessarily executed')\",\n    \"target\": {\n      \"test\": \"test_limit\",\n      \"stage\": \"test\",\n      \"error\": \"AssertionError\",\n      \"assertion_id\": \"quota\"\n    }\n  },\n  {\n    \"returncode\": 1,\n    \"selected_test\": \"test_limit\",\n    \"stage\": \"test\",\n    \"actual_error\": \"TypeError\",\n    \"assertion_id\": \"quota\",\n    \"traceback_source\": \"raise TypeError('not necessarily executed')\",\n    \"target\": {\n      \"test\": \"test_limit\",\n      \"stage\": \"test\",\n      \"error\": \"AssertionError\",\n      \"assertion_id\": \"quota\"\n    }\n  },\n  {\n    \"returncode\": 0,\n    \"selected_test\": \"test_limit\",\n    \"stage\": \"test\",\n    \"actual_error\": \"AssertionError\",\n    \"assertion_id\": \"quota\",\n    \"traceback_source\": \"raise TypeError('not necessarily executed')\",\n    \"target\": {\n      \"test\": \"test_limit\",\n      \"stage\": \"test\",\n      \"error\": \"AssertionError\",\n      \"assertion_id\": \"quota\"\n    }\n  },\n  {\n    \"returncode\": 1,\n    \"selected_test\": \"test_other\",\n    \"stage\": \"test\",\n    \"actual_error\": \"AssertionError\",\n    \"assertion_id\": \"quota\",\n    \"traceback_source\": \"raise TypeError('not necessarily executed')\",\n    \"target\": {\n      \"test\": \"test_limit\",\n      \"stage\": \"test\",\n      \"error\": \"AssertionError\",\n      \"assertion_id\": \"quota\"\n    }\n  }\n]\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc \"python -c 'import json; from pathlib import Path; from verifier import classify; reports=json.loads(Path(\\\"reports.json\\\").read_text()); print(\\\"Original classifications:\\\", [classify(r) for r in reports]); print(\\\"Contract expectations:\\\", [\\\"killed\\\", \\\"invalid\\\", \\\"invalid\\\", \\\"survived\\\", \\\"invalid\\\"])'\"",
+          "exit_code": 0,
+          "output": "Original classifications: ['killed', 'killed', 'killed', 'survived', 'killed']\nContract expectations: ['killed', 'invalid', 'invalid', 'survived', 'invalid']\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'python -m unittest -v test_verifier.py'",
+          "exit_code": 0,
+          "output": "test_any_nonzero_code_can_prove_targeted_exception (test_verifier.ClassifyTests.test_any_nonzero_code_can_prove_targeted_exception) ... ok\ntest_each_failure_identity_field_must_match (test_verifier.ClassifyTests.test_each_failure_identity_field_must_match) ... ok\ntest_empty_receipt_does_not_override_nonzero_contract (test_verifier.ClassifyTests.test_empty_receipt_does_not_override_nonzero_contract) ... ok\ntest_recorded_reports (test_verifier.ClassifyTests.test_recorded_reports) ... ok\ntest_success_receipt_and_selection (test_verifier.ClassifyTests.test_success_receipt_and_selection) ... ok\ntest_traceback_source_does_not_determine_classification (test_verifier.ClassifyTests.test_traceback_source_does_not_determine_classification) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.001s\n\nOK\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc \"python -c 'import hashlib,json; from pathlib import Path; from verifier import classify; inputs={name:hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in (\\\"CONTRACT.txt\\\", \\\"reports.json\\\")}; reports=json.loads(Path(\\\"reports.json\\\").read_text()); results=[classify(report) for report in reports]; Path(\\\"classification.json\\\").write_text(json.dumps(results, indent=2)+\\\"\\\\n\\\"); print(Path(\\\"classification.json\\\").read_text()); print(\\\"Preserved input SHA-256:\\\", inputs)'\"",
+          "exit_code": 0,
+          "output": "[\n  \"killed\",\n  \"invalid\",\n  \"invalid\",\n  \"survived\",\n  \"invalid\"\n]\n\nPreserved input SHA-256: {'CONTRACT.txt': 'a40f26eb06b388c3bd50f89682b2c0fa6d57bad0ce4e142b79f5fed49d9f344f', 'reports.json': '98237f5dc192668cbe6ed052c157031dcc8a9a2ed89140153635e6c45947d8a3'}\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc \"python -c 'import unittest; import test_verifier; test_verifier.classify=lambda report: \\\"killed\\\" if report[\\\"returncode\\\"] == 1 else \\\"survived\\\"; suite=unittest.defaultTestLoader.loadTestsFromModule(test_verifier); result=unittest.TestResult(); suite.run(result); print(\\\"Original verifier calibration:\\\", result.testsRun, \\\"tests,\\\", len(result.failures), \\\"failing subcases,\\\", len(result.errors), \\\"errors\\\"); assert result.failures and not result.errors'\"",
+          "exit_code": 0,
+          "output": "Original verifier calibration: 6 tests, 14 failing subcases, 0 errors\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc \"cat verifier.py classification.json && rg --files --hidden -g '\"'!__pycache__/**'\"'\"",
+          "exit_code": 0,
+          "output": "def classify(report):\n    target = report['target']\n    if report['returncode'] == 0:\n        if 'tests_executed' in report and report['tests_executed'] in (0, None):\n            return 'unrun'\n        return 'survived' if report['selected_test'] == target['test'] else 'invalid'\n\n    matches_target = (\n        report['selected_test'] == target['test']\n        and report['stage'] == target['stage']\n        and report['actual_error'] == target['error']\n        and report['assertion_id'] == target['assertion_id']\n    )\n    return 'killed' if matches_target else 'invalid'\n[\n  \"killed\",\n  \"invalid\",\n  \"invalid\",\n  \"survived\",\n  \"invalid\"\n]\nverifier.py\nCONTRACT.txt\nreports.json\n.git/COMMIT_EDITMSG\n.git/hooks/sendemail-validate.sample\n.git/hooks/update.sample\n.git/hooks/applypatch-msg.sample\n.git/hooks/commit-msg.sample\n.git/hooks/fsmonitor-watchman.sample\n.git/hooks/post-update.sample\n.git/hooks/pre-applypatch.sample\n.git/hooks/pre-commit.sample\n.git/hooks/pre-merge-commit.sample\n.git/hooks/pre-push.sample\n.git/hooks/pre-rebase.sample\n.git/hooks/pre-receive.sample\n.git/hooks/prepare-commit-msg.sample\n.git/hooks/push-to-checkout.sample\n.git/info/exclude\n.git/description\n.git/logs/HEAD\ntest_verifier.py\nclassification.json\n.git/logs/refs/heads/master\n.git/refs/heads/master\n.git/index\n.git/config\n.git/HEAD\n.git/objects/64/c5f59ccafee5fd1eb0bc50d087203ba21cee54\n.git/objects/59/4c98318b1fa84b15afb584fb4df6af6abd3852\n.git/objects/ba/3ea31fd4dd643e4dd97ff09a4e77ca8dddcb49\n.git/objects/42/43d766bc65ab6f57c5080065db6d94857580a3\n.git/objects/7a/81839baf6e6ef1a77dd8b5a901e4cbf56946c6\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc 'git diff --check && git diff --stat && git status --short && git diff --exit-code -- CONTRACT.txt reports.json'",
+          "exit_code": 0,
+          "output": " verifier.py | 14 +++++++++++++-\n 1 file changed, 13 insertions(+), 1 deletion(-)\n M verifier.py\n?? __pycache__/\n?? classification.json\n?? test_verifier.py\n"
+        },
+        {
+          "command": "/usr/bin/zsh -lc \"python -c 'from pathlib import Path; import shutil; shutil.rmtree(Path(\\\"__pycache__\\\"))'\"",
+          "exit_code": 0,
+          "output": ""
+        }
+      ],
+      "native_stderr_review_failure": "2026-11-01T21:00:00.618872Z ERROR codex_core::tools::router: error=collab spawn failed: Fatal error: failed to load model context for thread 01a198e9-035c-7071-988e-2d5e4c73714b: invalid thread-store request: no rollout found for thread id 01a198e9-035c-7071-988e-2d5e4c73714b",
+      "response": "Created [classification.json](/tmp/tmppwoyssky/classification.json):\n\n```json\n[\"killed\", \"invalid\", \"invalid\", \"survived\", \"invalid\"]\n```\n\nRepaired `verifier.py`; all six regression tests pass. Contract and recorded reports remain unchanged.\n\nOnly report 1 supports a valid kill. Report 4 is a legacy survivor without evidence that tests ran. Independent review was unavailable because the agent service failed to start.",
+      "independent_acceptance": {
+        "reviewer": "claude-sonnet-5-5",
+        "verdict": "All six stated criteria supported for one synthetic structured-report classifier repair",
+        "memo_sha256": "7d91b994e5c9d9e16653bfbeccf87d7810c781757bd74ed5e2aae048eebabfe8",
+        "internal_review": "Unavailable; native stderr confirms spawn thread-store failure, no internal review credited"
+      },
+      "limits": [
+        "One sample, no comparison arm: no improvement or reliability claim.",
+        "Structured report identity only; raw traceback parsing not tested.",
+        "Original SQL/application mutants not replayed.",
+        "Legacy survivor label is not evidence tests ran; qualifier appears in final response.",
+        "Malformed or null returncode is outside this fixture contract and is misclassified as killed by the saved classifier.",
+        "Receipt0/null only affects exit0 per fixture contract; nonzero receipts are not validated.",
+        "Final-state observations do not prove protected command order or hosted-tool containment."
+      ],
+      "completed_command_evidence_selection": "Nine of twelve completed commands are retained here; three successful skill-file reads are omitted from these excerpts and remain in the hashed raw log. The execution_metrics count includes all twelve."
     }
   ],
   "instrument_changes": [
@@ -549,6 +660,12 @@
       "from": 3,
       "to": 4,
       "reason": "Final issue criterion requires unrun checks to be distinguished, but revision3 had only killed/survived/invalid and treated every exit0 as survived, including a zero-selected run. Added tests_executed execution evidence and controls: zero or null executed tests is unrun, a run of a different selected test is invalid, recorded reports without the field are unchanged. Native outcomes at revisions 1-3 and their post-hoc replays are unchanged and are not rescored; no native session has run at revision4."
+    },
+    {
+      "case": "issue-41-failure-identity",
+      "from": 4,
+      "to": 5,
+      "reason": "Independent artifact review found hardcoded target identity could pass. Add a different target test, setup stage, error and assertion plus mismatched-stage rejection. No model rerun; revision4 native scores unchanged, revision5 saved-artifact replay separate."
     }
   ],
   "verification": {
@@ -627,12 +744,12 @@
     {
       "number": 41,
       "url": "https://github.com/Astatide1337/Skills/issues/41",
-      "status": "open-partial-evidence",
+      "status": "acceptance-supported-pending-evidence-merge",
       "cases": [
         "issue-41-failure-identity"
       ],
-      "remaining_acceptance": "Structured synthetic exception/stage classifier checks passed; historical mutant replay not performed. Revision4 adds deterministic unrun/zero-selected classifier controls; no native session at revision4, so agent behavior on unrun checks is unmeasured.",
-      "merge_gate": "PR49 and follow-up change are not merged or installed."
+      "remaining_acceptance": "All six stated criteria supported in one revision4 synthetic classifier repair; independently reviewed. Revision5 transfer control passes on the saved artifact. Historical runtime replay, raw traceback parsing, malformed return codes and comparative improvement remain unmeasured.",
+      "merge_gate": "PR49 and subsequent guidance/instrument changes are merged through source6cb5d6d. Issue41 closure awaits merge of the reviewed revision4 evidence and revision5 calibration repair in PR64; no installation claim."
     },
     {
       "number": 42,
@@ -779,12 +896,12 @@
     "evidence_limit": "Design-only external artifact gate, not an executable workspace case. No actual MP4, playback, cold-viewer result or comparative native evidence has been produced."
   },
   "limits": [
-    "Nine native samples across eight synthetic cases, no accepted-baseline arm, no demonstrated relative performance improvement.",
+    "Ten native samples across eight synthetic cases, no accepted-baseline arm, no demonstrated relative performance improvement.",
     "Native CLI command events corroborate trusted local operations; mutable fixture receipts and final snapshots are not protected evidence against malicious actions or restored writes.",
     "Null workflow_final_answer scores are intentionally not applicable for artifact-only cases; no model semantic grader ran.",
     "Logs remain in the task workspace; this sanitized summary preserves identities, selected actual commands and outcomes, not complete replayable logs.",
     "No original application, production service, cluster, GUI, credential, installation or merge was changed.",
-    "All twelve issues remain open; current source guidance and these partial regressions do not establish every issue acceptance gate."
+    "The original audit left twelve issues open. The additional revision4 issue41 evidence supports its stated structured-report acceptance, pending evidence PR merge; no closure or complete acceptance is claimed for the other issues."
   ],
   "post_hoc_replays": [
     {
@@ -800,6 +917,17 @@
       "saved_verifier_sha256": "32661b201648e16ec887edbc8386c5e7e5bd18ddd36467be49392869602bc168",
       "exit_code": 0,
       "kind": "post-hoc deterministic saved-artifact replay; no new native session and no rescore of original attempt"
+    },
+    {
+      "case": "issue-41-failure-identity",
+      "source_wave": "native-v4-unrun",
+      "instrument_revision": 5,
+      "case_sha256": "9ad2a6ac03bb8d438f1f68f3ebe3e56c5d29b9277c07b77a75bbba6a5edd1067",
+      "verifier_sha256": "410da1e289e542f2f3b85f8e15ed13ed2b46c4004873592582c6d1632f39cc2e",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "limits": "Offline saved-artifact replay, not a new native attempt or a rescore."
     }
   ]
 }
