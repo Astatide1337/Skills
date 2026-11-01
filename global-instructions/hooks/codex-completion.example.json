@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /ABSOLUTE/SKILLS/global-instructions/hooks/agent_gates.py completion python3 /ABSOLUTE/TRUSTED/task_acceptance.py",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
+  }
+}
