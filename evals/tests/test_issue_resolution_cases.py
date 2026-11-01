@@ -18,6 +18,18 @@ CASE_IDS = [
 ]
 
 
+VALID_CLASSIFIER = """def classify(r):
+    t = r['target']
+    if r['returncode'] == 0:
+        if 'tests_executed' in r and r['tests_executed'] in (None, 0):
+            return 'unrun'
+        return 'survived' if r['selected_test'] == t['test'] else 'invalid'
+    actual = (r['selected_test'], r['stage'], r['actual_error'], r['assertion_id'])
+    expected = (t['test'], t['stage'], t['error'], t['assertion_id'])
+    return 'killed' if actual == expected else 'invalid'
+"""
+
+
 class IssueResolutionControls(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -93,21 +105,63 @@ class IssueResolutionControls(unittest.TestCase):
         )
         self.assertNotEqual(self.acceptance(root, sample).returncode, 0)
 
-    def test_mutation_accepts_valid_tuple_comparison(self):
+    def classify_with(self, verifier):
         root, sample = self.prepare(CASE_IDS[1])
-        (root / "verifier.py").write_text("""def classify(r):
-    if r['returncode'] == 0:
-        return 'survived'
-    t=r['target']
-    actual=(r['selected_test'],r['stage'],r['actual_error'],r['assertion_id'])
-    expected=(t['test'],t['stage'],t['error'],t['assertion_id'])
-    return 'killed' if actual == expected else 'invalid'
-""")
+        (root / "verifier.py").write_text(verifier)
         (root / "classification.json").write_text(
             '["killed","invalid","invalid","survived","invalid"]'
         )
-        result = self.acceptance(root, sample)
+        return self.acceptance(root, sample)
+
+    def test_mutation_accepts_valid_tuple_comparison(self):
+        result = self.classify_with(VALID_CLASSIFIER)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_mutation_accepts_truthiness_receipt_alternative(self):
+        result = self.classify_with("""def classify(r):
+    t = r['target']
+    if r['returncode'] == 0:
+        if not r.get('tests_executed', 1):
+            return 'unrun'
+        return 'survived' if r['selected_test'] == t['test'] else 'invalid'
+    same = (r['selected_test'], r['stage'], r['actual_error'], r['assertion_id']) == (
+        t['test'], t['stage'], t['error'], t['assertion_id'])
+    return 'killed' if same else 'invalid'
+""")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_mutation_rejects_zero_selected_as_survived(self):
+        result = self.classify_with(
+            VALID_CLASSIFIER.replace("        return 'unrun'\n", "        return 'survived'\n")
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("zero selected tests not reported as unrun", result.stderr)
+
+    def test_mutation_rejects_null_receipt_as_survived(self):
+        result = self.classify_with(
+            VALID_CLASSIFIER.replace("in (None, 0)", "== 0")
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("null execution receipt counted as survival", result.stderr)
+
+    def test_mutation_rejects_unrun_merged_into_invalid(self):
+        result = self.classify_with(
+            VALID_CLASSIFIER.replace("        return 'unrun'\n", "        return 'invalid'\n")
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("zero selected tests not reported as unrun", result.stderr)
+
+    def test_mutation_rejects_wrong_selection_as_survived(self):
+        result = self.classify_with("""def classify(r):
+    if r['returncode'] == 0:
+        return 'survived' if r.get('tests_executed', 1) else 'unrun'
+    t = r['target']
+    same = (r['selected_test'], r['stage'], r['actual_error'], r['assertion_id']) == (
+        t['test'], t['stage'], t['error'], t['assertion_id'])
+    return 'killed' if same else 'invalid'
+""")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("wrong test selection counted as survival", result.stderr)
 
     def test_mutation_rejects_exit_one_only_classifier(self):
         root, sample = self.prepare(CASE_IDS[1])
