@@ -7,7 +7,8 @@
 - Implementation requests normally include committing, pushing and opening a
   scoped PR unless I request local-only work or set another restriction.
   Planning, explanation and review-only requests retain their requested effects.
-  Never merge, enable auto-merge, or deploy.
+  Merge only after I explicitly approve that merge.
+  Never enable auto-merge or deploy.
 
 ## Personal context
 
