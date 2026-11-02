@@ -30,8 +30,8 @@ Name what is being built before choosing its API:
 - **Template:** page-level arrangement with replaceable content and behavior.
 
 The lower the layer, the fewer product assumptions it should contain. Do not
-give a primitive domain copy, routing, analytics, or server contracts. Do not
-make a one-off product block infinitely configurable as if it were a primitive.
+give a primitive domain copy, routing, analytics, or server contracts. Give a one-off
+product block only the configuration its callers need.
 
 ## Start from semantics
 
@@ -79,7 +79,7 @@ Every interactive component should define:
 
 ## Expose state predictably
 
-Support controlled and uncontrolled use only when both are genuinely useful.
+Support controlled and uncontrolled use only when callers need both.
 Keep one source of truth and one change event. See
 [Component APIs](./component-apis.md) for the dual-mode contract.
 
@@ -135,7 +135,7 @@ documented replacement.
 ## Use polymorphism sparingly
 
 Prefer a fixed semantic element when the component has fixed behavior. Use an
-`as` or `asChild` mechanism only when consumers genuinely need to change the
+`as` or `asChild` mechanism only when consumers need to change the
 rendered element without losing behavior or styling.
 
 For `asChild`/slot composition, the child must:

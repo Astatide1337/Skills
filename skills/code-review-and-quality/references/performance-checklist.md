@@ -1,6 +1,6 @@
 # Performance review checklist
 
-Use this as a bounded review aid. For measured diagnosis, use the
+Use this checklist for a suspected performance regression. For measured diagnosis, use the
 [performance playbook](../../follow-instructions/playbooks/performance.md);
 for controlled optimization, use [hillclimb](../../hillclimb/SKILL.md).
 
@@ -15,7 +15,7 @@ observable metric. Check:
   introduce a bottleneck at the affected workload;
 - payload sizes, cache growth, CPU, memory and garbage collection remain bounded
   under representative load;
-- UI changes preserve stable keys and avoid avoidable re-renders or oversized
+- UI changes preserve stable keys and avoid unnecessary re-renders or oversized
   client bundles;
 - cache scope, key, freshness, invalidation, and privacy are explicit;
 - lazy/deferred work has a before/after metric and does not delay required
@@ -27,7 +27,7 @@ hypothesis and state the smallest safe measurement needed. Never claim a
 performance improvement from code shape alone.
 
 Before changing a suspected bottleneck, profile or trace the actual path and
-use the measurement owner's workload, environment, sample count, noise tolerance
-and keep/revert threshold. Repeat the same measurement after the change and keep
+use the established workload, environment, sample count, noise tolerance and
+threshold for keeping the change. Repeat the same measurement after the change and keep
 it only when the threshold and correctness checks pass. Add a regression
 benchmark, limit, test or monitor when practical.

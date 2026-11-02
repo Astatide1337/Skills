@@ -5,42 +5,40 @@ description: "Removes redundant comments, dead code and needless abstraction fro
 
 # Deslop
 
-Clean generated code before review or commit. This is a focused cleanup pass,
-not a license to redesign the change.
+Remove clutter from generated code before review or commit. Preserve behavior
+and keep the cleanup within the requested change.
 
 ## Inspect the change
 
-- Pin the comparison base and inspect the complete diff, affected callers, and
-  the repository's local style.
-- Separate generated additions from intentional behavior, boundary checks,
-  security comments, and project conventions.
-- Keep a possible correctness defect in the owning implementation's workflow;
-  do not hide it as cleanup.
+- Establish the comparison base. Read the complete diff, affected callers and
+  nearby code to understand the repository's style.
+- Distinguish redundant generated additions from intended behavior, input
+  validation, security comments and project conventions.
+- Handle correctness defects through the implementation workflow. Do not
+  disguise a behavior change as cleanup.
 
 ## Focus the cleanup
 
-- Remove comments that narrate obvious code or conflict with the surrounding
-  style. Keep comments that explain a non-obvious invariant, security rule, or
-  operational constraint.
-- Remove a defensive check or `try`/`except` only when the surrounding
-  contract makes it redundant and the behavior remains unchanged. Preserve
-  validation and error handling at untrusted or external boundaries.
-- Replace an `any` cast used only to silence a type error when the existing
-  types or a narrow type guard express the same contract.
-- Flatten needless nesting with early returns when it keeps control flow and
-  error behavior clear.
-- Match nearby naming, structure, and formatting. Do not rewrite untouched
-  files or add a dependency to make the diff look cleaner.
+- Remove comments that restate obvious code or conflict with nearby style.
+  Keep explanations of non-obvious invariants, security rules and operational
+  constraints.
+- Remove a defensive check or `try`/`except` only when the surrounding code's
+  contract makes it redundant. Preserve validation and error handling where
+  input is untrusted or crosses an external interface.
+- Replace an `any` cast used to silence a type error when existing types or
+  a narrow type guard can express the same contract.
+- Use early returns to remove needless nesting when control flow and error
+  behavior remain clear.
+- Match nearby naming, structure and formatting. Do not rewrite untouched
+  files or add a dependency for cosmetic cleanup.
 
 ## Verify and hand off
 
-- Run the focused tests, type checks, or formatter relevant to the changed
-  code when they exist. If cleanup exposes a bug, stop and route it through
-  systematic debugging rather than silently changing behavior.
-- Re-read the final diff and compare the public behavior with the pre-cleanup
-  version. Report only checks that actually ran.
-- Keep the handoff proportional to the change and any material verification gap.
+Run the relevant existing tests, type checks or formatter. If cleanup exposes
+an out-of-scope bug, stop the cleanup and use systematic debugging; do not
+silently change behavior. An explicitly in-scope bug can continue through its
+implementation workflow.
 
-Guardrails: preserve behavior unless a clear bug is explicitly in scope, prefer
-minimal focused edits, and do not remove useful comments or safeguards merely
-because they resemble generated code.
+Compare the final diff and public behavior with the pre-cleanup version.
+Report the checks that ran and any verification gap that matters. Keep useful
+comments and safeguards even when their style resembles generated code.

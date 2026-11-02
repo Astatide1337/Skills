@@ -1,48 +1,50 @@
 # Engineering Skills preview: native tools and complete delivery
 
-This file preserves the **historical October 2026 preview comparison**, not an
-installation channel. For ordinary use, select maintained `main` through
-[README.md](README.md#install). Source promotion does not update global Skills or
-user/application instructions automatically.
+This file records the **October 2026 preview comparison**. For installation,
+use `main` and follow [README.md](README.md#install). Merging a source change
+does not update installed skills or user and application instructions.
 
 The historical control was `233fb741431a41b22e865d9baaedf62a90bface9` on
-`preview/engineering-the-engineer-v2`. The revision candidate culminated in
-`400df1a2cb7682117166219bd7cdd5a973e10fc4`; individual trials below identify their
-actual earlier snapshots. Subsequent receipt validation corrections and promotion
-were not covered by those historical model trials. Current entrypoints and
-owners govern execution. These records do not establish general
-performance improvement or grant merge/deployment/global-installation authority.
+`preview/engineering-the-engineer-v2`. The candidate reached
+`400df1a2cb7682117166219bd7cdd5a973e10fc4`; each trial below identifies the earlier
+version it tested. Later receipt-validation fixes and promotion were not tested
+in those model trials. Use current procedures for new work. These results do not
+establish a general performance improvement or authorize merging, deployment
+or global installation.
 
 The October 13–15 audit found useful counterexample-driven reviews alongside
 premature readiness, scope expansion and missed existing automation. Its actual
 installed predecessor was `8f2d963`, not `52ef9c1`; installed preview package bytes
-matched `233fb741`, while the actual user policy differed from source. Those
-historical distinctions do not make the predecessor this revision's control.
+matched `233fb741`, while the actual user policy differed from source. The
+comparison below still uses `233fb741` as its control.
 
 ## What to use
 
 Start engineering work at `follow-instructions/SKILL.md`. Use its short path for
-clear small corrections, and retain read-only boundaries for explanations/reviews.
-`pull-requests` owns authorized delivery through current-head checks, review,
-conflict resolution and host eligibility. A draft or ready flag is intermediate.
+clear small corrections. Explanations and reviews remain read-only unless the
+user authorizes changes.
+`pull-requests` covers authorized delivery: checks on the current head, review,
+conflict resolution and the host’s merge requirements. Creating a draft or
+marking it ready does not complete those steps.
 Explicit user/project design approvals remain binding; HTML is not a default gate.
 
 Native tools own established operations. The [CLI reference](skills/verify-work/references/agent-clis.md)
-explains discovery, task-stable identity, supported setup and limits for Agent
-CLIs and Keelbox. T3 owns its collaborative browser and runtime continuation.
+explains how to find, install and identify a fixed version of Agent CLIs or
+Keelbox, and what each tool can verify. T3 owns its collaborative browser and runtime continuation.
 `create-workflow` is only for requested recurring automation, not an investigation
 turned into a permanent harness. `skill-creator`, `unslop` and `deslop` retain their
 distinct jobs. The duplicate custom playbook and obsolete internet-reach/Zen
 bridge are removed.
 
 Use the [three worked decisions](skills/follow-instructions/references/case-studies.md)
-only when they address the task. They are original sourced instructional
-exercises, not fabricated industry transcripts or behavioral-trial receipts.
+only when they address the task. They are original exercises based on published sources, not industry transcripts
+or results from agent trials.
 The [visual collection](skills/web-interface/references/composition-examples.md)
-has a task index, publisher attribution, actual-image access and limitations.
+indexes examples by task and gives their publishers, image locations and limits.
 Images remain publisher-owned; no proprietary images/fonts are redistributed.
-Open actual pixels, then check the implemented interaction through the browser.
-A valid different design is allowed; copying a brand is not acceptance.
+View the actual images, then test the implemented interaction in a browser.
+Other designs can satisfy the same requirements; copying a brand does not prove
+the interaction works.
 
 ## Disposable installation and rollback
 
@@ -72,8 +74,9 @@ printf 'Control: %s\nCandidate: %s\nRoot: %s\n' \
 Supply the **same actual collaboration policy** to both fresh sessions and retain
 application-specific instructions. Do not copy the candidate policy over an
 existing application policy. Explicitly select one installed catalog, beginning
-at `.agents/skills/follow-instructions/SKILL.md`; confirm actual loaded locators.
-If global/bundled catalog isolation is unproved, report an exploratory trial.
+at `.agents/skills/follow-instructions/SKILL.md`; confirm which skill paths the session loaded.
+If you cannot show that global and bundled skills were excluded, label the trial
+exploratory.
 Rollback: stop the candidate session and open the control project selecting its
 catalog. Global restoration is unnecessary. Keep project work and evidence;
 remove only explicitly identified disposable directories when finished.
@@ -89,7 +92,8 @@ bash "$trial_root/candidate/scripts/install.sh" --retire internet-reach \
   --target "$trial_root/retirement-skills"
 ```
 
-Retirement refuses changed/extra/linked/unknown content and leaves it untouched.
+Retirement leaves modified packages, extra files, links and unknown versions
+untouched.
 It is explicit, separate from installation and never runs on global targets here.
 
 From a project directory, resolve the fetcher through the selected installed
@@ -133,19 +137,18 @@ Python command (`env -u __PYVENV_LAUNCHER__ uv run ...`); otherwise subprocess t
 may report that AppImage as `sys.executable`. This does not change global settings.
 Do not weaken evaluator boundaries to hide an unavailable prerequisite.
 
-Use existing `workflows` task parameters with explicit control/candidate roots,
-the same actual policy, model/effort/tools/permissions and a frozen finite budget.
-Keep hidden expectations outside implementer write authority. Record every
-failure/interruption, required human correction, observed calls and limits; no
-cost estimate or uplift follows from a passing fixture. Native fixture resumption,
-T3 thread resumption and real host delivery are different claims.
+Use the existing `workflows` parameters. Name both catalog roots and hold policy,
+model, effort, tools, permissions and budget fixed. Keep hidden checks outside
+directories the implementing agent can write. Record failures, interruptions, human corrections, tool calls and limits. A
+passing fixture alone says nothing about cost or improvement. Report native
+fixture resumption, T3 thread resumption and real host delivery separately.
 
 ## Evidence for this revision
 
-Targeted structural and installation checks, live installed-reference retrieval,
-actual image viewing and native CLI setup have been exercised. Final offline
-suite, bounded comparisons, T3 interaction/resume, independent review and host
-readiness are recorded below when observed; pending work is not a pass.
+The following record covers structural and installation checks, reference
+retrieval from an installed skill, image inspection, CLI setup, comparisons,
+T3 interactions and resumption, independent review, and publication. Each result
+applies only to the version and operation named.
 
 ### Observed validation (2026-10-15)
 
@@ -165,8 +168,9 @@ readiness are recorded below when observed; pending work is not a pass.
   2/4. Shrunk's usage path returned 4, not a fabricated successful help flag.
   Installed Keelbox's dev/unknown identity remained explicitly unproven; its help
   and missing-config doctor were inspected without starting a cluster.
-- Fresh source review found an introduced cache symlink overwrite plus cancellation,
-  comparison-policy and UI-approval contradictions. Corrections preserve an outside
+- Fresh source review found that a cache write could follow a symlink and overwrite
+  another file. It also found contradictions in cancellation, comparison policy
+  and UI approval instructions. Corrections preserve an outside
   sentinel/prior receipt before any cache write, honor immediate cancellation,
   share one actual comparison policy and qualify explicit approval artifacts.
 
@@ -187,8 +191,8 @@ workspace policy passed in all six; the repair's behavioral acceptance passed.
 | Nonzero commands (expected failing checks) | 3 | 3 |
 | Recorded uncached input tokens | 31,881 | 41,728 |
 
-These are single observations across tiny heterogeneous fixtures, not cost,
-speed or general quality estimates. They do not demonstrate improved performance.
+These single observations from three small, different fixtures do not demonstrate
+better cost, speed or quality.
 The control/candidate policy hash was identical. Source-review corrections made
 `76d2871`; they do not retroactively change the tested snapshot's identity.
 
@@ -205,15 +209,15 @@ implemented distinct valid green/neutral and cream/navy settings layouts, and
 exercised 422/409 retention, error-summary keyboard focus, viewer 403 with unchanged
 server state, Cancel, valid save/reload and narrow viewport layout through T3.
 The acceptance server/checker were outside the authors' write authority. T3's
-full-access permission contract here is instruction-scoped, not OS containment;
-the contained Inspect cases supply a different evidence boundary. Original
-turns were really interrupted with pending checks and persisted acceptance; the
-control's supported same-thread resume rechecked live state and completed the
-released check. The candidate also completed supported same-thread resumption:
+full-access sessions relied on instructions to limit writes; the operating system
+did not enforce those limits. The Inspect cases used a separate sandbox. The
+original turns were interrupted while checks were pending, with acceptance
+requirements saved. The control resumed in the same thread, rechecked state and
+completed the released check. The candidate also completed supported same-thread resumption:
 it recovered a lost process handle, established no duplicate checker was running,
 reran the released check successfully, reopened T3 and verified unchanged artifact
-and persisted form state. Both resumed without a corrective user instruction.
-Explicit runtime resume is not proof of automatic scheduling. No private
+and persisted form state. Both resumed without a corrective user instruction. The runtime was explicitly
+told to resume them; this did not test automatic scheduling. No private
 transcripts or credentials are published here.
 
 The final source review independently reran 16 reference tests and four retirement
@@ -223,20 +227,19 @@ failed because local DNS could not resolve GitHub. That failure was preserved;
 network settings were not changed, and host readiness is established separately
 from local checks.
 
-
-After connectivity recovered, the same idempotent T3 transfer requests were accepted.
+After connectivity recovered, T3 accepted the same transfer requests without
+creating duplicate tasks.
 Both fresh discovery sessions correctly identified the effective configuration and
 supported API from the offline snapshot, rejected the previous worker's unsupported
 context/unlock advice, and explicitly left live authentication/reachability unproven.
-Each used four command events; both fixtures remained unchanged. This is a held-back
-exploratory T3 case under identical policy/model/settings, not a successful rerun of
-the contained Inspect path. Total behavioral use was 12 model turns, including the
+Each used four command events; both fixtures remained unchanged. This was a held-back exploratory T3 case with identical policy, model and settings.
+It was not a successful rerun through the Inspect sandbox. Total behavioral use was 12 model turns, including the
 two genuinely interrupted initial UI turns and two same-thread resume turns; the
 failed pre-model/native/provider attempts remain recorded above.
 
 Final independent review at `4d48e577` returned no unresolved material findings and
 independently passed 23 reference/installation tests. PR publication recovered
 without changing network settings; the single review request targets the original
-preview. Final-head host CI, approvals and mergeability are read from GitHub rather
-than inferred from these local results. The revision does not demonstrate general
+preview. Check GitHub for CI, approvals and mergeability on the final head; local results
+do not establish them. The revision does not demonstrate general
 agent-performance improvement; the available paired observations showed no such gain.

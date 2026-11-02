@@ -6,20 +6,19 @@
   `Co-Authored-By: Codex` or `Codex-Session`.
 - Implementation requests normally include committing, pushing and opening a
   scoped PR unless I request local-only work or set another restriction.
-  Planning, explanation and review-only requests retain their requested effects.
+  For planning, explanation or review, perform only the requested actions.
   Merge only after I explicitly approve that merge.
   Never enable auto-merge or deploy.
 
 ## Personal context
 
 - For who I am and cross-project decisions, read the [wiki decisions](https://github.com/Astatide1337/astatide-wiki/tree/main/content/decisions).
-- Skills holds how to work; each repository's `AGENTS.md` holds that codebase.
-- Keep mechanically enforceable invariants in types, lint, tests and CI.
+- Skills describes how to work; each repository's `AGENTS.md` supplies its local rules.
+- Enforce rules in types, lint, tests or CI when those tools can check them.
 - For delegated engineering work, select an available model and reasoning level
   suited to the role using `follow-instructions`' agent-selection policy. Honor
   explicit model, provider, effort and spending constraints. Keep parent-session
   and global settings unchanged; do not silently switch after a failed dispatch.
-
 
 ## Kubernetes and OpenShift
 

@@ -50,6 +50,6 @@ reader is likely to save or circulate a PDF.
 
 ## Factual design
 
-The visual hierarchy must match epistemic status. Clearly distinguish measured
-results, claims, estimates, unknowns, and recommendations. Do not let polished
+Make the strength of the evidence visible. Distinguish measured results,
+claims, estimates, unknowns and recommendations. Do not let polished
 presentation make weak evidence look conclusive.

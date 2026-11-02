@@ -3,11 +3,10 @@
 ## When
 
 Use for a non-trivial architecture decision, implementation plan, or an
-explicitly authorized isolated prototype. A small known edit does not need a
-ceremonial design route.
-For feature/issue delivery, apply the
-[approved-plan contract](../references/approved-plans.md); it owns plan contents,
-approval identity and materiality rather than duplicating those rules here.
+explicitly authorized isolated prototype. Use the short task path for a small
+edit whose implementation is already clear. For feature/issue delivery, apply
+the [approved-plan contract](../references/approved-plans.md); it owns plan
+contents, required approval and when a changed decision needs new approval.
 
 ## Inputs to establish
 
@@ -30,7 +29,7 @@ Use [`security-and-hardening`](../../security-and-hardening/SKILL.md) or
    For a substantial product feature, identify the intended user, their main
    action, and its observable result from the supplied requirements. Preserve
    the interaction that makes that result useful when splitting work into
-   components; component completion alone is not the product acceptance.
+   components; finishing the components does not prove the user can complete that interaction.
 2. Compare credible alternatives when a real choice remains, using the relevant
    ownership, data flow, failure/retry, migration, complexity, and security
    constraints. Do not invent alternatives for an established correction.
@@ -40,13 +39,14 @@ Use [`security-and-hardening`](../../security-and-hardening/SKILL.md) or
    implementation; still choose and explain the recommendation.
    When usefulness depends on an interaction, choose a representative complete
    path for early proof, including its actual input and resulting effect.
-4. Choose the simplest shape, name interfaces/state transitions, failure
-   behavior, rollback where effects require it, and the first implementation
-   step, including purposeful refactors. For nontrivial feature/issue delivery,
-   record the plan in the existing task record. Prepare a relevant actual-component
-   prototype when it resolves a design uncertainty. Present a separate approval
-   artifact and await confirmation only when the user or project requires it.
-   Standalone design uses the requested deliverable. Label prototype shortcuts.
+4. Choose the simplest design that meets the requirements. Describe its
+   interfaces, state transitions, failure behavior and first implementation
+   step. Include rollback when the planned changes need it and refactors needed
+   for the design. For nontrivial feature/issue delivery, record the plan in the
+   existing task record. Prototype with real components when that resolves a
+   design uncertainty. Present a separate approval artifact and await
+   confirmation only when the user or project requires it. Standalone design
+   uses the requested deliverable. Label prototype shortcuts.
 
 ## Failure and recovery
 
@@ -60,9 +60,10 @@ an experiment into an unrequested permanent framework.
 Deliver a decision with caller flow, chosen/rejected alternatives, source
 evidence, relevant failure/recovery paths, unresolved decisions, and a
 verifiable next step. A diagram or compile check alone is not evidence that the
-design fits the actual system. Record the plan/prototype identity, confirmation
-when received and unresolved gates; lack of confirmation means implementation
-is pending, not that investigation or the plan itself is unfinished.
+design fits the actual system. Record the plan or prototype version, any
+required confirmation, and unresolved decisions; lack of confirmation means
+implementation is pending, not that investigation or the plan itself is
+unfinished.
 
 ## Example
 

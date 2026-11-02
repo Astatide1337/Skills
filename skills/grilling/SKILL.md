@@ -5,50 +5,44 @@ description: "Pressure-tests a plan, design or proposal by asking the unresolved
 
 # Grilling
 
-Choose the mode from the request.
+Choose interactive or one-response mode from the request. Investigate facts
+available through authorized read-only access before asking the user to decide.
 
 ## Interactive mode
 
-Build a decision tree for the proposal. Each node is a decision whose answer
-may expose dependent decisions. Find the current frontier: unresolved decisions
-that can be answered independently with the evidence already available. Ask
-that frontier as one short numbered round rather than serializing independent
-questions across many turns.
+Map the proposal's unresolved decisions and their dependencies. Ask decisions
+that can be answered independently together in one short numbered round.
 
-For every question:
+For each question:
 
-- explain the consequence of leaving it unresolved;
-- give a recommended answer and the reason for it;
-- distinguish a user-owned product or risk decision from a fact the agent can
-  investigate;
-- offer bounded alternatives when the recommendation is not clearly dominant.
+- explain what depends on the answer;
+- recommend an answer and give the reason;
+- distinguish a product or risk choice the user owns from a fact you can check;
+- offer alternatives when the recommendation has a meaningful tradeoff.
 
-Wait for the answers, update the decision tree, and repeat with the newly
-exposed frontier. Follow an answer into its weakest assumption when it changes
-the shape of the plan. Do not ask the user for facts that available read-only
-evidence can establish.
-
-Before sending a round, scan every relevant dimension named below. Include all
-independent high-consequence decisions already exposed by the proposal; do not
-defer identity or shared-resource authority, recovery, or rollout merely to
-keep the round short. Defer only decisions that genuinely depend on an answer
-from the current frontier.
+Wait for the answers, update the decision map, then ask dependent questions.
+Follow an answer's weakest assumption when it changes the plan. Before each
+round, check the relevant dimensions below. Include independent decisions about
+identity, shared resources, recovery and rollout when they matter; do not defer
+them just to shorten the round.
 
 ## One-response mode
 
-When the user asks for a complete pressure test in one response, return a
-compact map of the highest-consequence assumptions, concrete failure modes,
-and the smallest experiments that discriminate between plausible outcomes.
+When asked for a complete pressure test in one response, identify the main
+assumptions, concrete failure modes and smallest experiments that would
+distinguish plausible outcomes.
 
-Cover, as relevant: intended outcome, users, constraints, ownership, data model, failure modes, security, operability, migration, rollback, cost, and what is deliberately excluded. When an answer depends on a fact, inspect the available evidence with read-only tools; delegate only when the environment permits and it is genuinely useful.
+Cover the relevant outcome, users, constraints, ownership, data model, failure
+modes, security, operability, migration, rollback, cost and exclusions. Use
+read-only evidence to resolve factual questions. Delegate only when permitted
+and useful.
 
-Do not start implementing or silently replace the proposal with your preferred
-architecture. Separate blockers from tolerable risks and reversible choices.
-Keep a compact decision log of confirmed decisions, unresolved risks, and
-assumptions that need evidence. Stop when the plan is coherent enough to execute
-or the user asks to stop. End with decisions, remaining unknowns, focused
-experiments, and the first concrete next step.
+Keep confirmed decisions, unresolved risks and assumptions in a compact log.
+Separate blockers from tolerable risks and reversible choices. Do not implement
+the proposal or replace it with a preferred architecture unless requested.
+Stop when the plan is ready to execute or the user asks to stop. Report the
+decisions, remaining unknowns, focused experiments and first next step.
 
-Before finishing, check whether identity/authorization, observability, recovery,
-or rollout exposes a material risk. Report relevant findings and consequential
-gaps; keep the relevance check internal rather than explaining every omission.
+Before finishing, check for unresolved identity, authorization, observability,
+recovery or rollout risks. Report relevant gaps without narrating every
+irrelevant check.

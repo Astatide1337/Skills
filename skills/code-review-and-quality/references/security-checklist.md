@@ -1,7 +1,7 @@
 # Security review checklist
 
-Use this as a bounded review aid; it does not replace the project's threat
-model or the `security-and-hardening` skill.
+Use this checklist when reviewing a change that affects security. Apply the
+project's threat model and the `security-and-hardening` skill where relevant.
 
 Escalate to `security-and-hardening` when the change touches identity,
 authorization or tenant scope, credentials or sensitive data, interpreter or
@@ -13,7 +13,7 @@ change under review.
 For each changed trust boundary, record the input, owner, validation, and
 failure behavior. Check:
 
-- authentication and authorization are enforced on the server-side path;
+- authentication and authorization are enforced on the server;
 - tenant, object, and role scope are checked before reads and writes;
 - secrets are absent from source, logs, fixtures, diffs, and error messages;
 - external data is treated as untrusted before parsing, rendering, or use in a

@@ -1,94 +1,73 @@
 # Instruction design
 
+Use this reference to decide what an instruction needs to say, where to put
+supporting detail and what to remove.
+
 ## Point to context precisely
 
-An instruction should tell the agent when information becomes relevant and
-where to find it. A bare filename is weaker than a contextual pointer such as
-"Before changing the schema, read `references/migrations.md`." The leading
-words establish the trigger; the path supplies the detail.
+Tell the agent when to read a reference and where to find it: “Before changing
+the schema, read `references/migrations.md`.” A filename alone leaves the
+reader to infer when it matters.
 
-Manage two costs:
+Keep ordered steps and the rules they depend on together. Link directly to
+variants needed only for specific requests. Avoid making the agent follow a
+chain of references to reconstruct one procedure.
 
-- **Context load:** material consumes attention even when irrelevant.
-- **Cognitive load:** scattered or ambiguous material makes the agent assemble
-  the procedure itself.
-
-Keep an essential ordered step inline. Keep a compact rule beside the step that
-uses it. Disclose detailed variants through a directly linked reference. Split
-by invocation or sequence, not merely by topic. Avoid chains of references.
-
-When another file is declared authoritative, point to it and describe how to
-apply it without restating its values. Repeating even a short checklist creates
-two sources that can drift.
-
-Co-locate instructions that must be applied together. Do not duplicate them.
-Name one authoritative source when the repository, schema, configuration, or
-runtime already contains the fact.
+When another file owns a rule, link to it and explain when to apply it.
+Do not repeat its checklist or values; copies can drift. Extra context costs
+attention, while missing or scattered context forces the reader to guess.
 
 ## Make completion difficult to fake
 
-Define the observable end state, the evidence required, and what must happen
-when a check fails. Avoid criteria such as "looks good," "properly handled," or
-"production ready." Put the verification next to the action it verifies.
+State the required result, the evidence that establishes it and what to do
+when a check fails. Put the check beside the action it verifies. Replace
+“looks good,” “properly handled” and “production ready” with observable results.
 
-Guard against two failure modes:
+Prevent both premature completion and unauthorized follow-on work. Producing
+an artifact is not enough if the task requires proving its behavior. Passing
+checks does not authorize publication, deployment or unrelated cleanup.
 
-- **Premature completion:** the agent stops after producing an artifact but
-  before proving the requested behavior.
-- **Post-completion drift:** the agent continues into publishing, deployment,
-  cleanup, or adjacent improvements that were never authorized.
-
-State explicit stop conditions and the handoff after successful verification.
-For delivery work, link the completion contract in
-[`pull-requests`](../../pull-requests/SKILL.md); do not define a second lifecycle
-in each playbook. A checkpoint preserves pending work; it does not perform it
-or cause a runtime to resume.
+For delivery, link to the completion requirements in
+[`pull-requests`](../../pull-requests/SKILL.md). Do not define another delivery
+procedure in each playbook. A checkpoint records pending work; it does not run
+that work or cause a runtime to resume.
 
 ## Write executable steps
 
-Start steps with the action or condition: "Run," "Inspect," "If the test
-fails," or "Before editing." Prefer positive instructions that name the desired
-behavior. Use prohibitions for meaningful boundaries, and pair them with the
-allowed alternative when ambiguity remains.
+Start with the action or its condition: “Run,” “Inspect,” “If the test fails”
+or “Before editing.” Prefer instructions that name the desired behavior.
+Use prohibitions for real boundaries and explain the allowed alternative
+when a reader might otherwise be stuck.
 
-Explain why a non-obvious constraint exists. This helps the agent generalize
-when the exact example changes. Examples should resolve a real ambiguity, not
-decorate the rule.
+Explain a non-obvious constraint so the agent can apply it to a new case.
+Use examples to resolve ambiguity. Keep requirements, defaults and examples
+distinct: a preferred method need not be mandatory when another method meets
+the same requirement.
 
-Keep requirements, defaults and examples distinguishable. Use binding language
-for authority, compatibility and evidence obligations. State a preferred method
-as a default when another method can satisfy the same obligation. Identify the
-conditions that make an example useful rather than turning its architecture or
-style into a requirement.
+Name actors and objects. “Inspect the failing run's output” is clearer than
+“inspect it.” Keep the action, deciding observation and failure response
+together. Fetching a page shell does not inspect an image; specify the
+observation the task actually needs.
 
-Use explicit actors and referents: “The agent inspects the failing run's output”
-is clearer than “inspect it.” Keep the action, its deciding observation and the
-failure response together. A command that returns a page shell does not satisfy
-an instruction to inspect an image; name the actual observation needed.
-
-Validate wording through behavior. A fresh reader should perform the intended
+Give the instructions to a fresh reader. Check whether they take the intended
 action, recover from a relevant failure and accept a valid alternative without
-the author explaining missing context. If the tool cannot provide the needed
-observation, repair the tool or report that limit; stronger adjectives in the
-instructions cannot supply it. Do not impose a sentence template or phrase lint
-as a substitute for this check.
+extra explanation. If a tool cannot supply a required observation, repair it
+or report the limit. Stronger adjectives and phrase lint cannot replace that
+behavioral check.
 
-These choices follow Anthropic's
-[context-engineering guidance](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents):
-provide enough concrete context to guide a decision while avoiding brittle
-prescriptions and loading detail only when relevant. The source motivates the
-method; it does not establish that this catalog improves agent performance.
+Anthropic's [context-engineering guidance](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+supports supplying enough context for the decision and loading detail when
+needed. It does not establish that this catalog improves agent performance.
 
 ## Prune instruction sediment
 
-For every rule, ask:
+For each rule, ask:
 
-1. What observable behavior changes if this sentence is removed?
-2. Is the same rule authoritative elsewhere?
-3. Is it still relevant to the current tools and workflow?
-4. Can repository state or validation replace prose?
+1. What action would change if this sentence were removed?
+2. Does another authoritative source already state it?
+3. Does it still apply to the current tools and workflow?
+4. Can repository state or a check replace it?
 
-If removal changes nothing, delete it. If the environment already proves the
-fact, point to that source or add a deterministic check. Rewrite accumulated
-exceptions into the underlying decision rule instead of preserving the history
-of every correction.
+Delete sentences that change no action. Link to facts already established
+elsewhere. Replace accumulated exceptions with the decision rule they share,
+while preserving exceptions that still change the required behavior.

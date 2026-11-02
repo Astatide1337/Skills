@@ -5,9 +5,9 @@ description: "Builds a self-contained HTML page (report, explainer, diagram, das
 
 # HTML Artifacts
 
-Choose HTML because it improves the work, not because it makes the response
-look elaborate. Produce a complete artifact that opens directly, explains
-itself, and remains useful outside the conversation.
+Produce an HTML file that opens directly and contains the context a reader
+needs outside this conversation. Use HTML when its layout or interaction helps
+the reader complete the task.
 
 ## Lock the deliverable
 
@@ -21,7 +21,7 @@ a descriptive kebab-case `.html` filename inside the dedicated directory.
 
 ## Decide the medium
 
-Use a standalone HTML artifact when one or more of these are load-bearing:
+Use a standalone HTML artifact when:
 
 - readers must compare parallel options or before/after states;
 - position, sequence, hierarchy, or color carries meaning;
@@ -51,9 +51,9 @@ Read only the references needed for the request:
 | Any artifact's visual system, responsive behavior, or accessibility | [Visual and accessibility baseline](references/visual-accessibility.md) |
 | Matching an existing product, report family, or personal visual language | [Style matching](references/style-matching.md) |
 
-For application UI or reusable product components, hand visual and interaction
-decisions to `web-interface`; this skill owns the standalone document and its
-packaging. An artifact may borrow the product's tokens without becoming part of
+Use `web-interface` for application UI or reusable product components. Use this
+skill for standalone documents and their packaging. An artifact may borrow the product's
+tokens without becoming part of
 the product.
 
 ## Universal contract
@@ -74,12 +74,12 @@ Every artifact must:
    horizontal page scrolling. Wide tables and code regions may scroll locally.
 5. Make the content's real structure visible. Do not wrap a Markdown document
    in cards or manufacture dashboard metrics.
-6. State provenance, timestamps, uncertainty, and verification boundaries when
-   they affect interpretation. Never invent data to complete a visual.
+6. State sources, dates, uncertainty and what was verified when they affect
+   interpretation. Never invent data to complete a visual.
 7. Keep one source of truth for repeated values. Derive summary counts, filtered
    rows, and exports from the same data rather than copying totals into markup.
    Check the initial totals and one filtered state against the supplied evidence.
-8. Give stateful tools an explicit export path—copy or download as Markdown,
+8. Let users copy or download a stateful tool's result as Markdown,
    JSON, CSV, SVG, or another useful portable representation.
 9. Avoid destructive or surprising browser behavior. Do not transmit entered
    data, request credentials, or depend on storage unless the user explicitly
@@ -90,16 +90,16 @@ Every artifact must:
 1. **Define the reading task.** Identify the audience, the decision or action,
    source material, required sections, and whether the artifact is read-only or
    interactive.
-2. **Choose one visual grammar.** Derive tokens from an existing codebase or
+2. **Choose a consistent style.** Derive tokens from an existing codebase or
    supplied examples when they exist; otherwise select a restrained typographic
    direction. Use layout, type, and a small semantic palette consistently.
-3. **Sketch information architecture.** Decide what must be visible at first
+3. **Arrange the content.** Decide what must be visible at first
    glance, what compares side by side, what can collapse, and how the reader
    navigates on mobile.
 4. **Implement the smallest complete file.** Resolve the authorized output path;
    absent an explicit path, create and confirm a dedicated `/tmp` folder. Prefer
-   platform HTML, CSS, and JavaScript. Add interaction only when it reduces
-   cognitive or mechanical work. Preserve an explicit filename and output path.
+   platform HTML, CSS, and JavaScript. Add interaction only when it makes the task
+   easier to understand or perform. Preserve an explicit filename and output path.
 5. **Validate the source.** Run:
 
    ```bash
@@ -110,7 +110,7 @@ Every artifact must:
    narrow states, and inspect hierarchy, overflow, typography, contrast,
    controls, focus, and all exported output. For animation, watch a complete
    cycle and test reduced motion.
-7. **Report evidence narrowly.** Link the file and distinguish source checks,
+7. **Report what was checked.** Link the file and distinguish source checks,
    rendered inspection, interaction testing, and anything not exercised.
 
 The checker catches structural and offline-packaging failures; it cannot judge

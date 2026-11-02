@@ -5,14 +5,12 @@ description: "Checks targets, effects and recovery for operational changes. Use 
 
 # Production Safety
 
-Observe first. Change only from verified state.
-
 For any request to approve deletion or another destructive action, lead with
-the decision (`not approved` while material facts are unknown), then explicitly
-enumerate the safety gate: exact identity and environment, consumers and active
+the decision (`not approved` while material facts are unknown), then list the facts
+needed to approve it: exact identity and environment, consumers and active
 writers, reclaim/deletion behavior, unique state, usable recovery evidence,
 rollback, blast radius, and authorization for that exact action. Do not compress
-these into “verify dependencies and backups”; name every missing gate.
+these into “verify dependencies and backups”; name each missing fact.
 
 ## 1. Establish the operation
 
@@ -23,7 +21,9 @@ Before changing anything, state:
 - **Source of truth:** which system/data/state is authoritative.
 - **Authorization:** what the user explicitly asked to change.
 
-Preserve semantic distinctions such as **copy vs move**, **restore vs replace**, **test vs production**, and **diagnose vs modify**.
+Keep the requested operation precise: copying does not authorize moving,
+restoring does not authorize replacing, testing does not authorize production
+changes, and diagnosis does not authorize modification.
 
 ## 2. Start read-only
 
@@ -32,21 +32,23 @@ Inspect before writing:
 - current topology and roles;
 - dependencies and traffic paths;
 - current configuration;
-- declared desired state, reconciliation owner, infrastructure state backend, and pending plan/diff when applicable;
+- declared desired state, reconciliation owner, infrastructure state backend, and
+  pending plan/diff when applicable;
 - storage/data state;
 - health and recent events/logs;
 - replication/backup state when relevant;
-- identity, assumed role/service account, effective privileges, and credential lifetime when relevant;
+- identity, assumed role/service account, effective privileges, and credential lifetime
+  when relevant;
 - the exact object/resource that would be changed.
 
 Do not mutate the system merely to discover how it is configured.
 
-An absent client setting is only that observation. A missing kubeconfig,
-context or wrapper does not show the session is off the target machine or lacks
-access. Before escalating a capability blocker, establish where the session runs
-(host, user, working directory; presence only of mounted workload identity or
-in-cluster environment) and the client's documented route to it. Separate no
-configuration, no client, authentication failure and authorization denial.
+A missing kubeconfig, context or wrapper does not prove the session lacks
+access or is running off the target machine. Before reporting a blocker,
+identify the host, user and working directory, check whether workload identity
+or in-cluster configuration is present without reading credentials, and find
+the client's documented access method. Distinguish missing configuration, a
+missing client, authentication failure and authorization denial.
 Use an already-authorized authentication renewal when applicable; a new identity
 or broader grant needs authority not already given. Respect actual denials and
 prohibited routes, and ask only for what observation cannot settle.
@@ -61,36 +63,38 @@ For a degraded service or an active operational incident, use the
 the serving revision, user impact, dependency evidence, and recovery boundary
 before recommending a change.
 
-For infrastructure-as-code, GitOps, IAM, Kubernetes, or managed-database work, read `references/infrastructure-checks.md` and apply only the relevant section.
+For infrastructure-as-code, GitOps, IAM, Kubernetes, or managed-database work, read
+`references/infrastructure-checks.md` and apply only the relevant section.
 
 For this catalog owner's recurring VPS, container, repository-delivery, database,
-or live end-to-end work, also read `references/operator-profile.md`. These are
-evidence-based defaults, not claims about the current target; verify them each time.
+or live end-to-end work, also read `references/operator-profile.md`. Verify these
+defaults against the current target before using them.
 
 ### Execution-mode gate
 
-Resolve the prompt's tool and network boundary before probing. In a text-only,
+Check the request's tool and network restrictions before probing. In a text-only,
 offline, or no-command task, do not run `kubectl`, `oc`, `dig`,
 `curl`, `openssl`, cloud CLIs, package managers, or identity probes. Use only
 the supplied evidence, label live topology and identity as unknown, and list
 the exact read-only commands an authorized operator would run later. Never
 turn a failed probe into evidence that a production dependency is absent.
 
-Apply the general [pre-action rule](../follow-instructions/references/principles/authority-and-claims.md#observe-before-changing-state)
+Apply the [pre-action
+rule](../follow-instructions/references/principles/authority-and-claims.md#observe-before-changing-state)
 before operational changes. Tests, setup, previews and local processes can write
 to shared backing resources. Verify target identity and isolation before schema
 synchronization, seed/reset, cleanup or bulk replacement; do not infer
 disposability from a dev/test name or an available connection.
-Resolve the writing tool's effective resource and environment through supported
-read-only status, dry run or configuration resolution; the file you inspected
-may not be the one it loads. Report target identity and class, checked effects
-and operations performed without credentials. If it is not verified disposable,
+Use supported read-only status, dry run or configuration inspection to identify
+the resource and environment the writing tool will actually use. It may load a
+different file from the one you inspected. Report the target, its environment,
+the expected effects and actions performed, without credentials. If it is not verified disposable,
 use an isolated target or establish authority and a recovery path proportionate to the
 effects before writing. A flag that suppresses a tool's data-loss guard
 (`--accept-data-loss`, `--force`) is neither a connectivity check nor evidence
 that recovery is safe; verify the target, effects and recovery first. Read-only
 inspection and authorized work on verified disposable targets need no
-extra approval or backup ritual.
+extra approval or backup steps.
 
 ## 3. Separate facts from assumptions
 
@@ -111,7 +115,9 @@ external-secret or backup systems, dashboards, and human runbooks. “No consume
 found” is a verification result only after those categories were checked; do
 not treat an empty search or an unknown topology as proof of safe removal.
 
-Treat controllers and state engines as active writers. A manual live change can be reverted by reconciliation, overwrite another writer, or leave declared and actual state divergent. Establish ownership and the supported change path before writing.
+Treat controllers and state engines as active writers. A manual live change can be
+reverted by reconciliation, overwrite another writer, or leave declared and actual state
+divergent. Establish ownership and the supported change path before writing.
 
 ## 4. Classify the proposed action
 
@@ -123,7 +129,8 @@ Proceed when authorized access exists.
 
 ### Reversible write
 
-Examples: a scoped configuration change with a known rollback, a deployment update, creating a new isolated resource.
+Examples: a scoped configuration change with a known rollback, a deployment update,
+creating a new isolated resource.
 
 Proceed only when the user's task authorizes changing that system and the rollback is understood.
 
@@ -139,8 +146,10 @@ Examples:
 - replacing authoritative data;
 - removing DNS/network paths;
 - force-unlocking or directly editing infrastructure state;
-- broadening IAM trust or permissions, creating long-lived credentials, or disabling reconciliation or policy gates;
-- replacing or rotating certificates, keys, or secrets without proving every consumer has transitioned;
+- broadening IAM trust or permissions, creating long-lived credentials, or disabling
+  reconciliation or policy gates;
+- replacing or rotating certificates, keys, or secrets without proving every consumer
+  has transitioned;
 - deleting production resources.
 
 Do **not** execute until all of the following are established:
@@ -152,8 +161,9 @@ Do **not** execute until all of the following are established:
 5. backup/recovery status;
 6. rollback or restoration path;
 7. blast radius if the assumption is wrong;
-8. explicit user authorization for the destructive action.
-9. controller/state-lock/concurrency status and whether another writer can race or revert the change.
+8. explicit user authorization for the destructive action;
+9. controller/state-lock/concurrency status and whether another writer can race or
+   revert the change.
 
 ## 5. Prefer the least risky path
 
@@ -184,15 +194,14 @@ When relevant:
 - verify restored/copied record counts and errors;
 - verify replication/topology after database changes;
 - verify routes/connectivity after network changes;
-- verify workloads and user-visible health after deployment changes.
+- verify workloads and user-visible health after deployment changes;
 - verify reconciliation converges to the intended revision without unexplained drift;
 - verify alerts, audit events, and error signals remain usable through the change.
 
 A successful command exit is not sufficient proof.
 
-Distinguish proof layers explicitly: static checks, local integration, CI,
-deployed service/API behavior, and user-visible browser behavior answer different
-questions. Do not report one as proof of another.
+Report static checks, local integration, CI, deployed API behavior and browser
+behavior separately. Each verifies a different part of the system.
 
 ## Stop conditions
 
@@ -210,5 +219,6 @@ Report the evidence and ask for the missing decision rather than guessing.
 
 ## Execution boundary
 
-Apply the shared [execution boundary](../follow-instructions/references/principles/authority-and-claims.md#execution-boundary).
-Keep the task-specific restrictions above; this skill grants no additional effects.
+Apply the shared [execution
+boundary](../follow-instructions/references/principles/authority-and-claims.md#execution-boundary).
+The restrictions above still apply; this skill grants no additional permission.

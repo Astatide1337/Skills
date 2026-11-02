@@ -1,8 +1,7 @@
 # Outcome and scope
 
-This local reference combines pstack's Outcome-Oriented Execution, Laziness
-Protocol, and Subtract Before You Add. It is a decision aid, not a mandate to
-perform a rewrite.
+Adapted from pstack's Outcome-Oriented Execution, Laziness Protocol, and Subtract
+Before You Add. Use it to decide scope; it does not require a rewrite.
 
 ## Trigger
 
@@ -12,12 +11,13 @@ or an implementation is accumulating compatibility layers and adjacent work.
 ## Decision rule
 
 Define the observable end state and literal non-goals before choosing the
-shape. Inspect existing capabilities and delete unnecessary work before adding
+design. Inspect existing capabilities and delete unnecessary work before adding
 moving parts. For a planned migration or rewrite, optimize for the intended
 verified target rather than preserving temporary states that have no owner.
 
-The smallest complete change satisfies every requested outcome and evidenced
-contract with coherent ownership and maintainable interfaces. It is not the
+The smallest complete change satisfies every requested outcome and supported
+contract, keeps each behavior with its responsible code, and has maintainable
+interfaces. It is not the
 fewest changed lines or a patch for only the reported symptom. Trace relevant
 failure, retry, persistence, migration and queued-consumer paths. Preserve
 compatibility when deployed data, actual consumers or supported public contracts
@@ -34,7 +34,7 @@ establish that a learner or contributor can use the result.
 ## Procedure
 
 1. State what a user, caller, operator, or maintainer should observe when done.
-2. Write the non-goals that prevent a neighboring program from entering scope.
+2. State which adjacent work is outside the request.
 3. Identify the existing owner, interface, and project command that can already
    reach the outcome.
 4. Remove dead paths, redundant adapters, and speculative options before
@@ -43,13 +43,6 @@ establish that a learner or contributor can use the result.
    that is acceptable, and the check that ends the transition.
 6. Stop when the requested observable result is verified. Do not add a second
    system merely because it might be useful later.
-
-## Principal-engineer lens
-
-The high-level contribution is judgment about scope. A principal engineer
-turns an ambiguous request into a sequence of coherent deliverables while
-preserving option value. The useful artifact is the decision and its boundary,
-not the size of the proposal.
 
 ## Evidence
 

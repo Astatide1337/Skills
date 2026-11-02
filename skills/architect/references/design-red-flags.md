@@ -2,8 +2,8 @@
 
 ## Shallow modules
 
-A useful module hides substantial policy or mechanism behind a small coherent
-interface. A shallow module exposes nearly as much complexity as it contains.
+A useful module gives callers a small interface while handling complex rules
+or mechanisms internally. A shallow module exposes nearly as much complexity as it contains.
 Do not confuse a deep call chain with a deep abstraction: several tiny wrappers
 can force callers to understand every layer while none owns the decision.
 
@@ -31,13 +31,13 @@ a stable contract.
 ## Pass-through layers
 
 A method that forwards the same arguments and result without enforcing policy,
-translating representations, stabilizing an interface, or owning failure adds a
-place to navigate rather than an abstraction. Remove it or give the layer a
+translating representations, stabilizing an interface, or handling failures adds
+navigation without giving the caller a simpler contract. Remove it or give the layer a
 real responsibility.
 
 ## Speculative generality
 
 Do not introduce plugins, generic repositories, event buses, factories, or
-configuration axes for imagined consumers. Name the second real use case and
-show how it differs. Preserve a seam when substitution is likely; avoid
-implementing all future variants now.
+configuration options for hypothetical consumers. Name the second real use case and
+show how it differs. Keep a replaceable interface when substitution is likely; implement only the
+variants needed now.

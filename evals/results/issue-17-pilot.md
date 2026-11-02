@@ -1,13 +1,13 @@
 # Issue 17 pilot evidence
 
-This is a compact, sanitized record for the review unit. It contains no
-model transcripts, credentials, tracker objects, or binary Inspect logs.
+This historical record covers the Issue 17 pilot and its PR18/PR19 changes.
+It omits model transcripts, credentials, tracker objects and binary Inspect logs.
 
 ## Revisions and configuration
 
 - shared base: `3ad2f8c24ce9e3d65128d45f87b4e294610b4d12`
 - PR18 evidence head used: `d74071b87b55c7c3ceac88d983d86ad704740ed8`
-- PR19 reviewed source head before this v1 finish: `21f0caf28cda0580003ba03c517dda0208ac93e0`
+- PR19 source head reviewed before v1 completion: `21f0caf28cda0580003ba03c517dda0208ac93e0`
 - PR19 v1 implementation commit: `4f056e85085369f646e64674987482cfc99098f2`
 - acceptance-order source correction retained from `8237822c0de356f9c7597da331db1edc9fffce4f`
 - evaluator: Inspect `0.3.259`, local sandbox, runner-owned contract diagnostics
@@ -59,9 +59,9 @@ verification.
 
 ## Final v1 package and runtime checks
 
-The final candidate adds a concise coordinator, ten playbooks, operational
-principles, five selectively loaded public case studies, and the source-grounded
-Jobmark example. Full and selected installs were copied to disposable explicit
+The final candidate added a coordinator, ten playbooks, operational principles,
+five public case studies to load when relevant, and an example based on Jobmark
+source code. Full and selected installs were copied to disposable explicit
 targets; the primary Codex discovery probe loaded `follow-instructions` from
 the installed `.agents/skills` target with `gpt-5.6-luna` at max reasoning in a
 read-only run and returned a route plus limitation without writing the target.
@@ -77,8 +77,8 @@ initialization error. No preview/production credentials were used. The
 repository's own Playwright public-entry smoke was also attempted and stopped
 before a browser page because `instrumentation.ts` requires `DATABASE_URL`,
 OAuth variables, and an auth/encryption secret even for local startup. The
-required disposable database/server environment is therefore a blocker for
-authenticated PostgreSQL and browser evidence, not a fabricated pass.
+missing disposable database and server environment prevented the PostgreSQL and
+browser checks from running.
 
 The replay agent used the available Node `24.14.0` because this host had no
 Node 22 executable; the repository's required Node 22 runtime was recorded as
@@ -98,8 +98,7 @@ Exact application commands and outcomes:
 
 ## Native comparison pilot
 
-The supported native case is deliberately narrower than the original
-publication-shaped workflows: `workflow-native-local-repair` asks the agent to
+The supported native case omits publication: `workflow-native-local-repair` asks the agent to
 repair the supplied tenant filter and run the supplied native regression. It
 has no external-service deliverable, so the scorer can observe the complete
 local outcome (edited source plus test result). The other six execution-ready
@@ -129,7 +128,7 @@ skills and global instructions; the candidate used the current PR19 roots.
 | candidate | 1 | 6 | pass (workspace + `python test_bug.py`) | 4/4 | 179.6s |
 | last accepted baseline | 1 | 6 | pass (workspace + `python test_bug.py`) | 3/4 | 151.6s |
 
-This one-repetition pilot is not a superiority claim. The candidate scored 4/4
+The pilot ran each version once. The candidate scored 4/4
 and the baseline 3/4 on the isolated native quality grader, but that difference
 is not general evidence: the baseline response overstated its final diff after
 leaving an untracked Python cache, and the candidate's response also included
@@ -143,8 +142,7 @@ reasoning tokens. Inspect's aggregate `model_usage` is empty because the
 nested CLI is outside its model accounting; the scorer preserves the nested
 native and grader usage in sample metadata. Tool-call counts were 24 candidate
 / 15 baseline, with 3 failed commands in each arm (expected pre-fix
-reproduction plus malformed exploratory commands). These counts are
-observational, not a cost quote; no price telemetry was available.
+reproduction plus malformed exploratory commands). These counts do not establish cost; no price data was available.
 
 The candidate and baseline both completed the local repair before corrective
 user prompting. The candidate's final workspace evidence contained the
@@ -232,13 +230,12 @@ the existing `unslop` remains the prose rewrite owner. The new primary case is
 `deslop-generated-code-cleanup`; it is catalog behavior coverage only and was
 not run as a native model task.
 
-The fake tracker remains an optional evaluator fixture, not a daily-use or
-product dependency. It is imported only by the publication-contract path and
+The fake tracker is an optional evaluator fixture. Installed skills and products
+do not depend on it. It is imported only by the publication-contract path and
 is covered by tests for runner-owned source bytes, ordering, same-object
 readback, idempotent replay, conflicting duplicates, forged state, and
-sample/epoch isolation. Its receipts are not live GitHub/GitLab evidence and
-are never counted as product or browser verification. Removing it would delete
-those contract regressions rather than simplify installed skills.
+sample/epoch isolation. Its receipts describe fixture operations, not live GitHub/GitLab, product or
+browser behavior. The regression tests cover those fixture checks.
 
 Checks run against the committed candidate:
 

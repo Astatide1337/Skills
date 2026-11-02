@@ -1,16 +1,19 @@
-# Confirmed failure to check map
+# Confirmed failures and required checks
 
 This file is the catalog's own rule-to-enforcer table. New rows follow
 [learn from repeats](../../self-reflect/references/learn-from-repeats.md).
 
-This map abstracts confirmed, in-scope incidents from a private local audit. It excludes ambiguous intent changes, suspected omissions, excluded evaluation work, credentials, raw histories, and project-specific data. Use a row only when its trigger is present; the owning skill supplies the detailed procedure.
+This table summarizes confirmed incidents from a private local audit. It omits
+ambiguous intent changes, suspected omissions, excluded evaluation work,
+credentials, raw histories and project-specific data. Use a row when its trigger
+applies; follow the owning skill for the procedure.
 
 ## Provenance and limits
 
-The original rows below informed this PR's implementation from private audit
+The original rows below informed the implementation through private audit
 summaries. Their underlying machine-specific records are not packaged here;
 this repository cannot establish which incidents belong to K-Agent or
-Lestatide. Preserve those as unestablished rather than guessing attribution.
+Lestatide. Do not guess which system produced them.
 
 The later March–August historical export supplied retrospective corroboration
 and additional regression examples. It contains copied histories, including
@@ -37,11 +40,16 @@ fixed or that today's catalog reliably prevents it.
 | Loops | Retry a stateful create | An ambiguous result was retried into duplicate resources and cleanup used only a name. | Observe by stable identity before retry; refuse destructive cleanup without exact identity and authorization. | production-safety |
 | Loops | Wake or continue a worker | Generic message updates caused repeated wakeups; a continuous loop waited for an hourly schedule. | Trigger on the requested transition, dedupe by state identity, and check the actual next-start interval. | architect, self-reflect |
 
-A structural rule is justified when an observed recurrence or safety boundary can be enforced. State the approved pattern, forbidden alternative, enforcement point, and a violating fixture that fails. Keep app-specific types, schemas, lint/import rules, CI, and feature maps in the application; use its native CLI for established operations, resolving and retaining the executable's identity for the task.
+When a recurring mistake or safety requirement can be checked mechanically,
+name the allowed pattern, rejected alternative, enforcing check and a fixture
+that fails. Keep application-specific types, schemas, lint rules, CI and feature
+maps in the application. Use its native CLI for supported operations and record
+which executable was used.
 
 ## Later regression coverage
 
-These cases extend the existing [workflow dataset](https://github.com/Astatide1337/Skills/blob/main/evals/cases/workflows.json).
+These cases extend the existing [workflow
+dataset](https://github.com/Astatide1337/Skills/blob/main/evals/cases/workflows.json).
 Each target and runner assertion is defined before candidate execution and kept
 outside the candidate prompt. The case's `audit_provenance` distinguishes the
 source class, unestablished machine identity, and limited implementation claim.
@@ -71,13 +79,14 @@ final files and exercises the local paths; printed PASS text or a
 candidate-edited self-check is not acceptance evidence.
 
 The Linux/container case is a separate read-only snapshot exercise. It tests
-layer discrimination and evidence limits; it does not establish current host,
-firewall, Docker daemon, or Kubernetes state.
+whether the agent distinguishes network layers and limits its claims to the
+evidence; it does not establish current host, firewall, Docker daemon, or
+Kubernetes state.
 
 Other historical findings, including invalid CI job references and failures in
 startup/reset/report-combination paths, reinforce `systematic-debugging`'s
-environment checks and `verify-work`'s claim boundaries. They have not received
-application-level fixes or native integration coverage in this PR.
+environment checks and `verify-work`'s claim boundaries. This catalog work did
+not fix those applications or add native integration coverage for them.
 
 ## Additional mechanisms and their limits
 
@@ -95,25 +104,27 @@ establish helper behavior; a small live trial does not establish broad agent
 reliability or resolve attribution to K-Agent versus Lestatide.
 
 The table lists procedures to perform when their triggers arise; its prose is
-not an installed automated guard. Implemented checks are separate: the
-[workflow contract tests](https://github.com/Astatide1337/Skills/blob/main/evals/tests/test_workflows.py) exercise
-runner-owned acceptance, and the
-[candidate-output regression](https://github.com/Astatide1337/Skills/blob/main/evals/tests/test_skills_lifecycle.py)
+not an installed automated guard. Implemented checks are separate: the [workflow
+contract
+tests](https://github.com/Astatide1337/Skills/blob/main/evals/tests/test_workflows.py)
+exercise runner-owned acceptance, and the [candidate-output
+regression](https://github.com/Astatide1337/Skills/blob/main/evals/tests/test_skills_lifecycle.py)
 rejects a missing required answer even when the expected answer is available.
-The [CI workflow](https://github.com/Astatide1337/Skills/blob/main/.github/workflows/ci.yml)
+The [CI
+workflow](https://github.com/Astatide1337/Skills/blob/main/.github/workflows/ci.yml)
 runs catalog structure and case validation plus these model-free, local/mocked
 unit contracts on the cluster runner. Its hosted `workspace-tests` job installs
 Bubblewrap from Ubuntu's package repository and attempts the full model-free
-unit suite, including disposable local workspace observations. This is not
-live model or adversarial workspace-containment evaluation. Report the actual
-hosted result, including a blocked namespace preflight if it occurs, with its
-revision; never count a blocked suite as a pass.
+unit suite, including disposable local workspace observations. This is not live
+model or adversarial workspace-containment evaluation. Report the actual hosted
+result, including a blocked namespace preflight if it occurs, with its revision;
+never count a blocked suite as a pass.
 
 The workspace suite now checks its namespace prerequisite before creating test
 baselines. An unsupported host fails once with an actionable reason instead of
 continuing with unavailable baselines; isolation and integration assertions stay
 enabled. Native trials snapshot and hash the loaded catalog's instructions,
-references, and scripts. Git HEAD is context, not the identity of dirty bytes.
+references, and scripts. A Git HEAD identifies the commit, not uncommitted file contents.
 Response-marker checks report only observed shape, with semantic acceptance
 left to the independent behavior grader. Model-free fixtures remain evaluator
 contract checks, never evidence of agent efficacy.

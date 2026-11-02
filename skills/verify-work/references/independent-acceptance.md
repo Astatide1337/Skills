@@ -1,27 +1,29 @@
 # Independent acceptance and calibration
 
-Use for substantive acceptance, a disputed result, or a changed verification
-mechanism. Preserve the existing native status and receipt formats. This is not
-a universal verifier, a new evidence service or an isolation implementation.
+Use this reference for substantive acceptance decisions, disputed results or
+changes to a verifier. Keep the existing status and receipt formats. The
+instructions describe how to assess evidence; they do not implement isolation
+or a new verification service.
 
 ## Expectations
 
 Derive required outcomes from the request, accepted decisions and authoritative
-application contracts. The engineer may propose checks, but a separate assessment
-must establish their relation to the requirement before freezing the run's
-acceptance inputs outside the implementer's write authority. Candidate development
-tests remain useful but are not sufficient for independent acceptance.
+application contracts. The engineer may propose checks. Have them assessed
+separately to confirm that they test the requirements, then freeze the acceptance
+inputs where the implementer cannot edit them. Tests written during implementation
+remain useful, but they cannot alone establish independent acceptance.
 
 Hidden cases test the stated discoverable contract, never secret requirements.
 Reference similarity is required only when fidelity is part of the brief.
-Pre-change behavior may protect unaffected behavior, not preserve a reported bug.
+Use pre-change behavior to protect unaffected features, not to preserve the
+reported bug.
 A material expectation correction is explicit, versioned and independently
 reviewed. Reassess baseline and candidate under the same corrected contract.
 
 ## Observations and protection
 
-Use the application's supported native checks or task-stable CLI and the existing
-runtime boundary. Run candidate code without unrelated secrets or privileges.
+Use the application's supported checks or a CLI version fixed for the task,
+with the runtime's existing isolation controls. Run candidate code without unrelated secrets or privileges.
 Protect check discovery, runner logic, acceptance inputs and authoritative outputs.
 A read-only prompt, separate directory, hash or candidate-generated receipt does
 not establish that protection. Exercise harmless owned canaries where protection
@@ -35,8 +37,8 @@ commit is insufficient for a dirty tree or different running build. Refresh
 affected checks and review after a candidate change. Preserve evidence after
 owned cleanup. Development login is not proof of real CAS authentication.
 
-If a required protection or observation is unavailable, diagnose supported
-recovery, then identify the exact unfinished gate. Fixture success does not
+If a required protection or observation is unavailable, try supported recovery
+and identify the requirement that remains unverified. Fixture success does not
 establish application behavior, independent review or production readiness.
 
 ## Judgment
@@ -50,8 +52,8 @@ optional refinements. An unconventional valid solution is not a defect.
 Required functional, visual, usability, security and maintainability properties
 cannot be averaged into one passing score. Judge the whole applicable artifact,
 not only a textual checklist. An agent-run journey does not establish real-user
-benefit. Visual quality needs agreed anchors and actual inspected rendering.
-Finite review must not invent an endless list of new requirements.
+benefit. Visual quality needs agreed reference examples and inspection of the rendered
+result. Keep review within its budget and do not invent new requirements.
 
 ## Check the checker
 
@@ -61,15 +63,17 @@ acceptance or rejection for the intended reason. A syntax error does not show
 that an authorization or persistence defect will be caught. A verifier that
 rejects every result also fails.
 
-For a new judge of subjective quality (visual, prose, plan or issue usefulness),
-include accepted/rejected examples, including the intended reader's demonstrated
-acceptance when available, unseen cases and multiple successful styles. Treat
-uncalibrated instructional illustrations as teaching material, not externally
-validated taste. Permit disagreement and insufficient evidence. Investigate and
-report a disagreement with demonstrated acceptance before trusting the judge or
-claiming improvement; acceptance calibrates usefulness, not factual or safety
-requirements. Record false rejection as well as false acceptance.
-Known controls belong to development after exposure, not future held-out claims.
+To assess a new judge of visual quality, prose, plans or issue usefulness, use
+accepted and rejected examples, unseen cases and multiple successful styles.
+Include the intended reader's actual judgments when available. Invented teaching
+examples do not establish the reader's taste. Allow disagreement and insufficient
+evidence as results.
+
+Investigate and report disagreements with the reader's demonstrated acceptance
+before trusting the judge or claiming improvement. Reader preference helps
+assess usefulness; it does not override facts or safety requirements. Record
+false rejection as well as false acceptance. Once a control has been exposed
+during development, do not describe it as held out in future evaluations.
 
 ## Decision
 
@@ -78,8 +82,9 @@ independent review covers the final candidate, evidence is current and delivery
 stays authorized. Missing, failed, stale and required-but-unavailable results
 cannot pass. Genuinely inapplicable checks have a reason. Local acceptance, PR
 readiness, deployed behavior and reliability over time are separate claims.
-Within the declared budget, repair and recheck. At a real boundary, preserve the
-best verified result and unfinished gates without a readiness claim.
+Repair and recheck within the declared budget. At a real permission, capability
+or budget limit, preserve the best verified result and state which checks remain
+unmet. Do not claim readiness.
 
 ## Worked counterexample
 

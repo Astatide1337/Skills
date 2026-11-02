@@ -1,30 +1,30 @@
-# Improve without narrowing the engineer
+# Compare proposed improvements
 
-Use when assessing a proposed guidance, example, tool or workflow intervention.
-Keep the actual execution and isolation procedure in [evaluation](evaluation.md).
-This resource owns experiment decisions, not a new runner or grader.
+Use this reference to assess a proposed instruction, example, tool or workflow
+change. It covers experiment design; [evaluation](evaluation.md) covers running
+and isolating the existing evaluator.
 
 ## Two separate decisions
 
-Artifact acceptance asks whether this result meets its required quality bar.
-Intervention adoption asks whether this change improves the engineering system.
-An improvement may still produce unacceptable work. A good artifact does not
-prove a new instruction helped. Preserve functional, visual, usability,
-security and maintainability outcomes separately when applicable. Cost cannot
-compensate for a required quality failure.
+Judge the delivered result and the proposed method separately. A better method
+may still produce unacceptable work; a good result does not prove the new
+instruction helped. Assess required functionality, appearance, usability,
+security and maintainability separately. Lower cost cannot compensate for a
+failed requirement.
 
 ## Diagnose and predeclare
 
-Inspect actual attempts and the earliest consequential wrong decision. Distinguish
-unclear requirements, missing context, poor design, confusing tools, environment
-failure, evaluator error and model capability. Select the owning layer before
-adding prose. Keep a causal hypothesis, intended intervention, comparison inputs,
-resource budget and reversal criterion in the existing change record.
+Inspect actual attempts and locate the first wrong decision that affected the
+result. Determine whether the cause was unclear requirements, missing context,
+poor design, confusing tools, the environment, the evaluator or model capability.
+Fix the responsible component before adding instructions. In the existing change
+record, state the suspected cause, proposed change, comparison inputs, budget
+and result that would make you revert it.
 
-Prioritize a small correction with useful transfer and manageable maintenance.
-Mandatory risk and acceptance boundaries constrain this greedy choice. Frequent
-cosmetic issues do not outrank a serious uncovered integrity boundary. Permit a
-bounded dependency chain or different design when local refinement has stalled.
+Prefer a small correction that helps related tasks and is practical to maintain.
+Required safety and acceptance checks still apply. A frequent cosmetic issue
+does not outrank a serious untested safety failure. If local fixes have stalled,
+consider a different design or a limited sequence of prerequisite changes.
 
 ## Controlled comparison
 
@@ -46,14 +46,16 @@ Use the existing Inspect workflow tasks for supported cases. Include:
 Known teaching examples and their tests are diagnostics. Reserve assessment
 cases before tuning, track exposure and refresh them once they influence work.
 Do not reward a required sequence of tools unless that ordering is itself a
-real constraint. Accept equivalent solutions. For visual judgments, blind
-origin labels where possible, inspect the artifact before the narrative, and
-allow neither acceptable, disagreement or insufficient evidence.
+real constraint. Accept equivalent solutions. For visual judgments, hide
+origin labels where possible and inspect the artifact before the author's
+explanation. Allow verdicts that neither candidate is acceptable, that reviewers
+disagree or that evidence is insufficient.
 
 Repeated runs estimate variation, not independent task coverage. Retain failures,
 interrupted attempts, unavailable results and shared setup failures. Do not retry
 one arm until it wins. Keep setup, implementation, repair and review effort
-visible. Planned approvals are not corrective human engineering. Do not equate
+visible. Record planned approvals separately from user interventions needed to repair
+an agent's work. Do not equate
 tokens, elapsed time, quota use and money without the actual conversion.
 
 ## When results do not improve
@@ -79,9 +81,8 @@ failure (two distinct occurrences, or one on a safety boundary), use the
 strongest enforcement that works per
 [learn from repeats](../../self-reflect/references/learn-from-repeats.md), and
 belong in the catalog rather than one application. Record declined proposals
-with their reason in the existing proposal PR or issue. A proposal needs useful gain or lower
-overhead, no observed material regression in required capabilities, and an
-explicit authorized decision. Permission and verifier changes cannot be justified
+with their reason in the existing proposal PR or issue. Adoption requires a useful gain or lower overhead, no observed material
+regression in required capabilities and an explicit authorized decision. Permission and verifier changes cannot be justified
 by an aggregate score alone. Deletion is a valid improvement. Reassess methods
 when models, tools or the workload change.
 

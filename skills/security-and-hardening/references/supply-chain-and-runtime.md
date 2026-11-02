@@ -2,8 +2,8 @@
 
 ## Dependencies and build inputs
 
-- Resolve the real workspace and authoritative package manager/lockfile from
-  repository and CI evidence. Use frozen or immutable installs.
+- Identify the workspace, package manager and lockfile used by the repository
+  and CI. Use frozen or immutable installs.
 - Review new direct and transitive dependencies, registries, names, maintainers,
   release history, source, licenses, lifecycle/build scripts, and lockfile diff.
 - Treat install scripts, plugins, generators, build hooks, containers, actions,
@@ -33,7 +33,8 @@
 - Run as a non-root user where feasible; drop capabilities; avoid privileged
   mode, host namespaces, Docker sockets, writable host mounts, and broad devices.
 - Make the filesystem read-only when supported, isolate writable paths, set
-  resource limits, and constrain ingress/egress. Never bake secrets into image
+  resource limits, and constrain incoming and outgoing network traffic. Never bake
+  secrets into image
   layers, build arguments, or build logs.
 - Scan configuration, dependencies, and images, then triage findings rather than
   equating scan success with security.

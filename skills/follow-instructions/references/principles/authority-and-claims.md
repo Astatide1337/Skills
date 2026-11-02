@@ -1,7 +1,7 @@
 # Authority and claims
 
-This local reference adapts pstack's Prove It Works, Never Block on the Human,
-and Encode Lessons in Structure to the repository's explicit authority model.
+Adapted from pstack's Prove It Works, Never Block on the Human, and Encode
+Lessons in Structure. The user's and repository's permission rules still apply.
 
 ## Trigger
 
@@ -17,10 +17,10 @@ drafting, fixing, creating, publishing, merging, and deploying.
 
 ### Retain the task contract
 
-Requirements bind the outcome, authority, deliverable and acceptance. A workflow's
+Preserve the required outcome, permissions, output format and acceptance criteria. A workflow's
 default format or working method cannot replace a task requirement or a more
 specific applicable instruction. Resolve competing defaults before delegating;
-carry the selected contract and its source into each brief and continuation.
+include the applicable requirements and their source in each brief and handoff.
 If a later decision supersedes an assumption, update its dependent instructions
 and checks. Internal notes may use another format; the delivered artifact must
 satisfy the retained contract. Check the actual file, format and required
@@ -28,14 +28,14 @@ observations before handoff, not only the latest plan or an author's summary.
 
 ### Observe before changing state
 
-Before an action, establish its intended target and the assumptions relevant to
-it from current evidence. Before changing state, identify material effects,
-affected resources, authority and recovery, including partial failure and other
-writers. Prefer a practical reversible path. Before consequential changes,
-establish restoration, containment or compensation; some effects are irreversible
-and must be recognized before execution. A backup alone does not prove recovery.
-If a necessary fact is unknown, investigate safely before the dependent action.
-Use [production safety](../../../production-safety/SKILL.md) for operational detail.
+Before acting, verify the target and any assumptions the action depends on.
+Before changing state, identify material effects, affected resources, authority
+and recovery, including partial failure and other writers. Prefer a practical
+reversible path. Before a consequential change, establish how to restore state,
+limit damage or compensate for failure; some effects are irreversible and must
+be recognized before execution. A backup alone does not prove recovery. If a
+necessary fact is unknown, investigate safely before the dependent action. Use
+[production safety](../../../production-safety/SKILL.md) for operational detail.
 
 Match preparation to consequences. Reads and scoped local edits need no backup
 ritual, but still respect sensitive-data boundaries and unrelated user work.
@@ -91,12 +91,6 @@ claiming completion; unavailable review stays pending.
    telemetry, and blocked environments.
 6. When a recurring authority or evidence error is deterministic, encode the
    check in the owning workflow rather than adding another reminder.
-
-## Principal-engineer lens
-
-Trust is a technical property. Principal-level stewardship means that other
-people can rely on the claimed state, the scope of a change, and the boundary
-between recommendation and action.
 
 ## Evidence
 

@@ -5,9 +5,8 @@ description: "Designs, builds and reviews user-facing web UI: layout, typography
 
 # Web Interface
 
-Build the rendered product, not an imagined screen. Keep changes coherent with
-the existing application, accessible in real use, and verified in the states
-they affect.
+Work from the actual application. Preserve its design conventions, make the
+changed controls accessible, and verify the states users can reach.
 
 ## Scope and mode
 
@@ -23,8 +22,7 @@ they affect.
 
 ## Choose the lane
 
-Classify the task before changing code. Load every reference that matches the
-actual work, but do not read the full library by default.
+Classify the task before changing code. Read the references needed for the actual work.
 
 | Situation | Read |
 | --- | --- |
@@ -39,16 +37,16 @@ actual work, but do not read the full library by default.
 | Visual quality is below the agreed bar, or a new direction needs judgment | [Visual direction](./references/visual-direction.md) |
 | A concrete hierarchy example would clarify that decision | [Sourced visual references](./references/composition-examples.md) |
 
-Use the base workflow below for every lane. A React project does not
+Use the base workflow below for each task type. A React project does not
 automatically make every UI change a performance refactor, and a Tailwind
 project is not necessarily a shadcn project.
 
 ## Base workflow
 
 For a new visual direction, select a task-relevant case from the
-[sourced visual references](./references/composition-examples.md), open its actual
-image or live example, identify the useful design decision, and compare the
-rendered candidate against that decision. An accepted local direction or a small
+[sourced visual references](./references/composition-examples.md), open the
+image or live example, identify the useful design decision, and compare it
+with the rendered candidate. An accepted local direction or a small
 fix needs no reference tour. Different valid compositions remain acceptable.
 
 Selected public reference images can be fetched explicitly with the
@@ -67,8 +65,8 @@ not just their labels, and keep third-party artwork out of shipped products.
    existing system cannot express the requested behavior cleanly. Reuse is a
    default, not a reason to preserve a demonstrated design-system defect.
    Resolve material changes through the existing approval contract.
-4. **Implement the smallest coherent experience.** Keep hierarchy intentional,
-   copy specific, and decoration subordinate to content or interaction. Avoid
+4. **Implement the requested experience.** Make the main task easy to find,
+   use specific copy and keep decoration from competing with content or controls. Avoid
    visual-system changes for a local request.
    Judge visible content by the user's task: remove duplicate actions and
    development diagnostics from product flows unless they help the user make
@@ -77,9 +75,10 @@ not just their labels, and keep third-party artwork out of shipped products.
    security, validation, and recovery information.
 5. **Verify what changed.** Exercise the changed controls and inspect the
    rendered state against the agreed task and visual standard, not just a score.
-   Retain the best-so-far candidate. A revision needs a specific observed gap.
-   When refinements plateau, diagnose direction, fidelity or evaluator judgment
-   rather than layering on effects. If the interface cannot be opened, report
+   Keep the best candidate so far. Revise it to address a specific observed
+   problem. If refinements stop helping, check the design direction, how
+   accurately it was implemented and how it is being judged. If the interface cannot be
+   opened, report
    that as an acceptance gap instead of guessing.
 6. **Preserve accepted choices.** Treat explicit user corrections as constraints
    for the current task. Keep accepted parts stable while iterating elsewhere.
@@ -124,8 +123,8 @@ For implementation work with an available preview or browser:
 1. Navigate to the changed screen and interact with the altered controls.
 2. Capture and inspect screenshots for the relevant viewport, theme, and
    state combinations.
-3. Check alignment, spacing, type, contrast, overflow, copy, neighboring
-   consistency, and focus behavior from the rendered result.
+3. Check alignment, spacing, type, contrast, overflow, copy, consistency with
+   neighboring UI, and focus behavior from the rendered result.
 4. When time-based behavior changes, record and inspect the complete
    interaction or animation; check timing, interruption, layout shift, jank,
    clipping, and start/end states.
@@ -148,5 +147,5 @@ measurable user-visible problem, not generic micro-optimization.
   package installs, registry access, or credential use.
 - Never claim a command, installation, screenshot, browser check, or file
   change occurred unless observed evidence supports it.
-- Hand broad completion claims to `verify-work` when the task includes more
-  than this interface change.
+- Use `verify-work` to check the full outcome when the task extends beyond
+  this interface change.

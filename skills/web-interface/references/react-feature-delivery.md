@@ -34,7 +34,7 @@ screen, established primitives, tokens, product copy, route patterns, and
 focused tests. Reuse existing controls. For shared components, check native
 semantics, accessible names/descriptions, keyboard operation, state ownership,
 props/refs, and all current call sites before changing the public API.
-5. **Implement the smallest coherent change.** Preserve the product's visual
+5. **Implement the smallest complete change.** Preserve the product's visual
 language. Prefer native links, buttons, form controls, and landmarks; add ARIA
 to complete semantics rather than imitate them. Keep one source of truth for
 controlled state. Handle async completion, cancellation/unmount, duplicate
@@ -42,7 +42,7 @@ submission, and error recovery at the state owner. Preserve focus and typed
 input through errors and hydration.
 6. **Run focused deterministic checks.** Use the repository's existing test
 and lint commands without installing dependencies. Add or update assertions
-for each changed transition and an allowed control. Test a valid case and a
+for each changed transition and a valid case that must keep working. Test a valid case and a
 failure or invalid case. Do not let a component snapshot or source assertion
 stand in for interaction behavior. If the project already has Playwright, a
 focused browser test can use this shape, adapting selectors and expected copy
@@ -76,11 +76,11 @@ to the actual product:
    or baseline-only shortcut proves only that shortcut's path.
 8. **Report by evidence layer.** Record the source revision, exact command, and
    inspectable test result. When a supplied packet lacks execution provenance,
-   label its result as packet-reported rather than verified. Separate source
+   attribute the reported result to that packet; do not claim to have verified it. Separate source
    and deterministic test results from browser interactions and inspected
    screenshots. State which states and widths were actually exercised, what
    failed or was skipped, and what remains unknown. If a preview, browser, or
-   screenshot inspection was unavailable, mark rendered acceptance as pending;
+   screenshot inspection was unavailable, report that rendered verification is pending;
    do not imply it was checked.
 
 ## Acceptance record

@@ -5,9 +5,9 @@ description: "Finds root cause before fixing: reproduce, isolate, test hypothese
 
 # Systematic Debugging
 
-Find the cause before fixing the symptom. An obvious mechanical correction
-with a clear owner and focused reproducer uses `follow-instructions`' short
-path; do not manufacture a multi-hypothesis investigation for it.
+Use this procedure when the cause is uncertain. For an obvious correction with
+a clear owner and focused reproducer, use the short path in
+`follow-instructions`.
 
 ## Workflow
 
@@ -19,18 +19,23 @@ path; do not manufacture a multi-hypothesis investigation for it.
    - Reproduce the same failure in the closest practical environment.
    - Record the exact command, request, user flow, or conditions that trigger it.
    - If it cannot be reproduced, gather current logs/state before changing anything.
-   - Invest disproportionate effort in a tight feedback loop that fails on the user's exact symptom. Prefer, in order: a focused test, request/CLI fixture, browser script, captured-trace replay, throwaway harness, fuzz loop, bisection, or differential comparison.
-   - Tighten the loop until it is fast, deterministic, and runnable without interpretation. For flaky bugs, raise and measure the reproduction rate instead of waiting for a perfect repro.
+   - Build a repeatable check that fails on the user's exact symptom. Prefer, in
+     order: a focused test, request or CLI fixture, browser script, captured
+     trace replay, temporary harness, fuzz loop, bisection or differential
+     comparison.
+   - Tighten the loop until it is fast, deterministic, and runnable without
+     interpretation. For flaky bugs, raise and measure the reproduction rate instead of
+     waiting for a perfect repro.
    - Run at least one command, request, or interaction capable of producing the
-     failure before calling it reproduced. A plausible test plan is not a red
-     state.
+     failure before calling it reproduced. A test plan alone does not reproduce the failure.
    - Minimize the reproduction. Remove inputs, services, timing, and setup one
-     at a time until every remaining element is load-bearing. Record what can
+     at a time until every remaining element is needed to trigger the failure. Record what can
      be removed without changing the failure.
 
 3. **Inspect the real system.**
    - Read the relevant code, configuration, tests, logs, runtime state, and recent changes.
-   - Check the actual branch, environment, dependencies, network/topology, and data state when relevant.
+   - Check the actual branch, environment, dependencies, network/topology, and data
+     state when relevant.
    - Do not assume local, CI, staging, and production behave the same.
 
 4. **List facts and unknowns.**
@@ -49,12 +54,14 @@ path; do not manufacture a multi-hypothesis investigation for it.
    - Name one smallest next experiment first: exact input or cohort, observation,
      and how each possible result changes the next step. Put broader follow-up
      checks after it rather than presenting an undifferentiated investigation list.
-   - Give that first experiment a red-capable procedure: the exact action that
-     can exhibit the user's symptom, how many repetitions or what time window
-     will measure it, and the observation that counts as failure. Then state
+   - Specify how the first experiment can reproduce the symptom: the exact
+     action, repetition count or observation window, and result that counts
+     as failure. Then state
      which elements to remove while preserving the failure to minimize the
      reproduction.
-   - Change only diagnostic state when necessary; avoid behavior-changing fixes at this stage. Mark temporary logs, probes, flags, and fixtures so their removal is verifiable.
+   - Change only diagnostic state when necessary; avoid behavior-changing fixes at this
+     stage. Mark temporary logs, probes, flags, and fixtures so their removal is
+     verifiable.
    - If evidence contradicts the current explanation, discard the explanation.
    - If a setup or tool fault is recoverable within scope, repair it and rerun
      the original check. If an external write has an uncertain result, observe
@@ -73,9 +80,10 @@ path; do not manufacture a multi-hypothesis investigation for it.
    - Re-run the exact reproduction.
    - Run the smallest relevant regression checks.
    - Confirm the mechanism is fixed, not merely hidden.
-   - Remove temporary instrumentation and preserve the minimized reproduction as a regression test when it exercises the real failure seam.
+   - Remove temporary instrumentation and preserve the minimized reproduction as a
+     regression test when it exercises the actual failure path.
    - If the minimized reproduction cannot become a stable test, identify the
-     narrowest seam that can assert the broken invariant and explain the gap.
+     smallest code path where a test can assert the required behavior and explain the gap.
    - Record the prevention follow-up when the failure exposed a missing alert,
      invariant, deployment check, or operational runbook.
    - Preserve the failing input, observed output, and cleanup evidence. Do not
@@ -84,8 +92,8 @@ path; do not manufacture a multi-hypothesis investigation for it.
 
 For an HTTP/RPC request mismatch or a proposed API contract change, use the
 [API/backend contract procedure](references/api-backend-contracts.md) within
-this workflow. Keep the exact caller path and contract provenance in view; a
-smoke mock alone does not establish wire behavior.
+this workflow. Keep the exact caller path and source of the expected contract in view. A
+permissive mock alone does not establish the response sent over the transport.
 
 For a Linux, network, or container incident whose failing layer is unclear,
 use the [Linux/network/container procedure](references/linux-network-container-incidents.md)
@@ -133,5 +141,6 @@ branch) for each material hypothesis.
 
 ## Execution boundary
 
-Apply the shared [execution boundary](../follow-instructions/references/principles/authority-and-claims.md#execution-boundary).
-Keep the task-specific restrictions above; this skill grants no additional effects.
+Apply the shared [execution
+boundary](../follow-instructions/references/principles/authority-and-claims.md#execution-boundary).
+The restrictions above still apply; this skill grants no additional permission.

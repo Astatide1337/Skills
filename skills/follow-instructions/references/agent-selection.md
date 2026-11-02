@@ -1,9 +1,9 @@
 # Select the agent and its reasoning budget
 
-Use before delegating when the task authorizes model selection. This reference
-owns role selection and runtime dispatch for the coordinator, PR review and
-Better Call Sol. The caller still owns scope, acceptance and review necessity.
-No selection changes the user's parent model, global settings, quota or authority.
+Use before an authorized delegation to choose the child's model and reasoning
+level. The coordinator, PR review and Better Call Sol share this procedure; their
+own rules still determine scope, acceptance and whether review is required.
+Keep the parent model, global settings, quota and permissions unchanged.
 
 ## Discover before choosing
 
@@ -17,9 +17,9 @@ No selection changes the user's parent model, global settings, quota or authorit
    can run the child, and advertises the exact model and options. A truncated
    catalog is not evidence of absence: use its documented search when needed.
 3. Choose the role, difficulty and evidence needed before the model. Record the
-   exact provider, model, reasoning option/value and the task-grounded reason in
+   exact provider, model, reasoning option/value and why they fit this task in
    the existing brief. Defaults below are starting choices, not benchmark claims.
-   Carry the actual returned selection forward; never claim requested settings
+   Record the selection returned by the runtime; never claim requested settings
    were used when the runtime reports otherwise.
 
 ## Match the role to the work
@@ -29,16 +29,16 @@ No selection changes the user's parent model, global settings, quota or authorit
 | Bounded lookup, inventory or mechanical edit with a clear check | Efficient coding/research model; low or medium | Evidence conflicts or the edit has consequential behavior |
 | Ordinary implementation and maintenance with established interfaces | Capable coding model; medium | Root cause, compatibility or ownership remains uncertain |
 | Architecture, subtle concurrency, security/data boundaries or a failed premise | Strong code/judgment model; high | A specific unresolved interaction needs deeper analysis; use xhigh only if supported and justified |
-| Independent review | Capable code reviewer; high for material changes, medium for narrow changes | A concrete cross-cutting failure path remains uncovered |
+| Independent review | Capable code reviewer; high for material changes, medium for narrow changes | A failure spanning several components remains unexamined |
 | Prose, visual taste and synthesis | Judgment model; medium with actual examples/artifacts | Conflicting requirements or consequential ambiguity remains |
 | Baseline/candidate experiment | The same frozen model and effort in both arms | Never change one arm mid-comparison; model changes are a separate experiment |
 
 For the capabilities observed on 2026-11-02, reasonable initial assignments are
 `gpt-6-luna` for bounded inspection, `gpt-6.1-sol` for implementation/review,
-and `gpt-6-astra` for difficult design. An available Claude Opus family can supply
-a different-family judgment or review perspective. Resolve exact IDs and effort
-values again in the active runtime; these examples are not permanent rankings.
-Do not select an image, audio or embedding model merely because a provider lists it.
+and `gpt-6-astra` for difficult design. An available Claude Opus model can
+provide review from another model family. Resolve exact IDs and effort values
+again in the active runtime; these examples are not permanent rankings. Do not
+select an image, audio or embedding model merely because a provider lists it.
 
 Prefer a different model family for independent review of consequential work
 when authorized and available. A fresh same-family reviewer still counts as
@@ -67,23 +67,24 @@ an approval mode is not read-only isolation. Put the child's permitted effects
 in its brief and use real runtime isolation when required.
 
 `isolation: "worktree"` starts from the parent commit and excludes uncommitted
-edits. Include an integrated commit or another supported transfer before asking
-that child to verify a candidate. Identify dirty/untracked deltas explicitly;
+edits. Commit the integrated changes or use another supported transfer before asking
+that child to verify them. Identify uncommitted and untracked changes explicitly;
 the checkout name or a head SHA alone does not prove it contains them.
 
-Every new independent review or recheck gets a fresh task and brief. Keep task ID,
-returned artifact/revision, actual settings, pending questions and verdict in
-the existing record. Follow the task's returned `next` instruction; completion
-wakes and PR watches replace polling. Cancel a superseded worker with task
-cancellation, not an interrupt on its underlying thread. A late result must be
-reconciled with the current owner and candidate before use.
+Every new independent review or recheck gets a fresh task and brief. Keep task
+ID, returned artifact/revision, actual settings, pending questions and verdict
+in the existing record. Follow the task's returned `next` instruction;
+completion wakes and PR watches replace polling. Cancel a superseded worker with
+task cancellation, not an interrupt on its underlying thread. Before using a
+late result, confirm it still matches the assigned work and current revision.
 
 If an explicitly requested model/provider is unavailable, report it and continue
 independent work; do not silently substitute or call self-review independent.
-Generic review can select an available reviewer before dispatch without requiring
-Sol. If a dispatch fails, do not try different providers, models, native tools or
-CLIs as an unasked fallback. Recheck the supported capability and report the exact
-pending gate. A timeout does not cancel a child; follow its live return contract.
+Generic review can select an available reviewer before dispatch without
+requiring Sol. If a dispatch fails, do not try different providers, models,
+native tools or CLIs as an unasked fallback. Recheck the runtime capability and
+report which required action remains pending. A timeout does not cancel a child;
+follow its live return contract.
 
 ## Why this policy exists
 
@@ -95,6 +96,8 @@ merge boundaries and T3's tool contracts. Cursor's model slugs, cloud VM default
 and fallback behavior are not portable T3 APIs.
 
 Sources at `cursor/plugins` revision `ae5650febf4320793844c12c4adaa937f417f8da`:
-[subagent policy](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/pstack/skills/poteto-mode/SKILL.md#subagents),
+[subagent
+policy](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/pstack/skills/poteto-mode/SKILL.md#subagents),
 [orchestrate](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/pstack/skills/poteto-mode/playbooks/orchestrate.md),
-[model configuration](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/pstack/skills/setup-pstack/SKILL.md).
+[model
+configuration](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/pstack/skills/setup-pstack/SKILL.md).

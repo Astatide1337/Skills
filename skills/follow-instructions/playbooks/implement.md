@@ -5,11 +5,12 @@
 Use when the requested outcome changes repository behavior or structure. Pick
 `bug`, `feature`, or `refactor`; include the PR route under the standing
 implementation-delivery authority unless local-only work or another restriction
-overrides it. Mechanical local changes use the
-coordinator's short path instead. Substantial design decisions use [design](design.md) and
-[plans and authority](../references/approved-plans.md); an existing implementation
-authorization does not require a separate presentation or confirmation.
-Use [`systematic-debugging`](../../systematic-debugging/SKILL.md) for unclear causes, [`architect`](../../architect/SKILL.md) for unclear boundaries,
+overrides it. Use the coordinator's short path for a clear mechanical local
+change. Substantial design decisions use [design](design.md) and [plans and
+authority](../references/approved-plans.md); an existing implementation
+authorization does not require a separate presentation or confirmation. Use
+[`systematic-debugging`](../../systematic-debugging/SKILL.md) for unclear
+causes, [`architect`](../../architect/SKILL.md) for unclear boundaries,
 [`web-interface`](../../web-interface/SKILL.md) for UI, and
 [`code-review-and-quality`](../../code-review-and-quality/SKILL.md) before
 handoff.
@@ -38,55 +39,58 @@ handoff.
    alternatives.
    For a feature, define observable states and extend existing interfaces. For
    a refactor, state behavior/contracts that must remain unchanged.
-3. Choose the [smallest complete change](../references/principles/outcome-and-scope.md),
-   preserving evidenced contracts and coherent ownership. Do not turn a prototype
-   or assistant-authored fixture into a compatibility requirement. When
-   changing boundary data or shared state, apply [construction decisions](../references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples);
+3. Choose the [smallest complete
+   change](../references/principles/outcome-and-scope.md), preserving supported
+   contracts and keeping each behavior with its responsible code. Do not turn a
+   prototype or assistant-authored fixture into a compatibility requirement.
+   When changing boundary data or shared state, apply [construction
+   decisions](../references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples);
    an already-clear local edit needs no extra design procedure. Reuse the
    approved behavior, interfaces and owners; resolve material deviations through
    the shared contract before dependent implementation.
 4. Implement one unit at a time. Add a focused regression or acceptance check
-   that asserts the outcome, including a relevant negative control.
-   For substantial product work, exercise the representative complete path
-   early, before expanding variants. Carry the accepted interaction and UI
-   constraints through integration; an early working slice does not discharge
-   the remaining approved scope.
+   that asserts the outcome, including a relevant negative control. For
+   substantial product work, exercise the representative complete path early,
+   before expanding variants. Carry the accepted interaction and UI constraints
+   through integration; finish the remaining approved scope after the first path
+   works.
 5. Remove observed redundant code or needless abstractions with `deslop` before
    final checks, preserving behavior and local conventions. Re-run the original
-   path and affected native/supplemental checks; exercise
-   the real UI/API/CLI when relevant through its actual tools. Obtain independent
-   review of approved nontrivial delivery, fix in-scope findings and refresh
-   affected checks and reviewer coverage on the final artifact. An ordinary
-   failed check or material in-scope finding is the next repair action, not a
-   completion handoff or another request for implementation permission.
+   path and affected native/supplemental checks; exercise the real UI/API/CLI
+   when relevant through its actual tools. Obtain independent review of approved
+   nontrivial delivery, fix in-scope findings and refresh affected checks and
+   reviewer coverage on the final artifact. Fix ordinary failed checks and
+   material in-scope findings before handoff; the existing implementation
+   approval covers those repairs.
 6. Finish the whole approved result, including a scoped final commit when
-   approval covers it. When
-   publication is approved, use [pull-requests](../../pull-requests/SKILL.md) for
-   a draft PR/MR, in-scope fixes and current-head CI readiness. A draft may be
-   needed to obtain CI before readiness; never merge or enable auto-merge.
+   authorized. When publication is approved, use
+   [pull-requests](../../pull-requests/SKILL.md) for a draft PR/MR, in-scope
+   fixes and current-head CI readiness. A draft may be needed to obtain CI
+   before readiness; never merge or enable auto-merge.
 
 ## Failure and recovery
 
-If the baseline or reproducer is unavailable, report that counterfactual gap
-and use the strongest safe alternative; do not fabricate a before/after win.
-If a check contradicts the hypothesis, return to diagnosis. Remove temporary
-probes and revert only run-owned rejected changes. Do not broaden secret access
-or hide a symptom to make a test pass.
+If the baseline or reproducer is unavailable, state that the original failure
+could not be reproduced and use the strongest safe alternative; do not fabricate
+a before/after win. If a check contradicts the hypothesis, return to diagnosis.
+Remove temporary probes and revert only changes from this task that were
+rejected. Do not broaden secret access or hide a symptom to make a test pass.
 Preserve evidence for material discoveries and revise the affected decision.
-Apply the actual approval gate in [plans and authority](../references/approved-plans.md);
-continue independent authorized units. Diagnose
-safe alternatives and recoverable setup before declaring a blocker. Repeated
-failure or no new evidence uses [self-reflect](../../self-reflect/SKILL.md).
+Apply the actual approval gate in [plans and
+authority](../references/approved-plans.md); continue authorized work that does
+not depend on the decision. Check safe alternatives and repair recoverable setup
+faults before declaring a blocker. Repeated failure or no new evidence uses
+[self-reflect](../../self-reflect/SKILL.md).
 
 ## Completion evidence
 
-Report the mechanism, changed owner, original reproduction result, focused
-regressions, final diff scope, and unverified environments. State whether the
+Report the cause, responsible code changed, original reproduction, regression
+results, diff scope and unverified environments. State whether the
 result is a source change, local behavior, or published artifact. Include the
 approved plan identity, final review and current-head evidence when required;
 report an unavailable gate explicitly instead of stopping at a partial result
-with a readiness claim. Do not claim
-deployment or user-visible success from a build alone.
+while claiming readiness. A build alone does not prove deployment or a working
+user interaction.
 
 ## Example
 

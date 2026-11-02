@@ -16,9 +16,8 @@ Start from the exact symbol, line, constant, or boundary in question.
 Useful evidence includes tests added with the change, comments later deleted,
 nearby constants, failure-handling code, configuration defaults, and commits
 that revert or narrow the behavior. None proves intent alone. Preserve dates,
-authors, identifiers, and exact paths so another investigator can reproduce the
-lineage.
+authors, identifiers, and exact paths so another investigator can trace the same history.
 
 Record unsuccessful searches when they rule out an obvious source. Stop when
-the remaining sources are unavailable or further search is unlikely to change
-the confidence tier, then state that limitation.
+the remaining sources are unavailable or further search is unlikely to change the
+conclusion or its confidence, then state that limitation.

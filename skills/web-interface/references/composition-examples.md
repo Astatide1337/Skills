@@ -3,8 +3,9 @@
 Use when a composition decision needs a concrete reference. The Apple, Stripe
 and Linear images were fetched and their actual pixels inspected on
 **2026-10-15**. The documented AI contrasts retain the earlier 2026-10-14
-inspection; they are optional diagnostic material. Positive selections are our
-assessment for the stated purpose, not a universal certificate or user approval.
+inspection; they are optional diagnostic material. The positive examples reflect our
+assessment for the stated purpose. They do
+not establish universal quality or user approval.
 
 ## Choose by task, not by brand or similarity
 
@@ -18,8 +19,9 @@ assessment for the stated purpose, not a universal certificate or user approval.
 | `ai-solo-editor` | Negative case | Working-area allocation and small controls |
 | `ai-harness-editor` | Better alternative, not a gold standard | More usable allocation of canvas and tools |
 
-Do not compare unrelated products with one aesthetic score. Match the interaction,
-content and density. References inform choices, not mandatory styles. Screenshots
+Match references to the interaction, content and density. Do not score
+unrelated products as though they served the same task or treat a reference
+style as mandatory. Screenshots
 cannot establish keyboard operation, accessibility, persistence or product benefit.
 
 ## Positive references
@@ -38,8 +40,8 @@ a clear content hierarchy. Useful for media-rich interfaces, not a universal
 workspace layout. The artwork is meaningful content rather than unrelated decoration.
 
 **Limits:** This is a product-marketing still. Do not copy device framing, Apple
-branding, album art or translucency into an unrelated product. Preserve the principle
-of emphasis, not the assets or visual skin. Interaction was not tested here.
+branding, album art or translucency into an unrelated product. Apply the hierarchy
+without copying assets or appearance. Interaction was not tested here.
 
 ### Stripe: several valid form compositions
 
@@ -130,8 +132,9 @@ adding decoration. Neon colors alone do not determine quality.
 
 **Finding:** The canvas uses more height and tools are grouped distinctly. This
 is a useful contrast, not a perfect reference. Small controls still need testing.
-The source reports remaining workflow problems. Better appearance is not complete
-acceptance, and AI-generated does not mean automatically bad.
+The source reports remaining workflow problems. The improved layout does not resolve
+those workflow problems. Judge the
+artifact's behavior and design, not its AI authorship.
 
 ## Local viewing, attribution and limits
 
@@ -172,8 +175,9 @@ The image fetcher was exercised against Apple, Stripe and Linear from an
 isolated installation on 2026-10-15, followed by actual local-image inspection.
 Offline tests cover cache integrity and failures, not future host availability.
 
-These exposed teaching cases are not held-out evaluations. Use genuine product-
-specific quality anchors and valid alternative styles before claiming transfer.
+These exposed teaching cases are not held-out evaluations. Compare against accepted work
+from the target product and valid alternative
+styles before claiming the guidance transfers to that product.
 
 [source-apple]: https://www.apple.com/newsroom/2025/06/macos-tahoe-26-makes-the-mac-more-capable-productive-and-intelligent-than-ever/
 [source-stripe]: https://docs.stripe.com/payments/payment-element

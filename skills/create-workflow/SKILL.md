@@ -5,20 +5,20 @@ description: "Turns a recurring manual or agent-run procedure into a repo-owned,
 
 # Create Workflow
 
-Make the normal path explicit, replayable, and boring. The goal is not maximum automation; it is removing repeated judgment without creating a larger operational burden.
+Automate a repeated decision only when the result is easier to run and maintain
+than the current procedure.
 
 ## Lock the acceptance contract
 
-Before choosing an implementation, copy every literal deliverable from the
-request into a short checklist: exact output paths, filenames, command names,
-inputs, allowed changes, and required checks. These are constraints, not naming
-suggestions. Verify each literal against the final workspace before reporting;
-if one is absent, the workflow is not complete.
+Before choosing an implementation, record the requested output paths, filenames,
+commands, inputs, allowed changes and required checks. Preserve these exact
+interfaces. Check them against the final workspace before reporting completion.
 
 ## Modes
 
 - **Create:** capture a recurring manual or agent-run procedure as a repository-owned workflow.
-- **Simplify:** reduce an existing workflow while preserving its guarantees, evidence, and recovery behavior.
+- **Simplify:** reduce an existing workflow while preserving its guarantees,
+  evidence, and recovery behavior.
 
 Use only for explicitly requested recurring automation or simplification of an
 existing workflow. A one-off investigation or test campaign does not imply a
@@ -30,11 +30,16 @@ In either mode, observe the real procedure before designing its replacement.
 
 Classify the target before acting:
 
-- **Repository-local:** developer setup, generation, validation, formatting, or maintenance owned by this checkout.
-- **Delivery:** CI, release, migration, promotion, or deployment orchestration crossing environment boundaries.
-- **Agent operation:** a recurring research, review, triage, or repair procedure whose useful decisions can be bounded by evidence.
+- **Repository-local:** developer setup, generation, validation, formatting, or
+  maintenance owned by this checkout.
+- **Delivery:** CI, release, migration, promotion, or deployment orchestration
+  crossing environment boundaries.
+- **Agent operation:** a recurring research, review, triage, or repair procedure
+  whose useful decisions can be bounded by evidence.
 
-Read `references/artifact-selection.md` when choosing the implementation form. Use `references/workflow-spec.md` to specify a non-trivial workflow before implementing it.
+Read `references/artifact-selection.md` when choosing the implementation form.
+Use `references/workflow-spec.md` to specify a non-trivial workflow before
+implementing it.
 
 Inspect only the supplied repository and explicitly named inputs. Do not search
 parent directories, `/tmp`, evaluator/grader paths, or unrelated repositories
@@ -44,20 +49,18 @@ invent paths, endpoints, digests, owners, or successful writes.
 
 ## Workflow
 
-1. Observe only enough of the current procedure to name the repeated decision,
-   declared inputs, desired output, and required failure. Do not expand a small
+1. Observe the current procedure. Identify the repeated decision, its inputs
+   and output, and the invalid case it must reject. Do not expand a small
    check into a general policy engine.
 2. Choose the smallest artifact that removes that decision: existing config,
    declarative config, schema, validator, idempotent script, platform
    orchestration, then service—in that order.
-3. Preserve the requested interface exactly. Treat an explicit path, filename,
-   command name, input format, and exit-code contract as acceptance criteria;
-   do not substitute a clearer name or a different integration point without
-   asking. Re-read these literals before writing and again before reporting.
+3. Preserve the requested interface, including input formats and exit codes.
+   Ask before substituting a name, path or integration point.
 4. Implement only the checks required by the repeated mistake and supplied
    input contract. Do not add duplicate detection, alternate formats, discovery,
    mutation, dry-run machinery, retries, or extensibility unless the task needs
-   them. Every extra branch needs its own justification and test.
+   them. Add a branch only for a stated requirement and test the behavior it adds.
 5. Make reruns safe and output stable. Prefer simple set operations and explicit
    sorting over stateful parsing. Never read secret values when names suffice.
 6. Verify the current fixture, one focused success case, the required failure,
@@ -68,7 +71,7 @@ invent paths, endpoints, digests, owners, or successful writes.
 
 ## Refuse automation when it is worse
 
-When the procedure is rare, judgment is genuinely contextual, the inputs cannot
+When the procedure is rare, the decision depends on context, the inputs cannot
 be validated, or automation would introduce disproportionate credentials,
 state, mutation, or maintenance cost, recommend a one-off procedure in the
 response rather than automating it. Write it into repository documentation only
@@ -84,7 +87,8 @@ values. Reject an artifact that contains a digest with no verifiable target.
 - What decision is being made repeatedly, and what exact fact would make it deterministic?
 - Is this file executable, or is it only documenting a command that should be documented once?
 - Does the proposed automation add state, credentials, retries, or an operator surface?
-- Can an untrusted input cause arbitrary command execution, URL access, data export, or deletion?
+- Can an untrusted input cause arbitrary command execution, URL access, data
+  export, or deletion?
 - What is the smallest test that proves normal operation no longer requires an agent?
 - Who owns the workflow, and what event should cause it to be revised or deleted?
 
@@ -99,11 +103,15 @@ For implementation, create the smallest repository-native artifact and report
 the exact commands and observed results for the focused checks above. Apply
 clean-checkout, dry-run, rollback, retry, and side-effect gates only when the
 workflow actually writes state, crosses environments, or performs delivery;
-do not force production ceremony onto a read-only local validator.
+a read-only local validator does not need these operational checks.
 
-Delete wrappers, duplicate configuration, speculative integrations, and runtime inference. Leave unresolved provider behavior blocked rather than encoding a guess.
+Remove unnecessary wrappers, duplicate configuration and speculative integrations
+added by this task. If provider behavior is unknown, inspect its documented
+contract or report the unresolved dependency; do not encode a guess.
 
 ## Execution boundary
 
-Apply the shared [execution boundary](../follow-instructions/references/principles/authority-and-claims.md#execution-boundary).
-Keep the task-specific restrictions above; this skill grants no additional effects.
+Apply the shared [execution
+boundary](../follow-instructions/references/principles/authority-and-claims.md#execution-boundary).
+Keep the task-specific restrictions above; this skill grants no additional
+effects.

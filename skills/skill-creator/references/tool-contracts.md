@@ -1,7 +1,7 @@
 # Contracts for repeatable operations
 
-Use when adding or changing a tool, script or adapter. This is not a mandate to
-wrap native commands or create a universal result schema.
+Use this reference when adding or changing a tool, script or adapter. Reuse
+native commands and result formats when they already meet the need.
 
 ## Before writing it
 
@@ -9,12 +9,12 @@ Identify the observed repeated error or costly operation. Inspect the native
 command and owning tool first: read current help or authoritative metadata,
 confirm the executable and target, and try the supported operation. Do not
 invent flags, update commands or output formats from another CLI's conventions.
-A stable operation can move into code only when
-its inputs and intended effects are understood. Product choices, architectural
-trade-offs and aesthetic judgments must not be hidden in a supposedly neutral
-tool. Choose one owner for the changing contract.
+Automate an operation only after its inputs and effects are understood.
+Keep product, architecture and aesthetic choices explicit rather than burying
+them in a tool. Give one component responsibility for the interface.
 
-For application CLI selection, authorized setup and task-stable identity, use
+For application CLI selection, authorized setup and keeping versions fixed
+during a task, use
 the [native-tool guidance](../../verify-work/references/agent-clis.md). Keep
 package manifests and command semantics in the owning CLI project rather than
 copying a permanent application revision into Skills.
@@ -53,16 +53,16 @@ through the actual execution path. A subprocess boundary does not establish
 protection for browser, network or connected-app effects.
 
 Then give the normal documentation to a fresh agent for an ordinary invocation
-and a recoverable failure. Record what was actually exercised. Unit-test fixtures
-do not establish that a native application or model interaction occurred.
-A confusing interface is a tool defect, not automatically missing agent prose.
+and a recoverable failure. Record what was exercised. Unit-test fixtures do not establish that a native
+application or model interaction occurred. Fix a confusing tool interface
+before assuming it needs more instructions.
 
 ## Adoption and maintenance
 
-AI-written automation is candidate software until reviewed and exercised. The
-active task's author cannot change its certifier and immediately use that new
-certifier as independent proof. Separate that change, preserve the old contract,
-and require valid and violating controls. Keep secrets and unrelated user data
+Review and test generated automation before relying on it. An implementer
+cannot change the acceptance checker and immediately call its verdict
+independent proof. Review that change separately, preserve the original
+requirements, and test valid results and violations. Keep secrets and unrelated user data
 out of examples and receipts. A checksum establishes identity, not correctness.
 
 Keep the operation only when its benefit justifies maintenance and context cost.

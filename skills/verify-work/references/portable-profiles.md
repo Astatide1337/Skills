@@ -1,9 +1,9 @@
 # User-owned verification profiles
 
-Use when verification must travel with the user's tools and the application
-repository cannot be changed. Reuse the application's existing checks or a
-task-stable application CLI. That CLI owns launch, readiness, instance identity,
-domain operations, and cleanup; this helper does not replace those mechanisms.
+Use this reference when the application repository cannot be changed and
+verification must live with the user's tools. Reuse the application's checks
+or a CLI version fixed for the task. The CLI still handles launch, readiness,
+instance identity, application operations and cleanup.
 
 Store a reviewed JSON profile outside the application checkout. It contains
 `version: 1`, explicit relative `source_paths` relevant to the claim, and `steps`.
@@ -25,7 +25,8 @@ Choose the application's actual invocation and output shape; the example does
 not install or prove an available app CLI. Include doctor assertions for the
 owned run identity and current application revision, and required check IDs or
 exact check arrays so a removed check cannot satisfy only `/summary/passed`.
-Declare additional inputs outside automatic content coverage, including every helper/script/config whose change could invalidate the claim.
+Declare additional inputs that automatic hashing does not cover. Include every
+helper, script or configuration file whose changes could invalidate the claim.
 Do not name credentials in source paths or put secret values in profiles.
 
 Run from the installed skill directory:
@@ -35,17 +36,18 @@ python scripts/check_profile.py --profile /private/profile.json \
   --workspace /path/to/application --receipt /private/fresh-receipt.json
 ```
 
-A fresh receipt is reserved before effects; accepted/failed/not-run steps and
-source/profile identities are retained. Exit 0 requires all expected results
+The helper reserves a fresh receipt before running commands. It records accepted,
+failed and not-run steps, plus the source and profile identities. Exit 0 requires all expected results
 and unchanged captured inputs. Exit 3 retains a failed run; exit 2 reports an
 invocation error. Failed or uncertain startup still invokes declared cleanup;
 later drives stop after failure. Review cleanup authority before execution.
 Receipts are private because command output can contain application data.
 Timeout/cancellation cannot prove an ambiguous operation was rolled back.
 
-Only use trusted commands with existing resource-ownership contracts. This is
-an orchestration helper, not hostile-code containment, command authorization,
-automatic dependency discovery, or proof that a command exercised the application. A command merely printing success supplies no application evidence.
+Use only trusted commands that specify which resources they own. The helper
+runs those commands; it does not isolate hostile code, grant permission, discover
+dependencies or prove that the application was exercised. A command that only
+prints “success” supplies no application evidence.
 
 ## Workspace identity and reuse
 
@@ -86,10 +88,10 @@ Exit 0 means a previously passing receipt's captured inputs are unchanged;
 exit 3 means stale/failed/old evidence, and exit 2 means inspection unavailable.
 Rerun affected checks for changed inputs. Independently validate current
 app-owned instance/revision/check identity before reusing a runtime claim.
-Neither full workspace identity nor matching JSON expectations proves that a
-command drove the app; meaningful app-owned operations and independently
-chosen assertions remain necessary. This is an executable check when invoked,
-not a universal agent completion gate.
+Matching workspace identity and JSON expectations do not prove that a command
+exercised the app. Use actual application operations and independently chosen
+assertions. This helper checks a profile when invoked; it does not gate every
+agent completion.
 
 For structured boundary regressions, compare independently chosen expected
 JSON with actual output:

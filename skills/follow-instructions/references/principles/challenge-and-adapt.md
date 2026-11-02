@@ -1,7 +1,7 @@
 # Challenge and adapt
 
-This local reference combines pstack's Attack the Premise, Redesign From First
-Principles, and Exhaust the Design Space.
+Adapted from pstack's Attack the Premise, Redesign From First Principles, and
+Exhaust the Design Space.
 
 ## Trigger
 
@@ -21,8 +21,9 @@ of preserving accidental compatibility forever.
 
 1. Record the repeated failure or new requirement and the premise behind the
    current approach.
-2. Inventory the actors, state, callers, and assignment that could produce the
-   failure. Use a small rerunnable census when the imbalance is measurable.
+2. Inspect the actors, state, callers and work assignments that could produce
+   the failure. If uneven distribution may be the cause, count it with a small
+   repeatable check.
 3. Decide whether the answer is already constrained by an established pattern.
    If so, use it. If not, compare materially different designs or prototypes.
 4. Propagate the chosen requirement through types, callers, docs, tests, and
@@ -30,18 +31,12 @@ of preserving accidental compatibility forever.
 5. Re-run the discriminating check. Keep the rejected alternative and reason
    only when it helps a future decision.
 
-## Principal-engineer lens
-
-The differentiator is knowing when not to continue repairing the same premise.
-This protects teams from local optimization and turns repeated feedback into a
-design decision rather than another layer of machinery.
-
 ## Evidence
 
 Show the premise, the observation that challenged or supported it, and the
-choice that changed. For a prototype, record the actual comparison and its
-short shelf life. For a clear bug, the original regression is stronger evidence
-than a forced design bakeoff.
+choice that changed. For a prototype, record the comparison and when its
+assumptions need rechecking. For a clear bug, the original regression is
+stronger evidence than an unnecessary comparison of designs.
 
 ## Example
 

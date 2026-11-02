@@ -1,27 +1,29 @@
 # Plans, authority and changed scope
 
 Use when a substantial implementation needs a design decision, or the user or
-project explicitly requires approval. Direct instructions determine authority;
-a plan records it and never grants additional effects. Read-only explanations,
-research and reviews stay read-only. Clear small changes use the short path.
+project explicitly requires approval. The user's instructions determine
+permission; a plan records that permission and does not expand it. Read-only
+explanations, research and reviews stay read-only. Clear small changes use the
+short path.
 
 ## Establish the decision
 
-Inspect the actual owner, callers, existing automation, constraints and checks.
-State the desired outcome, smallest correction, affected interfaces, permitted
-effects and acceptance in the existing task record. Use that compact record for
-ordinary implementation. Produce a separate plan artifact when requested or when
-it materially clarifies a decision; choose HTML for useful visual comparison or
-interaction, and otherwise use the requested prose format. A bounded investigation does not authorize
-permanent tooling; first establish the recurring need and missing native capability.
-For uncertain UI direction, exercise one representative interaction before
-expanding screens; use [UI prototyping](../../web-interface/references/ui-prototyping.md)
-when a prototype is relevant.
+Inspect the responsible code, callers, existing automation, constraints and
+checks. Record the desired outcome, smallest correction, affected interfaces,
+permitted actions and acceptance criteria in the existing task record. Use that
+compact record for ordinary implementation. Produce a separate plan artifact
+when requested or when it helps the user decide; choose HTML for useful visual
+comparison or interaction. Otherwise use the requested prose format.
 
-Preserve the requested deliverable through research and delegation. Supporting
-working notes do not replace an explicitly requested HTML plan or other format.
-Verify the final file's format and inspect any required render
-before delivery; an internal draft is not the requested plan.
+An investigation does not authorize permanent tooling; first establish the
+recurring need and missing native capability. For uncertain UI direction,
+exercise one representative interaction before expanding screens; use [UI
+prototyping](../../web-interface/references/ui-prototyping.md) when a prototype
+is relevant.
+
+Keep the requested deliverable and format through research and delegation.
+Working notes do not replace an explicitly requested HTML plan or other output.
+Check the final file's format and inspect its rendering when required.
 
 ## Apply the actual approval gate
 
@@ -35,7 +37,7 @@ Record the original request or confirmation and any later superseding decision.
 
 When evidence changes the design, update the affected decision. Continue in-scope
 repairs and safe independent work. Ask before dependent work only when the change
-needs unavailable authority or an essential product decision, changes an explicitly
+requires permission not yet given or an essential product decision, changes an explicitly
 approved contract, or crosses a user/project approval gate. A reviewer suggestion
 is evidence to assess, not permission or a new requirement.
 
@@ -51,7 +53,7 @@ Authorized PR/MR delivery follows the single
 [delivery completion contract](../../pull-requests/SKILL.md#complete-authorized-delivery).
 Local-only work ends at its requested verified artifact. Neither path authorizes
 merge, deployment or adjacent cleanup. Keep original acceptance, failed approaches,
-current artifact and unfinished gates in the existing task record; use
+current result and unfinished checks in the existing task record; use
 [durable checkpoints](durable-checkpoints.md) before a real interruption.
 
 A plan-only request ends with the researched decision and remaining unknowns.

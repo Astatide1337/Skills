@@ -1,17 +1,16 @@
 # Native application tools
 
-Before reconstructing an operation in shell or browser code, inspect the
-application's existing CLI, its current source documentation and actual help.
-Discover executable paths rather than assuming a global installation. Record
-which executable/revision the task uses; command discovery proves capability,
-not the requested application outcome. No install or update is implied by a
-read-only review.
+Before rebuilding an application operation in shell or browser code, inspect
+its existing CLI, source documentation and help. Find the actual executable;
+do not assume a global installation. Record its path and revision for the task.
+Finding a command does not verify the requested application behavior. A
+read-only review does not authorize installation or updates.
 
 ## Select once at an authorized setup boundary
 
 Use the owning project's supported installation method. Resolve the latest
 available stable release from its authoritative repository when installation or
-update is authorized, subject to the application's compatibility requirements.
+update is authorized, while preserving the application's compatibility requirements.
 If no release exists, explicitly select a current development revision. Record
 the source URL, resolved commit/release, executable path, package/version
 metadata and artifact or installed-file hashes in the task's existing evidence.
@@ -21,9 +20,9 @@ Do not silently upgrade an active runtime or replace a global executable.
 
 Skills does not own application package manifests, versions or command
 semantics. Read the selected revision's prerequisites before building, and use
-a task-owned prefix or disposable checkout for a trial. If identity or a needed
-capability is unavailable, report the exact gap and use a justified supported
-alternative; do not invent a release channel, update command or JSON flag.
+a task-owned prefix or disposable checkout for a trial. If you cannot establish the executable's identity or a needed capability,
+report the gap and use a justified, supported alternative. Do not invent a
+release channel, update command or JSON flag.
 
 ## Linktree and Shrunk: agent-clis
 
@@ -60,9 +59,9 @@ registry. Read the selected `packages/shrunk-cli/src/cli.mjs` and its usage for
 accepted inputs; it does not support `commands --json` or a general `doctor`.
 Prefer Linktree `start --shrunk-app PATH` when verifying Linktree with Shrunk:
 the owning runtime supplies the required service arguments and owns cleanup.
-The separate compatible Shrunk application checkout, Python environment,
-MongoDB binary, Node runtime and browser prerequisites still matter. Inspect
-current requirements rather than copying package versions from Skills.
+Also check the required Shrunk application checkout, Python environment,
+MongoDB binary, Node runtime and browser setup. Read their current requirements
+rather than copying package versions from Skills.
 
 Use disposable app copies and owned run directories. Select development versus
 real local CAS explicitly; development login does not prove CAS. Do not print
@@ -91,14 +90,13 @@ it does not prove the application journey. Before cluster access, verify the
 intended context and namespace explicitly under the user's policy. Keelbox is
 not a universal application verifier, a remote-cluster fallback or permission
 to delete volumes. Use its native lifecycle where it fits, then verify the
-application's actual behavior with its own supported surfaces.
+application through its supported interfaces.
 
 ## Interpret native results
 
-Preserve the subprocess exit and the tool's failed/not-run checks, target, stage,
-partial effects and recovery information in verification evidence. Read both
-outer and inner results: an outer shell or tool envelope reporting success
-cannot turn a failed child operation into a passing check. Avoid piping away
-an exit status. When a command fails, inspect its usable error and supported
-recovery before repeating it; after uncertain writes inspect state first.
-The [verification owner](../SKILL.md) defines what evidence the task requires.
+Record subprocess exits, failed and not-run checks, targets, stages, partial
+effects and recovery information. Read both outer and inner results: a shell
+or tool can exit successfully after capturing a failed child command. Preserve
+exit statuses through pipelines. Inspect errors and supported recovery before
+retrying; after an uncertain write, inspect state first.
+[Verify Work](../SKILL.md) defines the evidence the task requires.

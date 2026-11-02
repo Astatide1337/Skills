@@ -4,40 +4,39 @@ Historical record for PR20, retained to interpret its experiment and review.
 It is not an active task plan; current workflow and delivery policy live in
 the [maintained catalog](../../README.md).
 
-Status: implementation and contract verification are separate from native
-efficacy. PR20 is not ready for merge while the coordinator comparison remains
-unavailable. This plan addresses the review of `98b22ba`; it does not reinterpret
-historical runs as controlled evidence.
+Status when written: the implementation and evaluator checks did not establish
+that the instructions helped agents. PR20 was not ready to merge because the
+coordinator comparison could not run. This plan addressed the review of `98b22ba`;
+earlier runs were not controlled comparisons.
 
 ## Authorized scope and completion
 
-Outcome: credible measurements of task outcomes, discovery and coordinator cost.
-Route: implementation with evaluation, instruction review and the existing PR20
-publication follow-on. Domains: skill-creator, writing-for-agents,
-code-review-and-quality and verify-work. Effects: bounded repository edits,
-tests, independent review, commit/push and PR update; no merge, credentials,
-security configuration or application-repository changes.
+Measure task completion, skill discovery and coordinator overhead. Use
+skill-creator, writing-for-agents, code-review-and-quality and verify-work.
+The authorized work includes repository edits, tests, independent review,
+commits, pushes and a PR20 update. It excludes merging and changes to credentials,
+security configuration or application repositories.
 
 1. Add one construction-discovery fixture. The short request describes the
    observed bug; a repository-owned contract and actual caller expose all
    requirements. Keep visible smoke checks and runner-owned negative examples.
    Replay correct alternative implementations and plausible incomplete fixes.
-   Passing is correctness under a discoverable contract, not proof of guidance
-   value or principal-engineer competence.
+   A pass establishes that the solution meets requirements the agent could find.
+   It does not establish that the guidance helped or that the agent has
+   principal-engineer judgment.
 2. For construction evaluation only, assess artifacts in a fresh grader context
    before exposing the final author narrative. Preserve that assessment before
    a separate claim assessment; claims cannot raise the artifact score. Log both
    phases and costs. Ordinary cases retain one grader call. Clarify the same
    input order for risk-triggered independent review without adding a mandatory
    second reviewer or model-diversity rule.
-3. Freeze the small coordinator comparison below before execution. Keep the
-   existing mandate pending evidence, explicitly despite historical overhead
-   signals and without a successful mandate-isolating comparison. Neither an
-   unrun comparison nor unchanged instructions establishes value.
+3. Freeze the coordinator comparison below before running it. Keep the current
+   entry requirement until evidence supports changing it. Earlier overhead
+   observations did not isolate the cost of that requirement.
 4. Run prerequisite diagnostics, targeted regressions and the complete
    applicable suite; obtain an independent GPT-6.1 Sol review of the original
    request, actual diff and raw evidence. Fix material findings, publish only
-   the inspected changes to PR20, and verify exact-head CI. Report unavailable
+   the inspected changes to PR20, and verify CI on the published head. Report unavailable
    native execution and leave PR20 unmerged.
 
 ## Frozen bounded experiment
@@ -105,9 +104,9 @@ handling or authority defect. Do not gate on skill names, reference-read counts
 or one preferred implementation. Unavailable evidence is inconclusive.
 
 Report per-case native elapsed time (excluding grading), uncached/cached input,
-output, commands and grader cost separately. Both arms passing is no
-demonstrated quality difference. This small cohort cannot establish universal
-efficacy; two repetitions are not independent tasks.
+output, commands and grader cost separately. If both versions pass, that does not demonstrate a quality difference. This
+small sample cannot establish general effectiveness; repeating a task does not
+add an independent task.
 
 - Recommend narrowing/removing mandatory entry for the tested ordinary class
   if the optional arm preserves every gate, the mandate prevents no material
@@ -121,11 +120,12 @@ efficacy; two repetitions are not independent tasks.
   using the same path without a cost difference is inconclusive. Report it and
   stop; any larger experiment needs a new budget and frozen design.
 
-Global entry remains unchanged in this increment. The result above would
-justify a separately reviewed narrowing patch with the same gates replayed.
+The plan left the global entry requirement unchanged. A result meeting the
+criteria above would justify a separately reviewed change, followed by the same
+checks.
 Historical 26.7k/10.1k input and 49.6s/24.0s ordinary-task observations motivate
-the comparison but do not isolate mandatory entry. No successful comparison is
-available on the current host: Bubblewrap cannot create the required namespace.
-Tooling CI establishes tooling contracts, not agent benefit. Broad UI/design
-benchmarks wait; authoritative convention discovery, product wording,
-accessibility and actual user-flow verification remain objectives.
+the comparison but do not isolate mandatory entry. At the time of this plan, the comparison could not run: Bubblewrap failed to
+create the required namespace. Tooling CI checked the evaluator, not its benefit
+to agents. Broader UI and design benchmarks were deferred. Finding authoritative
+conventions, writing product copy, accessibility and testing real user flows
+remained objectives.

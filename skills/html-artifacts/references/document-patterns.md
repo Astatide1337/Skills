@@ -1,7 +1,7 @@
 # Document patterns
 
-Select the layout that exposes the document's reasoning. Keep prose concise and
-use visual structure only where it carries information.
+Choose a layout that makes the reasoning easy to follow. Use visual structure
+to show relationships and comparisons.
 
 ## Reports and research briefs
 
@@ -15,7 +15,7 @@ use visual structure only where it carries information.
 
 For status reports, make shipped, active, blocked, and requested decisions
 scannable without relying only on color. For incident reports, use a real
-timestamped timeline as the spine, followed by customer impact, causal chain,
+timestamped timeline, followed by customer impact, causes,
 what helped, what hindered, and owned follow-ups.
 
 ## Comparisons and decisions
@@ -30,9 +30,9 @@ what helped, what hindered, and owned follow-ups.
 
 ## Plans and specifications
 
-- Show stages as a dependency-aware sequence, not decorative numbered cards.
+- Order stages by their dependencies and show which work can proceed together.
 - Add a diagram only when three or more components or branches interact.
-- Pair risks with observable mitigations and validation evidence.
+- For each risk, state how it will be reduced and how that will be checked.
 - State exclusions and decision points explicitly.
 - Keep file lists subordinate to ownership and runtime flow.
 

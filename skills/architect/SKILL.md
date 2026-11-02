@@ -5,44 +5,45 @@ description: "Designs ownership, interfaces and data shapes from real callers. U
 
 # Architect
 
-Design from the caller inward, then implement against the chosen shape.
-Modularity means an ordinary change, addition or removal has a clear owner and
-does not force unrelated changes. Create an interface to hide a demonstrated
-decision or invariant, not to prepare a framework for imagined features.
+Start with real caller usage. Give each decision and invariant a clear owner so
+ordinary changes do not require edits to unrelated modules. Add an interface
+when it hides complexity that callers would otherwise need to understand.
+Do not add a framework for hypothetical features.
 
-For a design-only deliverable, make the contract executable in the reader's
-head. Include: realistic caller usage; public types or signatures; module
-ownership; success and failure sequences; transaction, durability, or side-
-effect boundaries; retry ownership; and unresolved decisions. Do not hide a
-missing ownership decision behind a diagram or generic interface name.
+For a design-only task, show realistic calls, public types or signatures, module
+ownership, and one success and failure sequence. Identify transaction and
+side-effect boundaries, durability, retry ownership, and unresolved decisions.
+A diagram cannot replace a missing ownership decision.
 
-1. Ground the existing system with `how`; use `why` when historical rationale constrains the change.
-2. Write realistic caller usage before types. When choosing a boundary, data
-   shape or shared state, apply [construction decisions](../follow-instructions/references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples).
-3. Compare credible alternatives when a real design choice remains. Do not invent
-   a second design for an already-established correction.
-4. Evaluate relevant tradeoffs in interface depth, ownership, data access,
-   validation, state transitions, recovery, and likely evolution.
-5. Reject shallow modules, information leakage, temporal decomposition, pass-through layers, and speculative generality.
-6. Retain the chosen shape, material tradeoffs, unresolved decisions, and next
-   implementation step in the existing plan or task record.
-7. Implement against the sketch. Treat repeated deviations as evidence the architecture is wrong; re-ground and redesign instead of adding escape hatches.
+1. Trace the existing system with `how`. Use `why` when historical decisions
+   constrain the change.
+2. Write caller usage before types. For a boundary, data shape or shared-state
+   decision, apply [construction
+   decisions](../follow-instructions/references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples).
+3. Compare alternatives only when a real design choice remains. An established
+   correction does not need a competing design.
+4. Check ownership, data access, validation, state transitions, recovery and the
+   changes the system is likely to need.
+5. Reject shallow modules, information leakage, temporal decomposition,
+   pass-through layers and speculative generality. Use the linked red flags
+   to distinguish these defects from useful boundaries.
+6. Record the chosen design, tradeoffs, open decisions and next implementation
+   step in the existing plan or task record.
+7. Implement the design. If implementation repeatedly needs exceptions,
+   revisit the design rather than adding more escape hatches.
 
-Before handing off a design-only result, trace one successful operation and one
-failure through the proposed signatures. For asynchronous or durable delivery,
-show how work is claimed, acknowledged, failed, and retried, and state which
-transaction can commit independently. Correct any signature that cannot support
-the written sequence.
+Before handing off a design, trace one successful operation and one failure
+through its signatures. For asynchronous or durable work, show who claims,
+acknowledges, fails and retries it, and which transactions can commit
+independently. Fix signatures that cannot support those sequences.
 
-For nontrivial feature/issue delivery, use the coordinator's
-[approved-plan contract](../follow-instructions/references/approved-plans.md).
-Update changed decisions and apply that reference's authority rules; a material
-discovery does not by itself require another approval round.
-Standalone design and the tiny-change path retain their requested boundaries.
+For substantial feature or issue delivery, use
+[plans and authority](../follow-instructions/references/approved-plans.md).
+Update changed decisions under those rules; a new discovery alone does not
+require another approval. Design-only and small local tasks retain their scope.
 
 Use `references/rationale-template.md` when a separate decision record is needed;
-its sections are prompts, not mandatory output. Read
-`references/design-red-flags.md` when comparing module boundaries or reviewing
-an existing proposal.
-For asynchronous saves, conflicts, retries, shared views, or owned resources,
-read [state and lifecycle boundaries](references/state-and-lifecycle.md).
+its sections are optional prompts. Read `references/design-red-flags.md` when
+comparing module boundaries or reviewing a proposal. For asynchronous saves,
+conflicts, retries, shared views or owned resources, read
+[state and lifecycle boundaries](references/state-and-lifecycle.md).

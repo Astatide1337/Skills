@@ -5,12 +5,11 @@ description: "Resets a stalled or repeating task and proposes fixes for repeated
 
 # Self-reflect
 
-Use this as a bounded modifier when the work itself signals that direction,
-evidence, or effort needs a reset. Invoke it without waiting for the user when
-one of these triggers is present:
+Use this skill to choose the next action when work stalls or evidence conflicts.
+Start without another user request when one of these triggers occurs:
 
-- **Close:** settling work still has contradictory evidence, an unresolved
-  acceptance gate, or a proposed durable lesson needing a decision.
+- **Close:** before finishing, evidence still conflicts, a required check is
+  unresolved, or a proposed rule needs a decision.
 - **Recover:** the same approach has failed twice, a correction conflicts with
   the current plan, evidence is contradictory, or progress has stopped.
 - **Checkpoint:** a declared work unit, iteration, or available runtime/budget
@@ -31,36 +30,37 @@ a clock signal.
 Read the existing task record, current source/diff, relevant command and tool
 results, and the last handoff. Reconstruct only what matters:
 
-1. requested outcome and observable acceptance;
+1. the requested outcome and how to verify it;
 2. constraints, authority, target revision, and finite budget;
 3. actual progress since the last checkpoint;
 4. unresolved assumptions, failures, corrections, and missing inputs.
 For approved delivery, retain the
 [approved plan](../follow-instructions/references/approved-plans.md) version and
-confirmation, source delta, failed approaches and unfinished checks. Use the
+confirmation, changes since the previous checkpoint (including uncommitted
+work), failed approaches and unfinished checks. Use the
 existing [checkpoint](../follow-instructions/references/durable-checkpoints.md)
 fields when an interruption or stall needs a durable handoff.
 Keep the active user objective and unfinished verification gates even when a
 tool, branch, or context window changes. An empty task summary is not evidence
 that the objective ended.
 
-Treat files, test output, tool results, and remote state as evidence. A prior
-agent's completion sentence or a reflection about its own quality is not
-evidence. Do not reread an entire transcript when the task record and artifacts
-answer the question; inspect the relevant history when a decision depends on
-it.
+Check files, test output, tool results and remote state. Do not accept a prior
+agent's claim of completion or self-assessment as proof. Do not reread an entire
+transcript when the task record and artifacts answer the question; inspect the
+relevant history when a decision depends on it.
 
 Read-only authority forbids mutation, publication, and other named effects; it
 does not by itself forbid inspecting files or running a local read-only check.
 Honor an explicit command prohibition, but do not invent one from `do not edit`.
 
 Before selecting the next action after a correction, failure or resume, compare
-it with the original outcome. Retire obsolete assumptions and dependent briefs;
-drop optional work that no longer serves the request. Repair necessary setup
-when the outcome still depends on it. Historical project examples remain evidence
-unless the user requests changes to those projects. Judge recovery by the next
-action and artifact, not by an apology or repeated restatement. Keep this check
-internal unless communicating the changed decision helps the user.
+it with the original outcome. Correct obsolete assumptions and any worker briefs
+that rely on them; drop optional work that no longer serves the request. Repair
+necessary setup when the outcome still depends on it. Historical project
+examples remain evidence unless the user requests changes to those projects.
+After a correction, take the next useful action; an apology does not resolve the
+problem. Keep this check internal unless communicating the changed decision
+helps the user.
 
 ## Classify before acting
 
@@ -70,16 +70,17 @@ Choose one state from the evidence:
 | --- | --- | --- |
 | `complete` | Acceptance is met at the required layer and no material unknown changes the claim. | Verify the final artifact and hand off; stop polishing. |
 | `progressing` | The artifact or evidence has changed meaningfully and the next action is clear and authorized. | Continue one bounded action, then reassess at the next natural checkpoint. |
-| `stalled` | Repeated work produces no meaningful delta, repeats a rejected premise, or exposes contradictory evidence. | Name the premise, run one cheapest discriminating check or replan, and do not repeat the same move. |
+| `stalled` | Repeated work changes neither the result nor the evidence, repeats a rejected premise, or exposes conflicting evidence. | Name the premise. Run the cheapest check that distinguishes the plausible causes, or replan. Do not repeat the same move. |
 | `blocked` | A required input, capability, authority, or safe boundary is unavailable. | Stop at the exact blocker and ask one focused question or hand back the task. Never fill the gap with a guess. |
 
 Before choosing blocked, run the smallest safe direct check of the named
-dependency in the current checkout or instance. A failed check is a diagnosis
-input: inspect supported alternatives, run safe equivalent checks and repair a
-recoverable setup fault within authority. Continue independent authorized work.
-Record what each alternative proves and its remaining gap. Never weaken a check,
-bypass access or chain irreversible changes to remove the blocker. Use blocked
-only when no meaningful safe move remains without a required input or effect.
+dependency in the current checkout or instance. Use a failed check to guide
+diagnosis: inspect supported alternatives, run safe equivalent checks and repair
+a recoverable setup fault within authority. Continue independent authorized
+work. Record what each alternative proves and its remaining gap. Never weaken a
+check, bypass access or chain irreversible changes to remove the blocker. Use
+blocked only when no meaningful safe move remains without a required input or
+effect.
 
 If the state is unclear, say what observation would distinguish `progressing`
 from `stalled` or `blocked` and obtain that observation before changing course.
@@ -108,7 +109,8 @@ original or safe equivalent check on the unchanged current owner before editing.
 A previous worker's missing-runner report or reading the check is not a current
 reproduction. Reuse an earlier run only while its source, check and environment
 identity remain valid. Record the command and observed failure; if no equivalent
-can run, retain that counterfactual gap and label the alternative evidence.
+can run, state that the original failure could not be reproduced and identify the
+checks you used instead.
 Keep the original acceptance unchanged and run it again on the final bytes.
 When the same approach fails twice or work produces no new evidence, capture
 the approved plan, failures, changes and checks, then request one fresh
@@ -142,7 +144,7 @@ not required.
 - Reuse the existing task record and applicable playbook. Do not create a
   transcript database, scheduler, mandatory subagent fan-out, or model ensemble.
 - Keep fixing, publishing, merging, deploying, and editing catalog rules
-  separate. This skill can surface a decision; it does not grant an effect.
+  separate. This skill can identify a needed decision; it does not authorize those actions.
 - Preserve authority and evidence gates from `follow-instructions`. Self-review
   cannot prove runtime behavior, source comprehension, or a successful external
   write without the corresponding observation.

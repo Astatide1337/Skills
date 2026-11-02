@@ -1,7 +1,7 @@
 # Experience and communication
 
-This local reference adapts pstack's Experience First principle and connects it
-to principal-level communication and teaching.
+Adapted from pstack's Experience First principle for product work, API design,
+documentation and teaching.
 
 ## Trigger
 
@@ -11,10 +11,10 @@ result.
 
 ## Decision rule
 
-Optimize the complete consumer journey, not implementation convenience or a
-feature count. Make errors actionable, preserve accessible interaction, and
-explain the decision so another engineer can act without reconstructing the
-whole investigation. Treat the next maintainer and API consumer as users too.
+Make the complete task work for the person or caller using the result. Make
+errors actionable, preserve accessible interaction, and explain the decision so
+another engineer can act without reconstructing the whole investigation. Treat
+the next maintainer and API consumer as users too.
 
 ## Procedure
 
@@ -22,16 +22,10 @@ whole investigation. Treat the next maintainer and API consumer as users too.
 2. Identify loading, empty, success, error, keyboard, accessibility, and
    recovery states that are relevant to that task.
 3. Prefer a smaller coherent journey over several rough options. Prototype only
-   when the experience or architecture is genuinely uncertain.
+   when the interaction or architecture is uncertain.
 4. Explain the meaningful trade-off, data flow, and ownership in the handoff.
 5. Use the existing project/browser tools to exercise the relevant state. A
    screenshot, prose claim, or static markup is not runtime proof by itself.
-
-## Principal-engineer lens
-
-Principal impact is multiplied through understanding. Clear explanations,
-teachable decisions, and interfaces that make the right action obvious reduce
-coordination cost across people and teams.
 
 ## Evidence
 

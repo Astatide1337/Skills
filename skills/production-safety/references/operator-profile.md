@@ -1,7 +1,7 @@
 # Operator profile
 
-These defaults reflect the catalog owner's recurring working patterns. They
-personalize the workflow without replacing target-specific discovery.
+These defaults reflect the catalog owner's recurring work. Verify the current
+target before relying on them.
 
 ## Authorization and working mode
 
@@ -31,9 +31,10 @@ For personal kagent diagnosis, start with Fleet's `docs/operations.md` and
 `machines/kagent.md` (local checkout: `~/Desktop/Fleet`). They identify the
 personal API, explicit context/namespace and GitOps owner/attach route. Verify
 those values against current metadata before queries; Rutgers is separate.
-Follow the GitOps owner to resolve the declared Skills pin rather than assuming
-the laptop checkout or installed guidance matches the workload. A declared pin
-does not establish what an existing agent session loaded. If these sources are
+Follow the GitOps configuration to find the declared Skills revision rather than assuming
+the laptop checkout or installed guidance matches the workload. The configured revision
+does not establish what an existing agent session
+loaded. If these sources are
 unavailable, report that narrow gap and continue authorized source discovery.
 
 ## VPS and container-hosted services
@@ -73,7 +74,7 @@ unavailable, report that narrow gap and continue authorized source discovery.
 - For full-stack verification, define fixtures and cleanup before testing. Use
   isolated test identities/data where possible, capture created object IDs, and
   remove only those objects afterward.
-- Report proof by layer: build/static checks, local stack, live API, deployed
+- Report results separately for: build/static checks, local stack, live API, deployed
   dependencies, and browser-visible flow. A mocked test or successful health
   endpoint does not establish an end-to-end user journey.
 

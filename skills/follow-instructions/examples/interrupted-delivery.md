@@ -1,8 +1,8 @@
 # Worked exercise: resume the accepted task, then inspect live state
 
 Use when authorized implementation will cross a real interruption. This is an
-**original instructional exercise**, informed by Anthropic's
-[long-running-agent account](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents).
+**original instructional exercise**, informed by Anthropic's [long-running-agent
+account](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents).
 That account reports lost context, premature completion and recovery through
 progress artifacts, repository inspection and actual behavior checks. The task
 and observations below are hypothetical, not an industry agent transcript or a
@@ -23,7 +23,7 @@ not retain the missing acceptance points, publication authority or review gate.
 
 Before interruption, update the **existing task record** with the objective and
 three acceptance points, authority, checkout/branch and PR identity, current
-artifact, exact evidence and remaining gates. Include the failed approach when
+files, exact evidence and remaining checks. Include the failed approach when
 it matters: “toast-only errors lose the entered name; inspect the submit handler
 and its server response.” End with the next useful action, not a new project
 ledger. See the owning [checkpoint guidance](../references/durable-checkpoints.md).
@@ -38,16 +38,16 @@ it cannot certify this recovery behavior or the updated integration state.
 
 The agent reproduces the rejection, fixes the form-state owner, runs valid,
 rejected and denied-write paths, then continues the requested PR delivery under
-[`pull-requests`](../../pull-requests/SKILL.md). A usable receipt identifies the
-tested revision/instance, action and observed state for each original acceptance
-point. “Checkpoint read” is not evidence that the missing work was completed.
+[`pull-requests`](../../pull-requests/SKILL.md). Record the tested revision and
+instance, action and observed result for each original acceptance point.
+“Checkpoint read” is not evidence that the missing work was completed.
 
 ## Valid alternative and limits
 
 If the runtime reliably preserves the existing task record, reuse that facility
 instead of creating a checkpoint file. A tiny uninterrupted edit needs neither.
 If live evidence reveals a required human approval, finish independent work and
-retain the exact gate and next action. Do not invent approval.
+record the required approval and next action. Do not invent approval.
 
 A saved record does not schedule execution. Exercise an actual resumed context
 through the runtime's supported facility before claiming runtime continuation;

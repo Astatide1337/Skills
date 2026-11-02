@@ -1,30 +1,30 @@
 # Evaluate behavior and overhead
 
-Use when running or designing skill evaluations. Freeze the representative
-request, expected observable behavior, authority, tools, candidate/baseline
-instructions, model and effort, finite run budget and acceptance gates before
-execution. Derive cases from observed failures; include ordinary tasks and
-valid near-misses, not only adversarial traps. Reserve held-out cases before
-choosing instruction changes. Repetitions are not independent tasks.
+Use this procedure to design or run a skill evaluation. Before execution,
+freeze the baseline and candidate catalogs and global instructions, project
+files, requests, expected behavior, permissions, tools, model settings,
+acceptance checks and finite candidate/grader budget. Use the same authorized
+model and settings in both arms, after confirming runtime support. Historical
+model names below are examples, not requirements or availability claims.
+Do not silently change the model or effort after a failed launch.
 
-Obtain independent review of the final candidate. Freeze the baseline and
-candidate catalogs/globals, project files, organic tasks, settings, held-out
-checks and a finite candidate/grader budget together. Use the current explicitly
-authorized, runtime-verified model and settings identically in both arms. Named
-models in historical examples below are not a mandate or a capability claim.
-Do not silently substitute another model or effort after a failed launch.
-For candidate-versus-accepted-baseline decisions, balanced transfer cases, valid
-alternatives and promotion, use [measured improvement](measured-improvement.md).
-Retain every attempted outcome, including unavailable capabilities and failed
-samples. Nothing is promoted automatically; adopting a proposed change is a
-separate human-authorized decision.
+Derive cases from observed failures. Include ordinary tasks, different valid
+solutions and nearby requests where the guidance should not apply. Reserve
+held-out cases before changing the instructions; repeated runs of one case
+are not independent tasks. Read [measured improvement](measured-improvement.md)
+for baseline selection, testing related unseen tasks and adoption decisions.
+
+Obtain independent review of the final candidate. Retain every attempt,
+including failures and unavailable capabilities. A passing evaluation does
+not authorize adoption; that needs a separate human-authorized decision.
 
 ## Calibrate before comparison
 
 Apply [instrument validity](../../verify-work/SKILL.md#validate-the-measuring-instrument)
-before treating a score as outcome evidence. Match known-valid alternatives and
-targeted defects to the user's contract. Keep changed instruments separate from
-changes to candidate guidance; independent acceptance checks remain fixed.
+before treating a score as evidence of success. Test known-valid alternatives
+and defects against the user's requirements. Assess changes to the evaluator
+separately from changes to candidate guidance. Keep independent acceptance
+checks fixed.
 
 ## Use existing Inspect tasks
 
@@ -34,7 +34,10 @@ excluded. Inspect owns execution, concurrency, logs, scorers and viewing.
 Catalog behavior injects a selected skill verbatim; its no-skill baseline gets
 neither guidance nor catalog. Workflows compare explicit catalog roots and
 global instructions; a no-catalog diagnostic must be named as such. Test
-installation/automatic routing separately from instruction efficacy.
+installation and automatic selection separately from whether the instructions
+improve results.
+
+### Native executable and permissions
 
 Native launches require a direct executable on PATH. If `codex` is an npm or
 script wrapper, supply the absolute trusted native ELF through
@@ -52,6 +55,8 @@ with the requested read/write access. Installed-catalog runs additionally grant
 the selected canonical catalog and its logical home/skills directory. Neither
 the surrounding Codex home, authentication file, other arm nor evaluator source
 receives a read grant. Grading receives a separate empty workspace.
+
+### Prepare the isolated catalog
 
 Native startup replaces `.system` with CLI-owned bundled skills; do not put
 selected catalog aliases there. Keep selected locators at the ordinary
@@ -93,12 +98,12 @@ workspace-write binding.
 
 Each returned native JSONL stream includes a runner-owned
 `skills_eval.native_permissions` receipt with the requested profile and binary
-SHA-256. Launch failures retain that configuration too. This is configuration
-provenance, not execution proof. Before model use, test the generated profile on
-the actual host using owned canaries: selected canonical/logical skills and
-workspace reads must pass; hidden acceptance, other-arm and dummy-auth reads
-must fail through direct, symlink and proc-root paths; excluded writes and
-AF_INET socket creation must fail. Check workspace writes in the implementation
+SHA-256. Launch failures retain that configuration too. This records configuration, not successful execution. Before using the model,
+test the profile on the actual host with harmless files and operations created
+for the probe. Reads of the selected canonical/logical skills and workspace
+must pass. Reads of hidden acceptance, the other arm and dummy authentication
+files must fail through direct, symlink and proc-root paths. Excluded writes
+and AF_INET socket creation must fail. Check workspace writes in the implementation
 profile and their rejection in the grader profile. Run the actual fixture Python
 command and retain its interpreter identity; a missing runtime is unavailable,
 not permission to broaden filesystem access. A passing Bubblewrap prerequisite
@@ -120,7 +125,9 @@ Do not grant a temporary root to restore that fixture. Deterministic FakeTracker
 tests and `workflow_fixture_pilot` still exercise the local receipt contract;
 their success does not establish native publication availability.
 
-First run the deterministic owner checks and task discovery:
+### Preflight and run
+
+First run the deterministic checks and discover available tasks:
 
 ```bash
 uv run --frozen python -m unittest evals.tests.test_workflows evals.tests.test_skills_lifecycle -v
@@ -130,9 +137,8 @@ python scripts/namespace-doctor.py
 
 Check the actual CLI's supported model/effort and authenticated state before
 authorized model use; `codex login status` is a read-only status check, not
-permission to initiate login or change credentials. An unsupported namespace fails
-honestly; never weaken isolation, replace integration with mocks or label the
-unavailable run passed. Live model use requires user authorization.
+permission to initiate login or change credentials. If the namespace is unsupported, record the run as unavailable. Do not weaken
+isolation, substitute mocks for integration or report a pass. Live model use requires user authorization.
 
 If the tool sandbox denies the namespace, inspect that failure and the ordinary
 host's supported execution path. A permitted host retry must use the same
@@ -140,7 +146,8 @@ Bubblewrap gate and containment contract; it is not a bypass. Do not change
 host namespace/security policy or remove the preflight. Keep the attempt and
 remaining capability gap if the supported path also fails.
 
-Historical catalog diagnostic command shapes (not an accepted-version comparison):
+These historical commands compare a selected skill with no skill. They do
+not compare a candidate against an accepted catalog version:
 
 ```bash
 uv run --frozen inspect eval evals/skills.py@catalog -T native_model=gpt-6-luna -T native_effort=medium -T grader_effort=high --limit 2 --epochs 2 --max-samples 2 --time-limit 480
@@ -148,11 +155,12 @@ uv run --frozen inspect eval evals/skills.py@catalog -T with_skills=false -T nat
 ```
 
 Select representative sample IDs instead of the first two when appropriate.
-`native_effort` applies to candidates and routing; `grader_effort` and optional
-`grader_model` configure assessment separately. Defaults are `medium` for candidates/routing and `high` for grading;
-use explicit `max` only for a justified comparison with historical runs. Supported effort names are low, medium, high, xhigh
-and max; the chosen model may reject a level, which is a failed/unavailable run,
-not permission to silently substitute a setting. Keep both arms identical and
+`native_effort` controls candidates and routing. `grader_effort` and optional
+`grader_model` configure assessment separately. Defaults are `medium` for
+candidates/routing and `high` for grading. Use `max` only for a justified
+comparison with historical runs. The adapter supports low, medium, high,
+xhigh and max, but a model may reject a level. Record that attempt as failed
+or unavailable rather than silently changing the setting. Keep both arms identical and
 the grader fixed while measuring an instruction change. Measure a different
 effort as a separate experiment. Parent Inspect model settings and token/cost
 limits do not account for the nested CLI; use explicit sample time budgets and
@@ -164,9 +172,9 @@ Use the coordinator's [approved-plan contract](../../follow-instructions/referen
 as the behavior being measured; the evaluator supplies observations, not a
 second approval state model.
 
-The existing `workflows` task includes organic initial-plan, approved
-continuation, material-discovery, in-contract simplification, safe-recovery,
-stall-handoff, tiny-change and stale-approval fixtures. Hidden
+The `workflows` task includes realistic requests for initial plans, approved
+continuation, new material findings, simplification within scope, safe recovery,
+stalled-work handoff, tiny changes and stale approvals. Hidden
 `fixture_contract`, held-out checks, comparison labels and continuation metadata
 stay in the runner, outside candidate input. The project files and initial
 request stay identical across catalog arms; only their catalog/global guidance
@@ -183,8 +191,9 @@ approved plan and runs the frozen original/held-out acceptance on the final
 implementation. Both phases' emitted usage is retained and summed; a missing
 field stays unknown.
 
-This observes persisted stage boundaries, not writes later restored between
-snapshots, actual conversation resumption or context compaction. HTML structure
+This records state at the two stage boundaries. It cannot detect writes
+restored between snapshots or establish actual conversation resumption or
+context compaction. HTML structure
 alone does not establish a researched or visually correct plan; those claims
 still need independent artifact assessment and actual browser evidence.
 Keep these limits attached to results. Unit-test mocks exercise the adapter
@@ -215,9 +224,9 @@ starting it; count each approval phase, interrupted attempt and grader call.
 
 ## Withhold evaluation cues
 
-Give candidates organic requests and project-shaped files, not the rubric,
-expected routes, comparison arm, reference answer or directions to recite
-skills/principles. Use neutral temporary paths and task guidance. Retain the
+Give candidates realistic requests and project files. Withhold the rubric,
+expected routes, comparison arm and reference answer. Do not ask them to
+recite skills or principles. Use neutral temporary paths and task guidance. Retain the
 real paths/digests and arm mapping privately in runner logs; blinding must not
 rewrite the evidence or hide a failed check.
 
@@ -229,20 +238,20 @@ final score cannot exceed the first artifact score; both phases and observed
 usage are logged. Ordinary cases assess evidence and answer in one call. This
 extra construction call is a measurement cost, not a required ordinary-task
 review panel. The grader uses only supplied data and cannot execute its own
-checks; a live independent review is a separate procedure. Do not send candidate
-model/arm labels to it. The
-content may still reveal origin; this is reduced cue exposure, not guaranteed
-blinding or hostile-data isolation. For subjective paired decisions, blind
+checks; a live independent review is a separate procedure. Do not send candidate model or arm labels to the grader. The content may still
+reveal its origin, so this reduces cues without guaranteeing blinding or
+isolating hostile data. For subjective paired decisions, blind
 artifact labels and use a fixed rubric; inspect both outputs and discrepancies
 yourself. A candidate's narrative never establishes tool execution or review.
 
 ## Judge outcomes before cost
 
-- Primary gates: requested behavior, false completion claims, scope/authority,
-  valid artifacts, preserved objectives, real blockers and negative cases.
-- Cost/experience: native execution time, delivery time, uncached and cached
-  input separately, output, command calls, repeated unchanged checks and user
-  intervention. Record reviewer time/tokens, material findings and false
+- Check the requested behavior, artifact validity, scope and permissions,
+  retained objectives, legitimate blockers and negative cases. Identify false
+  completion claims.
+- Measure native execution and delivery time, uncached and cached input
+  separately, output, command calls, repeated unchanged checks and user
+  interventions. Record reviewer time/tokens, material findings and false
   positives when review is part of the experiment.
 - Inspect native CLI usage and `execution_metrics` in output metadata; keep
   grader usage separate. Native execution spans in Inspect sandbox events
@@ -253,8 +262,7 @@ yourself. A candidate's narrative never establishes tool execution or review.
 Check work, results and final claims, not just aggregate scores. Response
 markers establish shape only; semantic correctness still needs assessment.
 No output is not an expected answer, and a valid artifact-only task need not
-repeat its artifact in prose. Keep unavailable checks visible. A speed/token win
-that loses a meaningful gate fails the experiment.
+repeat its artifact in prose. Keep unavailable checks visible. Lower time or token use does not compensate for a failed required check.
 
 Use repeated samples and report median/range when measurements vary; small
 samples do not establish a general speed or quality ranking. Keep a rule only
@@ -268,10 +276,11 @@ inconclusive instead of continuing until the preferred answer appears.
 `routing` defaults to shipped descriptions plus the global contract. Its
 `enriched=true` variant retains evaluator hints as a separate diagnostic;
 `workflow_routing` supplies coordinator content and measures composition.
-Selection scores are diagnostics, not task-success gates. Define optional
+Selection scores diagnose routing; they do not establish task success. Define optional
 procedures, `reasonable_skill_sets`, and explicitly harmful additions in case
-metadata before execution. Composition allows declared optional domains;
-canonical family/mode labels diagnose classification, not execution competence.
+metadata before execution. Composition allows declared optional domains. Family and mode labels show
+whether the request was classified correctly, not whether the task was done
+competently.
 
 `skill_injection` establishes delivery only. Native `guidance_access` records
 reference mentions in command/tool events, preserving success/failure context.
@@ -303,7 +312,6 @@ helper accepts retired policy wording, not the current shipped instructions.
 Keep the shipped mandate until results justify a change. Include ordinary work
 and valid near-misses, not only boundary failures.
 
-Record explicit CLI settings; provider-internal effort is unobserved.
-Model diversity alone does not
-establish independence. Final review starts from the original request, actual
+Record the explicit CLI settings; the provider's internal effort is unobserved.
+Using different models alone does not establish independence. Final review starts from the original request, actual
 artifacts and raw evidence, with author claims assessed after the artifact.

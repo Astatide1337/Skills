@@ -7,10 +7,10 @@ still apply. A small fix or accepted direction needs no design competition.
 ## Establish the task and bar
 
 Inspect the actual screen, realistic content, important states and product
-conventions. Separate required behavior, usability and visual quality. Apple or
-agency-level craft is a quality ambition, not a rule to use glass, white space,
-giant headings, decorative gradients or one component library. Match the
-product's job. Dense operational interfaces and onboarding have different needs.
+conventions. Separate required behavior, usability and visual quality. A request for
+Apple- or agency-level quality does not prescribe glass effects,
+white space, giant headings, gradients or a component library. Design for the
+product's task. Dense operational interfaces and onboarding have different needs.
 Prefer app-owned accepted references. Use comparable compositions only to clarify
 a material decision, not as an always-loaded visual template.
 
@@ -18,17 +18,17 @@ a material decision, not as an always-loaded visual template.
 
 | Question | Exercise | Next intervention |
 | --- | --- | --- |
-| Can the assessor recognize quality? | Compare known accepted/rejected work and unseen valid styles before author narratives | Calibrate or replace assessment, permitting neither acceptable or insufficient evidence |
-| Can implementation realize a strong target? | Reproduce an approved direction with real assets, behavior and responsive content | Correct rendering access, asset handling, layout or tools |
-| Can design originate a strong direction? | Explore one representative slice with realistic content | Change references, design method or bounded exploration |
+| Can the assessor recognize quality? | Compare known accepted/rejected work and unseen valid styles before author narratives | Check or replace the assessment method; allow conclusions of "neither is acceptable" or "insufficient evidence" |
+| Can the implementation reproduce the intended design? | Reproduce an approved direction with real assets, behavior and responsive content | Correct rendering access, asset handling, layout or tools |
+| Can the designer propose a suitable original design? | Explore one representative slice with realistic content | Change the references or design method, or run a limited exploration |
 
-These are diagnostic options, not a compulsory reproduce/adapt/originate ladder.
+Use these exercises to investigate a specific gap; they are not required stages.
 A strong original solution may proceed immediately under the same requirements.
 Do not mistake copying references for quality when fidelity was not requested.
 
 ## Build a representative real slice
 
-When the direction is uncertain, compare a few genuinely different compositions,
+When the direction is uncertain, compare a few different compositions,
 not recolored versions of the same card grid. Evaluate hierarchy, proportions,
 typography, grouping, assets and the whole composition. Required assets must be
 usable with appropriate permissions. Placeholders remain a dependency gap.
@@ -55,10 +55,11 @@ prove useful, leaving one-off composition choices local.
 
 ## Acceptance and counterexample
 
-Accept the actual interface against the agreed task and visual anchors. An internal
-aesthetic score does not override a material gap. A second AI agreeing is not
+Judge the actual interface against the agreed task and accepted visual
+examples. An internal score does not excuse a missing requirement. A second AI agreeing is not
 external calibration. Keep the result unaccepted when the bar remains unmet, and
-change the responsible method within budget and authority.
+change the design, implementation or assessment method within the authorized
+budget and scope.
 
 A faithful-implementation request requires visual similarity. An open-ended
 workspace request may be better served by a different composition. Neither

@@ -32,7 +32,7 @@ For implementation acceptance:
 2. Exercise the altered controls with pointer and keyboard.
 3. Inspect the relevant mobile and desktop widths, supported themes, and
    meaningful data/state combinations.
-4. Capture and inspect screenshots; record and watch temporal behavior.
+4. Capture and inspect screenshots; record and watch animations and other time-dependent behavior.
 5. Check console/runtime errors and obvious network or hydration failures.
 6. Repeat after corrections.
 
@@ -52,7 +52,7 @@ and the smallest credible fix.
 ## Accessibility and focus
 
 - Use native semantics before ARIA. Actions are buttons; navigation uses links.
-- Give icon-only controls and non-text affordances an accurate accessible name.
+- Give icon-only controls and non-text controls an accurate accessible name.
 - Associate every form control with a real label or equivalent accessible name.
 - Hide decorative icons/media from the accessibility tree; give meaningful
   images useful alt text and decorative images empty alt text.
@@ -105,7 +105,7 @@ and the smallest credible fix.
   expanded panels—in the URL when consistent with the product architecture.
 - Preserve Back/Forward behavior and meaningful scroll restoration.
 - Make routes and state deep-linkable; reloading a copied URL should reconstruct
-  the same useful view when feasible.
+  the same view when feasible.
 - Confirm destructive actions or provide a clear, reliable undo window.
 - Use optimistic updates only when success is likely and rollback/recovery is
   explicit.
@@ -183,8 +183,9 @@ and the smallest credible fix.
 - Provide useful failure/fallback behavior for meaningful images and avatars.
 - Prefer compressed video to large animated GIFs for loops, with a still and
   reduced-motion alternative.
-- Virtualize or use an appropriate browser rendering strategy for genuinely
-  large lists while preserving keyboard, search, and accessibility behavior.
+- Virtualize or use an appropriate browser rendering strategy for large lists where
+  rendering cost warrants it while preserving keyboard, search, and accessibility
+  behavior.
 - Avoid layout measurement during render and batch DOM reads separately from
   writes.
 - Keep controlled input work cheap enough for each keystroke.
@@ -214,7 +215,7 @@ and the smallest credible fix.
 ## React and hydration safety
 
 - A controlled input with `value` needs a corresponding change contract; use a
-  default value for genuinely uncontrolled initialization.
+  default value for uncontrolled initialization.
 - Ensure hydration does not replace an active input, lose typed text, or move
   focus.
 - Guard locale/time-dependent output so server and client do not disagree.

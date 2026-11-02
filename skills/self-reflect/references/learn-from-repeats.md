@@ -1,7 +1,7 @@
 # Learn from repeated mistakes
 
-Turn a mistake that keeps happening into a proposal that makes it hard to
-repeat. Agents record and propose; the user approves. Nothing here grants
+When the same mistake recurs, propose a change that prevents it. Record the
+evidence and prepare the change for the user to approve. Nothing here grants
 permission to edit a repository, the Skills catalog or global instructions
 without that approval.
 
@@ -13,7 +13,7 @@ compound engineering.
 ## 1. Notice a mistake
 
 Start when the user, a reviewer, a revert or a failed acceptance check shows
-a mistake the agent made. Name the class, not the instance: "hand-written
+a mistake the agent made. Name the recurring failure: "hand-written
 fixtures instead of captured API responses", not "the T12 sketch fixture".
 
 ## 2. Look for earlier occurrences
@@ -39,11 +39,12 @@ failure retried twice is one occurrence.
 
 ## 4. Propose
 
-Choose along two axes and say why. **Scope:** the narrowest place that fixes
-it (see `skill-creator`'s layers): the current task, the target repository,
-global instructions, or the Skills catalog. Default to the target repository;
-a lesson moves into the catalog only when it recurs across repositories or is
-about how agents work. **Enforcement:** the strongest form that works there.
+Choose where to apply the fix and how to enforce it. **Scope:** use the
+narrowest location that fixes the problem (see `skill-creator`'s layers): the
+current task, target repository, global instructions or Skills catalog. Default
+to the target repository; a lesson moves into the catalog only when it recurs
+across repositories or is about how agents work. **Enforcement:** the strongest
+form that works there.
 
 | Target repository | Skills catalog |
 | --- | --- |
@@ -65,7 +66,7 @@ Present one block per class, then stop:
 - **Proof:** the command that fails on the past-mistake revision (or a
   minimal reproduction) and passes after the fix. A check that has never
   failed is a draft. A check must run the same way locally and in CI.
-- **Gate-touch:** yes or no. Does this change any test, check, threshold,
+- **Changes a check or permission:** yes or no. Does this change any test, check, threshold,
   permission or verifier? If yes, it is reviewed on its own merits and never
   ships in the same commit as code it would have failed. Per
   `measured-improvement`, an aggregate score cannot justify it.
@@ -107,12 +108,12 @@ docs/agents/rules.md   ## Enforced   | Rule | Enforced by | Evidence | Added |
                        ## Rejected   | Class | Proposed fix | Reason | Date |
 ```
 
-The table stays out of `AGENTS.md`. An enforced row tells the implementing
-agent nothing the check's error does not, and candidates and rejections are
-noise in context loaded on every task. For the Skills catalog, the equivalent
-table is `skills/follow-instructions/references/failure-to-checks.md`. Record
-catalog rejections with their reason in the existing proposal PR or issue,
-and search those records before proposing the same change again.
+Keep the table out of `AGENTS.md`: enforced rules already appear in check
+errors, and most tasks do not need the history of candidates and rejections. For
+the Skills catalog, the equivalent table is
+`skills/follow-instructions/references/failure-to-checks.md`. Record catalog
+rejections with their reason in the existing proposal PR or issue, and search
+those records before proposing the same change again.
 
 ## Do not
 

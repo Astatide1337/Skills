@@ -7,8 +7,9 @@ an implementation conflicts with an API contract, or a contract change may
 affect existing callers. Do not use it for a local function bug with no
 transport or caller-contract question.
 
-This procedure specializes `systematic-debugging`; keep its reproduce, inspect,
-hypothesis, smallest-check, and original-failure verification sequence.
+Use this within `systematic-debugging`: reproduce the failure, inspect the
+code, form hypotheses, choose a focused check and verify the original failure
+after the fix.
 
 ## Procedure
 
@@ -17,8 +18,9 @@ hypothesis, smallest-check, and original-failure verification sequence.
    status/error behavior, and version. Use redacted values for credentials and
    user data. Mark each expected fact with its source and scope: an owned
    schema, a supplied provider contract, a caller-level acceptance test, an
-   implementation, or a test double. Do not promote a permissive mock or a
-   matching implementation into normative evidence by itself.
+   implementation, or a test double. Neither a permissive mock nor a matching
+   implementation defines the required
+   behavior by itself.
 2. **Trace the actual owner path.** Follow the request from caller through the
    transport serializer, authentication/authorization and parsing boundary,
    handler, domain owner, dependency or storage call, and response/error
@@ -33,15 +35,16 @@ hypothesis, smallest-check, and original-failure verification sequence.
    incompatible request that should fail at the boundary.
 4. **Change the owning layer.** Parse and validate external data at the
    boundary, keep domain behavior in its owner, and map internal failures to
-   the established public response. For an evolution, list affected callers
-   and old/new shapes; decide whether compatibility, versioning, a staged
+   the established public response. For a contract change, list affected callers and old
+   and new request or
+   response shapes; decide whether compatibility, versioning, a staged
    rollout, or a data migration is required from evidence. Do not add a version
    bump or migration merely because a schema changed.
 5. **Verify the contract matrix.** Re-run the original request against the
    final code. Exercise allowed and rejected input, empty and varied results,
    and compatibility cases that the change can affect. Preserve distinct
    evidence for a transport contract, a local unit double, and the real
-   service. A green unit double cannot substitute for a contract assertion.
+   service. A passing test double does not replace a check against the required contract.
 6. **Bound the conclusion.** Report the exact caller and environment tested,
    the source that defined the expected behavior, the checks and observed
    responses, affected compatibility decisions, and unknown provider or

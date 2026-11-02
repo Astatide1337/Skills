@@ -6,7 +6,8 @@ Use when the requested deliverable is an explanation, source-linked document,
 or teaching handoff. Distinguish chat explanation from writing or publishing a
 file. Use [`how`](../../how/SKILL.md), [`why`](../../why/SKILL.md), or
 [`teach`](../../teach/SKILL.md) for their specific source/history/learning
-methods, and [`unslop`](../../unslop/SKILL.md) only for an explicit rewrite.
+methods. Use [`unslop`](../../unslop/SKILL.md) for an explicit rewrite or
+substantial prose, preserving the source facts and uncertainty.
 
 ## Inputs to establish
 
@@ -20,21 +21,22 @@ methods, and [`unslop`](../../unslop/SKILL.md) only for an explicit rewrite.
 
 1. Inspect the authoritative implementation and relevant callers/state before
    explaining. Separate source facts, inference, and open questions.
-2. Structure the explanation for the reader's task. Check executable recipes
-   against their actual bindings and effects, not just comments or syntax.
-   For state-changing instructions, inspect relevant writers and readers of
-   that state: establish preconditions, expected effects, and states that must
-   remain denied. Use source or an authorized isolated run; distinguish those
-   proof layers. For UI or motion claims, inspect the rendered state.
+2. Structure the explanation for the reader's task. Check commands against the
+   code and configuration they use and the state they change; comments and valid
+   syntax are insufficient. For state-changing instructions, inspect relevant
+   writers and readers of that state: establish preconditions, expected effects,
+   and states that must remain denied. Use source inspection or an authorized
+   isolated run, and say which supports the instructions. For UI or motion
+   claims, inspect the rendered state.
 3. Deliver in the requested channel. Add a teach-back prompt only when it
    materially helps learning; do not turn every explanation into homework.
 
 ## Failure and recovery
 
 If source, runtime, or visual evidence is missing, label the limit and do not
-fill it with an invented architecture. Keep execution QA separate from the
-reader's learning. Do not edit README/docs merely because explanation would be
-convenient unless the user requested that artifact.
+fill it with an invented architecture. Do not ask the reader to perform missing
+verification as a teaching exercise. Do not edit README/docs merely because
+explanation would be convenient unless the user requested that artifact.
 
 ## Completion evidence
 
@@ -49,7 +51,7 @@ But the same state also represents quarantine, with the reason recorded in
 another field. A valid update can silently undo that policy. Inspect the other
 writers and the consumer before recommending the inverse: routine disablement
 may be reversed after its preconditions are met; quarantine needs its own
-review. A wording-only edit can reuse unchanged, covering evidence.
+review. A wording-only edit can reuse evidence that still covers the unchanged behavior.
 
 ## Near-miss
 

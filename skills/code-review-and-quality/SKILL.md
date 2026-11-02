@@ -5,19 +5,19 @@ description: "Reviews a diff, branch or PR against intent, callers and tests; re
 
 # Code Review and Quality
 
-Review the original request, current diff, affected callers and verification
-against the intended behavior. Return concrete findings, evidence and readiness
-at the reviewed artifact. Prefer a change that improves code health over
-blocking on personal preferences or perfection.
+Compare the current diff, affected callers and test results with the original
+request. Report concrete defects, supporting evidence and whether that revision
+is ready. Do not block a sound change on personal preferences.
 
 ## Scope and inputs
 
 Inspect the supplied project and named artifacts before declaring them missing.
 Do not search parent directories, unrelated repositories, evaluator paths or
-credentials for missing evidence. Review-only permits read-only inspection;
-an explicit tool/application/network prohibition still applies. Offline or
-text-only reviews use supplied source and release notes, with external
-maintenance, vulnerability and license facts reported unknown. A review grants
+credentials for missing evidence. For review-only work, inspect without editing and
+respect restrictions on
+tools, applications and network access. For an offline or text-only review,
+use supplied source and release notes; report external maintenance,
+vulnerability and license facts as unknown. A review grants
 no authority to edit, install, publish or deploy.
 
 For an ordinary mechanical edit without
@@ -27,29 +27,33 @@ review is requested or the risk warrants it.
 
 ## Review the behavior and boundary
 
-1. Read the request, final diff, contracts and affected callers. Inspect tests
-   for literal expected outcomes and meaningful negative cases; tests repeating
-   implementation assumptions are weak evidence. Do not infer runtime success
+1. Read the request, final diff, contracts and affected callers. Inspect whether tests
+   assert the requested outcomes and reject invalid cases.
+   Tests that repeat the implementation's assumptions may share its defects. Do not
+   infer runtime success
    from source or a passing build.
    Discover and run the repository's existing lint, formatting and type checks
-   for the affected surface. Keep its configuration and suppressions visible;
+   for the affected code. Keep its configuration and suppressions visible;
    weakening a rule or adding an ignore is not a repair of the underlying defect.
-   When repository changes are unavailable, run its existing commands and keep
-   results outside the checkout. For supplemental Python/TypeScript correctness
+   When editing the repository is not permitted, run existing authorized
+   commands and keep their results outside the checkout. For supplemental
+   Python/TypeScript correctness
    checks without app configuration changes, use [portable lint](references/portable-lint.md).
-   For approved delivery, include the approved plan identity, behavior,
-   interfaces/owners and raw native, portable-lint and journey evidence. Review
-   the completed feature against that contract, not only its previous behavior.
+   For approved delivery, inspect the approved plan, intended behavior,
+   interfaces and owners, plus the actual outputs from native checks, portable
+   lint and user-flow tests. Review the feature against those requirements.
 2. Check correctness and state ownership first: errors, lifecycle, cancellation,
    retries, compatibility and identity. Verify evidence belongs to the final
    source/artifact and relevant running instance.
-3. Check design and maintainability: unnecessary branches, duplicated state,
+3. Check maintainability: unnecessary branches, duplicated state,
    leaky boundaries, unsafe casts, feature-specific logic in shared modules and
    abstractions without demonstrated consumers. For boundary/data/state changes,
-   use [construction counterexamples](../follow-instructions/references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples). Propose a concrete remedy that
-   removes decisions rather than relocating complexity. Remove newly orphaned
+   use [construction
+   counterexamples](../follow-instructions/references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples).
+   Propose a correction that reduces the decisions callers must make. Remove newly
+   orphaned
    code only after checking callers and authority.
-4. Screen security and performance only at affected boundaries. Do not invent
+4. Check security and performance where the change can affect them. Do not invent
    vulnerability or latency claims. For an exploitable trust boundary, invoke
    [security-and-hardening](../security-and-hardening/SKILL.md) and state the
    attacker input, missing enforcement, reachable victim/asset, impact,
@@ -61,9 +65,9 @@ review is requested or the risk warrants it.
    optional suggestions and informational notes. Empty findings are valid
    after an actual review; a summary of the author's account is not review.
 
-When discovery, assertions, scoring, a feature map, lint/import boundaries or
-CI configuration lose coverage, require an explicit reason and a violating
-fixture before accepting the replacement. Preserve failed, unavailable and
+If a change reduces test discovery, assertions, scoring coverage, feature
+coverage, lint or import checks, or CI coverage, require a reason. Check that
+the replacement still rejects a relevant defect. Preserve failed, unavailable and
 not-run checks; valid artifact-only output need not repeat its bytes in prose.
 
 ## Independent review
@@ -98,15 +102,16 @@ repeat a full review only when that delta changes the wider conclusion.
 
 ## Returned review rounds
 
-A round is one independent assessment, started in fresh context, of an identified
-candidate (head SHA plus any uncommitted/untracked delta). It counts only after
-its verdict and evidence return. Record reviewer, candidate, checks inspected,
-findings and disposition. Each finding needs a location, trigger, consequence and
-supporting evidence. Clean findings are valid; do not invent defects or cosmetic
-changes to occupy a round. A previous reviewer conversation is not fresh context.
-When a round re-reviews a repair and a finding's origin affects the decision, say
-whether it misses the original contract, was introduced by the repair, or asks
-for new scope. The first two are repair work. Decline or defer optional scope
+A review round starts in fresh context and covers an identified candidate:
+its head SHA and any uncommitted or untracked changes. Count the round only
+when the reviewer returns a verdict and evidence. Record the reviewer,
+candidate, checks, findings and how each finding was resolved. Each finding needs a
+location, trigger, consequence and
+supporting evidence. A review may find no defects. Do not invent defects or cosmetic changes to
+fill a round. A previous reviewer conversation is not fresh context.
+When reviewing a repair, distinguish an unmet original requirement, a defect
+introduced by the repair and a request for additional scope when that
+distinction affects the decision. The first two are repair work. Decline or defer optional scope
 additions; obtain the requester's decision before expanding the agreed scope.
 No per-finding label is needed where the origin is obvious.
 
@@ -117,18 +122,18 @@ smallest complete change and verify it. Investigate an unclear premise; ask one
 precise question only when a necessary decision remains unresolved. Reject an
 unsupported finding with concrete evidence and, when useful, a compatible
 alternative. Avoid reflexive agreement, defensive argument, partial fixes and
-unrelated cleanup. A judgment override does not waive required verification or
-independent review.
+unrelated cleanup. Disagreeing with a finding does not waive required verification or review.
 
-Review necessity and the original contract before polishing a reproduction's
-implementation. Follow the underlying invariant through relevant writers,
+Before polishing a reproduction, check whether the proposed change is needed
+to meet the original requirement. Follow the underlying invariant through relevant writers,
 persistence, failure/retry, migration and already queued consumers. A fix for one
-reported path does not establish the invariant across those paths. Keep review
-proportional where the paths are unaffected.
+reported path does not establish the invariant across those paths. Skip paths the change
+cannot affect.
 
 The [PR delivery policy](../pull-requests/SKILL.md#review-budget) owns round counts
 and stopping. [Agent selection](../follow-instructions/references/agent-selection.md)
-owns reviewer/model dispatch; [Better Call Sol](../better-call-sol/SKILL.md) applies
+describes how to choose and launch a reviewer; [Better Call
+Sol](../better-call-sol/SKILL.md) applies
 when Sol is selected and does not define a second quality standard. Ordinary standalone
 reviews retain their requested scope; PR delivery uses the linked risk-based budget.
 
@@ -152,7 +157,7 @@ reviews retain their requested scope; PR delivery uses the linked risk-based bud
   [performance checklist](references/performance-checklist.md).
 
 Resolve material in-scope findings, inspect the final diff and affected checks,
-and confirm any required independent review covers the final artifact. Keep
-unrelated cleanup separate. A readiness recommendation does not authorize
-merge or deployment. Apply the shared
+and confirm any required independent review covers the final artifact. Keep unrelated
+cleanup separate. Recommending the change does not authorize
+merging or deploying it. Apply the shared
 [execution boundary](../follow-instructions/references/principles/authority-and-claims.md#execution-boundary).

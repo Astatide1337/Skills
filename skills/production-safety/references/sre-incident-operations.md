@@ -4,8 +4,8 @@
 objective, or may have regressed during a rollout. Use this procedure when the
 failure could involve a release, dependency, traffic shift, or service health.
 
-**Objective:** Produce a current, evidence-bound incident assessment and the
-next safe observation. A passing build or health probe alone is not proof of
+**Objective:** Assess the incident using current evidence and choose the next
+safe check. A passing build or health probe alone is not proof of
 user-visible recovery.
 
 ## Authority and inputs
@@ -13,9 +13,8 @@ user-visible recovery.
 Start in read-only mode. Identify the exact service, environment, region or
 cluster, incident window, affected request path, and requested inspection
 scope. Record whether the user authorized diagnosis only or a specific
-operational change. Use the runtime source of truth for what is serving and the
-deployment source of truth for what should be serving; do not treat desired
-state as observed state. If live tools are unavailable, work from the supplied
+operational change. Compare the running service with the deployment configuration. Keep what is
+serving separate from what should be serving. If live tools are unavailable, work from the supplied
 snapshot, label runtime facts unknown, and name the read-only observation an
 authorized operator would need. Do not run probes in an unapproved environment.
 
@@ -50,10 +49,11 @@ authorized operator would need. Do not run probes in an unapproved environment.
 5. **Choose the smallest discriminating observation.** State two or more
    plausible causes when evidence permits. Name the first read-only check, the
    observation expected under each cause, and what result would reject the
-   current explanation. For a rollout-correlated symptom, bind a sample of
-   failing requests to their serving revision and compare it with the
+   current explanation. When symptoms coincide with a rollout, identify which revision served a
+   sample of failing requests and compare it with the
    unaffected revision. If request-level evidence is unavailable or the
-   unaffected cohort also fails, downgrade the revision hypothesis and inspect
+   unaffected cohort also fails, reduce confidence that the new revision caused the
+   failure and inspect
    shared traffic or dependencies.
 
 6. **Set the action boundary.** Before any operational change, record the
@@ -89,11 +89,11 @@ uv run --frozen python -m unittest \
   evals.tests.test_sre_incident_operations -v
 ```
 
-The packet contrasts a degraded canary with a healthy same-window revision,
+The fixture contrasts a degraded canary with a healthy same-window revision,
 keeps green readiness separate from user-path success, marks the absent
 same-duration baseline unknown, and specifies a read-only request-to-revision
-check. Its canary-only outcome supports revision association without confirming
-root cause; a shared failure across revisions rejects revision-specific
+check. A failure limited to the canary links the symptom to that revision without
+confirming the cause; a shared failure across revisions rejects revision-specific
 attribution and redirects the investigation toward shared traffic or a
 dependency. It also preserves unknown dependency health and withholds a
 rollback-safety claim when the artifact digest is missing and the last healthy

@@ -1,7 +1,7 @@
 # Cause and behavior
 
-This local reference combines pstack's Fix Root Causes, Prove It Works, and
-Test Behavior Not Implementation. It supplements, rather than replaces,
+Adapted from pstack's Fix Root Causes, Prove It Works, and Test Behavior Not
+Implementation. Use it alongside
 `systematic-debugging` and `verify-work`.
 
 ## Trigger
@@ -12,10 +12,11 @@ any completion claim about a behavior.
 ## Decision rule
 
 Preserve the failure, distinguish facts from hypotheses, and run the smallest
-observation that separates plausible causes. Correct the owner of the cause.
-Test the behavior through the path a user or caller exercises, including a
-relevant negative control. Do not use source fragments, self-attestation, a
-mocked boundary, or a passing build as proof of an untested runtime behavior.
+check that distinguishes plausible causes. Fix the code responsible for the
+failure. Test the behavior through the path a user or caller exercises,
+including a relevant negative control. Do not use source fragments,
+self-attestation, a mocked boundary, or a passing build as proof of an untested
+runtime behavior.
 
 ## Procedure
 
@@ -24,18 +25,11 @@ mocked boundary, or a passing build as proof of an untested runtime behavior.
 2. Inspect the implementation, callers, state, and boundary that own it.
 3. State the current hypothesis and one plausible alternative when uncertainty
    is material. Run a discriminating check rather than guessing.
-4. Make the smallest owner-level correction and keep the original regression.
+4. Make the smallest correction in the responsible code and keep the original regression.
 5. Exercise the real input-to-output path. Assert a literal observable result,
    not only that a function was called or that a fixture exists.
 6. Run the relevant negative case and inspect the final artifact after tests,
    cleanup, and delegated work.
-
-## Principal-engineer lens
-
-The reusable skill is causal explanation. A high-level engineer can show why
-the system failed, why this owner is responsible, and which evidence would
-falsify the explanation. That narrative prevents symptom fixes from becoming
-architecture.
 
 ## Evidence
 

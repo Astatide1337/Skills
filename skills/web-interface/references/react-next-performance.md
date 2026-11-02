@@ -1,7 +1,7 @@
 # React and Next Performance
 
-Read this only for a user-visible performance problem in a React or Next.js
-surface. Treat every optimization as a hypothesis with a named metric and a
+Read this only for a user-visible performance problem in a React or Next.js application.
+Treat every optimization as a hypothesis with a named metric and a
 comparable baseline. Mark expected benefits as unverified when measurement is
 unavailable.
 
@@ -15,7 +15,8 @@ unavailable.
 - [Reduce proven render cost](#reduce-proven-render-cost)
 - [Improve rendering and browser work](#improve-rendering-and-browser-work)
 - [Apply JavaScript micro-optimizations last](#apply-javascript-micro-optimizations-last)
-- [Use advanced and version-specific APIs carefully](#use-advanced-and-version-specific-apis-carefully)
+- [Use advanced and version-specific APIs
+  carefully](#use-advanced-and-version-specific-apis-carefully)
 - [Verify the result](#verify-the-result)
 
 ## Order of work
@@ -137,7 +138,7 @@ comparison, memoization, or cache maintenance costs more than rendering.
 
 ## Improve rendering and browser work
 
-- Use `content-visibility` or virtualization for genuinely long content. Keep
+- Use `content-visibility` or virtualization for long content that benefits from them. Keep
   search, selection, accessibility, and scroll restoration behavior intact.
 - Keep conditional rendering explicit when `0`, `NaN`, or an empty string could
   leak into output; prefer a ternary when the false case matters.
@@ -175,7 +176,7 @@ On a measured hot path, consider:
   without delaying required analytics, accessibility, or persistence.
 - Bound function-result caches and include all correctness dimensions in keys.
 
-Keep the clearer implementation when measurement does not show a worthwhile gain.
+Keep the clearer implementation when measurement shows no worthwhile gain.
 
 ## Use advanced and version-specific APIs carefully
 

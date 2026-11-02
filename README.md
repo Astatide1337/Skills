@@ -1,23 +1,17 @@
 # Astatide Skills
 
-A portable engineering method for AI agents: informed judgment, dependable
-execution, and independently supported outcomes. One accountable engineer owns
-the result. Verification challenges it. Improvement keeps only interventions
-that help without narrowing valid solutions.
+Skills for agents that develop, review and maintain software. The catalog covers
+planning, implementation, debugging, verification and delivery. One agent owns
+the result and resolves findings from independent review.
 
-Use the maintained `main` branch for ordinary installation. Source availability
-here does not mean it is installed on any machine. [PREVIEW.md](PREVIEW.md)
-preserves historical comparison inputs, observed checks and a disposable rollback
-path. Neither instructions nor passing fixture tests establish improved agent
-quality or production readiness. User-specific authority and standing
-merge/deployment policies remain separate and unchanged.
+Install from `main`. Files in this repository are not automatically installed
+on your machine. [PREVIEW.md](PREVIEW.md) records earlier experiments and how to
+reproduce their disposable installations; it is not an installation channel.
 
-The catalog is portable across compatible harnesses. Some skills reference
-sibling procedures or runtime helpers; selected installation must preserve
-those declared dependencies. `code-review-and-quality` needs the compatible
-`verify-work` helper, which the installer includes when missing and checks
-before copying. It refuses an incompatible existing helper unless that skill
-was explicitly selected for replacement.
+Some skills depend on sibling skills or helpers. For example,
+`code-review-and-quality` needs a compatible `verify-work` helper. The installer
+includes that helper if it is missing and refuses to replace an incompatible
+existing version unless you also select `verify-work`.
 
 ```text
 skills/<skill-name>/
@@ -104,135 +98,102 @@ to load updated instructions and hooks.
 
 ## Delivery and review defaults
 
-Implementation requests normally include a scoped PR unless the user requests
-local-only work or sets another restriction. Every delivered PR receives at least
-one independent review. Follow the dynamic review budget in
-[pull-requests](skills/pull-requests/SKILL.md): usually one to three rounds,
-with five as a hard cap. [Better Call Sol](skills/better-call-sol/SKILL.md)
-orchestrates that standard. Review limits never waive final-code
-coverage, required checks or human approvals. Never merge, auto-merge or deploy.
+Under the [global instructions](global-instructions/AGENTS.md), implementation
+requests normally include a scoped PR. A local-only request or another explicit
+restriction overrides that default. For planning, explanation and review,
+perform only the requested actions.
 
-The coordinator preserves outcome, authority, deliverable format and acceptance
-through research, delegation and continuation. Plans default to rendered HTML;
-Markdown working notes do not replace that deliverable. Existing artifact and
-profile checkers can validate an explicitly selected file contract; there is no
-universal T3/Codex stop hook enforcing arbitrary temporary-artifact delivery.
+Every delivered PR needs independent review. The
+[pull-requests skill](skills/pull-requests/SKILL.md#review-budget) sets the review
+budget: usually one to three rounds, never more than five. An exhausted budget
+leaves review pending; it does not waive findings or checks. Use
+[Better Call Sol](skills/better-call-sol/SKILL.md) when Sol is requested or chosen.
+Merging requires explicit approval. Auto-merge and deployment are prohibited.
 
-[Verifier validity](skills/verify-work/SKILL.md#validate-the-measuring-instrument)
-applies beyond evaluation scores. Explicit evaluator repair may change its
-instrument while independent acceptance and the user outcome remain protected.
-Structural tests and supplied examples do not establish improved agent behavior;
-matched comparisons retain their recorded model, policy, environment and limits.
+Keep ordinary plans in the task record. Create a separate plan when the user
+requests a format, a project requires approval, or a visual explanation helps
+resolve a decision. Reuse approval for in-scope implementation and repairs. See
+[plans and authority](skills/follow-instructions/references/approved-plans.md).
 
 ## Global instructions
 
-[`global-instructions/AGENTS.md`](global-instructions/AGENTS.md) is the
-portable source for cross-repository working defaults. Installing it is always
-an explicit, user-controlled action and is separate from skill installation.
+[`global-instructions/AGENTS.md`](global-instructions/AGENTS.md) contains personal
+working defaults and environment rules. Installing it is a separate, explicit
+action; installing skills does not install these instructions.
 
 ## Task playbooks
 
-When a catalog skill applies, `follow-instructions` is the single entry point:
-it chooses one primary task process, attaches only the domain skills that own
-the decisions, records permitted effects separately, and loads supporting
-procedures from `skills/follow-instructions/playbooks/`. It is not used for a
-plain conceptual answer and does not grant merge or deployment authority.
+For substantial engineering work, start with
+[`follow-instructions`](skills/follow-instructions/SKILL.md). It chooses the task
+procedure and loads domain guidance as needed. Clear local corrections can use
+its short path. A plain conceptual answer needs no workflow setup.
 
 Examples:
 
 ```text
-Fix the broken search filter and run its regression.
-→ implement/bug + systematic-debugging; workspace write; no PR requested.
+Fix the broken search filter and run its regression. Keep this local.
+→ implement/bug; investigate the cause if unclear; edit and test, without a PR.
 
 Investigate the tenant lookup failure and create one issue; do not edit code.
-→ investigate/read → issues/create; source inspection, one tracker write/readback,
-  and no workspace, PR, merge, or deployment effect.
+→ investigate/read, then issues/create; inspect source, create the issue,
+  and verify the posted result. Do not change source or open a PR.
 
-Design and execute a one-off offline reproduction package from these sanitized
-snapshots; do not contact production or create a permanent workflow.
-→ implement/feature; compose existing investigation/security/verification methods
-  into a temporary checked sequence and report any blocked input.
+Build a one-off offline reproduction from these sanitized snapshots.
+Do not contact production or create a permanent workflow.
+→ implement/feature; combine the relevant investigation, security and
+  verification steps in a temporary workspace.
 ```
 
-For substantial work, inspect the owner, callers and existing automation, then
-record the outcome, authority, smallest correction and acceptance. Present a
-separate approval artifact only when the user or project requires it. Existing
-authorization remains valid for in-scope implementation and repair. See
-[plans and authority](skills/follow-instructions/references/approved-plans.md).
-Read-only requests and the short path keep their own stopping conditions.
+These are examples of task selection, not a command syntax. Preserve the user's
+objective, restrictions and required output throughout the work. For each
+substantial change, inspect the implementation and callers, choose the smallest
+complete change, and decide how to check it. Simplify changed code before final
+verification and review. Edit substantial prose for clarity, then check that its
+claims match the evidence.
 
-[PR/MR delivery](skills/pull-requests/SKILL.md#complete-authorized-delivery) owns
-completion: affected behavior, independent review, material repairs, publication,
-current-head checks and host merge eligibility. A draft is intermediate; a
-review-ready flag is not merge readiness. Use native watches and runtime
-continuation, retaining a compact record before interruption. Never merge or
-enable auto-merge. Learning is propose-only; see
-[learn from repeats](skills/self-reflect/references/learn-from-repeats.md).
+[PR delivery](skills/pull-requests/SKILL.md#complete-authorized-delivery) covers
+publication, review findings, repairs and checks on the current head. Creating a
+draft or marking a PR ready does not complete those steps. Use the runtime's
+continuation and PR-watch tools when waiting; retain unfinished work before an
+interruption.
 
-The first line is the requested outcome; it is not a new command language. The
-coordinator preserves literal prohibitions, uses `pull-requests` for explicit
-publication, and applies `production-safety`/`security-and-hardening` when
-those boundaries are in scope. Parallel work is an optional modifier and ends
-with an integrated check.
+For delegation, use the shared
+[agent-selection policy](skills/follow-instructions/references/agent-selection.md).
+Choose a model and reasoning level from the runtime's actual capabilities, based
+on the task and explicit user constraints. Record the returned settings. Generic
+review can use an available reviewer; a request for Sol remains a request for Sol.
+The [parallel procedure](skills/follow-instructions/playbooks/parallel.md) covers
+worker ownership and integration. Larger programs can use a standing coordinator
+with one owner per PR. Skills do not replace the runtime's scheduler.
 
-Delegation uses the shared
-[agent-selection policy](skills/follow-instructions/references/agent-selection.md):
-discover available models and reasoning options, match them to the role and
-difficulty, preserve explicit constraints, and record the actual returned settings.
-The [parallel modifier](skills/follow-instructions/playbooks/parallel.md) distinguishes
-ordinary helpers from a standing program with one owner per PR. Native task events
-and PR watches own continuation; the skills do not add a scheduler. Generic
-independent review is not coupled to Sol availability; an explicit Sol request is.
+Useful entry points:
 
-Ordinary implementation retains its plan in the existing task record. A separate
-HTML plan is for an explicit format request or a useful visual decision, not an
-approval ritual. Code cleanup precedes final verification and review. Prose cleanup
-preserves facts before the final acceptance/claims check. These are workflow rules,
-not evidence that the runtime enforces them or that model outcomes have improved.
+| Need | File |
+| --- | --- |
+| Select a procedure | [follow-instructions](skills/follow-instructions/SKILL.md) |
+| Resolve an engineering decision | [principle index](skills/follow-instructions/references/principles.md) |
+| Compare worked decisions | [case studies](skills/follow-instructions/references/case-studies.md) |
+| Propose a fix for a repeated mistake | [learn from repeats](skills/self-reflect/references/learn-from-repeats.md) |
+| Clean changed code | [deslop](skills/deslop/SKILL.md) |
+| Revise prose | [unslop](skills/unslop/SKILL.md) |
 
-The implemented package map is intentionally small:
-
-```text
-skills/follow-instructions/
-  SKILL.md                 entry point, route table, and evidence gates
-  references/principles.md principle index and pstack mapping
-  references/approved-plans.md explicit approval gates and authority
-  references/agent-selection.md role, model, reasoning and supported dispatch
-  references/principles/   detailed, selectively loaded decision rules
-  references/case-studies.md selectively loaded public contrasts
-  examples/                three primary-grounded instructional exercises
-  playbooks/               investigate, design, implement, performance,
-                           migrate-operate, review, issues, document-teach,
-                           and parallel procedures
-skills/<domain-skill>/SKILL.md
-skills/deslop/SKILL.md          code-diff cleanup; use unslop for prose
-global-instructions/AGENTS.md
-evals/cases/workflows.json  optional composition and execution diagnostics
-evals/workspace_evidence.py runner-owned Git baseline/evidence contract
-evals/fake_tracker.py       isolated publication fixture
-evals/results/               sanitized review-unit summaries
-```
-
-For worked decisions and their limits, use the
-[case index](skills/follow-instructions/references/case-studies.md).
-The supplied tracker fixture remains a deterministic evaluator-contract
-boundary only. It is not a live tracker integration, and its results are never
-product or agent verification.
+These instructions define how agents should work. Runtime enforcement and
+measured effects on agent behavior need separate evidence.
 
 ## Application verification ownership
 
-Skills owns judgment: [verify-work](skills/verify-work/SKILL.md) chooses expectations,
-interprets failures and decides which evidence a change invalidates. Application
-CLIs own supported deterministic operations and compatibility. Resolve a release
-at an authorized setup boundary, or explicitly select a current development
-revision when no release exists; retain identity throughout the task. Do not
+Use [verify-work](skills/verify-work/SKILL.md) to choose checks, interpret failures
+and decide which results must be refreshed after a change. Use application
+CLIs for their documented operations. During authorized setup, choose a release
+or, if none exists, a specific development revision. Keep that version fixed
+throughout the task. Do not
 silently upgrade active tools or copy application manifests into Skills.
 
-[Native CLI discovery](skills/verify-work/references/agent-clis.md) covers the actual
-Linktree/Shrunk package owner and Keelbox lifecycle CLI. Inspect current help;
+[Native CLI discovery](skills/verify-work/references/agent-clis.md) explains where
+to find Linktree, Shrunk and Keelbox and how to check their supported commands. Inspect current help;
 Keelbox manages Kubernetes development resources and does not verify arbitrary
 application outcomes. T3 owns collaborative browser interaction when available;
-follow its current capability and ownership documentation. `internet-reach` and
+follow the runtime’s current tool instructions. `internet-reach` and
 its obsolete Zen bridge are retired, without a replacement browser wrapper.
 
 Normal installation never prunes removed or unrelated skills. For an explicit
@@ -242,163 +203,60 @@ retirement in a selected destination:
 ./scripts/install.sh --retire internet-reach --target /path/to/disposable/skills
 ```
 
-Only recognized historical package bytes are retired. Extra files, changed bytes
-or links cause refusal; preserve and reconcile local customizations separately.
+Retirement removes only recognized historical versions. It refuses packages with
+extra files, modified contents or links. Preserve and review those local changes
+separately.
 The obsolete `--agent-clis-source` option and pinned installer are removed; use
-the CLI project's supported build/pack/install method into a task-owned prefix.
+the CLI project’s documented build, pack and install commands in a directory
+created for the task.
 See [PREVIEW.md](PREVIEW.md) for comparison and rollback without global changes.
 
 ## Portable lint
 
 Use the [portable lint procedure](skills/code-review-and-quality/references/portable-lint.md)
 for supplemental Python/TypeScript checks without adding app configuration.
-Its setup helper creates an explicitly external locked runtime; the lint runner
-does not install packages or alter target source. The public entrypoints are:
+Its setup helper installs pinned tools outside the application checkout. The
+lint runner does not install packages or edit source. Use:
 
 ```sh
 python skills/code-review-and-quality/scripts/setup_portable_lint.py --runtime /path/to/fresh-external-runtime
 python skills/code-review-and-quality/scripts/portable_lint.py --workspace /path/to/app --scope changed --base REF --runtime /path/to/external-runtime --receipt /path/to/new-external-receipt.json
 ```
 
-Explicit files remain the default, with deliberate changed/tracked/directory
-discovery available. Native checks remain independently required; portable
-coverage and debt comparison have their own evidence boundaries. The owning
-procedure documents exact tools, rules, suppression limits and unavailable
-contexts. React Doctor is not included.
+The runner checks explicitly named files by default. You can also select changed
+files, tracked files or a directory. Run the project’s own checks too, and report
+new findings separately from existing debt. The linked procedure lists the
+tools, rules, suppression limits and unsupported contexts. React Doctor is not
+included.
 
 ## Validate and evaluate
 
-Run deterministic structure and catalog checks:
+Run the structural checks without model calls:
 
 ```bash
 ./scripts/validate-skills.sh
 ```
 
-The optional Inspect evaluation fixtures live in `evals/`. To verify task
-discovery without making a model call:
+The optional evaluations live in `evals/` and use Inspect. List the available
+tasks and run a deterministic fixture check with:
 
 ```bash
 uv sync --frozen
-uv run inspect list tasks evals/skills.py
+uv run --frozen inspect list tasks evals/skills.py
+uv run --frozen inspect eval evals/skills.py@workflow_fixture_smoke --max-samples 1
 ```
 
-Run live evaluations only deliberately: they use the locally authenticated
-Codex CLI and can execute model-generated code inside its workspace sandbox.
+`workflow_fixture_smoke` and `workflow_fixture_pilot` test the evaluator with
+supplied local fixtures. Their fake tracker checks ordering, source identity,
+readback and recovery from duplicate requests. It is not installed with the
+skills. Passing these tests does not verify a real product, tracker or PR.
 
-The workflow path keeps the existing evaluator entry points. Verify discovery
-and run the deterministic fixture smoke with:
-
-```bash
-uv run inspect list tasks evals/skills.py
-uv run inspect eval evals/skills.py@workflow_fixture_smoke --max-samples 1
-```
-
-`workflow_fixture_smoke` and `workflow_fixture_pilot` exercise the evaluator's
-runner-owned contract with a disposable fixture. They are contract diagnostics,
-not live GitHub/GitLab integration, and must not be reported as product, agent,
-or publication verification. Native comparisons are separate, finite, and must
-use the same model, tools, permissions, and budget for baseline and treatment.
-
-Complete the candidate workflow and deterministic checks before a deliberate
-comparison using the currently authorized, runtime-verified model and settings. Freeze both catalogs, organic tasks, settings, tools,
-budget and held-out acceptance; use the same model/settings in both arms and
-retain actual failures and unavailable outcomes. Installed procedures and
-passing harness tests do not establish improved model efficacy. See the
-[evaluation procedure](skills/skill-creator/references/evaluation.md).
-
-Issue-derived local regressions are opt-in cases in
-`evals/cases/skills-comparison.json`, selected through `workflows(case_ids=...)`.
-Run their known-valid alternatives and targeted-defect controls without model
-calls:
-
-```bash
-uv run --frozen python -m unittest evals.tests.test_issue_resolution_cases evals.tests.test_issue_scope evals.tests.test_issue_completion -v
-```
-
-The [October 31 issue evidence](evals/results/2026-10-31-issue-regressions.json)
-records every native attempt, the classifier fixture correction, and remaining
-acceptance for all twelve issues. These synthetic cases test selected decisions;
-they do not establish improved relative performance or close the issues.
-Full export playback, real runtime/launcher replay, longitudinal corrections
-and reader-task assessment retain their separate evidence requirements.
-
-Opt-in `user_turns` fixture metadata delivers up to eight additional scripted
-user messages through `codex exec resume` in one owned session. Each entry has
-`text` and `allowed_paths_before`: the latter bounds cumulative persisted
-changes before that message is delivered. Model, effort, guidance, workspace
-and permission overrides stay fixed. The runner records each response, native
-usage and workspace snapshot, and stops continuation on a missing session ID
-or an invalid effects observation. Ordinary runs remain ephemeral; existing
-`approval_turn` and interruption continuations still use fresh sessions.
-This observes scripted same-session corrections, not adaptive users, child
-agent behavior, compaction or writes restored between snapshots. Pre-turn
-contracts currently prohibit Git metadata and index changes. The separate
-branch-ancestry fixtures authorize local commits and enforce their scope with
-runner-held acceptance checks. They declare `git-write` as a required
-capability and remain blocked before model launch under the current native
-profile, which protects `.git`. Host calibration does not prove native Git
-writes are supported. Missing, truncated or cancelled turn observations are
-unscored; an observed scope violation is a failure. Effects scores do not
-judge whether a response asked an appropriate question. The scope fixture's
-independent response review checks bounded work and accurate reporting of an
-unrelated open decision. Question-before-dependent-work remains unmeasured
-because completing its schema does not require the desktop integration choice.
-
-Run the branch/scope calibration and continuation lifecycle checks with:
-
-```bash
-uv run --frozen python -m unittest evals.tests.test_issue_branch_scope evals.tests.test_skills_lifecycle.UserTurnLifecycleTests -v
-```
-
-The fake tracker is intentionally limited to those optional publication-contract
-diagnostics. It stays under `evals/`, is not installed with the skills, and is
-not needed for ordinary diagnosis, implementation, review, or issue drafting.
-Its runner-owned receipts test ordering, identity, source-read observation, and
-idempotent recovery; they are fixture evidence, not proof of a live tracker or
-agent behavior. Removing it would remove that contract's negative controls rather
-than simplify the daily package.
-
-Workspace evidence and native execution require Bubblewrap (`bwrap`) with user
-and mount namespaces enabled. The preflight checks the disposable workspace
-and the read-only `/usr`, `/bin`, `/lib`, `/lib64`, `/etc`, `/proc`, `/dev`, and
-temporary `/tmp` mounts. There is no unsafe host fallback. The local collector
-supports trusted synthetic fixtures only; remote, live, and adversarial
-execution remain unsupported. Contained Git subprocesses do not contain every
-Python read or native-agent operation.
-
-The workflow dataset labels cases as `execution-ready` or `routing-only`.
-Execution support is gated separately: an executable fixture is not proof of a
-supported native lifecycle. Historical contract-pilot results cover their
-recorded cases/revisions only; they do not restrict this complete candidate or
-establish its efficacy. The fixture task remains available as a deterministic
-diagnostic:
-
-```bash
-uv run inspect eval evals/skills.py@workflow_fixture_pilot --max-samples 10
-```
-
-The native `workflows` task runs a pre-launch boundary gate. A case is
-unscored/blocked when a required effect is outside the runner's observed
-boundary; missing observations are never treated as success. The established
-local native case is `workflow-native-local-repair`, which checks the actual
-edited checkout and runs its supplied regression test. New approval/resume
-cases require observed ordering and their own support gate; unsupported peer
-review, real CI and remote effects remain unmeasured. A local workflow does not
-establish live tracker, pull-request, deployment, browser or adversarial behavior.
-
-That local workflow runs candidate supplemental checks first, then a
-runner-controlled copy of the original acceptance regression against the final
-workspace. The check imports the candidate's changed implementation, so
-replacing `test_bug.py`, restoring the bug after a passing supplemental command,
-or mentioning an exception in a source comment cannot satisfy behavioral
-acceptance. The runner-owned regression is separate from the candidate's own
-tests and is reported as optional local contract evidence, not live product
-verification.
-
-For a fair native comparison, select both catalog arms explicitly. The baseline
-must point at an explicitly frozen accepted revision; both arms must use the same actual
-user policy when comparing only Skills changes;
-the no-catalog control is an optional diagnostic, not the baseline:
+Live evaluations use the locally authenticated Codex CLI and execute generated
+code. Run them only within an authorized, bounded experiment. Follow the
+[evaluation procedure](skills/skill-creator/references/evaluation.md) to freeze
+tasks, catalogs, settings, tools, permissions, budget and independent acceptance
+checks. Keep every failed or unavailable attempt. When comparing catalog changes,
+use the same actual user policy in both versions:
 
 ```bash
 uv run inspect eval evals/skills.py@workflows \
@@ -411,35 +269,75 @@ uv run inspect eval evals/skills.py@workflows \
   -T baseline_global_instructions=/path/to/actual-user-policy.md
 ```
 
-The pilot summary records exact revisions, case IDs, repetitions, and limits;
-generated binary `.eval` logs are ignored and are not review evidence.
+The baseline must be a frozen accepted version. A run without any catalog is an
+optional diagnostic, not a substitute for that comparison. Explicitly set the
+model, reasoning, cases and limits using the evaluation procedure before running
+these commands. Inspect's token limits do not cap the nested CLI's usage.
 
-### Real repository demonstration
+The local evaluator requires Bubblewrap (`bwrap`) with user and mount namespaces.
+Its preflight checks the disposable workspace and read-only system mounts; there
+is no fallback that runs outside the sandbox. It supports trusted synthetic
+fixtures. Containing Git subprocesses alone does not contain every Python read
+or native-agent operation.
 
-For a non-fixture demonstration, use an explicitly authorized public checkout
-and its own native commands. In the Issue #17 review unit, the real
-`pallets/markupsafe` checkout was pinned to `b2e4d9c7687be25695fffbe93a37622302b24fb1`:
+A dataset's `execution-ready` label means it supplies an executable fixture. A
+separate check decides whether the runner can observe the required behavior and
+prohibited effects. Unsupported cases are blocked and unscored before model
+launch. Local results do not prove remote publication, real peer review, CI,
+browser behavior or safety against hostile inputs.
+
+For example, `workflow-native-local-repair` checks the edited source with a
+runner-controlled copy of the original regression. Replacing the visible test,
+restoring the bug after a passing command, or adding an exception name in a
+comment cannot satisfy that check. The candidate's own tests remain separate.
+[Issue 17's report](evals/results/issue-17-pilot.md) records this comparison and
+checks on a pinned real MarkupSafe checkout. Those historical results apply only
+to the recorded versions and tasks.
+
+### Issue regressions and continuation
+
+Select opt-in issue cases from `evals/cases/skills-comparison.json` through
+`workflows(case_ids=...)`. Run their valid alternatives and defect controls
+without model calls:
 
 ```bash
-git clone --depth 1 https://github.com/pallets/markupsafe.git /tmp/markupsafe-demo
-uv run --project /tmp/markupsafe-demo pytest -q
-uv run --project /tmp/markupsafe-demo ruff check
-uv run --project /tmp/markupsafe-demo mypy
-git -C /tmp/markupsafe-demo diff --exit-code
+uv run --frozen python -m unittest evals.tests.test_issue_resolution_cases evals.tests.test_issue_scope evals.tests.test_issue_completion -v
+uv run --frozen python -m unittest evals.tests.test_issue_branch_scope evals.tests.test_skills_lifecycle.UserTurnLifecycleTests -v
 ```
 
-Those commands exercise the repository's actual source and tests. A real
-checkout/test result establishes only that repository behavior; it does not
-establish live GitHub publication, deployment, browser behavior, or a better
-agent workflow. Do not substitute the disposable fixture or a no-model run for
-that evidence.
+The [October 31 record](evals/results/2026-10-31-issue-regressions.json) preserves
+native attempts, a fixture correction and remaining acceptance for twelve
+issues. These synthetic tests do not close the issues or show that one catalog
+performs better. Full transcript replay, actual runtime reproduction, repeated
+corrections over time and reader assessment require separate observations.
 
-The historical application examples are context, not flagship quality standards.
-Browser QA is a matching-surface check using the actual local server, supported
-data setup and native browser tools (T3 when exposed). A screenshot or passing build
-without the interaction is not a browser result. If the app's required
-database or browser setup is unavailable, report that blocker instead of
-fabricating a UI or using the tracker fixture as a substitute.
+Opt-in `user_turns` metadata supplies up to eight scripted messages through
+`codex exec resume` in one session. Each entry has `text` and
+`allowed_paths_before`, which limits cumulative persisted edits before the next
+message. The model, effort, guidance, workspace and permissions stay fixed. The
+runner records responses, usage and workspace snapshots. It stops continuation
+if the session ID or edit observations are missing or invalid. Ordinary runs
+remain ephemeral; `approval_turn` and interruption cases use fresh sessions.
+
+This tests scripted corrections in one session, not adaptive conversation,
+children, compaction or edits restored between snapshots. Pre-turn checks forbid
+Git metadata and index changes. Separate branch-ancestry cases require local
+commits and runner-owned acceptance; they remain blocked because the native
+profile protects `.git`. Missing, truncated or cancelled observations are
+unscored; an observed scope violation fails.
+
+Effects scores do not judge whether a question was appropriate. The scope case
+has a separate response review for bounded work and accurate reporting of an
+unrelated open decision. It does not measure whether the agent waited for an
+answer before dependent work: that case's schema does not depend on the desktop
+integration choice.
+
+Keep raw `.eval` logs for inspection; Git ignores them. Published summaries must
+identify the revisions, cases, repetitions, failures and limits. Structural
+checks, grading scores and successful installation alone do not establish better
+agent behavior. If the evaluator needs repair, preserve independent acceptance
+and report the changed measurement separately; see
+[verifier validity](skills/verify-work/SKILL.md#validate-the-measuring-instrument).
 
 ## Safety and provenance
 

@@ -16,7 +16,7 @@ Classify conclusions by the strongest evidence supporting them:
   which sources were unavailable, and what evidence could resolve it.
 
 Use causal words such as "because" only for direct or strongly supported
-claims. For inference, use calibrated language such as "appears," "likely," or
+claims. For inference, use qualified language such as "appears," "likely," or
 "suggests," followed by the evidence. Confidence should track source quality,
 independence, proximity to the decision, and contradiction, not the fluency of
 the story.
@@ -24,11 +24,11 @@ the story.
 ## Contradictions and absence
 
 Do not hide disagreement. Put contradictory sources next to each other, note
-their dates and vantage points, then explain whether later evidence supersedes
+their dates and what each author could observe, then explain whether later evidence supersedes
 earlier evidence or the conflict remains unresolved.
 
-Absence of a rationale is not proof that no rationale existed. A null search is
-useful only when the searched scope is named. Distinguish "not found in the
+Absence of a rationale is not proof that no rationale existed. An unsuccessful search is
+useful only when its scope is named. Distinguish "not found in the
 available history" from "never documented."
 
 ## Common rationalization traps

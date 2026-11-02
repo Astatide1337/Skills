@@ -1,7 +1,7 @@
 # Voice and context
 
-Natural writing is appropriate to its author and destination. It is not a bag
-of quirks applied to every draft.
+Use this reference for personal prose or documents that mix factual and
+personal sections. Match the author and destination without inventing a persona.
 
 ## Recover the available voice
 
@@ -19,10 +19,10 @@ inventing a personality.
 
 ## Composition and progression
 
-Choose what to say and how it unfolds before choosing polished wording. Work
-out the reader's starting knowledge, the point they should understand or feel,
-and which details earn the path between them. Use scratch outlines or drafts
-when useful; present the finished piece unless the user asks for the outline.
+Choose the content and order before polishing sentences. Establish what the
+reader already knows, what they need to understand or feel, and which details
+get them there. Use outlines or drafts when useful; present the finished piece
+unless the user asks for the outline.
 
 For explanations, choose an entry that answers the reader's actual question.
 Supply background when it becomes necessary. Follow a concrete example through
@@ -67,8 +67,8 @@ look human. Deliberate clarity is not an AI tell.
 
 Incident reports, runbooks, research summaries, release notes, and technical
 documentation should not acquire opinions or emotional color during cleanup.
-They can still sound natural through direct syntax, concrete mechanisms,
-appropriate cadence, and honest uncertainty.
+Use direct sentences and concrete explanations, and keep uncertainty where
+the evidence requires it.
 
 Keep domain terms when they are exact. For example, "API surface" may be the
 recognized set of public interfaces, "test harness" may name a real executable
