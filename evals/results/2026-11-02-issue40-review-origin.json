@@ -1,0 +1,61 @@
+{
+  "kind": "Retrospective finding-origin assessment from actual repair reviews",
+  "baseline": "2c9e71e42a7fce7707499918037309fa09ea6f1d",
+  "issue": 40,
+  "guidance_changed": false,
+  "new_model_evaluations": 0,
+  "original_contract": {
+    "source": "https://github.com/Astatide1337/Skills/issues/41",
+    "scope": "Repair structured-report verifier so a kill requires the intended test/stage/error/assertion identity; preserve valid alternatives and distinguish unrun checks. Malformed return-code validation was not specified by the stated fixture contract."
+  },
+  "source_reviews": [
+    {
+      "path": "/tmp/skills-goal-scope.ZMJSue/issue41-native-v4-acceptance-review.md",
+      "sha256": "7d91b994e5c9d9e16653bfbeccf87d7810c781757bd74ed5e2aae048eebabfe8"
+    },
+    {
+      "path": "/tmp/skills-goal-scope.ZMJSue/issue41-evidence-final-review.md",
+      "sha256": "8a99d9beb057748c5d296ae657ec9e82af5a69f6aa5afe8c1b9d7d78c0ec9dfe"
+    }
+  ],
+  "findings": [
+    {
+      "id": "target-identity-hardcoding",
+      "classification": "original-miss",
+      "evidence": "The acceptance review found hardcoded-stage/test/assertion classifiers pass instrument revision4 even though the original identity contract required reading these fields from the report target.",
+      "disposition": "Repair in scope; revision5 adds transfer assertions and negative controls. Saved native classifier passes offline; hardcoded alternatives fail.",
+      "durable_source": "evals/results/2026-10-31-issue-regressions.json",
+      "source_pr": "https://github.com/Astatide1337/Skills/pull/64"
+    },
+    {
+      "id": "aggregate-count-and-budget-after-tenth-sample",
+      "classification": "repair-regression",
+      "evidence": "Adding the native revision4 attempt extended the record to ten samples with a 600-second sample; aggregate prose still said nine samples and 240 seconds. Those statements became inaccurate when the new attempt was added.",
+      "disposition": "Correct counts/budget at 2c21841 without changing old attempts.",
+      "source_commit": "2c21841",
+      "source_pr": "https://github.com/Astatide1337/Skills/pull/64"
+    },
+    {
+      "id": "malformed-returncode-validation",
+      "classification": "new-scope",
+      "evidence": "The saved classifier accepts matching identity with malformed return codes such as null or a string. The recorded fixture supplied ordinary numeric return codes; the contract did not specify malformed-input validation.",
+      "disposition": "Disclose and defer malformed-input hardening rather than expanding this bounded verifier repair. This is not a claim malformed inputs are safe in a production verifier.",
+      "durable_source": "evals/results/2026-10-31-issue-regressions.json",
+      "source_pr": "https://github.com/Astatide1337/Skills/pull/64"
+    }
+  ],
+  "issue40_acceptance": {
+    "resource_id_before_failure": "Existing native lifecycle sample in 2026-11-01-target-safety-batch.json; persisted returned identity before later failure.",
+    "migration_uncertainty": "Same sample retains unknown migrated identity/recovery/quota.",
+    "queued_guard": "Same sample covers producers and queued consumers, preserving cleanup.",
+    "ordinary_fix": "Bounded schema/helper sample in 2026-11-01-scope-recovery-batch.json follows focused seven-test path without lifecycle machinery.",
+    "finding_origin": "Three actual findings classified here; independent assessment pending."
+  },
+  "status": "independent-review-pending",
+  "limits": [
+    "Retrospective classification of observed actual findings; not a new prospective reviewer-model trial.",
+    "No causal improvement, reliability or reduced review-round claim.",
+    "Existing native lifecycle simulation is local, not a live provider crash/concurrency test.",
+    "Older attempts, failures and review claims remain unchanged."
+  ]
+}
