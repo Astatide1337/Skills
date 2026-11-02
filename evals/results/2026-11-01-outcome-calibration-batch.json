@@ -1,0 +1,118 @@
+{
+  "kind": "Source-grounded manual outcome calibration, no model trial or improvement claim",
+  "guidance_revision": "03e76f2bcb53955bb93d8ea79a04e74bfd250ad7",
+  "issue": 47,
+  "status": "bounded-manual-calibration-supported",
+  "primary_evidence": {
+    "thread": "80eca91d-96b8-4e4b-bdff-cc16c7ab91b0",
+    "messages": [
+      "429c5b0a-13fa-4771-9b71-793b7d047da7",
+      "9130ab27-803b-4d01-84ff-8084916c4736",
+      "4a97b99d-14e4-43d9-93ae-701c5178f92a"
+    ],
+    "capture_sha256": "cebe803f7e6c38054ef461361f58124aa09689d1bef4de41ec3865c1acd0c635",
+    "contract": "One issue with three defects and reproductions, direct project style without investigation backstory. Short rewrite qualified as good for most part; factual and safety floor remains.",
+    "privacy": "Private bodies/security reproduction details omitted. Source identity/hashes and abstract judgments retained; original drafts unchanged."
+  },
+  "controls": [
+    {
+      "id": "original-long-issue",
+      "sha256": "01ceb6da4d4b337d3016ac2875813b433cb93ee5ade73ded692b54dc4d247786",
+      "factual": "all three defects retained",
+      "reader": "rejected as overlong by original user correction"
+    },
+    {
+      "id": "original-short-issue",
+      "sha256": "8b98dd7c3f6f72a863db2064d791a14450b0efb53fe2592fa2b7375400798c0a",
+      "factual": "all three defects/reproductions retained",
+      "reader": "qualified acceptance",
+      "safety": "One reproduction lacks explicit mock/disposable boundary; separate safe alternative, no historical edit."
+    },
+    {
+      "id": "concise-omission",
+      "sha256": "785f2655edf14540cd81bc6ecea3e38978a489b1d9e3375a5b887f7f86c079b6",
+      "factual": "reject: one requested defect omitted",
+      "reader": "concision does not cure omission"
+    },
+    {
+      "id": "approved-plan",
+      "sha256": "e65840621556fd5ff727f21a64b0cced76de027d06ec0dd95b701625a89f2098",
+      "assessment": "retains ordered four-layer stack, scope, evidence and authority"
+    },
+    {
+      "id": "faithful-plan-alternative",
+      "sha256": "ee2c9bc230234cfcf1ec5784d4422e3118ce9bd7173c5447efe9b4ca37468d1e",
+      "content": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Remaining Skills work</title><body><main><h1>Remaining Skills work</h1><p>Handle all ten open issues in one batch, using three isolated lanes and one integration owner. Scope/recovery owns #38\u201339, state safety/runtime owns #40, #42 and #48, and receiving artifacts/readers owns #43\u201346. The integrator owns evaluator validity #47 and shared verifier files.</p><p>Delivery stack: scope/recovery targets main; safety/runtime targets the scope branch; artifacts/readers targets safety; evaluator validity targets artifacts. Develop independently from accepted main, inspect ancestry, then integrate that intentional order. Merge bottom-up and retarget/recheck the next layer after each approved merge.</p><p>Start with original T3 incidents and successful corrections. Reuse checks, calibrate legitimate alternatives and targeted defects, and make only source-grounded instruction changes. Freeze final guidance before trials; initial ceiling18 samples/24 native parent turns with failures retained. No unchanged retries until pass. Compare against accepted baseline before claiming improvement.</p><p>Each PR needs scoped implementation/evidence, current checks and independent review, normally1\u20133 rounds, hard cap5. Close only issues whose literal acceptance is supported. Keep GUI, playback and pod-route gaps explicit; simulated evidence is not live proof. Working notes remain outside the repository.</p><p>Implementation permits scoped commits, pushes and PRs. Merge only after explicit approval for that merge; no auto-merge, deployment or global installation.</p></main></body></html>",
+      "assessment": "accept same decisions with different wording; independent judgment not user approval"
+    },
+    {
+      "id": "branded-plan-missing-decision",
+      "sha256": "ed7f679cc7104d4bc873f004304cfabb2ac63fbdecfc384a80bd875d76d20403",
+      "content": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Remaining Skills work</title><body><main><h1>Remaining Skills work</h1><p>Handle all ten open issues in one batch, using three isolated lanes and one integration owner. Scope/recovery owns #38\u201339, state safety/runtime owns #40, #42 and #48, and receiving artifacts/readers owns #43\u201346. The integrator owns evaluator validity #47 and shared verifier files.</p><p>Linktree planning: we will deliver four professional PRs with excellent tests and reviews.</p><p>Start with original T3 incidents and successful corrections. Reuse checks, calibrate legitimate alternatives and targeted defects, and make only source-grounded instruction changes. Freeze final guidance before trials; initial ceiling18 samples/24 native parent turns with failures retained. No unchanged retries until pass. Compare against accepted baseline before claiming improvement.</p><p>Each PR needs scoped implementation/evidence, current checks and independent review, normally1\u20133 rounds, hard cap5. Close only issues whose literal acceptance is supported. Keep GUI, playback and pod-route gaps explicit; simulated evidence is not live proof. Working notes remain outside the repository.</p><p>Implementation permits scoped commits, pushes and PRs. Merge only after explicit approval for that merge; no auto-merge, deployment or global installation.</p></main></body></html>",
+      "assessment": "reject missing branch/base/order, despite branding"
+    }
+  ],
+  "existing_contract_control": "issue-47-source-grounded-criteria permits publisher-authorized empty attribution and rejects fabricated credit; existing positive/negative tests retained. Does not measure general reader utility.",
+  "preservation": {
+    "historical_inputs": [
+      {
+        "path": "/tmp/oss-transcript-behavior-audit/issue-comparison.json",
+        "available": true,
+        "sha256": "26caf74e1ccc6a5685e660bd85121f6af50692a5aaf363701d1ceac6caec64a3"
+      },
+      {
+        "path": "/tmp/oss-transcript-behavior-audit/document-route-comparison.json",
+        "available": true,
+        "sha256": "435e11ef411b217155d2789681a6b659adbc9ae46a894088373abda643a88a36"
+      },
+      {
+        "path": "/tmp/oss-transcript-behavior-audit/linktree-plan-baseline-predeclared.json",
+        "available": true,
+        "sha256": "23ffb9b0cf548139435fcb7513c3a8ab3887b2a7a4ef78a633e39f7b279665be"
+      },
+      {
+        "path": "/tmp/oss-transcript-behavior-audit/reader-package/drafts/c2331e3a/issue.md",
+        "available": true,
+        "sha256": "01ceb6da4d4b337d3016ac2875813b433cb93ee5ade73ded692b54dc4d247786"
+      },
+      {
+        "path": "/tmp/oss-transcript-behavior-audit/reader-package/drafts/ff791a57/issue.md",
+        "available": true,
+        "sha256": "8b98dd7c3f6f72a863db2064d791a14450b0efb53fe2592fa2b7375400798c0a"
+      }
+    ],
+    "disposition": "Historical attempts, failed judgments and rejected experiments untouched. This is a separately identified manual assessment. No score overwrite, judge adoption or promotion."
+  },
+  "independent_review": {
+    "path": "/tmp/skills-parallel-evaluator/luna-outcome-calibration-review.md",
+    "sha256": "bf4d182deedd24cbe6ce9b839f797e39836132af9dffaf34b1be538385fcaefa",
+    "text": "# Issue 47 outcome calibration \u2014 independent review\n\n## Verdict\n\nThe observed controls support **bounded #47 closure on the issue\u2019s criteria**, with one small reproduction-safety improvement recommended. They do not establish that evaluator quality improved, that a new judge is calibrated, or that all six criteria are exercised by automated controls. Preserve the historical failed writer/judge runs and rejected promotion under their existing identities. This review is a new, source-grounded artifact assessment only; it is not a writer-model trial, held-out result, or user approval of the alternatives.\n\nThe earlier reader assessment\u2019s missing-provenance objection is resolved: `reader-primary-correction.json` contains the three original user messages, and documents the exact body mapping after removing the reader package\u2019s common added title. The user asked for one GitLab issue with three defects and reproductions, then requested repo-style, direct wording without unnecessary backstory. \u201cThat should be good for the most part\u201d is qualified acceptance of the revised wording, not a waiver of missing factual or safety requirements.\n\n## Six controls: separate axes\n\n| Control | Factual / safety completeness | Reader usefulness / plan fit | Independent disposition |\n|---|---|---|---|\n| Rejected long issue `c2331e3a` | Strong coverage: three defects, evidence boundaries, controlled repros, and non-equivalence of mutants/survivors are explicit. | Reject on the recorded reader preference: the user explicitly found this version not human-readable and asked to get to the point without the whole backstory. Detailed mutation accounting is not needed to make these three defects actionable. | Complete but overlong for the requested issue. Do not call it good merely because it preserves more investigation detail. The reported rejection is independently corroborated by the primary correction. |\n| Accepted short issue `ff791a57` | Preserves all three defects and concrete reproductions. Credential logging uses a dummy key and mock; blocked-domain repro mocks HEAD and isolates blocklist behavior. Pending-link reproduction directs a reader to submit the Google malware test URL with Safe Browsing enabled but does not itself state the mock alternative. | Fits the user\u2019s requested concise, direct style and was accepted \u201cfor the most part.\u201d It omits optional mutation accounting, detailed limits, and test totals without losing the central three-defect job. | Pass reader usefulness and factual floor. Small safety nit: make the pending-link reproduction use the existing mocked POST alternative explicitly, so readers do not send a request through a configured Safe Browsing key. No basis to require all investigation detail. |\n| Defective short issue `issue-missing-credential-defect.md` | Fails: drops the credential-in-logs defect and its reproduction entirely. Consequently a reader cannot act on one of the three requested bugs. Its remaining two issue descriptions do not cure that omission. | Concision is appropriate, but cannot compensate for a missing core defect. | Reject for a concrete factual omission, not wording or length. This is the counterexample that preserves the factual/safety floor. |\n| Approved plan `remaining-issues-stack.html` | Includes source links, issue-by-issue acceptance summary, verification, supported closure, review/merge authority, and capability limits. | Faithfully represents all ten issues/four PRs, lane ownership, integration owner, ordered bases (main \u2192 PR01 \u2192 PR02 \u2192 PR03), and bottom-up merge order. | Pass. It is detailed but remains tied to the requested all-issues batch and gives actionable decisions. This is the source plan and user-approved scope. |\n| Faithful alternative `plan-alternative.html` | Retains scope, lanes, ordered bases, evidence/reuse, freeze-before-trials, failure preservation, review, capability gaps, and merge authority. Some details are compressed (e.g. per-issue evidence map), but none of the packet\u2019s designated plan requirements is contradicted. | Different wording and structure are valid; branding is irrelevant. | Pass as a faithful alternative on the stated contract. It has not been user-approved; this is an independent artifact judgment, not approval evidence. |\n| On-brand defective plan `plan-missing-stack-decision.html` | Several controls remain, but a \u201cLinktree\u201d sentence does not state the delivery stack\u2019s actual PR base/order decision. | It includes project-flavored phrasing, but misses a consequential execution decision needed to coordinate the approved four-PR stack. | Fail for missing branch/base/merge-order decision, not for failure to use \u201cLinktree.\u201d Surface brand tokens cannot substitute for the requested choice. |\n\n## Six issue criteria: coverage and limits\n\n1. **Optional attribution / fabricated credit:** Existing fixture `issue-47-source-grounded-criteria` correctly allows an empty contributors list when the publisher permits it, rejects unsupported \u201cInvented,\u201d and requires a title. The original controls in `test_issue_resolution_cases.py` exercise a nonempty-credit evaluator failure and a publisher-grounded alternative. This covers factual/schema validity, not reader utility in general.\n2. **Useful plans with different wording:** The source plan and faithful alternative both retain the stack decisions. The plan counterexample omits branch/base/order while using \u201cLinktree,\u201d so the criterion distinguishes outcome from wording. Only three hand-selected artifacts are assessed; this is not a population calibration.\n3. **Concise issue with preserved actionable facts:** The accepted short issue passes: all three defects and reproductions remain, while mutation counts and investigation history are omitted. The long issue fails reader usefulness based on the actual correction. This is one reader\u2019s qualified acceptance, not a universal brevity rule.\n4. **Misleading/incomplete output:** The missing-credential-defect variant fails because a required defect disappears. This establishes a narrow concrete omission control. There is no separate systematic source-support or reproduction-safety matrix here; those judgments are inspected directly in these artifacts.\n5. **Disagreement reported before improvement/promotion:** The primary user messages and draft mappings let this disagreement be reconciled. The review reports the correction and qualified acceptance explicitly. It does not amend or reinterpret prior failed judge outcomes and makes no improvement claim.\n6. **Historical failures/raw outputs preserved; corrected measure separately identified:** This review does not write to or rename historical runs. Its separate file identity distinguishes this calibration from historical executions. Preservation is supported by task instructions and packet; this review did not independently hash or audit every historical run store.\n\n## Limits and next step\n\nThe fixture is bounded: its `issue-47-source-grounded-criteria` case addresses publisher contract/factual validity and explicitly excludes subjective reader utility. It should not be represented as automated coverage of all #47 acceptance clauses. This artifact review supplies targeted issue/plan judgments, but is neither a reusable mandatory judge panel nor a basis for relaxing any gate. No code, source evaluator, historical artifact, GitHub issue, or remote state was changed.\n\nOne actionable nit: change the accepted short issue\u2019s pending-link repro to the mocked Safe Browsing POST option, or explicitly direct it to a disposable local test environment. That keeps the direct prose while making the no-live-key/network boundary as clear as the other two repros.\n"
+  },
+  "limits": [
+    "Hand-selected artifact judgments, not automated judge calibration or held-out evaluation.",
+    "Alternative concise issue adds mock/disposable boundaries separately; historical issue remains unchanged and no alternative user approval claimed.",
+    "Source support, reproduction safety and reader usefulness remain separate requirements."
+  ],
+  "batch_accounting": {
+    "approved_max_samples": 18,
+    "approved_max_native_parent_turns": 24,
+    "samples_executed": 16,
+    "native_parent_turns_executed": 20,
+    "turns_reserved": 21,
+    "withheld_turns": 1,
+    "retries": 0,
+    "guidance_interventions": 0,
+    "failed_ordering_samples": 1,
+    "unsupported_peer_review_claims": 3,
+    "unused_budget_not_a_delivery_stop": "Remaining work is evidence integration, independent PR review and CI, not more model samples."
+  },
+  "final_independent_review": {
+    "candidate": "979cd31",
+    "round": 3,
+    "path": "/tmp/skills-parallel-evaluator/stack-final-review.md",
+    "sha256": "1b8eb3c9f253628b387e4b013b75cc83f310fd9eafbcb772b16b0fdfc4b42db4",
+    "text": "# Final independent review \u2014 outcome calibration stack\n\n## Readiness\n\n**Ready for bounded #47 closure as manual, source-grounded outcome calibration; no evaluator adoption or performance claim.** Reviewed candidate `979cd31` and the complete diff `90c59d2..979cd31` (one new artifact: `evals/results/2026-11-01-outcome-calibration-batch.json`). Inspected the correction and calibration packet, the prior independent Luna review, the named issue and plan draft sources, their source hashes, and the existing #47 contract fixture and tests. The correction\u2019s supplied user messages establish a request for one concise, direct issue covering three defects and reproductions, with qualified acceptance of the shorter rewrite. They do not waive correctness or safe reproduction. The long draft\u2019s reader rejection, accepted short draft\u2019s qualified utility, omission counterexample, faithful alternate plan, and branded plan missing the consequential stack decision support the separate usefulness/factual-floor judgments.\n\nThe record preserves the source-message IDs and capture digest, hashes each key draft/control, records the correction mapping, and keeps historical outcomes distinct from this manual assessment (`:6-15`, `:17-53`, `:56-84`). Its limits explicitly disclaim a model trial, held-out result, population calibration, or promotion; it also states historical failures remain untouched (`:2-5`, `:84`, `:91-107`). The existing evaluator fixture and tests support only its narrow publisher/source-grounding behavior, including optional attribution and rejection of unsupported attribution (`evals/cases/skills-comparison.json:677-725`; `evals/tests/test_issue_resolution_cases.py:276-285`). The record correctly does not claim that fixture automates reader usefulness or all manual criteria.\n\n## Findings\n\n1. **Actionable safety nit, non-blocking for the calibration record:** The short issue is judged useful and factually complete, while one reproduction is expressly recorded as lacking a mock/disposable boundary (`:25-29`). The independent review recommends using the existing mocked request alternative (`:89`). This is properly disclosed and does not invalidate the observed reader outcome; do not revise or relabel the historical draft as part of this record. If the separate alternative reproduction is retained, keep its mock/disposable boundary explicit and label it as an alternative, not a historical pass.\n\n2. **Closure is supported only at the stated manual scope:** The artifact supports bounded #47 closure based on the observed controls and user correction. It does not reproduce the literal issue acceptance criteria as an inspectable checklist; it summarizes the criteria and evidence instead (`:14-15`, `:55`, `:91-94`). Keep the closure claim tied to these named criteria and controls. Do not present it as automated coverage, general judge calibration, or evidence that any evaluator improved. This is a claim-boundary limitation, not a request for more experiments.\n\nNo other material finding. The batch accounting (16 samples, 20 native parent turns, one withheld turn after the scope violation) is recorded without suggesting unused budget blocks delivery (`:96-107`). No model run, evaluator/guidance edit, historical rewrite, or remote write was performed in this review.\n",
+    "identity_limit": "Fresh independent Codex review context; requested gpt-6-luna. Memo model self-attribution is not independently verified runtime identity."
+  },
+  "final_review_disposition": "Reproduction-safety nit preserved: separate alternative explicitly uses mock/disposable boundaries; no historical artifact relabeled. Closure stays limited to named manual controls, not judge adoption or comparative improvement."
+}
