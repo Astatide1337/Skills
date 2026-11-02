@@ -156,14 +156,9 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(len(dataset), 9)
         self.assertTrue(all(not str(sample.id).startswith("workflow-native-") for sample in dataset))
 
-    def test_writing_cases_establish_inspectable_git_baselines(self) -> None:
+    def test_supplied_cases_establish_inspectable_git_baselines(self) -> None:
         cases = {sample.id: sample for sample in skills.workflows_dataset()}
-        for case_id in (
-            "workflow-native-prose-concise",
-            "workflow-native-prose-detailed",
-            "workflow-native-attributed-review-draft",
-            "workflow-native-html-plan-only",
-        ):
+        for case_id in (key for key, sample in cases.items() if sample.setup and sample.files):
             sample = cases[case_id]
             with self.subTest(case=case_id), tempfile.TemporaryDirectory() as raw:
                 root = Path(raw)

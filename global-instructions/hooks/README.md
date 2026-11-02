@@ -94,6 +94,12 @@ them. Codex requires review and trust of non-managed definitions; see the
 trust or install it globally to test it. First exercise a separate owned Codex
 home and disposable workspace, and verify the runtime actually invokes it.
 
+The [2026-11-02 native probe](../../evals/results/2026-11-02-native-hook-probe.json)
+observed a denied Bash write and a Stop-triggered continuation using this bundle
+on Codex 0.165.0. An earlier incomplete bundle crashed and failed open; preflight
+the entire installed bundle, including `test_integrity.py`. This does not prove
+T3 hook enforcement or coverage of every native tool.
+
 This prototype enforces only the selected acceptance contract. It does not
 infer an arbitrary user's intent, prove all instructions were followed, or
 establish that T3 restarts a terminated run. A passing repository test suite is
