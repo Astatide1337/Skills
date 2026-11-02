@@ -131,3 +131,59 @@ python3 global-instructions/hooks/test_integrity.py --repo /path/to/app --base o
 - **The verification/guard/format registration is Claude Code only.** The opt-in
   Codex completion prototype is separate; its runtime integration must be checked.
   The CI check works for any agent or person.
+
+## Opt-in pending-choice pre-tool prototype
+
+`agent_gates.py choice-guard COMMAND [ARG ...]` provides a separate Claude
+`PreToolUse` adapter. It sends the event JSON to the explicitly configured
+checker on stdin, without a shell, in the event working directory. The checker
+must exit zero and return exactly `{"status":"allow|block|unavailable",
+"reason":"nonempty explanation"}` (choose one status). Only `allow` permits
+the action. Blocked, unavailable, invalid, failed and timed-out checks return
+exit 2 with a diagnostic on stderr; unlike the completion prototype, this
+boundary never exhausts a retry allowance and then permits the action.
+`AGENT_VERIFY_TIMEOUT` bounds the checker and its process group.
+
+For an isolated Claude experiment, add a **separate** `PreToolUse` entry with
+matcher `.*` and command
+`python3 /trusted/Skills/global-instructions/hooks/agent_gates.py choice-guard python3 /trusted/task_choice_check.py`.
+Keep the existing bypass guard. The matcher must cover shell, edit, delegation
+and connector actions too; a shell command can write files and a delegate can
+perform dependent work. No registration is installed by this repository.
+
+The trusted checker must own both the explicit unresolved decision and its
+actual action dependency. Register only essential user-owned choices, not every
+question. Read-only actions, independent work, routine choices and choices
+already settled by the request should be allowed. Record actual later user
+authorization before releasing dependent actions; delivery of a question,
+a recommendation, elapsed time and assistant assertions are not answers.
+Unknown action semantics return `unavailable`, not an inferred permission.
+Do not classify shell or nested tool actions as read-only by tool name alone.
+
+Keep checker code and authority state outside the agent's writable workspace.
+An agent-writable decision file or agent-generated oracle is not enforcement.
+A real runtime adapter must bind the event to authenticated session/user events,
+serialize authorization updates with dispatch, and prevent unchecked delegation
+or connector calls. The subprocess tests use explicit file/action contracts and
+an owned temporary authority file to exercise the interface; they do not solve
+general dependency classification or constitute runtime integration evidence.
+
+The #38 open-format sample in
+`evals/results/2026-11-01-scope-recovery-batch.json` remains rejected: a question
+was followed by dependent TOML edits before an answer. Both format samples'
+independent-review claims remain unsupported by returned verdicts. This is
+failure to apply existing authority guidance, not evidence that guidance was
+absent. The separate pending-decision wording candidate remains held; no new
+occurrence, wording promotion or measured behavioral improvement is claimed.
+
+**Runtime status and next action:** the current Codex/T3 session has no
+completion hook registered. A Stop hook is too late to prevent dependent edits.
+This adapter implements Claude's pre-tool exit protocol only; it does not
+establish a Codex pre-tool API or T3 goal enforcement. The next integration
+step is an explicitly authorized disposable Claude registration with a trusted
+task checker, verifying that a denied write is never dispatched and that later
+authenticated authorization releases it. For Codex/T3, first establish a
+supported pre-dispatch veto covering nested tools and delegates with the runtime
+owner; no product edits or global installation are part of this prototype.
+Leave #38 open until its literal behavioral acceptance and actual integration
+are evidenced. A passing protocol test is not that evidence.
