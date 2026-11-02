@@ -25,6 +25,17 @@ personalize the workflow without replacing target-specific discovery.
 - Inspect workflows before push or dispatch for effects outside the requested
   work. Preserve destructive-operation and deployment approval requirements.
 
+## Personal cluster and kagent discovery
+
+For personal kagent diagnosis, start with Fleet's `docs/operations.md` and
+`machines/kagent.md` (local checkout: `~/Desktop/Fleet`). They identify the
+personal API, explicit context/namespace and GitOps owner/attach route. Verify
+those values against current metadata before queries; Rutgers is separate.
+Follow the GitOps owner to resolve the declared Skills pin rather than assuming
+the laptop checkout or installed guidance matches the workload. A declared pin
+does not establish what an existing agent session loaded. If these sources are
+unavailable, report that narrow gap and continue authorized source discovery.
+
 ## VPS and container-hosted services
 
 - Resolve the exact host, deployment directory, repository revision, container
