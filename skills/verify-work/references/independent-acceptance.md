@@ -77,6 +77,13 @@ during development, do not describe it as held out in future evaluations.
 
 ## Decision
 
+For delegated implementation with executable acceptance, select and review the
+task checker before dispatch. At return, use the
+[parent acceptance command](../../../global-instructions/hooks/README.md#parent-acceptance)
+on the current candidate. An ended worker run or a Stop hook's exit 0 cannot
+replace that check. Resolve rejected obligations and recheck after repairs;
+keep required judgment and independent review separate from executable checks.
+
 Accept only when every applicable required outcome is established, required
 independent review covers the final candidate, evidence is current and delivery
 stays authorized. Missing, failed, stale and required-but-unavailable results

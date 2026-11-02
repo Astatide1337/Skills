@@ -44,7 +44,7 @@ Installing is an explicit, per-machine choice, like `global-instructions/AGENTS.
 Requires Python 3.11+ as `python3` and `git` on `PATH`. Verification and formatting
 also require the project’s own tools.
 
-## Opt-in task completion hook (Codex prototype)
+## Task acceptance in Codex and T3
 
 The existing `stop` check verifies changed code. It cannot detect a missing
 deliverable when the agent changed nothing. The separate `completion` command
@@ -97,6 +97,47 @@ invocation does not establish T3 integration.
 
 The checker proves only its explicit task requirements. A passing test suite
 supports completion only when it covers the requested deliverable.
+
+### Parent acceptance
+
+A worker can end after the Stop hook exhausts its repair attempts. T3 reports
+that run as `completed` even when the task remains unaccepted. Before accepting
+the returned work, the parent runs the same reviewed task checker again:
+
+```sh
+# Run in the candidate workspace. Supply the checker's required context on stdin.
+python3 /path/to/Skills/global-instructions/hooks/agent_gates.py accept \
+  python3 /trusted/task_acceptance.py < context.json
+```
+
+`accept` executes the configured command in the parent's current working
+directory, sends the context object to the checker, and prints its verdict.
+Only `complete` returns exit 0. Incomplete, blocked, waiting and cancelled
+return 1; a missing, failed, timed-out or invalid checker returns 2 with
+`status: unavailable`. Invalid context is rejected before the checker runs.
+There is no retry allowance or cached pass. Context fields cannot select a
+command, change its working directory or supply a verdict.
+
+Choose the checker before delegation from the original request and approved
+requirements. It must inspect current artifacts and underlying check results,
+including additional agreed cases and required review. Bind retained evidence
+to the tested source and contract; reject missing or stale evidence. Have its
+requirements and valid/invalid controls reviewed separately from implementation.
+The parent inspects the verdict and raw evidence, resolves failed obligations,
+and reruns acceptance after repairs. A false claim about an earlier check also
+needs correction; running a later check cannot make that history true.
+
+For T3, register project-local hooks in `.codex/hooks.json` and review their exact
+definitions through Codex `/hooks` in that environment. Preserve existing hooks.
+Use an owned workspace first and check actual invocation through T3. A project
+registration applies to matching sessions in that project; do not point unrelated
+workers at one task's checker. This repository does not install those task-specific
+registrations automatically.
+
+The parent must invoke `accept`; Skills cannot make T3 invoke it or prevent every
+possible unchecked handoff. Full-access processes can also modify external
+checker files. Use real write isolation when protection is required; an external
+path or a hash alone supplies no such protection.
 
 ## CI check for application repositories
 

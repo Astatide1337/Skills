@@ -12,6 +12,7 @@ Subcommands, each reading the hook's JSON from stdin:
   choice-guard CMD veto a pre-tool action using a trusted task choice checker
   completion CMD run an explicitly configured task acceptance checker on Stop,
                  including when the workspace has not changed
+  accept CMD     rerun the task checker for the parent; exit zero only for complete
 
 "Changed" means the working tree, including uncommitted and untracked files,
 differs from its snapshot at session start, so a read-only session is never
@@ -579,6 +580,34 @@ def handle_session_start(payload: dict) -> int:
     return 0
 
 
+def acceptance_result(payload: dict, command: list[str], cwd: Path) -> dict:
+    """Read the configured checker's verdict; event fields cannot supply it."""
+    if command:
+        ok, output = run_verify(cwd, command, input_data=json.dumps(payload).encode())
+    else:
+        ok, output = False, "missing trusted acceptance checker command"
+    try:
+        result = json.loads(output) if ok else None
+        valid = (isinstance(result, dict) and set(result) == {"status", "reason"}
+                 and result["status"] in {"complete", "incomplete", "blocked", "waiting", "cancelled"}
+                 and isinstance(result["reason"], str) and bool(result["reason"].strip()))
+    except (ValueError, TypeError):
+        valid = False
+    if not valid:
+        return {"status": "unavailable", "reason": "Acceptance checker unavailable or invalid. "
+                "Report the failure and recover within existing authority; do not weaken the check. " + tail(output)}
+    return {"status": result["status"], "reason": result["reason"][:OUTPUT_TAIL_CHARS]}
+
+
+def handle_acceptance(payload: dict, command: list[str]) -> int:
+    """Parent acceptance has no continuation allowance and never reuses a pass."""
+    result = acceptance_result(payload, command, Path.cwd())
+    print(json.dumps(result))
+    if result["status"] == "complete":
+        return 0
+    return 2 if result["status"] == "unavailable" else 1
+
+
 def handle_completion(payload: dict, command: list[str]) -> int:
     """Check a trusted task acceptance command, even in an unchanged workspace."""
     if payload.get("hook_event_name") in {"Interrupt", "SessionEnd"}:
@@ -602,20 +631,9 @@ def handle_completion(payload: dict, command: list[str]) -> int:
         return 0
     # Persist the episode before executing a checker that may fail or time out.
     save_state(session, state)
-    if command:
-        ok, output = run_verify(cwd, command, input_data=json.dumps(payload).encode())
-    else:
-        ok, output = False, "missing trusted acceptance checker command"
-    try:
-        result = json.loads(output) if ok else None
-        valid = (isinstance(result, dict) and set(result) == {"status", "reason"}
-                 and result["status"] in {"complete", "incomplete", "blocked", "waiting", "cancelled"}
-                 and isinstance(result["reason"], str) and bool(result["reason"].strip()))
-    except (ValueError, TypeError):
-        valid = False
-    if not valid:
-        result = {"status": "incomplete", "reason": "Acceptance checker unavailable or invalid. "
-                  "Report the failure and recover within existing authority; do not weaken the check. " + tail(output)}
+    result = acceptance_result(payload, command, cwd)
+    if result["status"] == "unavailable":
+        result["status"] = "incomplete"
     status, reason = result["status"], result["reason"][:OUTPUT_TAIL_CHARS]
     if status == "incomplete":
         if attempts[key] >= 2:
@@ -672,25 +690,37 @@ HANDLERS = {
 def main(argv: list[str]) -> int:
     completion = len(argv) >= 2 and argv[1] == "completion"
     choice_guard = len(argv) >= 2 and argv[1] == "choice-guard"
-    if not (completion or choice_guard) and (len(argv) != 2 or argv[1] not in HANDLERS):
+    acceptance = len(argv) >= 2 and argv[1] == "accept"
+    if not (completion or choice_guard or acceptance) and (len(argv) != 2 or argv[1] not in HANDLERS):
         print(
             f"usage: {Path(argv[0]).name} {{{','.join(HANDLERS)}}} < hook-input.json\n"
-            f"       {Path(argv[0]).name} {{completion,choice-guard}} COMMAND [ARG ...] < hook-input.json",
+            f"       {Path(argv[0]).name} {{completion,choice-guard,accept}} COMMAND [ARG ...] < context.json",
             file=sys.stderr,
         )
         return 1
     try:
         payload = json.load(sys.stdin)
     except ValueError:
+        if acceptance:
+            print(json.dumps({"status": "unavailable", "reason": "Acceptance context must be a JSON object."}))
+            return 2
         payload = {}
+    if acceptance and not isinstance(payload, dict):
+        print(json.dumps({"status": "unavailable", "reason": "Acceptance context must be a JSON object."}))
+        return 2
     payload = payload if isinstance(payload, dict) else {}
     try:
+        if acceptance:
+            return handle_acceptance(payload, argv[2:])
         if choice_guard:
             return handle_choice_guard(payload, argv[2:])
         if completion:
             return handle_completion(payload, argv[2:])
         return HANDLERS[argv[1]](payload)
     except Exception as error:  # noqa: BLE001 - a crashed gate must say so, not pass silently
+        if acceptance:
+            print(json.dumps({"status": "unavailable", "reason": f"Acceptance check failed: {error!r}"}))
+            return 2
         if argv[1] in {"stop", "completion"}:
             print(
                 json.dumps(
