@@ -146,8 +146,8 @@ Bubblewrap gate and containment contract; it is not a bypass. Do not change
 host namespace/security policy or remove the preflight. Keep the attempt and
 remaining capability gap if the supported path also fails.
 
-These historical commands compare a selected skill with no skill. They do
-not compare a candidate against an accepted catalog version:
+For an optional diagnostic, these commands compare a selected skill with no
+skill. Use the paired workflow commands below to compare catalog versions:
 
 ```bash
 uv run --frozen inspect eval evals/skills.py@catalog -T native_model=gpt-6-luna -T native_effort=medium -T grader_effort=high --limit 2 --epochs 2 --max-samples 2 --time-limit 480

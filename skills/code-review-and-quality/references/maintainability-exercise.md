@@ -79,6 +79,6 @@ that follow-up scenario, not years of maintainability. Subsequent real changes
 supply stronger evidence. Retire the probe when it is speculative, expensive or
 unrepresentative rather than optimizing the codebase around it.
 
-Source: original instructional example for Skills v2 (2026-10-13). No application
+Source: original instructional example. No application
 incident, expert acceptance or user-specific policy is asserted. Prefer actual
 application-owned source examples when available.

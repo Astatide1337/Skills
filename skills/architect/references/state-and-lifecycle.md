@@ -35,9 +35,3 @@ interruption after commit wherever those states exist. Choose expected effects
 before running: persisted values, retained input, navigation, resource state,
 and returned status. Run the real application's path when claiming integration;
 controlled callback fixtures test only the transitions they exercise.
-
-These decisions respond to discarded drafts, duplicate retries, and divergent
-views in the original private audit summaries, plus the user-reported
-cancellation scenario; item 7 responds to the cleanup and quota repair rounds in
-Skills issue 40. Machine attribution remains unestablished. This reference
-does not claim the original applications were repaired.

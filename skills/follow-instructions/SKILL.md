@@ -97,10 +97,7 @@ not incidental words in the task. If a task needs an unusual combination, use
 existing methods in a temporary sequence; do not create a permanent framework.
 
 For a difficult decision, consult the [principle index](references/principles.md)
-and read the relevant reference. Optional background includes
-[provenance](references/principles-background.md),
-[case studies](references/case-studies.md) and
-[observed failures](references/failure-to-checks.md).
+or a relevant [worked example](references/case-studies.md).
 
 ## Authority and delivery
 
@@ -126,7 +123,10 @@ permissions; no extra approval is needed. Keep the project checkout for intended
 deliverables. Add project documentation when requested, required by the repository,
 or needed to keep existing instructions accurate after the change. Include what
 a future reader needs to use or maintain the result. Comments should explain a
-useful reason, invariant or constraint.
+useful reason, invariant or constraint. Unless the user asks to version them,
+keep one-off audits, experiment results and PR progress in task artifacts or the
+PR. Keep reusable instructions in their owning skill and regression cases in
+the test suite; do not turn the catalog into a history of its development.
 
 Before handoff, remove scratch material and unnecessary work narration added by
 this task. Preserve existing material and other people's edits. Use the checkpoint

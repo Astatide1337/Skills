@@ -15,6 +15,3 @@ and verify the result before claiming completion.
 | Repeated work or delegation | [leverage and verifiable units](principles/leverage-and-verifiable-units.md) |
 | Repeated failed premise | [challenge and adapt](principles/challenge-and-adapt.md) |
 | Authority or completion claim | [authority and claims](principles/authority-and-claims.md) |
-
-For source attribution or background only, see
-[sources and background](principles-background.md).

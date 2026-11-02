@@ -98,10 +98,8 @@ focus and the resulting state, not just the red border.
 **Limits:** GOV.UK's exact wording, typography and service conventions are not
 requirements for another product. The published component example demonstrates
 an error state and focus target, not backend validation or successful submission.
-Its URL, page content and actual rendered pixels were checked through T3 on
-2026-10-15. An earlier snapshot attempt timed out; a later native snapshot
-succeeded. If the browser cannot render it, use a task-relevant inspected
-reference and record the gap.
+If the browser cannot render it, use another inspected reference relevant to
+the task and report the unavailable source.
 
 ## Documented AI-output cases
 
@@ -170,10 +168,6 @@ Image ownership and applicable usage terms remain with the publishers. These
 links are not a license to put their artwork in a shipped product. Source pages
 and hosted bytes may change. A receipt establishes what was fetched, not that a
 changed image matches this assessment or is licensed for redistribution.
-
-The image fetcher was exercised against Apple, Stripe and Linear from an
-isolated installation on 2026-10-15, followed by actual local-image inspection.
-Offline tests cover cache integrity and failures, not future host availability.
 
 These exposed teaching cases are not held-out evaluations. Compare against accepted work
 from the target product and valid alternative

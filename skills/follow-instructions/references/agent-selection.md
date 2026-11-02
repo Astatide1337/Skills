@@ -33,7 +33,7 @@ Keep the parent model, global settings, quota and permissions unchanged.
 | Prose, visual taste and synthesis | Judgment model; medium with actual examples/artifacts | Conflicting requirements or consequential ambiguity remains |
 | Baseline/candidate experiment | The same frozen model and effort in both arms | Never change one arm mid-comparison; model changes are a separate experiment |
 
-For the capabilities observed on 2026-11-02, reasonable initial assignments are
+For example, when the runtime offers them, initial choices are
 `gpt-6-luna` for bounded inspection, `gpt-6.1-sol` for implementation/review,
 and `gpt-6-astra` for difficult design. An available Claude Opus model can
 provide review from another model family. Resolve exact IDs and effort values

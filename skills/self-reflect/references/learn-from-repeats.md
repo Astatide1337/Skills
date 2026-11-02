@@ -110,10 +110,9 @@ docs/agents/rules.md   ## Enforced   | Rule | Enforced by | Evidence | Added |
 
 Keep the table out of `AGENTS.md`: enforced rules already appear in check
 errors, and most tasks do not need the history of candidates and rejections. For
-the Skills catalog, the equivalent table is
-`skills/follow-instructions/references/failure-to-checks.md`. Record catalog
-rejections with their reason in the existing proposal PR or issue, and search
-those records before proposing the same change again.
+this catalog, put accepted guidance in the owning skill and mechanical checks
+in the test suite. Keep incident evidence and rejected proposals in the PR or
+issue, and check those records before proposing the same change again.
 
 ## Do not
 

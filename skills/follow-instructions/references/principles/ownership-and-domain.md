@@ -69,8 +69,4 @@ compiler/native project checks remain necessary. Do not ban all `as` syntax or
 force branded types into an already-total function. These lint checks do not
 replace architectural judgment or complete runtime validation.
 
-These construction choices adapt P-stack's [TypeScript
-guidance](https://github.com/cursor/plugins/blob/7022c81efb48d8b5eb15498ce6043a3bd74b694c/pstack/skills/typescript-best-practices/SKILL.md)
-and the original audit's boundary misclassification, divergent views and
-discarded drafts. Those audit mappings motivate tests; they do not certify the
-original applications fixed or establish a principal-engineer quality score.
+These construction choices draw on pstack's [TypeScript guidance](https://github.com/cursor/plugins/blob/7022c81efb48d8b5eb15498ce6043a3bd74b694c/pstack/skills/typescript-best-practices/SKILL.md).

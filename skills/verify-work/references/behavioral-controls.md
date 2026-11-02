@@ -2,7 +2,7 @@
 
 Use when assessing a verifier or diagnosing a missing denied-operation check.
 The linked [authorization example](authorization-example.py) is original,
-fictional, in-memory teaching material for Skills v2, created 2026-10-13. It is
+fictional, in-memory teaching material. It is
 not an application adapter, protected runner, or a claim about a real policy.
 The author grants reuse of this instructional material within Skills and its
 installed copies. It contains no external assets, personal records or secrets.

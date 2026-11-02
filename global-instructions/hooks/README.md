@@ -90,18 +90,13 @@ them. Codex requires review and trust of non-managed definitions; see the
 trust or install it globally to test it. First exercise a separate owned Codex
 home and disposable workspace, and verify the runtime actually invokes it.
 
-The [2026-11-02 native probe](../../evals/results/2026-11-02-native-hook-probe.json)
-observed a denied Bash write and a Stop-triggered continuation using this bundle
-on Codex 0.165.0. An earlier incomplete bundle crashed and allowed the action.
-Check that the installed bundle includes `test_integrity.py` and runs successfully
-before relying on it. This does not prove T3 hook enforcement or coverage of
-every native tool.
+A missing or broken hook bundle can allow an action without checking it. Verify
+that the complete bundle, including `test_integrity.py`, loads and is invoked
+before relying on it. Test every tool path you intend to cover. Native Codex
+invocation does not establish T3 integration.
 
-The prototype checks only what its selected checker can establish. It cannot
-infer arbitrary user intent or prove that all instructions were followed.
-Repository tests must cover the requested deliverable to support completion.
-This probe did not test T3 restarting a terminated run. The separate Claude
-verification, guard and format hooks keep their existing behavior.
+The checker proves only its explicit task requirements. A passing test suite
+supports completion only when it covers the requested deliverable.
 
 ## CI check for application repositories
 
@@ -178,14 +173,6 @@ decision. Check delegated and connector actions too. The subprocess tests use ex
 a temporary authority file controlled by the test. They test the interface, not
 general action classification or integration with a runtime.
 
-The #38 open-format sample in
-`evals/results/2026-11-01-scope-recovery-batch.json` remains rejected: a question
-was followed by dependent TOML edits before an answer. Both format samples'
-independent-review claims remain unsupported by returned verdicts. This is
-failure to apply existing authority guidance, not evidence that guidance was
-absent. The proposed wording about pending decisions has not been adopted. This
-record adds no new occurrence or measurement of its effect.
-
 **Runtime boundary:** a Stop hook is too late to prevent dependent edits. Current
 [Codex hooks documentation](https://learn.chatgpt.com/docs/hooks) covers
 PreToolUse denial, including nested code-mode function calls, and Stop
@@ -201,5 +188,4 @@ out may not receive a new pre-tool event. A malformed hook can fail without
 denying an action, so protocol tests are necessary but not sufficient. Direct
 Codex evidence does not establish T3 invocation or resumption. T3 registration
 and event coverage need their own integration tests. These examples do not
-authorize global installation or product changes. Leave #38 open until its
-required behavior and runtime integration are observed.
+authorize global installation or product changes.

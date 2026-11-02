@@ -79,8 +79,10 @@ Each Markdown file needs a reader, a condition for loading it, a decision it
 helps make and a reason to remain separate. State that purpose in the file
 and its incoming link, without maintaining a duplicate registry. Catalog
 validation checks reachability through links and explicit inline paths; it
-cannot prove usefulness. Keep historical evidence outside routine skill
-loading and preserve its provenance.
+cannot prove usefulness. For this catalog, keep source attribution in
+`catalog.yaml`. Store
+one-off audit and experiment records in working artifacts or the PR unless
+the user asks to version them. Git history preserves removed documentation.
 
 Use lowercase hyphenated names under 64 characters. The directory name must
 match the frontmatter name.

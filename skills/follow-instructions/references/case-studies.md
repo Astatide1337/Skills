@@ -16,9 +16,3 @@ Use the examples to compare decisions and valid alternatives. Their
 architecture, style, runtime and feature count are not requirements. Use the
 linked owner skill for the current contract. Keep assessment inputs and
 reference answers separate.
-
-The earlier Jobmark pagination case is [historical evidence at preview
-`233fb741`](https://github.com/Astatide1337/Skills/blob/233fb741431a41b22e865d9baaedf62a90bface9/skills/follow-instructions/examples/jobmark-pagination.md).
-Its original failure, correction and CI links remain inspectable there. It is
-not a current teaching standard, a new replay or evidence of this revision's
-effectiveness.
