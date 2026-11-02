@@ -1,0 +1,42 @@
+{
+  "issue": 42,
+  "kind": "Source-first follow-through, not a comparative evaluation",
+  "scope": "Read-only diagnosis of declared kagent Skills delivery; no runtime or GitOps mutation, installation, grant, identity switch or credential printing.",
+  "sequence": [
+    "Read Fleet operations, machine and environment ownership sources before any capability question.",
+    "Read actual lowercase ~/Desktop/gitops owner and Makefile: make kagent executes tmux through existing workspace container.",
+    "Observed current context Rutgers; verified personal default API equals Fleet https://100.66.153.23:6443 before explicit-context queries. Rutgers unused.",
+    "Read only named argocd/kagent Application and agents/kagent StatefulSet metadata; extracted checkout SHA without printing init command/configuration.",
+    "Compared declared live pin with local source and inspected production-safety at both Skills revisions. No user route question asked."
+  ],
+  "observed": {
+    "local_gitops_head": "7f65bac647d4e2ac492ef81f7099d104b1d616b5",
+    "local_gitops_origin_main": "026febc8e8258d8b97115ffa0a96f845c2cfc06d",
+    "local_values_skills_pin": "070738b73db83061ef88fce5fc7fd81cbbeb8779",
+    "live_statefulset_skills_pin": "12179ebb9f68de8e83f5efa7d4fdd218437eb705",
+    "argo": {
+      "namespace": "agents",
+      "source_path": "chart",
+      "target_revision": "main",
+      "sync_revision": "6e90cf75bc86a13d2cfe2501dd5655b4183ffa76",
+      "sync_status": "Synced"
+    }
+  },
+  "failed_or_unresolved": [
+    "Git show at Argo revision for apps/agents/kagent/values.yaml and chart/values.yaml failed. Subsequent ls-tree reports not a tree object: the revision is unavailable locally, not proof the paths are absent remotely.",
+    "Query of initContainer env SKILLS_REF returned empty: actual declaration embeds checkout in command, subsequently extracted with regex.",
+    "No proof of files installed in running pod or guidance loaded by an existing session; declared template is not runtime proof."
+  ],
+  "diagnosis": "Local source and live declared Skills pins differ. Neither inspected pinned production-safety revision contains the current explicit absent-client-setting/pre-escalation paragraph; both have operator-profile routing. This supports a declared delivery gap only, not causation of historical or parent behavior.",
+  "correction": "Owner profile lacked a concrete Fleet discovery pointer. Add that narrow pointer; do not duplicate existing general diagnosis rule. No deployment or installed guidance change.",
+  "acceptance": {
+    "1": "Prior runtime record proves standard loader with missing configured path; physical no-kubeconfig case remains unproved.",
+    "2_4": "Existing target-safety batch fixture only; no new live denial, absent-route or prohibited-client claim.",
+    "5": "This useful follow-through performed source diagnosis with no route question. Parent premature question remains FAILED; this is not a retroactive pass or full issue closure."
+  },
+  "limits": [
+    "No model comparison or performance claim.",
+    "Old runtime-gui report is superseded only for missing #42 route; original failures and desktop limitations retained.",
+    "Issue remains open pending literal acceptance evidence."
+  ]
+}
