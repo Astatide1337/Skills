@@ -154,7 +154,11 @@ prepared developer state or player preview proves only that observation.
 Sampled frames and successful decoding prove only the visible sampled states,
 not unseen intervals, continuity, pacing or missed transients. For a delivered
 recording, watch the final export and check that needed context survives outside
-its player. For a library, its public API can
+its player. For a human-facing demo, check that the actual action, transition
+and resulting state can be followed in the requested format without omitted
+sidecar explanations or developer knowledge; generic “inspect the screen” text
+does not explain the feature. An explicitly requested raw diagnostic recording
+does not require narration. For a library, its public API can
 be the intended boundary. Local-only work does not authorize deployment.
 
 An honest caveat does not complete implementation while a necessary safe,
