@@ -53,7 +53,7 @@ An ordinary feature does not need a hierarchy of coordinators.
    evidence each worker must return.
 4. Inspect returned diffs/artifacts and checks yourself. For delegated
    implementation with executable acceptance, run the reviewed checker through
-   [parent acceptance](../../../global-instructions/hooks/README.md#parent-acceptance)
+   [parent acceptance](../../verify-work/references/independent-acceptance.md#parent-acceptance)
    on the current candidate. A worker's `completed` status only ends its run.
    Have the responsible
    owner resolve overlapping edits, integrate the changes, and exercise the

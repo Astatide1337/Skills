@@ -81,7 +81,8 @@ It requests at most two continuations per stop episode. After that it yields
 with a notice that acceptance failed and manual attention is needed.
 A new user turn resets the allowance. Missing continuation state also yields an
 explicit unchecked notice. `Interrupt` and `SessionEnd` do not run the checker.
-`AGENT_VERIFY_TIMEOUT` limits how long the checker and its child processes can run.
+`AGENT_VERIFY_TIMEOUT` limits the checker run. Timeout and cancellation terminate
+its process group; checkers that launch detached processes must own their cleanup.
 
 `codex-completion.example.json` shows an opt-in `Stop` registration. Replace both
 absolute paths and merge it alongside existing hooks rather than overwriting
@@ -188,7 +189,7 @@ must exit zero and return exactly `{"status":"allow|block|unavailable",
 the action. Blocked, unavailable, invalid, failed and timed-out checks return
 exit 2 with a diagnostic on stderr; unlike the completion prototype, this
 boundary never exhausts a retry allowance and then permits the action.
-`AGENT_VERIFY_TIMEOUT` limits the checker and its child processes.
+It uses the same timeout and process-group cleanup as completion checks.
 
 For an isolated Claude experiment, add a **separate** `PreToolUse` entry with
 matcher `.*` and command

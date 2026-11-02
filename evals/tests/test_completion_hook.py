@@ -2,9 +2,11 @@
 
 import json
 import os
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -227,6 +229,56 @@ class ParentAcceptanceTests(unittest.TestCase):
         code, body = self.accept()
         self.assertEqual(code, 2)
         self.assertIn('timed out', body['reason'])
+
+    def stubborn_checker(self):
+        child = ("import signal,time\nfrom pathlib import Path\n"
+                 "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+                 "Path('ready').touch()\ntime.sleep(2)\n"
+                 "Path('late-write').touch()\ntime.sleep(30)\n")
+        self.checker.write_text(
+            "import os,subprocess,sys,time\nfrom pathlib import Path\n"
+            "Path('checker-group').write_text(str(os.getpid()))\n"
+            f"subprocess.Popen([sys.executable, '-c', {child!r}], "
+            "stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+            "time.sleep(30)\n")
+
+        def cleanup():
+            group = self.root / 'checker-group'
+            if group.exists():
+                try:
+                    os.killpg(int(group.read_text()), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+        self.addCleanup(cleanup)
+
+    def test_timeout_stops_descendant_after_group_leader_exits(self):
+        self.stubborn_checker()
+        code, body = self.accept()
+        self.assertEqual(code, 2)
+        self.assertIn('timed out', body['reason'])
+        self.assertTrue((self.root / 'ready').exists())
+        time.sleep(2.2)
+        self.assertFalse((self.root / 'late-write').exists())
+
+    def test_cancellation_stops_checker_and_descendant(self):
+        self.stubborn_checker()
+        process = subprocess.Popen(
+            [sys.executable, str(GATE), 'accept', sys.executable, str(self.checker)],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            cwd=self.root, text=True, env={**self.env, 'AGENT_VERIFY_TIMEOUT': '30'})
+        self.addCleanup(lambda: process.poll() is None and process.kill())
+        process.stdin.write('{}')
+        process.stdin.close()
+        process.stdin = None
+        deadline = time.monotonic() + 5
+        while not (self.root / 'ready').exists() and time.monotonic() < deadline:
+            time.sleep(0.02)
+        self.assertTrue((self.root / 'ready').exists())
+        process.terminate()
+        process.communicate(timeout=5)
+        self.assertNotEqual(process.returncode, 0)
+        time.sleep(2.2)
+        self.assertFalse((self.root / 'late-write').exists())
 
     def test_invalid_context_cannot_run_checker(self):
         marker = self.root / 'executed'

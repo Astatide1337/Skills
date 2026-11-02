@@ -301,35 +301,67 @@ def tail(text: str) -> str:
     return "\n".join(lines)[-OUTPUT_TAIL_CHARS:]
 
 
+def stop_verify(process: subprocess.Popen) -> None:
+    """Stop the owned group even if its leader exits before its children."""
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+        process.wait(timeout=1)
+    except (ProcessLookupError, subprocess.TimeoutExpired):
+        pass
+    finally:
+        # wait() only observes the leader; remaining members may ignore TERM.
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        try:
+            process.communicate(timeout=1)
+        except subprocess.TimeoutExpired:
+            # A process outside this group may have inherited a pipe. Do not
+            # let it hold cancellation or timeout cleanup open indefinitely.
+            for stream in (process.stdin, process.stdout, process.stderr):
+                if stream is not None:
+                    stream.close()
+            process.wait(timeout=1)
+
+
 def run_verify(root: Path, command: list[str] | str, *, input_data: bytes | None = None) -> tuple[bool, str]:
     timeout = int(os.environ.get("AGENT_VERIFY_TIMEOUT", "540"))
+    process = None
+    cancelled = None
+
+    def cancel(signum, _frame):
+        nonlocal cancelled
+        cancelled = signum
+        # Do not interrupt Popen before it returns the owned group identity.
+        if process is not None:
+            raise SystemExit(128 + signum)
+
+    previous = {sig: signal.signal(sig, cancel) for sig in (signal.SIGTERM, signal.SIGINT)}
     try:
-        process = subprocess.Popen(
-            command,
-            cwd=root,
-            shell=isinstance(command, str),
-            stdin=subprocess.PIPE if input_data is not None else None,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-        )
-    except OSError as error:
-        return False, f"verify could not start: {error}"
-    try:
-        output, _ = process.communicate(input=input_data, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        for sig in (signal.SIGTERM, signal.SIGKILL):
-            try:
-                os.killpg(process.pid, sig)
-            except ProcessLookupError:
-                break
-            try:
-                process.wait(timeout=5)
-                break
-            except subprocess.TimeoutExpired:
-                continue
-        return False, f"verify timed out after {timeout}s; its processes were stopped"
-    return process.returncode == 0, output.decode("utf-8", "replace")
+        try:
+            process = subprocess.Popen(
+                command, cwd=root, shell=isinstance(command, str),
+                stdin=subprocess.PIPE if input_data is not None else None,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True,
+            )
+        except OSError as error:
+            return False, f"verify could not start: {error}"
+        if cancelled is not None:
+            raise SystemExit(128 + cancelled)
+        try:
+            output, _ = process.communicate(input=input_data, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            stop_verify(process)
+            return False, f"verify timed out after {timeout}s; its process group was stopped"
+        return process.returncode == 0, output.decode("utf-8", "replace")
+    except BaseException:
+        if process is not None:
+            stop_verify(process)
+        raise
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
 
 
 def check_repository(
