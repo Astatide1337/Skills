@@ -34,7 +34,7 @@ or a source document expected to receive frequent line-based review. Do not
 silently turn every plan, explanation, or summary into HTML. If the format is
 ambiguous, estimate whether HTML changes comprehension or enables an action;
 otherwise prefer the simpler medium.
-For plans, follow the HTML default and task-specific exceptions in
+For plans, follow the requested medium and decision criteria in
 [plans and authority](../follow-instructions/references/approved-plans.md).
 That reference owns approval requirements; the presentation format does not
 create another approval gate.

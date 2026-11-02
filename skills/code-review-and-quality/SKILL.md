@@ -55,7 +55,7 @@ review is requested or the risk warrants it.
    attacker input, missing enforcement, reachable victim/asset, impact,
    remediation and negative test; authorization checks need two distinct
    ordinary identities. For a suspected performance regression, read
-   [backend performance](references/backend-performance.md) and measure it.
+   [performance checklist](references/performance-checklist.md) and measure it.
 5. Lead with material findings. Give location, failing behavior, consequence,
    smallest correction and relevant regression. Separate required fixes from
    optional suggestions and informational notes. Empty findings are valid
@@ -110,6 +110,16 @@ for new scope. The first two are repair work. Decline or defer optional scope
 additions; obtain the requester's decision before expanding the agreed scope.
 No per-finding label is needed where the origin is obvious.
 
+Before implementing or disputing feedback, read the full comment and surrounding
+diff, extract the technical request, and verify its premise against code, tests,
+contracts and project conventions. Repair a sound in-scope finding with the
+smallest complete change and verify it. Investigate an unclear premise; ask one
+precise question only when a necessary decision remains unresolved. Reject an
+unsupported finding with concrete evidence and, when useful, a compatible
+alternative. Avoid reflexive agreement, defensive argument, partial fixes and
+unrelated cleanup. A judgment override does not waive required verification or
+independent review.
+
 Review necessity and the original contract before polishing a reproduction's
 implementation. Follow the underlying invariant through relevant writers,
 persistence, failure/retry, migration and already queued consumers. A fix for one
@@ -117,8 +127,9 @@ reported path does not establish the invariant across those paths. Keep review
 proportional where the paths are unaffected.
 
 The [PR delivery policy](../pull-requests/SKILL.md#review-budget) owns round counts
-and stopping. [Better Call Sol](../better-call-sol/SKILL.md) orchestrates the
-reviewer; it does not define a second quality standard. Ordinary standalone
+and stopping. [Agent selection](../follow-instructions/references/agent-selection.md)
+owns reviewer/model dispatch; [Better Call Sol](../better-call-sol/SKILL.md) applies
+when Sol is selected and does not define a second quality standard. Ordinary standalone
 reviews retain their requested scope; PR delivery uses the linked risk-based budget.
 
 ## Select detail only when relevant
@@ -132,10 +143,6 @@ reviews retain their requested scope; PR delivery uses the linked risk-based bud
   credible follow-up in a disposable copy, not speculative shipped features.
   An alternative structure can be equally valid. File count is not the score.
 
-- Review comments to implement or dispute:
-  [review feedback](references/review-feedback.md). Verify the premise first;
-  technical evidence outranks preference. A judgment override does not waive
-  required verification or independent review.
 - Behavior-preserving cleanup:
   [simplification](references/behavior-preserving-simplification.md).
 - Dependency additions/upgrades:

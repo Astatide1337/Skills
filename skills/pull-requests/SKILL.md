@@ -182,8 +182,11 @@ explain why a ready flag alone is insufficient; the actual project remains autho
 
 For every PR/MR delivered under this policy, obtain at least one independent
 [returned round](../code-review-and-quality/SKILL.md#returned-review-rounds),
-normally using one to three rounds. Use
-[Better Call Sol](../better-call-sol/SKILL.md) for orchestration. Start with one
+normally using one to three rounds. Select an available independent reviewer
+through [agent selection](../follow-instructions/references/agent-selection.md).
+Use [Better Call Sol](../better-call-sol/SKILL.md) when Sol is requested or chosen;
+generic review does not require that particular model. Preserve explicit model
+constraints and never count self-review as a substitute. Start with one
 round covering the original outcome, scope, contracts, affected callers and
 verification. Stop when the current artifact has adequate independent coverage,
 material findings are resolved and checks support acceptance. A clean first round

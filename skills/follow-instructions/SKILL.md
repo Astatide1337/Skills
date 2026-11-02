@@ -60,6 +60,14 @@ One engineer owns integration. A fresh reviewer challenges substantive work.
 Improvement changes the reusable method, not the current task's acceptance.
 These are responsibilities, not a mandatory agent roster.
 
+The implementation path is understand, choose the smallest complete change,
+implement, simplify observed code clutter, verify, obtain required review,
+repair and refresh affected evidence, then deliver within authority. Use
+`deslop` before final verification when cleanup is needed. Use `unslop` for
+substantial prose while preserving facts and uncertainty. The final decision is
+acceptance and claim accuracy, not another code edit or a polished progress
+promise. Read-only, plan-only and short-path tasks skip inapplicable phases.
+
 Keep requirements, defaults and examples distinct. Requirements bind the result
 and effects. Defaults may yield to a task-grounded better approach. Examples
 illustrate judgment, not the only acceptable architecture or visual style.
@@ -142,11 +150,11 @@ completion in the task record:
 `Outcome / Route / Domains / Effects / Constraints (including format) / Done`.
 For substantive work, link authoritative inputs, acceptance, candidate identity,
 current evidence and unresolved decisions in that same record, not a new ledger.
-A simple answer needs no formal record. Use current CLI/model settings; when
-controls exist, start routine work at the configured ordinary effort and
-escalate for demonstrated uncertainty. Do not change the user's model or quota
-settings without authority, or claim a setting change that the harness cannot
-make. Bound optional experiments and comparisons before running them; do not invent a
+A simple answer needs no formal record. For authorized delegation, use
+[agent and reasoning selection](references/agent-selection.md) to match the role
+and difficulty to discovered capabilities. Keep the parent/global model and
+quota settings unchanged; task-scoped selection does not grant new authority.
+Bound optional experiments and comparisons before running them; do not invent a
 tiny budget as a stopping condition for already-authorized delivery.
 
 Use [parallel](playbooks/parallel.md) only when independent ownership, a real

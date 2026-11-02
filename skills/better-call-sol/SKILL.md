@@ -1,6 +1,6 @@
 ---
 name: better-call-sol
-description: "Runs bounded independent Sol review rounds and repairs. Use when asked for Better Call Sol or during PR delivery. Uses the existing review standard; never merges or deploys."
+description: "Runs bounded independent Sol review rounds and repairs. Use when Better Call Sol is requested or Sol is selected for review. Uses the existing review standard; never merges or deploys."
 ---
 
 # Better Call Sol
@@ -21,17 +21,12 @@ host's documented delegation tools; do not invent tool names or a CLI wrapper.
 
 ## Select and call Sol
 
-Discover the available Sol model through runtime capabilities. Use a user-named
-version when supplied; otherwise use the latest available Sol. Retain observed
-provider/model/settings, without guessing usage or changing user effort settings.
-If the requested model or delegation capability is unavailable, finish safe
-independent work and report the review pending; do not silently substitute.
-
-In T3, use `orchestrator_capabilities` for discovery and a new `delegate_task`
-for every round, with role review and a fresh brief. Honor the returned next
-instruction; do not poll a running delegate. Do not reuse its thread for the
-next review, create top-level threads, or let reviewers start nested reviewers.
-On another host, use its supported fresh-context reviewer with the same limits.
+Use [agent selection](../follow-instructions/references/agent-selection.md) for
+capability discovery, reasoning and supported dispatch. Use a user-named Sol
+version when supplied; otherwise the latest available Sol. Retain actual
+provider/model/settings. If the requested model or capability is unavailable,
+finish safe independent work and report the review pending; do not substitute.
+Each round is a new task in fresh context. Reviewers do not start nested reviewers.
 
 ## Resolve and continue
 

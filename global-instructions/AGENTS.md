@@ -15,6 +15,10 @@
 - For who I am and cross-project decisions, read the [wiki decisions](https://github.com/Astatide1337/astatide-wiki/tree/main/content/decisions).
 - Skills holds how to work; each repository's `AGENTS.md` holds that codebase.
 - Keep mechanically enforceable invariants in types, lint, tests and CI.
+- For delegated engineering work, select an available model and reasoning level
+  suited to the role using `follow-instructions`' agent-selection policy. Honor
+  explicit model, provider, effort and spending constraints. Keep parent-session
+  and global settings unchanged; do not silently switch after a failed dispatch.
 
 
 ## Kubernetes and OpenShift

@@ -6,15 +6,20 @@ where practical. This is an author-maintained continuation record, not evidence
 that an outcome occurred and not an automatic agent scheduler.
 
 Prefer the attached runtime's native conversation/checkpoint and resume facilities.
-When T3 exposes thread read/send/interrupt or delegated task controls, inspect their
-current tool contracts; preserve the thread/task identity and use supported resume
-operations. A saved conversation is not automatic scheduling, and stopping a task
+For T3 children, retain task identity and use the documented task controls,
+completion wakes and cancellation. New independent reviews use new tasks, not
+thread-send. Use thread reads for context when needed; a top-level thread or an
+interrupt on a child's underlying thread does not replace task lifecycle control.
+A saved conversation is not automatic scheduling, and stopping a task
 may require an explicit supported resume. Do not create another ledger/database.
 
 Before a real interruption retain the objective, acceptance, constraints/authority,
 branch and PR/MR identity, current artifact, unresolved checks/findings, failed
 approaches and next useful action in the existing task record. On resume, compare
 that record with live source and host state. Reported completion is not evidence.
+For delegated work retain the selected and actual provider/model/reasoning,
+each unit's owner, artifact/revision, task identity, pending findings and upstream
+dependencies in that record. Do not copy transcripts or create another queue.
 Use the helper below only when native persistence cannot retain that record or a
 portable file handoff is needed. Tiny edits need neither mechanism.
 

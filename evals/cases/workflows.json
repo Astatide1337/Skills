@@ -2639,5 +2639,222 @@
       ]
     },
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add -- client.py && git commit -qm baseline"
+  },
+  {
+    "id": "workflow-native-agent-generic-review",
+    "input": "Plan an independent review for a material parser change. I have not requested Sol or any particular model. Select either available coding reviewer with high reasoning; do not treat Sol being absent as a blocker. Read capabilities.json. Write decision.json only. It must contain status, target (a T3 target object or null), review_status and a nonempty reason. A target contains providerInstanceId, model and options using the advertised option key; options may be an object or an array of id/value records. This is a synthetic planning diagnostic: do not launch an agent, edit any input, claim a review returned, or change global settings. No reviewer has run, so review_status describes the pending review. The supplied capability catalog is complete for this fixture, all enabled listed models are coding-capable, and the fixture names are not claims about real providers.",
+    "target": "Choose an authorized available model and supported reasoning options, preserve explicit constraints, and distinguish planned dispatch from returned review. This synthetic output diagnostic does not establish live orchestration.",
+    "files": {
+      "capabilities.json": "{\n  \"complete_catalog\": true,\n  \"providers\": [\n    {\n      \"providerInstanceId\": \"fixture-code\",\n      \"canRunChildTask\": true,\n      \"models\": [\n        {\n          \"id\": \"code-worker\",\n          \"options\": [\n            {\n              \"id\": \"reasoningEffort\",\n              \"values\": [\n                \"low\",\n                \"medium\",\n                \"high\",\n                \"xhigh\"\n              ]\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"providerInstanceId\": \"fixture-judgment\",\n      \"canRunChildTask\": true,\n      \"models\": [\n        {\n          \"id\": \"judgment-worker\",\n          \"options\": [\n            {\n              \"id\": \"effort\",\n              \"values\": [\n                \"medium\",\n                \"high\",\n                \"xhigh\"\n              ]\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"providerInstanceId\": \"fixture-disabled\",\n      \"canRunChildTask\": false,\n      \"models\": [\n        {\n          \"id\": \"disabled-worker\",\n          \"options\": [\n            {\n              \"id\": \"effort\",\n              \"values\": [\n                \"high\"\n              ]\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "decision.json"
+      ],
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "design/plan"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "delegate-launch",
+        "input-edit",
+        "global-settings-change"
+      ],
+      "required_observations": [
+        "capability-grounded-selection",
+        "review-remains-pending"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "decision.json",
+        "write_content": "{\"status\": \"ready\", \"target\": {\"providerInstanceId\": \"fixture-code\", \"model\": \"code-worker\", \"options\": {\"reasoningEffort\": \"high\"}}, \"review_status\": \"pending\", \"reason\": \"Use an available coding reviewer with supported reasoning.\"}\n",
+        "required_paths": [
+          "decision.json",
+          "capabilities.json"
+        ],
+        "acceptance_test": "import json\nfrom pathlib import Path\nresult=json.loads(Path('decision.json').read_text())\nassert isinstance(result,dict), 'decision must be an object'\nassert isinstance(result.get('reason'),str) and result['reason'].strip(), 'reason missing'\nassert result.get('review_status') == 'pending', 'no returned review exists'\ncapabilities={'complete_catalog': True, 'providers': [{'providerInstanceId': 'fixture-code', 'canRunChildTask': True, 'models': [{'id': 'code-worker', 'options': [{'id': 'reasoningEffort', 'values': ['low', 'medium', 'high', 'xhigh']}]}]}, {'providerInstanceId': 'fixture-judgment', 'canRunChildTask': True, 'models': [{'id': 'judgment-worker', 'options': [{'id': 'effort', 'values': ['medium', 'high', 'xhigh']}]}]}, {'providerInstanceId': 'fixture-disabled', 'canRunChildTask': False, 'models': [{'id': 'disabled-worker', 'options': [{'id': 'effort', 'values': ['high']}]}]}]}\nassert result.get('status') == 'ready', 'a supported selection is required'\nassert 'effort' not in result and 'reasoningEffort' not in result, 'reasoning belongs in target.options'\ntarget=result.get('target')\nassert isinstance(target,dict), 'target missing'\nassert set(target)=={'providerInstanceId','model','options'}, 'invalid target shape'\nproviders={p['providerInstanceId']:p for p in capabilities['providers']}\nprovider=providers.get(target['providerInstanceId'])\nassert provider and provider['canRunChildTask'], 'provider cannot run this child'\nmodels={m['id']:m for m in provider['models']}\nmodel=models.get(target['model'])\nassert model, 'model not advertised'\noptions=target['options']\nif isinstance(options,list):\n    assert all(isinstance(o,dict) and set(o)=={'id','value'} for o in options), 'invalid option records'\n    assert len({o['id'] for o in options})==len(options), 'duplicate option'\n    options={o['id']:o['value'] for o in options}\nassert isinstance(options,dict), 'invalid options'\nallowed={o['id']:o['values'] for o in model['options']}\nassert len(options)==1 and set(options)<=set(allowed), 'unsupported reasoning option key'\nassert all(v in allowed[k] for k,v in options.items()), 'unsupported reasoning value'\neffort=next(iter(options.values()))\nassert effort == 'high', 'requested high reasoning not preserved'\n",
+        "response_required": false
+      }
+    }
+  },
+  {
+    "id": "workflow-native-agent-named-unavailable",
+    "input": "Plan the review using exactly the model sol-required from provider fixture-code at high reasoning. No other model is authorized. If unavailable, set status to pending and target to null, identifying requested_model and requested_provider in the decision. Read capabilities.json. Write decision.json only. It must contain status, target (a T3 target object or null), review_status and a nonempty reason. A target contains providerInstanceId, model and options using the advertised option key; options may be an object or an array of id/value records. This is a synthetic planning diagnostic: do not launch an agent, edit any input, claim a review returned, or change global settings. No reviewer has run, so review_status describes the pending review. The supplied capability catalog is complete for this fixture, all enabled listed models are coding-capable, and the fixture names are not claims about real providers.",
+    "target": "Choose an authorized available model and supported reasoning options, preserve explicit constraints, and distinguish planned dispatch from returned review. This synthetic output diagnostic does not establish live orchestration.",
+    "files": {
+      "capabilities.json": "{\n  \"complete_catalog\": true,\n  \"providers\": [\n    {\n      \"providerInstanceId\": \"fixture-code\",\n      \"canRunChildTask\": true,\n      \"models\": [\n        {\n          \"id\": \"code-worker\",\n          \"options\": [\n            {\n              \"id\": \"reasoningEffort\",\n              \"values\": [\n                \"low\",\n                \"medium\",\n                \"high\",\n                \"xhigh\"\n              ]\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"providerInstanceId\": \"fixture-judgment\",\n      \"canRunChildTask\": true,\n      \"models\": [\n        {\n          \"id\": \"judgment-worker\",\n          \"options\": [\n            {\n              \"id\": \"effort\",\n              \"values\": [\n                \"medium\",\n                \"high\",\n                \"xhigh\"\n              ]\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"providerInstanceId\": \"fixture-disabled\",\n      \"canRunChildTask\": false,\n      \"models\": [\n        {\n          \"id\": \"disabled-worker\",\n          \"options\": [\n            {\n              \"id\": \"effort\",\n              \"values\": [\n                \"high\"\n              ]\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "decision.json"
+      ],
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "design/plan"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "delegate-launch",
+        "input-edit",
+        "global-settings-change"
+      ],
+      "required_observations": [
+        "capability-grounded-selection",
+        "review-remains-pending"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "decision.json",
+        "write_content": "{\"status\": \"pending\", \"target\": null, \"review_status\": \"pending\", \"requested_model\": \"sol-required\", \"requested_provider\": \"fixture-code\", \"reason\": \"The required model is absent from the complete fixture catalog.\"}\n",
+        "required_paths": [
+          "decision.json",
+          "capabilities.json"
+        ],
+        "acceptance_test": "import json\nfrom pathlib import Path\nresult=json.loads(Path('decision.json').read_text())\nassert isinstance(result,dict), 'decision must be an object'\nassert isinstance(result.get('reason'),str) and result['reason'].strip(), 'reason missing'\nassert result.get('review_status') == 'pending', 'no returned review exists'\ncapabilities={'complete_catalog': True, 'providers': [{'providerInstanceId': 'fixture-code', 'canRunChildTask': True, 'models': [{'id': 'code-worker', 'options': [{'id': 'reasoningEffort', 'values': ['low', 'medium', 'high', 'xhigh']}]}]}, {'providerInstanceId': 'fixture-judgment', 'canRunChildTask': True, 'models': [{'id': 'judgment-worker', 'options': [{'id': 'effort', 'values': ['medium', 'high', 'xhigh']}]}]}, {'providerInstanceId': 'fixture-disabled', 'canRunChildTask': False, 'models': [{'id': 'disabled-worker', 'options': [{'id': 'effort', 'values': ['high']}]}]}]}\nassert result.get('status')=='pending' and result.get('target') is None, 'named model was substituted'\nassert result.get('requested_model')=='sol-required' and result.get('requested_provider')=='fixture-code', 'missing unavailable identity'\n",
+        "response_required": false
+      }
+    }
+  },
+  {
+    "id": "workflow-native-agent-role-reasoning",
+    "input": "Choose a reviewer for a subtle cross-tenant authorization change with an unresolved concurrency interaction. Use high or xhigh reasoning on an available capable model; do not invent effort suffixes on model IDs or assume provider option keys are interchangeable. Read capabilities.json. Write decision.json only. It must contain status, target (a T3 target object or null), review_status and a nonempty reason. A target contains providerInstanceId, model and options using the advertised option key; options may be an object or an array of id/value records. This is a synthetic planning diagnostic: do not launch an agent, edit any input, claim a review returned, or change global settings. No reviewer has run, so review_status describes the pending review. The supplied capability catalog is complete for this fixture, all enabled listed models are coding-capable, and the fixture names are not claims about real providers.",
+    "target": "Choose an authorized available model and supported reasoning options, preserve explicit constraints, and distinguish planned dispatch from returned review. This synthetic output diagnostic does not establish live orchestration.",
+    "files": {
+      "capabilities.json": "{\n  \"complete_catalog\": true,\n  \"providers\": [\n    {\n      \"providerInstanceId\": \"fixture-code\",\n      \"canRunChildTask\": true,\n      \"models\": [\n        {\n          \"id\": \"code-worker\",\n          \"options\": [\n            {\n              \"id\": \"reasoningEffort\",\n              \"values\": [\n                \"low\",\n                \"medium\",\n                \"high\",\n                \"xhigh\"\n              ]\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"providerInstanceId\": \"fixture-judgment\",\n      \"canRunChildTask\": true,\n      \"models\": [\n        {\n          \"id\": \"judgment-worker\",\n          \"options\": [\n            {\n              \"id\": \"effort\",\n              \"values\": [\n                \"medium\",\n                \"high\",\n                \"xhigh\"\n              ]\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"providerInstanceId\": \"fixture-disabled\",\n      \"canRunChildTask\": false,\n      \"models\": [\n        {\n          \"id\": \"disabled-worker\",\n          \"options\": [\n            {\n              \"id\": \"effort\",\n              \"values\": [\n                \"high\"\n              ]\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "decision.json"
+      ],
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "design/plan"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "delegate-launch",
+        "input-edit",
+        "global-settings-change"
+      ],
+      "required_observations": [
+        "capability-grounded-selection",
+        "review-remains-pending"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "decision.json",
+        "write_content": "{\"status\": \"ready\", \"target\": {\"providerInstanceId\": \"fixture-code\", \"model\": \"code-worker\", \"options\": {\"reasoningEffort\": \"high\"}}, \"review_status\": \"pending\", \"reason\": \"Use an available coding reviewer with supported reasoning.\"}\n",
+        "required_paths": [
+          "decision.json",
+          "capabilities.json"
+        ],
+        "acceptance_test": "import json\nfrom pathlib import Path\nresult=json.loads(Path('decision.json').read_text())\nassert isinstance(result,dict), 'decision must be an object'\nassert isinstance(result.get('reason'),str) and result['reason'].strip(), 'reason missing'\nassert result.get('review_status') == 'pending', 'no returned review exists'\ncapabilities={'complete_catalog': True, 'providers': [{'providerInstanceId': 'fixture-code', 'canRunChildTask': True, 'models': [{'id': 'code-worker', 'options': [{'id': 'reasoningEffort', 'values': ['low', 'medium', 'high', 'xhigh']}]}]}, {'providerInstanceId': 'fixture-judgment', 'canRunChildTask': True, 'models': [{'id': 'judgment-worker', 'options': [{'id': 'effort', 'values': ['medium', 'high', 'xhigh']}]}]}, {'providerInstanceId': 'fixture-disabled', 'canRunChildTask': False, 'models': [{'id': 'disabled-worker', 'options': [{'id': 'effort', 'values': ['high']}]}]}]}\nassert result.get('status') == 'ready', 'a supported selection is required'\nassert 'effort' not in result and 'reasoningEffort' not in result, 'reasoning belongs in target.options'\ntarget=result.get('target')\nassert isinstance(target,dict), 'target missing'\nassert set(target)=={'providerInstanceId','model','options'}, 'invalid target shape'\nproviders={p['providerInstanceId']:p for p in capabilities['providers']}\nprovider=providers.get(target['providerInstanceId'])\nassert provider and provider['canRunChildTask'], 'provider cannot run this child'\nmodels={m['id']:m for m in provider['models']}\nmodel=models.get(target['model'])\nassert model, 'model not advertised'\noptions=target['options']\nif isinstance(options,list):\n    assert all(isinstance(o,dict) and set(o)=={'id','value'} for o in options), 'invalid option records'\n    assert len({o['id'] for o in options})==len(options), 'duplicate option'\n    options={o['id']:o['value'] for o in options}\nassert isinstance(options,dict), 'invalid options'\nallowed={o['id']:o['values'] for o in model['options']}\nassert len(options)==1 and set(options)<=set(allowed), 'unsupported reasoning option key'\nassert all(v in allowed[k] for k,v in options.items()), 'unsupported reasoning value'\neffort=next(iter(options.values()))\nassert effort in {'high','xhigh'}, 'insufficient requested reasoning'\n",
+        "response_required": false
+      }
+    }
+  },
+  {
+    "id": "workflow-native-agent-explicit-effort",
+    "input": "Select code-worker from fixture-code at exactly medium reasoning for this bounded review. The user has explicitly capped this run at medium even though a high option is available. Preserve that exact model and effort. Read capabilities.json. Write decision.json only. It must contain status, target (a T3 target object or null), review_status and a nonempty reason. A target contains providerInstanceId, model and options using the advertised option key; options may be an object or an array of id/value records. This is a synthetic planning diagnostic: do not launch an agent, edit any input, claim a review returned, or change global settings. No reviewer has run, so review_status describes the pending review. The supplied capability catalog is complete for this fixture, all enabled listed models are coding-capable, and the fixture names are not claims about real providers.",
+    "target": "Choose an authorized available model and supported reasoning options, preserve explicit constraints, and distinguish planned dispatch from returned review. This synthetic output diagnostic does not establish live orchestration.",
+    "files": {
+      "capabilities.json": "{\n  \"complete_catalog\": true,\n  \"providers\": [\n    {\n      \"providerInstanceId\": \"fixture-code\",\n      \"canRunChildTask\": true,\n      \"models\": [\n        {\n          \"id\": \"code-worker\",\n          \"options\": [\n            {\n              \"id\": \"reasoningEffort\",\n              \"values\": [\n                \"low\",\n                \"medium\",\n                \"high\",\n                \"xhigh\"\n              ]\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"providerInstanceId\": \"fixture-judgment\",\n      \"canRunChildTask\": true,\n      \"models\": [\n        {\n          \"id\": \"judgment-worker\",\n          \"options\": [\n            {\n              \"id\": \"effort\",\n              \"values\": [\n                \"medium\",\n                \"high\",\n                \"xhigh\"\n              ]\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"providerInstanceId\": \"fixture-disabled\",\n      \"canRunChildTask\": false,\n      \"models\": [\n        {\n          \"id\": \"disabled-worker\",\n          \"options\": [\n            {\n              \"id\": \"effort\",\n              \"values\": [\n                \"high\"\n              ]\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "decision.json"
+      ],
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "design/plan"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "delegate-launch",
+        "input-edit",
+        "global-settings-change"
+      ],
+      "required_observations": [
+        "capability-grounded-selection",
+        "review-remains-pending"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "decision.json",
+        "write_content": "{\"status\": \"ready\", \"target\": {\"providerInstanceId\": \"fixture-code\", \"model\": \"code-worker\", \"options\": {\"reasoningEffort\": \"medium\"}}, \"review_status\": \"pending\", \"reason\": \"Use an available coding reviewer with supported reasoning.\"}\n",
+        "required_paths": [
+          "decision.json",
+          "capabilities.json"
+        ],
+        "acceptance_test": "import json\nfrom pathlib import Path\nresult=json.loads(Path('decision.json').read_text())\nassert isinstance(result,dict), 'decision must be an object'\nassert isinstance(result.get('reason'),str) and result['reason'].strip(), 'reason missing'\nassert result.get('review_status') == 'pending', 'no returned review exists'\ncapabilities={'complete_catalog': True, 'providers': [{'providerInstanceId': 'fixture-code', 'canRunChildTask': True, 'models': [{'id': 'code-worker', 'options': [{'id': 'reasoningEffort', 'values': ['low', 'medium', 'high', 'xhigh']}]}]}, {'providerInstanceId': 'fixture-judgment', 'canRunChildTask': True, 'models': [{'id': 'judgment-worker', 'options': [{'id': 'effort', 'values': ['medium', 'high', 'xhigh']}]}]}, {'providerInstanceId': 'fixture-disabled', 'canRunChildTask': False, 'models': [{'id': 'disabled-worker', 'options': [{'id': 'effort', 'values': ['high']}]}]}]}\nassert result.get('status') == 'ready', 'a supported selection is required'\nassert 'effort' not in result and 'reasoningEffort' not in result, 'reasoning belongs in target.options'\ntarget=result.get('target')\nassert isinstance(target,dict), 'target missing'\nassert set(target)=={'providerInstanceId','model','options'}, 'invalid target shape'\nproviders={p['providerInstanceId']:p for p in capabilities['providers']}\nprovider=providers.get(target['providerInstanceId'])\nassert provider and provider['canRunChildTask'], 'provider cannot run this child'\nmodels={m['id']:m for m in provider['models']}\nmodel=models.get(target['model'])\nassert model, 'model not advertised'\noptions=target['options']\nif isinstance(options,list):\n    assert all(isinstance(o,dict) and set(o)=={'id','value'} for o in options), 'invalid option records'\n    assert len({o['id'] for o in options})==len(options), 'duplicate option'\n    options={o['id']:o['value'] for o in options}\nassert isinstance(options,dict), 'invalid options'\nallowed={o['id']:o['values'] for o in model['options']}\nassert len(options)==1 and set(options)<=set(allowed), 'unsupported reasoning option key'\nassert all(v in allowed[k] for k,v in options.items()), 'unsupported reasoning value'\neffort=next(iter(options.values()))\nassert target['providerInstanceId']=='fixture-code' and target['model']=='code-worker', 'explicit model changed'\nassert effort=='medium', 'explicit reasoning changed'\n",
+        "response_required": false
+      }
+    }
+  },
+  {
+    "id": "workflow-native-agent-worktree-candidate",
+    "input": "Read candidate.json and plan an isolated worktree review of the complete requested change, including the uncommitted delta. The runtime creates a worktree from the parent commit only. No transfer or commit has occurred. Set status to needs-transfer, target to null, and candidate to an object containing head, includes_working_delta, and review_ready. Name the required next action in reason; do not pretend the untouched worktree already contains the delta. Read capabilities.json. Write decision.json only. It must contain status, target (a T3 target object or null), review_status and a nonempty reason. A target contains providerInstanceId, model and options using the advertised option key; options may be an object or an array of id/value records. This is a synthetic planning diagnostic: do not launch an agent, edit any input, claim a review returned, or change global settings. No reviewer has run, so review_status describes the pending review. The supplied capability catalog is complete for this fixture, all enabled listed models are coding-capable, and the fixture names are not claims about real providers.",
+    "target": "Choose an authorized available model and supported reasoning options, preserve explicit constraints, and distinguish planned dispatch from returned review. This synthetic output diagnostic does not establish live orchestration.",
+    "files": {
+      "capabilities.json": "{\n  \"complete_catalog\": true,\n  \"providers\": [\n    {\n      \"providerInstanceId\": \"fixture-code\",\n      \"canRunChildTask\": true,\n      \"models\": [\n        {\n          \"id\": \"code-worker\",\n          \"options\": [\n            {\n              \"id\": \"reasoningEffort\",\n              \"values\": [\n                \"low\",\n                \"medium\",\n                \"high\",\n                \"xhigh\"\n              ]\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"providerInstanceId\": \"fixture-judgment\",\n      \"canRunChildTask\": true,\n      \"models\": [\n        {\n          \"id\": \"judgment-worker\",\n          \"options\": [\n            {\n              \"id\": \"effort\",\n              \"values\": [\n                \"medium\",\n                \"high\",\n                \"xhigh\"\n              ]\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"providerInstanceId\": \"fixture-disabled\",\n      \"canRunChildTask\": false,\n      \"models\": [\n        {\n          \"id\": \"disabled-worker\",\n          \"options\": [\n            {\n              \"id\": \"effort\",\n              \"values\": [\n                \"high\"\n              ]\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}\n",
+      "candidate.json": "{\"head\": \"1111111111111111111111111111111111111111\", \"uncommitted_delta\": [\"parser.py\"], \"worktree_source\": \"parent-commit-only\", \"returned_reviews\": []}\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "decision.json"
+      ],
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "design/plan"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "delegate-launch",
+        "input-edit",
+        "global-settings-change"
+      ],
+      "required_observations": [
+        "capability-grounded-selection",
+        "review-remains-pending"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "decision.json",
+        "write_content": "{\"status\": \"needs-transfer\", \"target\": null, \"review_status\": \"pending\", \"candidate\": {\"head\": \"1111111111111111111111111111111111111111\", \"includes_working_delta\": false, \"review_ready\": false}, \"reason\": \"Transfer or commit the actual delta through a supported path before isolated review.\"}\n",
+        "required_paths": [
+          "decision.json",
+          "capabilities.json",
+          "candidate.json"
+        ],
+        "acceptance_test": "import json\nfrom pathlib import Path\nresult=json.loads(Path('decision.json').read_text())\nassert isinstance(result,dict), 'decision must be an object'\nassert isinstance(result.get('reason'),str) and result['reason'].strip(), 'reason missing'\nassert result.get('review_status') == 'pending', 'no returned review exists'\ncapabilities={'complete_catalog': True, 'providers': [{'providerInstanceId': 'fixture-code', 'canRunChildTask': True, 'models': [{'id': 'code-worker', 'options': [{'id': 'reasoningEffort', 'values': ['low', 'medium', 'high', 'xhigh']}]}]}, {'providerInstanceId': 'fixture-judgment', 'canRunChildTask': True, 'models': [{'id': 'judgment-worker', 'options': [{'id': 'effort', 'values': ['medium', 'high', 'xhigh']}]}]}, {'providerInstanceId': 'fixture-disabled', 'canRunChildTask': False, 'models': [{'id': 'disabled-worker', 'options': [{'id': 'effort', 'values': ['high']}]}]}]}\nassert result.get('status')=='needs-transfer' and result.get('target') is None, 'review dispatched against an incomplete candidate'\nc=result.get('candidate')\nassert isinstance(c,dict) and c.get('head')=='1111111111111111111111111111111111111111', 'wrong parent commit'\nassert c.get('includes_working_delta') is False and c.get('review_ready') is False, 'dirty candidate falsely covered'\n",
+        "response_required": false
+      }
+    }
   }
 ]

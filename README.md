@@ -175,6 +175,21 @@ publication, and applies `production-safety`/`security-and-hardening` when
 those boundaries are in scope. Parallel work is an optional modifier and ends
 with an integrated check.
 
+Delegation uses the shared
+[agent-selection policy](skills/follow-instructions/references/agent-selection.md):
+discover available models and reasoning options, match them to the role and
+difficulty, preserve explicit constraints, and record the actual returned settings.
+The [parallel modifier](skills/follow-instructions/playbooks/parallel.md) distinguishes
+ordinary helpers from a standing program with one owner per PR. Native task events
+and PR watches own continuation; the skills do not add a scheduler. Generic
+independent review is not coupled to Sol availability; an explicit Sol request is.
+
+Ordinary implementation retains its plan in the existing task record. A separate
+HTML plan is for an explicit format request or a useful visual decision, not an
+approval ritual. Code cleanup precedes final verification and review. Prose cleanup
+preserves facts before the final acceptance/claims check. These are workflow rules,
+not evidence that the runtime enforces them or that model outcomes have improved.
+
 The implemented package map is intentionally small:
 
 ```text
@@ -182,6 +197,7 @@ skills/follow-instructions/
   SKILL.md                 entry point, route table, and evidence gates
   references/principles.md principle index and pstack mapping
   references/approved-plans.md explicit approval gates and authority
+  references/agent-selection.md role, model, reasoning and supported dispatch
   references/principles/   detailed, selectively loaded decision rules
   references/case-studies.md selectively loaded public contrasts
   examples/                three primary-grounded instructional exercises

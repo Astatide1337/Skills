@@ -260,7 +260,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            52,
+            57,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -382,6 +382,11 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-security-blocked-path",
                 "workflow-native-security-reachable-private-resolution",
                 "workflow-native-security-insufficient-reachability-evidence",
+                "workflow-native-agent-generic-review",
+                "workflow-native-agent-named-unavailable",
+                "workflow-native-agent-role-reasoning",
+                "workflow-native-agent-explicit-effort",
+                "workflow-native-agent-worktree-candidate",
             },
         )
         for sample in cases.values():

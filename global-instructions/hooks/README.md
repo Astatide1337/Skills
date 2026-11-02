@@ -65,7 +65,12 @@ not the contents of every script it calls. Do not let the assistant generate its
 own acceptance oracle and then treat it as independent. The hook never takes a
 command from the event payload, final reply or transcript.
 
-The command runs in the event's working directory, without a shell. It must
+The command runs in the event's working directory, without a shell, with the
+event JSON on stdin so a trusted checker can locate the actual session's evidence.
+Event fields and assistant narration are not acceptance or approval; never let
+them choose a command, redefine the requirement or fabricate a returned review.
+A missing checker command requests bounded recovery rather than returning an
+ordinary nonblocking usage error. The checker must
 exit zero and print exactly one JSON object with `status` and a nonempty `reason`.
 Do not print credentials or other diagnostics into this output.
 
@@ -134,8 +139,10 @@ python3 global-instructions/hooks/test_integrity.py --repo /path/to/app --base o
 
 ## Opt-in pending-choice pre-tool prototype
 
-`agent_gates.py choice-guard COMMAND [ARG ...]` provides a separate Claude
-`PreToolUse` adapter. It sends the event JSON to the explicitly configured
+`agent_gates.py choice-guard COMMAND [ARG ...]` provides a separate exit-2
+`PreToolUse` adapter. Claude and current Codex documentation support this denial
+protocol; host registration, trust and actual dispatch coverage still need their
+own integration checks. It sends the event JSON to the explicitly configured
 checker on stdin, without a shell, in the event working directory. The checker
 must exit zero and return exactly `{"status":"allow|block|unavailable",
 "reason":"nonempty explanation"}` (choose one status). Only `allow` permits
@@ -176,14 +183,21 @@ failure to apply existing authority guidance, not evidence that guidance was
 absent. The separate pending-decision wording candidate remains held; no new
 occurrence, wording promotion or measured behavioral improvement is claimed.
 
-**Runtime status and next action:** the current Codex/T3 session has no
-completion hook registered. A Stop hook is too late to prevent dependent edits.
-This adapter implements Claude's pre-tool exit protocol only; it does not
-establish a Codex pre-tool API or T3 goal enforcement. The next integration
-step is an explicitly authorized disposable Claude registration with a trusted
-task checker, verifying that a denied write is never dispatched and that later
-authenticated authorization releases it. For Codex/T3, first establish a
-supported pre-dispatch veto covering nested tools and delegates with the runtime
-owner; no product edits or global installation are part of this prototype.
+**Runtime boundary:** a Stop hook is too late to prevent dependent edits. Current
+[Codex hooks documentation](https://learn.chatgpt.com/docs/hooks) covers
+PreToolUse denial, including nested code-mode function calls, and Stop
+continuation. Installed Codex 0.165.0 discovers the two event definitions through
+`hooks/list`; discovery and trust are separate from invocation. Review exact
+definitions through the supported `/hooks` flow in an owned home before testing.
+Do not forge trust state or use a bypass flag.
+
+Prove a denied owned write never dispatches, later actual authorization releases
+it, and incomplete acceptance really resumes before claiming integration. Cover
+each actual tool path: persistent `write_stdin`, hosted tools and tools that opt
+out may not receive a new pre-tool event. A malformed hook can fail without
+denying an action, so protocol tests are necessary but not sufficient. Direct
+Codex evidence does not establish T3 invocation or resumption. T3 registration
+and event coverage remain a separate runtime-owner integration; no global
+installation or product edits are implied by this repository.
 Leave #38 open until its literal behavioral acceptance and actual integration
 are evidenced. A passing protocol test is not that evidence.

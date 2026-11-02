@@ -84,6 +84,11 @@ Every skill requires `SKILL.md` with YAML frontmatter containing `name` and
 Start with only `SKILL.md`. Add a reference, script, or asset only when a named
 decision or repeated operation cannot stay reliable and lean in the root file.
 A possible future audience, format, or template is not sufficient justification.
+Each Markdown file needs a reader/owner, a load trigger, a decision it changes,
+and a reason it is separate. Put that applicability in the file and its incoming
+route, not a duplicate registry. The catalog checks reachability from `SKILL.md`,
+including linked indexes and explicit inline paths; it cannot establish usefulness.
+Keep historical evidence outside normal runtime routing and preserve its provenance.
 
 Use lowercase hyphenated names under 64 characters and keep the directory name
 identical to the frontmatter name.

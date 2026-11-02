@@ -51,10 +51,14 @@ handoff.
    early, before expanding variants. Carry the accepted interaction and UI
    constraints through integration; an early working slice does not discharge
    the remaining approved scope.
-5. Re-run the original path and affected native/supplemental checks; exercise
+5. Remove observed redundant code or needless abstractions with `deslop` before
+   final checks, preserving behavior and local conventions. Re-run the original
+   path and affected native/supplemental checks; exercise
    the real UI/API/CLI when relevant through its actual tools. Obtain independent
    review of approved nontrivial delivery, fix in-scope findings and refresh
-   affected checks and reviewer coverage on the final artifact.
+   affected checks and reviewer coverage on the final artifact. An ordinary
+   failed check or material in-scope finding is the next repair action, not a
+   completion handoff or another request for implementation permission.
 6. Finish the whole approved result, including a scoped final commit when
    approval covers it. When
    publication is approved, use [pull-requests](../../pull-requests/SKILL.md) for

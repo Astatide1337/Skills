@@ -1,8 +1,12 @@
 """Keep routing metadata compact without claiming a universal harness limit."""
 
 import unittest
+import tempfile
+from pathlib import Path
 
-from scripts.validate_catalog import MAX_DESCRIPTION_CHARS, validate_description
+from scripts.validate_catalog import (
+    MAX_DESCRIPTION_CHARS, validate_description, validate_reference_routes,
+)
 
 
 class DescriptionBudgetTests(unittest.TestCase):
@@ -22,3 +26,40 @@ class DescriptionBudgetTests(unittest.TestCase):
                 ValueError, "single-line trigger"
             ):
                 validate_description("example", description)
+
+
+class ReferenceRouteTests(unittest.TestCase):
+    def test_nested_routes_and_inline_paths_are_valid_alternatives(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            refs = root / "references"
+            refs.mkdir()
+            (refs / "detail.md").write_text("# Detail\n")
+            (refs / "index.md").write_text("Read [detail](detail.md#detail).")
+            for route in ("Read [index](references/index.md).",
+                          "Read `references/index.md` when the boundary is unclear."):
+                (root / "SKILL.md").write_text(route)
+                validate_reference_routes(root)
+
+    def test_reference_cycle_does_not_make_unrouted_files_reachable(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            (root / "SKILL.md").write_text("# Skill\n")
+            (root / "a.md").write_text("[b](b.md)")
+            (root / "b.md").write_text("[a](a.md)")
+            with self.assertRaisesRegex(ValueError, "unreachable Markdown.*a.md, b.md"):
+                validate_reference_routes(root)
+            (root / "SKILL.md").write_text("[a](a.md)")
+            validate_reference_routes(root)
+
+    def test_external_or_other_skill_reference_does_not_route_local_orphan(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            skill = root / "skill"
+            skill.mkdir()
+            (root / "detail.md").write_text("External owner")
+            (skill / "detail.md").write_text("Local orphan")
+            (skill / "SKILL.md").write_text(
+                "[other](../detail.md) [web](https://example.invalid/detail.md)")
+            with self.assertRaisesRegex(ValueError, "unreachable Markdown.*detail.md"):
+                validate_reference_routes(skill)

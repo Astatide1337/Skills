@@ -9,17 +9,18 @@ research and reviews stay read-only. Clear small changes use the short path.
 
 Inspect the actual owner, callers, existing automation, constraints and checks.
 State the desired outcome, smallest correction, affected interfaces, permitted
-effects and acceptance in the existing task record. Present plans as concise
-HTML artifacts in the temporary task workspace unless the user requests another
-format or waives the artifact for this task. A bounded investigation does not authorize
+effects and acceptance in the existing task record. Use that compact record for
+ordinary implementation. Produce a separate plan artifact when requested or when
+it materially clarifies a decision; choose HTML for useful visual comparison or
+interaction, and otherwise use the requested prose format. A bounded investigation does not authorize
 permanent tooling; first establish the recurring need and missing native capability.
 For uncertain UI direction, exercise one representative interaction before
 expanding screens; use [UI prototyping](../../web-interface/references/ui-prototyping.md)
 when a prototype is relevant.
 
-Preserve this deliverable choice through research and delegation. A supporting
-workflow may request Markdown working notes without changing the HTML plan owed
-to the user. Verify the final file's format and inspect the required render
+Preserve the requested deliverable through research and delegation. Supporting
+working notes do not replace an explicitly requested HTML plan or other format.
+Verify the final file's format and inspect any required render
 before delivery; an internal draft is not the requested plan.
 
 ## Apply the actual approval gate

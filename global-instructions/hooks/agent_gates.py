@@ -602,7 +602,10 @@ def handle_completion(payload: dict, command: list[str]) -> int:
         return 0
     # Persist the episode before executing a checker that may fail or time out.
     save_state(session, state)
-    ok, output = run_verify(cwd, command)
+    if command:
+        ok, output = run_verify(cwd, command, input_data=json.dumps(payload).encode())
+    else:
+        ok, output = False, "missing trusted acceptance checker command"
     try:
         result = json.loads(output) if ok else None
         valid = (isinstance(result, dict) and set(result) == {"status", "reason"}
@@ -631,7 +634,7 @@ def handle_completion(payload: dict, command: list[str]) -> int:
 
 
 def handle_choice_guard(payload: dict, command: list[str]) -> int:
-    """Claude PreToolUse adapter; semantic authority belongs to a trusted checker."""
+    """Exit-2 PreToolUse adapter; semantic authority belongs to a trusted checker."""
     try:
         if not command:
             raise ValueError("missing trusted choice checker command")
@@ -667,7 +670,7 @@ HANDLERS = {
 
 
 def main(argv: list[str]) -> int:
-    completion = len(argv) >= 3 and argv[1] == "completion"
+    completion = len(argv) >= 2 and argv[1] == "completion"
     choice_guard = len(argv) >= 2 and argv[1] == "choice-guard"
     if not (completion or choice_guard) and (len(argv) != 2 or argv[1] not in HANDLERS):
         print(

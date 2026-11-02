@@ -1,5 +1,9 @@
 # PR20 gap closure plan and coordinator decision
 
+Historical record for PR20, retained to interpret its experiment and review.
+It is not an active task plan; current workflow and delivery policy live in
+the [maintained catalog](../../README.md).
+
 Status: implementation and contract verification are separate from native
 efficacy. PR20 is not ready for merge while the coordinator comparison remains
 unavailable. This plan addresses the review of `98b22ba`; it does not reinterpret
