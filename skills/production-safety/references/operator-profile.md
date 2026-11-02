@@ -53,6 +53,14 @@ unavailable, report that narrow gap and continue authorized source discovery.
 - Verify both the internal service path and the public reverse-proxy/DNS/TLS path
   when the task claims the deployed stack works.
 
+## Rutgers GitLab
+
+Rutgers GitLab writes require explicit approval, including pushes, MR creation
+and posted comments through `glab`, `--comment` or another tool. The standing
+PR-delivery default does not supply that approval. Reuse explicit approval
+already given for the action. Read-only inspection does not require write
+approval.
+
 ## GitHub, GitLab, and deployment provenance
 
 - Map repository, remote, source branch, commit SHA, pipeline/workflow, artifact

@@ -8,6 +8,9 @@ description: "Drafts, opens, reviews, monitors or comments on GitHub PRs and Git
 Use this procedure for both GitHub pull requests and GitLab merge requests.
 Use the host's terms and tools.
 
+For Rutgers GitLab, apply the [operator approval rule](../production-safety/references/operator-profile.md#rutgers-gitlab)
+before any remote write, including work under the delivery default below.
+
 ## Select the mode before acting
 
 | User request | Mode | Authority |
