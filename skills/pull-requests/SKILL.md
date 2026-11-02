@@ -90,16 +90,18 @@ Follow [Google's Writing good CL
 descriptions](https://google.github.io/eng-practices/review/developer/cl-descriptions.html)
 for PR/MR titles and descriptions. Apply an explicit user format or required
 repository template when present.
-- Write a short, specific title in the imperative that stands on its own.
-- Explain what changes and why, including context and decisions that the code
-  alone would not communicate. Write for reviewers and future maintainers.
-- Include relevant implementation detail, shortcomings, issue references,
-  benchmarks, or design links when they help readers understand the change.
-  Keep enough context in the description for it to remain useful if links expire.
-- Recheck the description before submission so it describes the final change.
+Write a short, specific title. Use the repository's template when one exists.
+Otherwise use **Summary** and **Verification**; add **Open work** only for a
+draft with unresolved requirements. State the problem and resulting behavior,
+then the checks actually run and their results. Link long evidence instead of
+pasting logs, implementation history, research notes or a file-by-file recap.
+Recheck the description against the final change before submission.
 
-Use Google's published examples to guide judgment. Do not impose additional
-section names, bullet counts, or a fixed narrative order.
+In Create and Approved delivery modes, assign the PR/MR to Soham's verified
+account on that host. Reuse a known identity or resolve it from the host; do not
+substitute a bot account. Include the assignee in creation when supported,
+otherwise add it immediately afterward. Preserve other assignees and fetch the
+result to confirm assignment before reporting delivery.
 
 Before publication, inspect documentation and comments in the diff as well as
 code. Apply the [documentation

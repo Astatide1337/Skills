@@ -9,6 +9,11 @@
   For planning, explanation or review, perform only the requested actions.
   Merge only after I explicitly approve that merge.
   Never enable auto-merge or deploy.
+- An issue URL sent as a work item means implementation through a verified
+  PR/MR. Preserve explicit read-only requests and repository-specific write rules.
+- Keep one-off plans, research, investigation notes and verification reports
+  outside project checkouts. Add maintained Markdown only when requested or
+  needed to use or operate the changed behavior; update existing docs first.
 
 ## Personal context
 
