@@ -9,6 +9,7 @@ Subcommands, each reading the hook's JSON from stdin:
   format         after an edit: format the file with the project's formatter
   stop           before the agent stops: for every repository changed this
                  session, run the test-integrity check and the verify command
+  choice-guard CMD veto a pre-tool action using a trusted task choice checker
   completion CMD run an explicitly configured task acceptance checker on Stop,
                  including when the workspace has not changed
 
@@ -299,13 +300,14 @@ def tail(text: str) -> str:
     return "\n".join(lines)[-OUTPUT_TAIL_CHARS:]
 
 
-def run_verify(root: Path, command: list[str] | str) -> tuple[bool, str]:
+def run_verify(root: Path, command: list[str] | str, *, input_data: bytes | None = None) -> tuple[bool, str]:
     timeout = int(os.environ.get("AGENT_VERIFY_TIMEOUT", "540"))
     try:
         process = subprocess.Popen(
             command,
             cwd=root,
             shell=isinstance(command, str),
+            stdin=subprocess.PIPE if input_data is not None else None,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             start_new_session=True,
@@ -313,7 +315,7 @@ def run_verify(root: Path, command: list[str] | str) -> tuple[bool, str]:
     except OSError as error:
         return False, f"verify could not start: {error}"
     try:
-        output, _ = process.communicate(timeout=timeout)
+        output, _ = process.communicate(input=input_data, timeout=timeout)
     except subprocess.TimeoutExpired:
         for sig in (signal.SIGTERM, signal.SIGKILL):
             try:
@@ -628,6 +630,34 @@ def handle_completion(payload: dict, command: list[str]) -> int:
     return 0
 
 
+def handle_choice_guard(payload: dict, command: list[str]) -> int:
+    """Claude PreToolUse adapter; semantic authority belongs to a trusted checker."""
+    try:
+        if not command:
+            raise ValueError("missing trusted choice checker command")
+        if (payload.get("hook_event_name") != "PreToolUse"
+                or not payload.get("session_id") or not payload.get("tool_name")
+                or not isinstance(payload.get("tool_input"), dict)):
+            raise ValueError("missing PreToolUse action/session identity")
+        ok, output = run_verify(
+            Path(payload.get("cwd") or os.getcwd()).resolve(), command,
+            input_data=json.dumps(payload).encode(),
+        )
+        result = json.loads(output) if ok else None
+        if (not isinstance(result, dict) or set(result) != {"status", "reason"}
+                or result["status"] not in {"allow", "block", "unavailable"}
+                or not isinstance(result["reason"], str) or not result["reason"].strip()):
+            raise ValueError("checker failed or returned an invalid decision")
+        if result["status"] == "allow":
+            print("{}")
+            return 0
+        message = f"Choice guard {result['status']}: {result['reason'][:OUTPUT_TAIL_CHARS]}"
+    except Exception as error:  # noqa: BLE001 - never execute an unchecked action
+        message = f"Choice guard unavailable: {error!r}. Recover the check before retrying."
+    print(message, file=sys.stderr)
+    return 2
+
+
 HANDLERS = {
     "session-start": handle_session_start,
     "guard": handle_guard,
@@ -638,10 +668,11 @@ HANDLERS = {
 
 def main(argv: list[str]) -> int:
     completion = len(argv) >= 3 and argv[1] == "completion"
-    if not completion and (len(argv) != 2 or argv[1] not in HANDLERS):
+    choice_guard = len(argv) >= 2 and argv[1] == "choice-guard"
+    if not (completion or choice_guard) and (len(argv) != 2 or argv[1] not in HANDLERS):
         print(
             f"usage: {Path(argv[0]).name} {{{','.join(HANDLERS)}}} < hook-input.json\n"
-            f"       {Path(argv[0]).name} completion COMMAND [ARG ...] < hook-input.json",
+            f"       {Path(argv[0]).name} {{completion,choice-guard}} COMMAND [ARG ...] < hook-input.json",
             file=sys.stderr,
         )
         return 1
@@ -651,6 +682,8 @@ def main(argv: list[str]) -> int:
         payload = {}
     payload = payload if isinstance(payload, dict) else {}
     try:
+        if choice_guard:
+            return handle_choice_guard(payload, argv[2:])
         if completion:
             return handle_completion(payload, argv[2:])
         return HANDLERS[argv[1]](payload)
