@@ -283,9 +283,23 @@ class ParentAcceptanceTests(unittest.TestCase):
     def test_invalid_context_cannot_run_checker(self):
         marker = self.root / 'executed'
         self.checker.write_text('from pathlib import Path\nPath("executed").touch()\n')
-        for context in ['', 'broken', '[]', 'null', 'true']:
+        for context in ['broken', '[]', 'null', 'true']:
             self.assertEqual(self.accept(raw=context)[0], 2)
         self.assertFalse(marker.exists())
+
+    def test_omitted_context_is_empty_and_checker_still_requires_its_inputs(self):
+        self.checker.write_text('''import json, sys
+event = json.load(sys.stdin)
+ok = event.get('task_id') == 'configured-task'
+print(json.dumps({'status': 'complete' if ok else 'incomplete', 'reason': 'Required task context checked'}))
+''')
+        for context in ['', '  \n', '{}']:
+            code, body = self.accept(raw=context)
+            self.assertEqual(code, 1)
+            self.assertEqual(body['status'], 'incomplete')
+        self.assertEqual(self.accept({'task_id': 'configured-task'})[0], 0)
+        self.result('complete')
+        self.assertEqual(self.accept(raw='')[0], 0)
 
     def test_parent_cwd_controls_execution_and_payload_does_not_choose_command(self):
         self.checker.write_text('''import json, sys

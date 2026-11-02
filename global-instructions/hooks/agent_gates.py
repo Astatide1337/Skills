@@ -731,7 +731,11 @@ def main(argv: list[str]) -> int:
         )
         return 1
     try:
-        payload = json.load(sys.stdin)
+        if acceptance:
+            context = "" if sys.stdin.isatty() else sys.stdin.read()
+            payload = json.loads(context) if context.strip() else {}
+        else:
+            payload = json.load(sys.stdin)
     except ValueError:
         if acceptance:
             print(json.dumps({"status": "unavailable", "reason": "Acceptance context must be a JSON object."}))

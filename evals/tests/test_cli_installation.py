@@ -54,9 +54,9 @@ class InstallationBoundaryTests(unittest.TestCase):
         result = self.install('--skill', 'follow-instructions', '--skill', 'verify-work',
                               '--target', str(target))
         self.assertEqual(result.returncode, 0, result.stderr)
-        playbook = target / 'follow-instructions/playbooks/parallel.md'
-        link = re.search(r'\[parent acceptance\]\(([^)]+)\)', playbook.read_text()).group(1)
-        guide = (playbook.parent / link.split('#')[0]).resolve()
+        skill = target / 'verify-work/SKILL.md'
+        link = re.search(r'\[independent acceptance\]\(([^)]+)\)', skill.read_text()).group(1)
+        guide = (skill.parent / link.split('#')[0]).resolve()
         self.assertTrue(guide.is_file())
         self.assertFalse((target.parent / 'global-instructions').exists())
         text = guide.read_text().split('## Parent acceptance', 1)[1].split('## Decision', 1)[0]

@@ -51,11 +51,7 @@ An ordinary feature does not need a hierarchy of coordinators.
    results and decisions to workers that depend on them; children do not inherit
    siblings' context. State standing constraints, forbidden actions and the
    evidence each worker must return.
-4. Inspect returned diffs/artifacts and checks yourself. For delegated
-   implementation with executable acceptance, run the reviewed checker through
-   [parent acceptance](../../verify-work/references/independent-acceptance.md#parent-acceptance)
-   on the current candidate. A worker's `completed` status only ends its run.
-   Have the responsible
+4. Inspect returned diffs/artifacts and checks yourself. Have the responsible
    owner resolve overlapping edits, integrate the changes, and exercise the
    affected end-to-end path. Verify the integrated result, including uncommitted
    and untracked files. Independent review covers the actual final artifact, not

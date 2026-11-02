@@ -77,8 +77,8 @@ during development, do not describe it as held out in future evaluations.
 
 ## Parent acceptance
 
-For delegated implementation with executable acceptance, select and review the
-task checker before dispatch. Locate the complete reviewed agent-gates bundle:
+For an existing reviewed task checker, `agent_gates.py accept` provides a process
+exit status for its verdict. Locate the complete reviewed agent-gates bundle:
 `agent_gates.py` and its sibling `test_integrity.py`. Use a Skills checkout or an
 authorized hook installation; installing skill folders alone does not install
 that bundle. Its [command reference](https://github.com/Astatide1337/Skills/blob/main/global-instructions/hooks/README.md#parent-acceptance)
@@ -87,16 +87,14 @@ lives in the source repository.
 At return, run from the current candidate workspace, replacing the paths below:
 
 ```sh
-printf '{}\n' | python3 /path/to/hooks/agent_gates.py accept \
+python3 /path/to/hooks/agent_gates.py accept \
   python3 /trusted/task_acceptance.py
 ```
 
-Supply the checker's required JSON context instead of `{}` when it needs one.
+Omitted stdin supplies `{}`. Pipe a JSON object when the checker requires context.
 Exit 0 accepts; exit 1 rejects; exit 2 means the checker is unavailable. If the
 bundle or checker is absent, recover it within authority or retain the unmet
-check. An ended worker run or a Stop hook's exit 0 cannot
-replace that check. Resolve rejected obligations and recheck after repairs;
-keep required judgment and independent review separate from executable checks.
+check. The command does not replace judgment or independent review.
 
 ## Decision
 

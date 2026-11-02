@@ -106,13 +106,14 @@ that run as `completed` even when the task remains unaccepted. Before accepting
 the returned work, the parent runs the same reviewed task checker again:
 
 ```sh
-# Run in the candidate workspace. Supply the checker's required context on stdin.
+# Run in the candidate workspace.
 python3 /path/to/Skills/global-instructions/hooks/agent_gates.py accept \
-  python3 /trusted/task_acceptance.py < context.json
+  python3 /trusted/task_acceptance.py
 ```
 
 `accept` executes the configured command in the parent's current working
-directory, sends the context object to the checker, and prints its verdict.
+directory and prints its verdict. Omitted stdin supplies `{}`; pipe a JSON
+object when the checker needs context. The checker validates its required inputs.
 Only `complete` returns exit 0. Incomplete, blocked, waiting and cancelled
 return 1; a missing, failed, timed-out or invalid checker returns 2 with
 `status: unavailable`. Invalid context is rejected before the checker runs.
