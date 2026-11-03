@@ -168,6 +168,10 @@ change. Preserve original reproductions and negative cases. Distinguish passed,
 failed, skipped and not-run checks. Investigate safe recovery before declaring a
 capability unavailable; do not drop a required check because its tool is missing.
 
+Validate machine-readable files you deliver with their parser or schema checker
+after the last write. Passing tests on the inputs or generator do not establish
+that the resulting file is valid.
+
 Review the final result and affected consumers. Required independent review must
 cover that result; self-review and an unanswered review request do not count.
 When publication is authorized, inspect the remote object to verify the write.
