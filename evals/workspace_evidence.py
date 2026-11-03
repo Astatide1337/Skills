@@ -13,6 +13,7 @@ filesystem mount boundary.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import selectors
@@ -502,19 +503,92 @@ def _is_auxiliary_binary(relative: str) -> bool:
     )
 
 
-def _safe_open(path: Path, root_dev: int) -> tuple[int, os.stat_result] | None:
+def _safe_open(path: Path, root_dev: int, *, root: Path) -> tuple[int, os.stat_result] | None:
     """Open a regular file without following links or crossing a mount."""
 
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    directory = None
+    descriptor = None
     try:
-        descriptor = os.open(path, flags)
+        parts = path.relative_to(root).parts
+        if not parts:
+            return None
+        directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        if os.fstat(directory).st_dev != root_dev:
+            return None
+        for part in parts[:-1]:
+            following = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                dir_fd=directory)
+            os.close(directory)
+            directory = following
+            if os.fstat(directory).st_dev != root_dev:
+                return None
+        descriptor = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                             dir_fd=directory)
         info = os.fstat(descriptor)
-    except OSError:
+    except (OSError, ValueError):
+        if descriptor is not None:
+            os.close(descriptor)
         return None
+    finally:
+        if directory is not None:
+            os.close(directory)
     if not stat.S_ISREG(info.st_mode) or info.st_dev != root_dev or info.st_nlink > 1:
         os.close(descriptor)
         return None
     return descriptor, info
+
+
+def read_workspace_file(
+    workspace: Path, relative: str, *, max_bytes: int = DEFAULT_SNAPSHOT_MAX_BYTES,
+) -> tuple[str | None, str | None]:
+    """Read bounded text through directory descriptors, never candidate links."""
+
+    if not validate_relative_path(relative) or _sensitive(relative):
+        return None, "unsafe workspace path"
+    root = workspace.resolve()
+    try:
+        opened = _safe_open(root / relative, root.stat().st_dev, root=root)
+        if opened is None:
+            return None, "workspace file is missing or crosses a file boundary"
+        descriptor, info = opened
+        try:
+            if info.st_size > max_bytes:
+                return None, "workspace file exceeds the read limit"
+            with os.fdopen(descriptor, "rb", closefd=False) as stream:
+                raw = stream.read(max_bytes + 1)
+            after = os.fstat(descriptor)
+            if len(raw) > max_bytes or len(raw) != info.st_size:
+                return None, "workspace file changed or exceeded the read limit"
+            if (after.st_size, after.st_mtime_ns, after.st_ctime_ns) != (
+                info.st_size, info.st_mtime_ns, info.st_ctime_ns
+            ):
+                return None, "workspace file changed during the read"
+        finally:
+            os.close(descriptor)
+        if b"\0" in raw:
+            return None, "workspace file is not text"
+        return raw.decode("utf-8"), None
+    except (OSError, UnicodeDecodeError) as exc:
+        return None, f"workspace file cannot be read safely: {exc}"
+
+
+def contained_workspace_command(
+    workspace: Path, command: Sequence[str], *, read_only: bool,
+) -> list[str]:
+    """Contain a fixture check using the same system roots as evidence Git."""
+
+    bwrap = shutil.which("bwrap")
+    if bwrap is None:
+        raise RuntimeError("contained fixture checks require Bubblewrap")
+    result = [bwrap, "--die-with-parent", "--unshare-all", "--new-session",
+              "--ro-bind" if read_only else "--bind", str(workspace.resolve()), "/workspace"]
+    for mount in _BWRAP_REQUIRED_MOUNTS:
+        result.extend(["--ro-bind", mount, mount])
+    result.extend(["--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp", "--clearenv",
+                   "--setenv", "PATH", "/usr/bin:/bin", "--setenv", "HOME", "/tmp",
+                   "--setenv", "TMPDIR", "/tmp", "--setenv", "LANG", "C.UTF-8",
+                   "--chdir", "/workspace", "--", *command])
+    return result
 
 
 def _digest_descriptor(descriptor: int, size: int, max_bytes: int) -> str | None:
@@ -568,7 +642,7 @@ def _read_bounded(
         return f"{label} FILE {relative}: content omitted (sensitive-looking path; size={info.st_size})", False, "sensitive-omitted"
     if info.st_size > max_bytes:
         return f"{label} FILE {relative}: content truncated (size={info.st_size}, limit={max_bytes})", False, "truncated"
-    opened = _safe_open(path, root_info.st_dev)
+    opened = _safe_open(path, root_info.st_dev, root=root)
     if opened is None:
         return f"{label} FILE {relative}: content could not be safely opened", False, "unsafe-open"
     descriptor, opened_info = opened
@@ -692,7 +766,7 @@ def _snapshot_workspace(
                     omissions.append(f"{relative}: snapshot byte budget exceeded")
                     truncated = True
                     continue
-                opened = _safe_open(Path(child.path), root_info.st_dev)
+                opened = _safe_open(Path(child.path), root_info.st_dev, root=root)
                 if opened is None:
                     entries.append(_entry_tuple(relative, "file", info.st_size, None, "unsafe open"))
                     omissions.append(f"{relative}: safe open failed")
@@ -727,6 +801,15 @@ def _snapshot_workspace(
             break
     entries.sort(key=lambda item: item[0])
     return tuple(entries), tuple(omissions), truncated
+
+
+def workspace_snapshot_identity(workspace: Path) -> tuple[str | None, str | None]:
+    """Identify the bounded current tree, excluding Git controls as usual."""
+
+    snapshot, omissions, truncated = _snapshot_workspace(workspace.resolve())
+    if omissions or truncated:
+        return None, "workspace snapshot is incomplete: " + "; ".join(omissions)
+    return hashlib.sha256(json.dumps(snapshot, separators=(",", ":")).encode()).hexdigest(), None
 
 
 def _capture_git_boundary(
@@ -910,7 +993,7 @@ def _control_snapshot(
             omissions.append(f"{relative}: control boundary is not a local regular file")
             entries.append((relative, "file", info.st_size, "omitted"))
             continue
-        opened = _safe_open(path, root_dev)
+        opened = _safe_open(path, root_dev, root=root)
         if opened is None:
             omissions.append(f"{relative}: safe open failed")
             entries.append((relative, "file", info.st_size, "omitted"))
