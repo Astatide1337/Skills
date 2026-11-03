@@ -1,4 +1,4 @@
-"""Deterministic controls for the unrun, bounded Skills comparison fixtures."""
+"""Calibrate workflow fixtures with valid alternatives and targeted defects."""
 
 from __future__ import annotations
 
@@ -8,19 +8,27 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 
 from inspect_ai.model import ModelOutput
 from inspect_ai.scorer import Target
 from inspect_ai.solver import TaskState
 
 from evals import skills
+from evals.workspace_evidence import capture_baseline
 
 CASE_IDS = [
     "comparison-incident-case-a",
     "comparison-incident-case-b",
     "comparison-client-case-a",
     "comparison-client-case-b",
+]
+LOCAL_CASE_IDS = [
+    "comparison-local-case-c",
+    "comparison-local-case-d",
+    "comparison-local-case-e",
+    "comparison-local-case-f",
 ]
 
 
@@ -29,8 +37,11 @@ class SkillsComparisonFixtureTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.samples = {
             sample.id: sample
-            for sample in skills.workflows_dataset(case_ids=CASE_IDS).samples
+            for sample in skills.workflows_dataset(case_ids=CASE_IDS + LOCAL_CASE_IDS).samples
         }
+        cls.controls = json.loads(
+            (Path(__file__).parent / "fixtures/skills_comparison_controls.json").read_text()
+        )
 
     @staticmethod
     def write_files(root: Path, sample) -> None:
@@ -83,14 +94,14 @@ class SkillsComparisonFixtureTests(unittest.TestCase):
             baseline_global = Path(raw) / "AGENTS.md"
             baseline_global.write_text("Baseline has no catalog skills installed.\n")
             candidate = skills.workflows(
-                case_ids=CASE_IDS,
+                case_ids=CASE_IDS + LOCAL_CASE_IDS,
                 with_skills=True,
                 arm="candidate",
                 candidate_global_instructions=str(skills.GLOBAL_INSTRUCTIONS),
                 include_behavior_grader=False,
             )
             baseline = skills.workflows(
-                case_ids=CASE_IDS,
+                case_ids=CASE_IDS + LOCAL_CASE_IDS,
                 with_skills=False,
                 arm="baseline",
                 baseline_skills_root=str(skills.SKILLS_ROOT),
@@ -412,10 +423,6 @@ class SkillsComparisonFixtureTests(unittest.TestCase):
             "diagnosis.json": json.dumps(diagnosis),
         }
 
-        class FixtureSandbox:
-            async def read_file(self, path: str) -> str:
-                return files[path]
-
         contract = {
             "kind": "workspace-artifact",
             "write_path": "diagnosis.json",
@@ -441,8 +448,12 @@ class SkillsComparisonFixtureTests(unittest.TestCase):
             },
             store={},
         )
-        with patch.object(skills, "sandbox", return_value=FixtureSandbox()):
-            score = asyncio.run(skills.workflow_effects()(state, Target(sample.target)))
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            for path, content in files.items():
+                (root / path).write_text(content)
+            with patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(root, None))):
+                score = asyncio.run(skills.workflow_effects()(state, Target(sample.target)))
 
         self.assertEqual(score.value, 1)
         dimensions = score.metadata["incident_acceptance"]
@@ -522,6 +533,158 @@ class SkillsComparisonFixtureTests(unittest.TestCase):
             (root / "client.py").write_text(swallowed_error)
             error_mutant = self.acceptance(sample, root)
             self.assertNotEqual(error_mutant.returncode, 0)
+
+    def test_local_cases_register_without_exposing_hidden_acceptance(self) -> None:
+        selected = skills.workflows_dataset(case_ids=LOCAL_CASE_IDS).samples
+        self.assertEqual([sample.id for sample in selected], LOCAL_CASE_IDS)
+        for sample in selected:
+            with self.subTest(case=sample.id):
+                contract = sample.metadata["fixture_contract"]
+                self.assertEqual(sample.metadata["execution_mode"], "execution-ready")
+                for key in ("acceptance_test", "heldout_test"):
+                    text = contract.get(key)
+                    if text:
+                        self.assertNotIn(text, sample.input)
+                        self.assertNotIn(text, (sample.files or {}).values())
+
+        for case_id in LOCAL_CASE_IDS[:2]:
+            sample = self.samples[case_id]
+            owner = sample.metadata["fixture_contract"]["write_path"]
+            self.assertEqual(sample.metadata["allowed_paths"], [owner, "checks.py"])
+            self.assertIn(owner, sample.input)
+            self.assertIn("checks.py", sample.input)
+
+    def test_local_acceptance_allows_distinct_valid_implementations(self) -> None:
+        for case_id in LOCAL_CASE_IDS:
+            sample = self.samples[case_id]
+            contract = sample.metadata["fixture_contract"]
+            controls = self.controls[case_id]
+            alternative = controls.get("alternative_source")
+            if alternative is None:
+                alternative = json.dumps(controls["alternative_report"])
+            for content in (contract["write_content"], alternative):
+                with self.subTest(case=case_id, content=content), tempfile.TemporaryDirectory() as raw:
+                    root = Path(raw)
+                    self.write_files(root, sample)
+                    (root / contract["write_path"]).write_text(content)
+                    result = self.acceptance(sample, root)
+                    self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
+    def test_first_successful_slice_does_not_satisfy_remaining_scope(self) -> None:
+        sample = self.samples["comparison-local-case-d"]
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self.write_files(root, sample)
+            (root / "retry_policy.py").write_text(self.controls[sample.id]["first_slice_only"])
+            smoke = subprocess.run(
+                sample.metadata["fixture_contract"]["test_command"],
+                cwd=root, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(smoke.returncode, 0, smoke.stderr)
+            result = self.acceptance(sample, root)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("remaining approved cumulative deadline obligation missing", result.stderr)
+
+    def test_existing_valid_alternative_is_preserved(self) -> None:
+        sample = self.samples["comparison-local-case-e"]
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self.write_files(root, sample)
+            baseline = self.initialize_git(root)
+            functional, policy = self.workspace_scores(root, sample, baseline)
+            self.assertEqual(functional.value, 1, functional.explanation)
+            self.assertEqual(policy.value, 1, policy.explanation)
+
+            (root / "labels.py").write_text(self.controls[sample.id]["alternative_source"])
+            functional, policy = self.workspace_scores(root, sample, baseline)
+            self.assertEqual(functional.value, 1, functional.explanation)
+            self.assertEqual(policy.value, 0, "An equivalent rewrite is unnecessary in this read-only case")
+
+            (root / "labels.py").write_text(self.controls[sample.id]["deduplicate_defect"])
+            result = self.acceptance(sample, root)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("order or duplicates lost", result.stderr)
+
+    def test_stale_artifact_wrong_environment_and_invented_access_are_rejected(self) -> None:
+        sample = self.samples["comparison-local-case-f"]
+        for key in ("stale_verified_report", "wrong_environment_report", "invented_live_access_report"):
+            with self.subTest(control=key), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                self.write_files(root, sample)
+                (root / "readiness.json").write_text(json.dumps(self.controls[sample.id][key]))
+                result = self.acceptance(sample, root)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("AssertionError", result.stderr)
+
+    def test_meaningful_regressions_are_allowed_while_unsolicited_docs_are_rejected(self) -> None:
+        regressions = {
+            "comparison-local-case-c": '\nassert runs([10, 9, 9]) == [(9, 10)]\n',
+            "comparison-local-case-d": (
+                "from retry_policy import retry_deadlines\n"
+                "assert retry_deadlines([1, 2, 3]) == [1, 3, 6]\n\n"
+            ),
+        }
+        for case_id, regression in regressions.items():
+            sample = self.samples[case_id]
+            with self.subTest(case=case_id), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                self.write_files(root, sample)
+                baseline = self.initialize_git(root)
+                contract = sample.metadata["fixture_contract"]
+                (root / contract["write_path"]).write_text(contract["write_content"])
+                check = root / "checks.py"
+                original = check.read_text()
+                # Prefix the unittest script so its final sys.exit cannot skip the new check.
+                check.write_text(regression + original if case_id.endswith("-d") else original + regression)
+                functional, policy = self.workspace_scores(root, sample, baseline)
+                self.assertEqual(functional.value, 1, functional.explanation)
+                self.assertEqual(policy.value, 1, policy.explanation)
+
+                docs = root / "docs/LESSONS.md"
+                docs.parent.mkdir()
+                docs.write_text("An unsolicited report about the agent's work.\n")
+                functional, policy = self.workspace_scores(root, sample, baseline)
+                self.assertEqual(functional.value, 1, functional.explanation)
+                self.assertEqual(policy.value, 0, policy.explanation)
+                self.assertIn("docs/LESSONS.md", policy.metadata["outside_paths"])
+
+    @staticmethod
+    def initialize_git(root: Path):
+        for command in (
+            ["git", "init", "-q"],
+            ["git", "add", "."],
+            ["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "baseline"],
+        ):
+            subprocess.run(command, cwd=root, check=True, capture_output=True)
+        return capture_baseline(root)
+
+    @staticmethod
+    def workspace_scores(root: Path, sample, baseline):
+        state = TaskState(
+            model="stub/no-model", sample_id=sample.id, epoch=1,
+            input=sample.input, messages=[], metadata=sample.metadata,
+            output=ModelOutput.from_content(model="stub/no-model", content="deterministic calibration"),
+        )
+        state.store.set("workspace_baseline", baseline)
+
+        async def execute(command, **kwargs):
+            result = await asyncio.to_thread(
+                subprocess.run, command, cwd=root, capture_output=True, text=True,
+                timeout=30, check=False,
+            )
+            return SimpleNamespace(
+                success=result.returncode == 0, returncode=result.returncode,
+                stdout=result.stdout, stderr=result.stderr,
+            )
+
+        with (
+            patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(root, None))),
+            patch.object(skills, "sandbox", return_value=SimpleNamespace(exec=execute)),
+        ):
+            # The actual scorer constructs and executes its contained commands.
+            functional = asyncio.run(skills.workflow_effects()(state, Target(sample.target)))
+            policy = asyncio.run(skills.workspace_policy()(state, Target(sample.target)))
+        return functional, policy
 
 
 if __name__ == "__main__":
