@@ -193,8 +193,8 @@ authoritative.
 ### Review budget
 
 For every PR/MR delivered under this policy, obtain at least one independent
-[returned round](../code-review-and-quality/SKILL.md#returned-review-rounds),
-normally using one to three rounds. Select an available independent reviewer
+[returned round](../code-review-and-quality/SKILL.md#returned-review-rounds).
+Select an available independent reviewer
 through [agent selection](../follow-instructions/references/agent-selection.md).
 Use [Better Call Sol](../better-call-sol/SKILL.md) when Sol is requested or chosen;
 generic review does not require that particular model. Preserve explicit model
@@ -204,28 +204,23 @@ verification. Stop when the current artifact has adequate independent coverage,
 material findings are resolved and the checks cover the requested outcome. A clean first round
 can be enough, including for typo-only changes.
 
-Commission a second or third round when repairs need independent verification,
-important paths remain unreviewed, or a distinct risk needs further assessment.
-Give that round a concrete coverage goal, including relevant lifecycle, failure,
-migration or queued-work consequences. Retain unaffected evidence. Do not run
-another round merely to reach a count, repeat unchanged coverage or invent findings.
-Obtain required CI early so repairs can be reviewed within the budget.
+After a repair, identify which earlier conclusions it invalidates. Refresh the
+affected checks and obtain independent review of those changes before claiming
+readiness. This includes configuration and CI repairs. Retain unaffected evidence;
+do not repeat the entire review merely because the head changed. Give each new
+round a concrete coverage goal: a changed path, unresolved finding or distinct
+risk. Unsupported preferences may be declined with evidence.
 
-Every round may raise defects in any area. On substantial work, use round four
-and, if necessary, five only when evidenced security, permission, authorization,
-data-integrity, shared-state or similarly consequential findings require further
-review of repairs or affected paths. Size alone does not justify extra rounds.
-All independent reviews of later changes count toward the same total; a push does not reset
-it. Use justified rounds within this policy without another permission request.
+Continue necessary in-scope repair and review under the existing authorization.
+Stop commissioning reviews when the final artifact has adequate coverage and no
+material finding remains. A count of rounds is neither acceptance nor a reason
+to hand unfinished work back. Honor explicit user and runtime spending limits;
+if a real limit prevents required review, retain the non-ready state.
 
-A later code or configuration change invalidates affected review evidence,
-including a CI-only repair. Refresh affected checks and have those changes reviewed
-within the available budget before claiming readiness. If an ordinary finding
-needs another review after round three, or any finding or final change remains
-unreviewed at round five, finish safe authorized repairs but retain pending
-review and a non-ready PR. Five is a hard cap: stop commissioning reviews and
-report the exact gap. Do not waive acceptance or relabel a defect to fit the budget.
-Unsupported preferences may be declined with evidence and need no repair.
+If the same approach fails twice or another round adds no useful evidence, use
+[self-reflect](../self-reflect/SKILL.md) to choose a discriminating check or revise
+the approach. Do not keep asking equivalent reviewers the same question, weaken
+acceptance or request approval merely to continue an already authorized repair.
 
 Verified behavior and the host's permission to merge are separate facts. If agent-owned
 work is complete but a required human approval remains, report that approval
@@ -291,7 +286,7 @@ Nice refactor! Maybe add auth here?
 Good:
 
 ```md
-> gpt-5.6-terra, responding on behalf of Soham.
+> AI assistant, responding on behalf of Soham.
 
 This lookup trusts the request's `projectId` before applying the active-team
 scope. A member can target another team's project. Scope the lookup to the

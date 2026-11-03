@@ -1,6 +1,6 @@
 ---
 name: better-call-sol
-description: "Runs bounded independent Sol review rounds and repairs. Use when Better Call Sol is requested or Sol is selected for review. Uses the existing review standard; never merges or deploys."
+description: "Runs independent Sol review and repair rounds. Use when Better Call Sol is requested or Sol is selected for review. Uses the existing review standard; never merges or deploys."
 ---
 
 # Better Call Sol
@@ -32,7 +32,8 @@ nested reviewers.
 
 ## Resolve and continue
 
-Use the delivery policy's risk-based round count and hard maximum of five. Each
+Use the delivery policy's [review budget](../pull-requests/SKILL.md#review-budget).
+Each
 brief states the original requirements, reviewed revision and uncommitted changes,
 permitted actions, paths to review and raw evidence. Later rounds include changed code and
 open finding IDs while retaining the original outcome and access to relevant
@@ -43,8 +44,9 @@ For each returned finding, verify the premise. Repair a real in-scope defect and
 rerun affected checks, or decline an unsupported finding with evidence. Do not
 add compatibility requirements, expand scope or rewrite code solely to satisfy a
 preference. Have a fresh reviewer check repairs that invalidate the earlier
-review, within the same round budget. If the review is pending, the cap is
-exhausted or a material disagreement remains, retain that state rather than
+review. Reuse unaffected evidence and stop when the final artifact has adequate
+coverage. If review is pending, an explicit spending limit is reached or a
+material disagreement remains, retain that state rather than
 asserting approval. Report the reviewed revision, returned verdicts, findings
 fixed or declined, and any unresolved findings or required checks.
 

@@ -26,6 +26,11 @@ for the claimed result.
    versions and migration notes with the permitted read tools. An authorized
    `kubectl get` permits inspection, not `apply`. Verify the environment and
    exact version instead of assuming “production” or “latest.”
+   Find the procedure in repository instructions, release automation, manifests
+   and the owning environment's runbook. Trace from source to built artifact to
+   desired state; identify which system writes each step. Reuse that procedure
+   and verify the target explicitly. Do not copy changing environment facts into
+   global guidance or substitute the current CLI context for target discovery.
 2. For upgrades, update only required callers/configuration and run compatibility
    checks. For migrations, validate representative data, completeness,
    idempotency/retry, and recovery before executing authorized steps.
@@ -40,7 +45,9 @@ for the claimed result.
 ## Failure and recovery
 
 If target identity, consumers, writer ownership, recovery, rollback, or
-authorization is unknown, stop before mutation and report the exact gap. If a
+authorization is unknown, inspect the owning sources and supported read-only
+tools first. Prepare and verify the authorized work independent of that gap;
+stop before the dependent mutation if it remains unresolved. If a
 write fails or its result is unclear, inspect the current state before retrying.
 Report mitigation separately from unresolved root cause; do not expose secrets
 to guess a path.

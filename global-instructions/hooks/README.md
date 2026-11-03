@@ -101,9 +101,9 @@ supports completion only when it covers the requested deliverable.
 
 ### Parent acceptance
 
-A worker can end after the Stop hook exhausts its repair attempts. T3 reports
-that run as `completed` even when the task remains unaccepted. Before accepting
-the returned work, the parent runs the same reviewed task checker again:
+A worker can end after the Stop hook exhausts its repair attempts. A runtime's
+finished-run status does not establish task acceptance. Before accepting the
+returned work, the parent runs the same reviewed task checker again:
 
 ```sh
 # Run in the candidate workspace.
@@ -171,24 +171,24 @@ python3 global-instructions/hooks/test_integrity.py --repo /path/to/app --base o
 ## Limits
 
 - **Counting is a heuristic.** It is line-based for JS/TS, Python and Go, totaled per language, so moving tests between files is not a removal. It catches deleted and skipped tests; it cannot judge whether the remaining tests are any good. A new test file that skips itself, such as integration tests gated on an environment variable, does not count as weakening.
-- **Measured noise.** Replayed over the last 40 commits, it flagged 1 in `gitops` (removed experiment tests) and 2 in `Jobmark` (lint and test configuration changes). Each run took about 0.1 to 0.2 seconds per commit.
 - **Not everything is watched.** It covers Makefile and justfile only through the `verify` target and its prerequisites, and `package.json` only through check scripts and the scripts they call. It does not watch every possible test-selection setting.
 - **The guard matches patterns.** It catches common hook bypasses, not every way to disable a check. A required CI check provides another check at PR delivery.
-- **The verification/guard/format registration is Claude Code only.** The opt-in
-  Codex completion prototype is separate; its runtime integration must be checked.
-  The CI check works for any agent or person.
+- **Registrations are host-specific.** The Claude verification/guard/format
+  example and Codex task-acceptance example register different commands. Confirm
+  the selected host invokes the intended commands before relying on them.
+  The CI check is independent of the agent host.
 
-## Opt-in pending-choice pre-tool prototype
+## Opt-in pending-choice pre-tool guard
 
 `agent_gates.py choice-guard COMMAND [ARG ...]` provides a separate exit-2
-`PreToolUse` adapter. Claude and current Codex documentation support this denial
-protocol; host registration, trust and actual dispatch coverage still need their
-own integration checks. It sends the event JSON to the explicitly configured
+`PreToolUse` adapter. Register it only with a host that supports this denial
+protocol, and check registration, trust and actual dispatch coverage. It sends
+the event JSON to the explicitly configured
 checker on stdin, without a shell, in the event working directory. The checker
 must exit zero and return exactly `{"status":"allow|block|unavailable",
 "reason":"nonempty explanation"}` (choose one status). Only `allow` permits
 the action. Blocked, unavailable, invalid, failed and timed-out checks return
-exit 2 with a diagnostic on stderr; unlike the completion prototype, this
+exit 2 with a diagnostic on stderr; unlike the completion check, this
 boundary never exhausts a retry allowance and then permits the action.
 It uses the same timeout and process-group cleanup as completion checks.
 
@@ -216,12 +216,12 @@ decision. Check delegated and connector actions too. The subprocess tests use ex
 a temporary authority file controlled by the test. They test the interface, not
 general action classification or integration with a runtime.
 
-**Runtime boundary:** a Stop hook is too late to prevent dependent edits. Current
-[Codex hooks documentation](https://learn.chatgpt.com/docs/hooks) covers
-PreToolUse denial, including nested code-mode function calls, and Stop
-continuation. Installed Codex 0.165.0 discovers the two event definitions through
-`hooks/list`; discovery and trust are separate from invocation. Review exact
-definitions through the supported `/hooks` flow in an owned home before testing.
+**Runtime boundary:** a Stop hook is too late to prevent dependent edits. Read
+the selected host's hook contract, including its denial, continuation and
+nested-tool behavior; for Codex, start with the
+[official hook reference](https://learn.chatgpt.com/docs/hooks).
+Review the exact definitions through the host's supported trust flow in an owned
+environment before testing. Discovery and trust are separate from invocation.
 Do not forge trust state or use a bypass flag.
 
 Before claiming runtime integration, observe a denied test write, a later user

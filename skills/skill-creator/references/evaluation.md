@@ -4,8 +4,7 @@ Use this procedure to design or run a skill evaluation. Before execution,
 freeze the baseline and candidate catalogs and global instructions, project
 files, requests, expected behavior, permissions, tools, model settings,
 acceptance checks and finite candidate/grader budget. Use the same authorized
-model and settings in both arms, after confirming runtime support. Historical
-model names below are examples, not requirements or availability claims.
+model and settings in both arms, after confirming runtime support.
 Do not silently change the model or effort after a failed launch.
 
 Derive cases from observed failures. Include ordinary tasks, different valid
@@ -86,13 +85,11 @@ snapshot; isolated Codex homes use `~/.cache/work-session-*`. Both use the
 existing user-owned canonical cache directory and are removed when their
 contexts close. Refuse a cache that resolves under `/tmp`, the configured
 `TMPDIR`, or the default temporary directory before native launch. A catalog
-snapshot under a denied temporary root is unreadable on the tested CLI even
-with an explicit nested catalog grant; do not restore it by weakening the
-temporary-root policy. Grant only the selected snapshot and logical skills
-directory, never the cache parent or surrounding authentication home.
+snapshot must stay outside the denied temporary roots; do not restore access by
+weakening the temporary-root policy. Grant only the selected snapshot and
+logical skills directory, never the cache parent or surrounding authentication home.
 Isolated grading workspaces also use `~/.cache/review-workspace-*` and retain
-read-only workspace access with no catalog. On the tested CLI, an explicitly
-readable grader workspace under `/tmp` still loses to the temporary-root denial.
+read-only workspace access with no catalog.
 Ordinary candidate Inspect workspaces keep their existing location and
 workspace-write binding.
 
@@ -109,14 +106,12 @@ command and retain its interpreter identity; a missing runtime is unavailable,
 not permission to broaden filesystem access. A passing Bubblewrap prerequisite
 alone does not establish these boundaries.
 
-Codex 0.162.0 accepts the named profile in `command/exec` and reports it in idle
-`thread/start` without a model turn. `codex exec --help` verifies argument support;
-it does not prove a generated command ran. Model-free `debug prompt-input` can
-show the requested restricted profile but rejects `--strict-config`. The native
-CLI's sandbox command is `codex sandbox -P skills-eval -- COMMAND`. These local
-command checks do not establish containment of hosted search, connected apps,
-MCP services or browser traffic; required unsupported capabilities remain
-unavailable.
+Check the selected native executable's help and run harmless probes through
+the same profile and launch path the evaluator uses. Argument acceptance,
+reported configuration and metadata preparation do not prove that generated
+commands execute within the intended boundary. Local command checks do not
+establish containment of hosted search, connected apps, MCP services or browser
+traffic; required unsupported capabilities remain unavailable.
 
 Native `fake-tracker-publication` is explicitly unavailable before launch: its
 runner-owned Unix socket lives outside the workspace in an excluded temporary
@@ -147,21 +142,33 @@ host namespace/security policy or remove the preflight. Keep the attempt and
 remaining capability gap if the supported path also fails.
 
 For an optional diagnostic, these commands compare a selected skill with no
-skill. Use the paired workflow commands below to compare catalog versions:
+skill. Set `SKILLS_EVAL_MODEL`, `SKILLS_EVAL_EFFORT`,
+`SKILLS_EVAL_GRADER_MODEL` and `SKILLS_EVAL_GRADER_EFFORT` to the exact supported
+selections established during preflight. Use the paired workflow commands below
+to compare catalog versions:
 
 ```bash
-uv run --frozen inspect eval evals/skills.py@catalog -T native_model=gpt-6-luna -T native_effort=medium -T grader_effort=high --limit 2 --epochs 2 --max-samples 2 --time-limit 480
-uv run --frozen inspect eval evals/skills.py@catalog -T with_skills=false -T native_model=gpt-6-luna -T native_effort=medium -T grader_effort=high --limit 2 --epochs 2 --max-samples 2 --time-limit 480
+uv run --frozen inspect eval evals/skills.py@catalog \
+  -T native_model="${SKILLS_EVAL_MODEL:?Select a supported candidate model}" \
+  -T native_effort="${SKILLS_EVAL_EFFORT:?Select supported candidate effort}" \
+  -T grader_model="${SKILLS_EVAL_GRADER_MODEL:?Select a supported grader model}" \
+  -T grader_effort="${SKILLS_EVAL_GRADER_EFFORT:?Select supported grader effort}" \
+  --limit 2 --epochs 2 --max-samples 2 --time-limit 480
+uv run --frozen inspect eval evals/skills.py@catalog -T with_skills=false \
+  -T native_model="${SKILLS_EVAL_MODEL:?Select a supported candidate model}" \
+  -T native_effort="${SKILLS_EVAL_EFFORT:?Select supported candidate effort}" \
+  -T grader_model="${SKILLS_EVAL_GRADER_MODEL:?Select a supported grader model}" \
+  -T grader_effort="${SKILLS_EVAL_GRADER_EFFORT:?Select supported grader effort}" \
+  --limit 2 --epochs 2 --max-samples 2 --time-limit 480
 ```
 
 Select representative sample IDs instead of the first two when appropriate.
 `native_effort` controls candidates and routing. `grader_effort` and optional
-`grader_model` configure assessment separately. Defaults are `medium` for
-candidates/routing and `high` for grading. Use `max` only for a justified
-comparison with historical runs. The adapter supports low, medium, high,
-xhigh and max, but a model may reject a level. Record that attempt as failed
-or unavailable rather than silently changing the setting. Keep both arms identical and
-the grader fixed while measuring an instruction change. Measure a different
+`grader_model` configure assessment separately. Select values accepted by both
+the evaluator and the resolved model rather than relying on an example or a
+default. Record a rejected setting as failed or unavailable rather than silently
+changing it. Keep both arms identical and the grader fixed while measuring an
+instruction change. Measure a different
 effort as a separate experiment. Parent Inspect model settings and token/cost
 limits do not account for the nested CLI; use explicit sample time budgets and
 inspect native usage. Do not describe a time limit as a quota cap.
@@ -201,8 +208,9 @@ contract only and are never native behavior outcomes.
 
 The support gate blocks native launch for unobserved required capabilities.
 General third-turn reapproval, actual independent peer review, remote CI, and
-merge-attempt observation are currently unavailable. A fake tracker, fixture
-regression, grader, or candidate narrative cannot satisfy them. The no-merge
+merge-attempt observation are not supplied by this local lifecycle adapter.
+A fake tracker, fixture regression, grader, or candidate narrative cannot satisfy
+them. The no-merge
 delivery case deliberately retains these unavailable gates. Initial plan and
 local continuation success cannot establish a PR ready for human merge.
 
@@ -210,11 +218,25 @@ For a bounded paired local lifecycle check, choose the same case IDs in both
 arms and explicitly supply frozen `candidate_skills_root`,
 `candidate_global_instructions`, `baseline_skills_root` and
 `baseline_global_instructions`. For example, after those paths and the exact
-CLI model are verified:
+CLI model are verified, use the preflight model/effort selections:
 
 ```bash
-uv run --frozen inspect eval evals/skills.py@workflows -T arm=candidate -T candidate_skills_root=/path/to/frozen-candidate/skills -T candidate_global_instructions=/path/to/frozen-candidate/global-instructions/AGENTS.md -T native_model=gpt-6-luna -T native_effort=medium -T include_behavior_grader=false -T 'case_ids=["workflow-native-plan-approved-continuation"]' --epochs 1 --max-samples 1 --time-limit 480
-uv run --frozen inspect eval evals/skills.py@workflows -T arm=baseline -T baseline_skills_root=/path/to/frozen-baseline/skills -T baseline_global_instructions=/path/to/frozen-baseline/global-instructions/AGENTS.md -T native_model=gpt-6-luna -T native_effort=medium -T include_behavior_grader=false -T 'case_ids=["workflow-native-plan-approved-continuation"]' --epochs 1 --max-samples 1 --time-limit 480
+uv run --frozen inspect eval evals/skills.py@workflows -T arm=candidate \
+  -T candidate_skills_root=/path/to/frozen-candidate/skills \
+  -T candidate_global_instructions=/path/to/frozen-candidate/global-instructions/AGENTS.md \
+  -T native_model="${SKILLS_EVAL_MODEL:?Select a supported candidate model}" \
+  -T native_effort="${SKILLS_EVAL_EFFORT:?Select supported candidate effort}" \
+  -T include_behavior_grader=false \
+  -T 'case_ids=["workflow-native-plan-approved-continuation"]' \
+  --epochs 1 --max-samples 1 --time-limit 480
+uv run --frozen inspect eval evals/skills.py@workflows -T arm=baseline \
+  -T baseline_skills_root=/path/to/frozen-baseline/skills \
+  -T baseline_global_instructions=/path/to/frozen-baseline/global-instructions/AGENTS.md \
+  -T native_model="${SKILLS_EVAL_MODEL:?Select a supported candidate model}" \
+  -T native_effort="${SKILLS_EVAL_EFFORT:?Select supported candidate effort}" \
+  -T include_behavior_grader=false \
+  -T 'case_ids=["workflow-native-plan-approved-continuation"]' \
+  --epochs 1 --max-samples 1 --time-limit 480
 ```
 
 These two samples can launch four candidate sessions total. They omit model

@@ -22,10 +22,9 @@ user-visible behavior. “Verify production” is not a substitute for that deta
 - **User-owned verification:** when the application repository cannot change,
   use [portable profiles](references/portable-profiles.md) with existing checks
   or an application CLI whose version stays fixed for the task. Choose
-  expected results independently and collect fresh receipts. If the request
-  or a limited inspection identifies Linktree, use the installed
-  `linktree-agent`; read [its CLI guidance](references/agent-clis.md) for setup
-  and limits. Discover the appropriate commands for other apps.
+  expected results independently and collect fresh receipts. Discover the
+  application's supported verifier or CLI before rebuilding its operations;
+  read [application CLI discovery](references/agent-clis.md) for setup and limits.
 
 Place project verification skills at `.agents/skills/verify-<app>/` unless the
 repository declares another location. Do not default to platform-specific

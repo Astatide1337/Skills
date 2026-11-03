@@ -13,6 +13,11 @@ Keep ordered steps and the rules they depend on together. Link directly to
 variants needed only for specific requests. Avoid making the agent follow a
 chain of references to reconstruct one procedure.
 
+State durable decisions in the instructions. Resolve changing model choices,
+tool options, versions and environment facts from their authoritative owner at
+use time. Keep exact commands with the adapter or runbook that tests them;
+do not present an observed example as a permanent default.
+
 When another file owns a rule, link to it and explain when to apply it.
 Do not repeat its checklist or values; copies can drift. Extra context costs
 attention, while missing or scattered context forces the reader to guess.

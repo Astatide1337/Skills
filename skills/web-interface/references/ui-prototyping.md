@@ -24,7 +24,8 @@ build system, or design language.
 
 1. State one decision question and its success criteria.
 2. Use one recommended clickable flow when alternatives are not the decision.
-   For a comparison, default to two or three variants; cap at five.
+   For a comparison, choose a small set of variants that distinguish the actual
+   decisions. Honor a requested count or explicit experiment budget.
 3. When comparing, make variants structurally distinct. Change hierarchy,
    layout, information density, navigation or the primary control rather
    than merely colors or labels.

@@ -57,6 +57,10 @@ An ordinary feature does not need a hierarchy of coordinators.
    and untracked files. Independent review covers the actual final artifact, not
    a worker's earlier green branch. Repair real in-scope defects; do not forward
    them as completed work.
+   A terminal worker status means the run ended, not that acceptance passed.
+   If the task has a reviewed acceptance checker, run it afresh on the current
+   candidate and inspect its underlying evidence before accepting the result;
+   see [parent acceptance](../../verify-work/references/independent-acceptance.md#parent-acceptance).
 5. Stop delegation when coordination costs exceed its benefit. If no tool is
    available, execute sequentially and report that parallelism was not used.
    For standing programs, use a bounded rolling window of independent owners,

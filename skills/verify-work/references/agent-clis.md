@@ -8,10 +8,9 @@ read-only review does not authorize installation or updates.
 
 ## Select once at an authorized setup boundary
 
-Use the owning project's supported installation method. Resolve the latest
-available stable release from its authoritative repository when installation or
-update is authorized, while preserving the application's compatibility requirements.
-If no release exists, explicitly select a current development revision. Record
+Use the owning project's supported installation method. Select a compatible
+release when installation or update is authorized. If a development revision is
+needed, choose it explicitly. Record
 the source URL, resolved commit/release, executable path, package/version
 metadata and artifact or installed-file hashes in the task's existing evidence.
 A checksum proves identity, not correctness. Keep that selection stable during
@@ -24,73 +23,35 @@ a task-owned prefix or disposable checkout for a trial. If you cannot establish 
 report the gap and use a justified, supported alternative. Do not invent a
 release channel, update command or JSON flag.
 
-## Linktree and Shrunk: agent-clis
+## Discover application operations
 
-The authoritative source is [Astatide1337/agent-clis](https://github.com/Astatide1337/agent-clis).
-Its README describes local private packages, not a registry release. At an
-explicitly selected revision, follow that README: Corepack uses the project's
-`packageManager`; `pnpm install --frozen-lockfile` installs its dependencies,
-`pnpm build` builds the workspace, and `pnpm --filter PACKAGE pack
---pack-destination DIR` produces the matching artifacts. Inspect the current
-package manifests for package names, executable mappings and dependencies;
-install all matching required artifacts together using the documented `npm
-install --prefix TASK_PREFIX ...TARBALLS`. This is the package owner's method;
-Skills has no second installer or permanent source pin.
+Use application-owned instructions to find its CLI and supported operations.
+For recurring projects, start with [agent-clis](https://github.com/Astatide1337/agent-clis)
+for Linktree/Shrunk and [Keelbox](https://github.com/Astatide1337/keelbox) for
+local Kubernetes development. These are discovery pointers, not package,
+command or environment contracts. Read the selected source revision and the
+actual executable's help; do not infer one application's commands from another.
 
-For a disposable trial, archive the selected commit to a private task directory
-(or use a disposable worktree), build/pack there, hash the resulting artifacts,
-and install to a fresh task prefix. Inspect installed metadata against those
-artifacts and record the resolved source commit. Invoke executables from that
-prefix's `node_modules/.bin` so global PATH cannot silently select another copy.
-Reuse this installation while its identity remains valid. A failed build or
-install leaves an incomplete task prefix, not an accepted runtime; inspect the
-failed stage before retrying or choosing a fresh prefix.
+At an authorized setup boundary, build or install into a task-owned location
+using the source owner's method. Inspect the installed metadata and hashes,
+then invoke the resolved executable explicitly so `PATH` cannot select another
+copy. A failed build or install is incomplete setup; diagnose that stage before
+retrying. Reuse the installation while its identity remains valid.
 
-For Linktree, run `linktree-agent commands --json`, then the relevant
-`COMMAND --help`. Prefer its registered `start`, `doctor`, domain operations and
-`cleanup` for Linktree work. They own the disposable services, real browser
-operations, state/readback and evidence. T3 owns general collaborative browser
-interaction; an application CLI's bounded browser operation remains useful for
-its supported domain. Inspect a rendered implementation with T3 when the task
-requires visual/interactive assessment beyond that operation.
+Identify the supported operations for launch, readiness, the requested journey,
+evidence and cleanup. Check their prerequisites and whether they use disposable
+services, an existing application instance or shared resources. Application
+operations do not widen task authority. For cluster access, verify the explicit
+context and namespace; a local lifecycle tool is not a remote-cluster fallback.
 
-Shrunk has a constrained `shrunk-agent start` entrypoint, not Linktree's command
-registry. Read the selected `packages/shrunk-cli/src/cli.mjs` and its usage for
-accepted inputs; it does not support `commands --json` or a general `doctor`.
-Prefer Linktree `start --shrunk-app PATH` when verifying Linktree with Shrunk:
-the owning runtime supplies the required service arguments and owns cleanup.
-Also check the required Shrunk application checkout, Python environment,
-MongoDB binary, Node runtime and browser setup. Read their current requirements
-rather than copying package versions from Skills.
-
-Use disposable app copies and owned run directories. Select development versus
-real local CAS explicitly; development login does not prove CAS. Do not print
-private tokens, cookies or application data. Independently select the expected
-behavior, inspect structured checks and source/run identity, then prove the
-actual requested flow. A saved API setting does not prove an unsaved form,
-Cancel, navigation recovery, authorization rejection or persistence after reload.
-Cleanup stops owned resources and retains evidence; it does not undo earlier
-application mutations.
-
-## Keelbox: Kubernetes development lifecycle
-
-The authoritative source is [Astatide1337/keelbox](https://github.com/Astatide1337/keelbox).
-Read its README and `tools/release/INSTALL.md` at the chosen revision. Use a
-published compatible release when one exists; otherwise select a development
-revision and use the documented build/package target in a disposable copy.
-Install the resulting binary only to the task prefix. Verify its checksum,
-`keelbox version` (or the version option documented by that binary) and
-`keelbox --help`. An installed `dev`/`commit unknown` label does not establish
-source provenance; record that limitation or build the selected revision.
-
-Keelbox owns local Kubernetes development lifecycle commands such as `doctor`,
-`config`, `build`, `up`, `ps`, `logs`, `exec`, `down` and explicit volume removal.
-Read current help/configuration before using them. `doctor` checks prerequisites;
-it does not prove the application journey. Before cluster access, verify the
-intended context and namespace explicitly under the user's policy. Keelbox is
-not a universal application verifier, a remote-cluster fallback or permission
-to delete volumes. Use its native lifecycle where it fits, then verify the
-application through its supported interfaces.
+Use disposable copies and owned run directories where appropriate. Select the
+authentication and data environment explicitly; development login does not
+prove production authentication. Do not print tokens, cookies or private data.
+Choose expected behavior independently, inspect check and source/run identity,
+then exercise the requested flow. Readiness does not prove that journey, and a
+saved API value does not prove form recovery or persistence after reload.
+Cleanup must identify and stop owned resources while retaining evidence; it
+does not undo earlier application mutations or authorize deleting persistent data.
 
 ## Interpret native results
 

@@ -33,12 +33,10 @@ Keep the parent model, global settings, quota and permissions unchanged.
 | Prose, visual taste and synthesis | Judgment model; medium with actual examples/artifacts | Conflicting requirements or consequential ambiguity remains |
 | Baseline/candidate experiment | The same frozen model and effort in both arms | Never change one arm mid-comparison; model changes are a separate experiment |
 
-For example, when the runtime offers them, initial choices are
-`gpt-6-luna` for bounded inspection, `gpt-6.1-sol` for implementation/review,
-and `gpt-6-astra` for difficult design. An available Claude Opus model can
-provide review from another model family. Resolve exact IDs and effort values
-again in the active runtime; these examples are not permanent rankings. Do not
-select an image, audio or embedding model merely because a provider lists it.
+Resolve model IDs and supported effort values from the active runtime. Use
+project preferences or measured results for comparable tasks when available;
+model names alone do not establish capability. Do not select an image, audio
+or embedding model merely because a provider lists it.
 
 Prefer a different model family for independent review of consequential work
 when authorized and available. A fresh same-family reviewer still counts as
@@ -60,8 +58,7 @@ Do not create top-level threads to simulate children. Do not build a CLI wrapper
 polling scheduler or a shell-created child checkout.
 
 In T3, pass model and provider in `target`, and reasoning in `target.options` using
-the advertised key. For example, the observed Codex key is `reasoningEffort`, while
-Claude uses `effort`; do not invent a model suffix or pass top-level `effort`.
+the advertised key and value. Do not invent a model suffix or option name.
 Preserve unrelated settings. Omit `runtimeMode` unless supervision was requested;
 an approval mode is not read-only isolation. Put the child's permitted effects
 in its brief and use real runtime isolation when required.
@@ -85,19 +82,3 @@ requiring Sol. If a dispatch fails, do not try different providers, models,
 native tools or CLIs as an unasked fallback. Recheck the runtime capability and
 report which required action remains pending. A timeout does not cancel a child;
 follow its live return contract.
-
-## Why this policy exists
-
-Pstack separates role choice, task difficulty, reasoning effort and speed, and
-limits standing orchestration to programs larger than one agent session. Its
-current playbook uses native events instead of the earlier bookkeeping scripts.
-This adaptation keeps those decisions while retaining this user's permission and
-merge boundaries and T3's tool contracts. Cursor's model slugs, cloud VM defaults
-and fallback behavior are not portable T3 APIs.
-
-Sources at `cursor/plugins` revision `ae5650febf4320793844c12c4adaa937f417f8da`:
-[subagent
-policy](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/pstack/skills/poteto-mode/SKILL.md#subagents),
-[orchestrate](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/pstack/skills/poteto-mode/playbooks/orchestrate.md),
-[model
-configuration](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/pstack/skills/setup-pstack/SKILL.md).

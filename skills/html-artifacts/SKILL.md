@@ -11,10 +11,10 @@ the reader complete the task.
 
 ## Lock the deliverable
 
-Default to a dedicated directory directly beneath `/tmp`, created with
-`mktemp -d`, so disposable artifacts do not dirty a repository. Write, validate,
-open and finally link the artifact from that directory. An explicit user output
-path takes precedence; preserve it without adding an unrequested second copy.
+Use a dedicated temporary directory outside the project, respecting the task's
+configured temporary root. Write, validate, open and link the artifact there.
+An explicit user output path takes precedence; preserve it without adding an
+unrequested second copy.
 
 Preserve an explicitly requested filename. When no filename is supplied, choose
 a descriptive kebab-case `.html` filename inside the dedicated directory.
@@ -60,8 +60,8 @@ the product.
 
 Every artifact must:
 
-1. Exist at the explicit authorized output path or beneath the dedicated `/tmp`
-   directory for this task. Preserve a requested filename, or choose one
+1. Exist at the explicit authorized output path or in the task's dedicated
+   temporary directory outside the project. Preserve a requested filename, or choose one
    descriptive kebab-case `.html` filename. Resolve the final path before writing
    and check that it remains within the authorized output boundary.
 2. Work offline with embedded CSS and JavaScript. Use inline SVG or data URIs
@@ -97,7 +97,7 @@ Every artifact must:
    glance, what compares side by side, what can collapse, and how the reader
    navigates on mobile.
 4. **Implement the smallest complete file.** Resolve the authorized output path;
-   absent an explicit path, create and confirm a dedicated `/tmp` folder. Prefer
+   absent an explicit path, create and confirm a task-specific temporary folder. Prefer
    platform HTML, CSS, and JavaScript. Add interaction only when it makes the task
    easier to understand or perform. Preserve an explicit filename and output path.
 5. **Validate the source.** Run:

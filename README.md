@@ -54,6 +54,115 @@ It chooses from available models and reasoning options, honors explicit user
 choices, and records the actual settings. One agent owns integration; independent
 reviewers inspect the resulting change.
 
+## Workflow map
+
+`follow-instructions` selects a route; it does not run every skill. Solid arrows
+show continuation. Dashed arrows attach expertise only when its trigger applies.
+Skill names link to their owners in the table below.
+
+```mermaid
+flowchart TD
+  follow["follow-instructions"]
+  issue["Deliver an issue"]
+  review["Review a contribution"]
+  release["Prepare a release"]
+  other["Other requested work"]
+  plan["Choose smallest complete plan"]
+  work["Perform permitted work"]
+  specialty["Choose the requested specialty"]
+  production["production-safety"]
+  architect["architect"]
+  debug["systematic-debugging"]
+  security["security-and-hardening"]
+  web["web-interface"]
+  deslop["deslop"]
+  how["how"]
+  why["why"]
+  grilling["grilling"]
+  hillclimb["hillclimb"]
+  wizard["wizard"]
+  teach["teach"]
+  html["html-artifacts"]
+  writing["writing-for-agents"]
+  creator["skill-creator"]
+  workflow["create-workflow"]
+  check["Check requested result"]
+  verify["verify-work"]
+  quality["code-review-and-quality"]
+  sol["better-call-sol"]
+  pr["pull-requests"]
+  reflect["self-reflect"]
+  accept{"Required outcomes established?"}
+  repair["Repair within authority"]
+  unslop["unslop"]
+  done["Return the verified result"]
+  follow --> issue
+  follow --> review
+  follow --> release
+  follow --> other
+  issue --> plan
+  plan --> work
+  review -->|"read-only"| quality
+  release --> production
+  production -->|"plan or authorized operation"| work
+  other --> specialty
+  work -.->|"unclear boundaries"| architect
+  architect -.->|"return to owning task"| check
+  work -.->|"unclear cause"| debug
+  debug -.->|"return to owning task"| check
+  work -.->|"trust boundary"| security
+  security -.->|"return to owning task"| check
+  work -.->|"visible UI"| web
+  web -.->|"return to owning task"| check
+  work -.->|"observed code clutter"| deslop
+  deslop -.->|"return to owning task"| check
+  specialty -.->|"when requested"| how
+  how -.->|"check requested result"| check
+  specialty -.->|"when requested"| why
+  why -.->|"check requested result"| check
+  specialty -.->|"when requested"| grilling
+  grilling -.->|"check requested result"| check
+  specialty -.->|"when requested"| hillclimb
+  hillclimb -.->|"check requested result"| check
+  specialty -.->|"when requested"| wizard
+  wizard -.->|"check requested result"| check
+  specialty -.->|"when requested"| teach
+  teach -.->|"check requested result"| check
+  specialty -.->|"when requested"| html
+  html -.->|"check requested result"| check
+  specialty -.->|"when requested"| writing
+  writing -.->|"check requested result"| check
+  specialty -.->|"when requested"| creator
+  creator -.->|"check requested result"| check
+  specialty -.->|"when requested"| workflow
+  workflow -.->|"check requested result"| check
+  work --> check
+  check -.->|"dedicated or consequential verification"| verify
+  verify -.->|"observed result"| check
+  check -->|"delivery change"| quality
+  quality -.->|"needed counterexample"| check
+  quality -.->|"Sol selected"| sol
+  sol -.->|"returned review"| quality
+  quality -->|"authorized delivery"| pr
+  pr -->|"current-head evidence"| accept
+  check -->|"other task"| accept
+  quality -->|"review-only findings"| accept
+  accept -->|"no"| repair
+  repair -->|"repair and recheck"| work
+  repair -.->|"repeated failure"| reflect
+  reflect -->|"changed approach"| work
+  accept -->|"yes"| done
+  accept -.->|"yes; prose needs revision"| unslop
+  unslop --> done
+```
+
+Review-only work returns findings without edits or publication. Release work
+uses the owning runbook and existing authority; a plan does not authorize a
+deployment. Failed requirements return to repair, while repeated failed
+approaches use `self-reflect`. Clear local tasks use direct checks; `verify-work`
+and `unslop` apply when their triggers fit the task. Prose cleanup cannot turn
+missing evidence into a pass.
+
 ## Skills
 
 | Skill | Use it to |
@@ -84,7 +193,8 @@ reviewers inspect the resulting change.
 
 ## Update existing installations
 
-Fetch and review the desired revision, then preview a sync with Python 3.12+:
+Fetch and review the desired revision, then preview a sync with the supported
+Python interpreter:
 
 ```sh
 python3 scripts/sync.py --ref HEAD --target ~/.agents/skills
@@ -112,8 +222,9 @@ One-off research, audit reports, experiment output and PR progress belong in
 working artifacts or the PR, not the installed catalog. Existing history is
 available in Git.
 
-Run the complete local checks with Python 3.13, Node 24 and Bubblewrap with user
-namespaces enabled:
+Use the runtime versions declared in [`pyproject.toml`](pyproject.toml),
+[the CI workflow](.github/workflows/ci.yml) and the locked dependencies. The checks also
+require Bubblewrap with user namespaces enabled:
 
 ```sh
 uv sync --frozen

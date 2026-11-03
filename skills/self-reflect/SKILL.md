@@ -96,8 +96,9 @@ future decision. When a mistake class has two real occurrences, propose a fix
 with [learn from repeats](references/learn-from-repeats.md): the strongest
 enforcement that works, in the right repository, proven against the past
 mistake. Defer an uncertain lesson or discard one contradicted by evidence.
-Applying a proposal requires the user's explicit approval; reflection alone
-does not authorize a repository, skill, global instruction or workflow edit.
+Reuse explicit authorization for the affected workflow; ask only for new scope
+or authority. Reflection alone does not authorize a repository, skill, global
+instruction or workflow edit.
 
 **Recover.** State the current hypothesis or failed premise, the evidence that
 changed its status, and one next check or replan. Continue when that move is
