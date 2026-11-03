@@ -14,6 +14,9 @@ Subcommands, each reading the hook's JSON from stdin:
                  including when the workspace has not changed
   accept CMD     rerun the task checker for the parent; exit zero only for complete
 
+The completion and choice-guard commands accept --cwd ABSOLUTE_PATH before CMD
+to apply a task checker only to events from that exact workspace.
+
 "Changed" means the working tree, including uncommitted and untracked files,
 differs from its snapshot at session start, so a read-only session is never
 verified and the user's own earlier edits are never blamed on the agent.
@@ -640,7 +643,7 @@ def handle_acceptance(payload: dict, command: list[str]) -> int:
     return 2 if result["status"] == "unavailable" else 1
 
 
-def handle_completion(payload: dict, command: list[str]) -> int:
+def handle_completion(payload: dict, command: list[str], *, unavailable_reason: str | None = None) -> int:
     """Check a trusted task acceptance command, even in an unchanged workspace."""
     if payload.get("hook_event_name") in {"Interrupt", "SessionEnd"}:
         print("{}")
@@ -654,7 +657,6 @@ def handle_completion(payload: dict, command: list[str]) -> int:
     # legacy verification hooks or a separately configured acceptance checker.
     session = f"{session_id(payload)}-completion-{key}"
     state = load_state(session, strict=True)
-    cwd = Path(payload.get("cwd") or os.getcwd()).resolve()
     attempts = state["completion"]
     if not payload.get("stop_hook_active"):
         attempts[key] = 0
@@ -663,7 +665,11 @@ def handle_completion(payload: dict, command: list[str]) -> int:
         return 0
     # Persist the episode before executing a checker that may fail or time out.
     save_state(session, state)
-    result = acceptance_result(payload, command, cwd)
+    if unavailable_reason:
+        result = {"status": "unavailable", "reason": unavailable_reason}
+    else:
+        cwd = Path(payload.get("cwd") or os.getcwd()).resolve()
+        result = acceptance_result(payload, command, cwd)
     if result["status"] == "unavailable":
         result["status"] = "incomplete"
     status, reason = result["status"], result["reason"][:OUTPUT_TAIL_CHARS]
@@ -719,6 +725,22 @@ HANDLERS = {
 }
 
 
+def hook_workspace_matches(payload: dict, scope: str | None) -> bool:
+    """Scope registration by native session cwd, never by the requested tool path."""
+    if scope is None:
+        return True
+    if not Path(scope).is_absolute():
+        raise ValueError("--cwd requires an absolute workspace path")
+    cwd = payload.get("cwd")
+    if not isinstance(cwd, str) or not cwd or not Path(cwd).is_absolute():
+        raise ValueError("scoped hook event requires an absolute cwd")
+    configured = Path(scope).resolve(strict=True)
+    current = Path(cwd).resolve(strict=True)
+    if not configured.is_dir() or not current.is_dir():
+        raise ValueError("scoped hook paths must be existing directories")
+    return current == configured
+
+
 def main(argv: list[str]) -> int:
     completion = len(argv) >= 2 and argv[1] == "completion"
     choice_guard = len(argv) >= 2 and argv[1] == "choice-guard"
@@ -726,7 +748,8 @@ def main(argv: list[str]) -> int:
     if not (completion or choice_guard or acceptance) and (len(argv) != 2 or argv[1] not in HANDLERS):
         print(
             f"usage: {Path(argv[0]).name} {{{','.join(HANDLERS)}}} < hook-input.json\n"
-            f"       {Path(argv[0]).name} {{completion,choice-guard,accept}} COMMAND [ARG ...] < context.json",
+            f"       {Path(argv[0]).name} {{completion,choice-guard}} [--cwd ABSOLUTE_PATH] COMMAND [ARG ...] < hook-input.json\n"
+            f"       {Path(argv[0]).name} accept COMMAND [ARG ...] < context.json",
             file=sys.stderr,
         )
         return 1
@@ -748,10 +771,27 @@ def main(argv: list[str]) -> int:
     try:
         if acceptance:
             return handle_acceptance(payload, argv[2:])
+        if choice_guard or completion:
+            command = argv[2:]
+            scope = None
+            if command[:1] == ["--cwd"]:
+                scope = command[1] if len(command) > 1 else ""
+                command = command[2:]
+            try:
+                applies = hook_workspace_matches(payload, scope)
+            except (ValueError, OSError, RuntimeError) as error:
+                reason = f"Invalid hook workspace scope: {error}"
+                if completion:
+                    return handle_completion(payload, command, unavailable_reason=reason)
+                print(f"Choice guard unavailable: {reason}", file=sys.stderr)
+                return 2
+            if not applies:
+                print("{}")
+                return 0
         if choice_guard:
-            return handle_choice_guard(payload, argv[2:])
+            return handle_choice_guard(payload, command)
         if completion:
-            return handle_completion(payload, argv[2:])
+            return handle_completion(payload, command)
         return HANDLERS[argv[1]](payload)
     except Exception as error:  # noqa: BLE001 - a crashed gate must say so, not pass silently
         if acceptance:

@@ -84,7 +84,7 @@ explicit unchecked notice. `Interrupt` and `SessionEnd` do not run the checker.
 `AGENT_VERIFY_TIMEOUT` limits the checker run. Timeout and cancellation terminate
 its process group; checkers that launch detached processes must own their cleanup.
 
-`codex-completion.example.json` shows an opt-in `Stop` registration. Replace both
+`codex-completion.example.json` shows an opt-in `Stop` registration. Replace its
 absolute paths and merge it alongside existing hooks rather than overwriting
 them. Codex requires review and trust of non-managed definitions; see the
 [official hook reference](https://learn.chatgpt.com/docs/hooks). Do not bypass
@@ -129,12 +129,29 @@ The parent inspects the verdict and raw evidence, resolves failed obligations,
 and reruns acceptance after repairs. A false claim about an earlier check also
 needs correction; running a later check cannot make that history true.
 
-For T3, register project-local hooks in `.codex/hooks.json` and review their exact
-definitions through Codex `/hooks` in that environment. Preserve existing hooks.
-Use an owned workspace first and check actual invocation through T3. A project
-registration applies to matching sessions in that project; do not point unrelated
-workers at one task's checker. This repository does not install those task-specific
+For T3, locate the project's active hook source through Codex `/hooks` in that
+environment before registering definitions. A linked worktree may load hooks
+from the main checkout instead of its own `.codex` directory. Preserve existing
+definitions and use the supported review and trust flow. A file in the worktree
+is not proof of registration. This repository does not install task-specific
 registrations automatically.
+
+Use an owned workspace first and check actual invocation through T3. When a
+definition is shared, scope its task commands to the native session's workspace:
+
+```sh
+python3 /path/to/hooks/agent_gates.py completion --cwd /absolute/task-worktree \
+  python3 /trusted/task_acceptance.py
+```
+
+`choice-guard` accepts the same option. `--cwd` matches the event's absolute
+`cwd` after resolving symlinks; it does not match descendants or tool target
+paths. Events outside that workspace return `{}` without running the checker
+or changing continuation state. Missing or invalid event paths remain unchecked
+or rejected; they cannot establish acceptance. Confirm both target rejection
+and an unaffected session before relying on a shared definition. This selects
+sessions; it does not contain their writes or protect the checker from them.
+Parent `accept` has no scope option and always runs its configured checker.
 
 The parent must invoke `accept`; Skills cannot make T3 invoke it or prevent every
 possible unchecked handoff. Full-access processes can also modify external
