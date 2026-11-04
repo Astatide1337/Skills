@@ -55,6 +55,13 @@ It chooses from available models and reasoning options, honors explicit user
 choices, and records the actual settings. One agent owns integration; independent
 reviewers inspect the resulting change.
 
+For substantial work, the [knowledge workflow](skills/follow-instructions/references/codebase-knowledge.md)
+uses the repository's source graph, user flows and historical fixes. Missing
+knowledge is built locally during authorized implementation; private wiki files
+stay excluded from Git. Review targets concrete bug classes and carries open
+findings across revisions. Context gathering and browser checks use economical
+capable workers; the parent owns reasoning, integration and independent review.
+
 ## Workflow map
 
 `follow-instructions` selects a route; it does not run every skill. Solid arrows

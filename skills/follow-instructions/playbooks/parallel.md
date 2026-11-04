@@ -6,11 +6,19 @@ Use with the chosen workflow when independent work is useful, an authorized
 delegation tool is available, and each worker can have clear ownership of files
 or state.
 
-Keep one accountable engineer for work that fits one session. For an explicitly
-requested standing program that outlives one agent, use a coordinator that owns
-briefs, dependencies and acceptance while PR owners write code. A sub-coordinator
-is justified only when one track exceeds a single coordinator's useful capacity.
-An ordinary feature does not need a hierarchy of coordinators.
+Keep one accountable engineer for work that fits one session. Use a single
+parent orchestrator that owns briefs, dependencies, integration and acceptance;
+workers are leaves and never start children, so there are no grandchildren.
+When a track outgrows one worker, return it to the parent to split. For an
+explicitly requested standing program that outlives one agent, the coordinator
+still owns the briefs and commissions independent review while workers write code. An ordinary feature does not
+need a hierarchy.
+
+Assign by role ([agent selection](../references/agent-selection.md)): an
+efficient model gathers context and explores; an economical model with verified
+tool use and image input drives browser and user-flow checks; the frontier
+owner reasons about architecture and subtle bugs and opens the raw source behind
+any claim a worker cites before relying on it.
 
 ## Inputs to establish
 
@@ -23,7 +31,13 @@ An ordinary feature does not need a hierarchy of coordinators.
 - original authority, acceptance, exclusions, remaining checks and evidence;
   the approved plan version only when the user or project requires one;
 - role, difficulty, selected provider/model/reasoning, and the capability that
-  supports the dispatch, per [agent selection](../references/agent-selection.md).
+  supports the dispatch, per [agent selection](../references/agent-selection.md);
+- context by reference: source links, revision (and uncommitted or untracked
+  files), the paths a worker needs, and paths known to be missing. For
+  substantive work add the [codebase knowledge](../references/codebase-knowledge.md)
+  procedure and the actual wiki's absolute path. A worktree does not inherit
+  untracked knowledge; verify access and source freshness from the worker's
+  checkout before reuse. Do not paste a large summary; the worker reads the sources itself.
 
 ## Steps and decision points
 
@@ -39,9 +53,9 @@ An ordinary feature does not need a hierarchy of coordinators.
    credentials and browser sessions where relevant. Let workers use the
    selected domain skills and surface conflicts instead of overwriting peers.
    Include the requirements, owned files, permitted actions, outstanding checks
-   and evidence in each task. Keep one integration owner; only that owner resolves
-   a cross-worker plan change under the
-   [approved-plan contract](../references/approved-plans.md).
+   and evidence in each task, and state that the worker must not delegate.
+   Keep one integration owner; only that owner resolves a cross-worker plan
+   change under the [approved-plan contract](../references/approved-plans.md).
    Preserve each requirement's condition and evidence: "migrate if deployed
    data exists" must not become an unconditional importer task. Superseding
    corrections update dependent worker briefs and checks before work resumes.
@@ -75,6 +89,11 @@ On interruption, retain the last revision, ownership, remaining units and
 evidence in the existing task record. Recheck state on resume. A worker's "done"
 or green branch is not integration proof; retry, reassign, or serialize only
 within the parent authority.
+
+On a quota, rate-limit, disabled-provider or missing-capability failure, follow
+the role-specific fallback rules in [agent selection](../references/agent-selection.md)
+without asking again, and record each attempt. Do not change model for a failure
+caused by the brief or the task.
 
 Use supported completion wakes and PR watches.
 Follow returned continuation instructions; do not poll or message an idle worker

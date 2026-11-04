@@ -147,8 +147,25 @@ Keep the parent model, global settings and quota unchanged. Set a budget before
 optional experiments; do not invent a small trial budget to stop authorized
 delivery early.
 
-Use [parallel](playbooks/parallel.md) when work has independent owners, a real
-delegation tool is available and coordination is worthwhile. Prove one complete
+For substantive work, discover the repository's
+[codebase knowledge](references/codebase-knowledge.md) before planning or review.
+Build missing knowledge during authorized implementation. Read-only work uses
+existing knowledge or source search. Verify source links against the current tree.
+A clear local correction does not need a repository-wide indexing pass.
+
+When delegation is available, delegate context gathering and exploration to an
+efficient model. Without it, perform bounded local investigation and record the
+capability limit; ordinary work continues. Give it a
+bounded question and require relevant source paths, revisions and missing
+context. Keep architecture and subtle bug analysis with the frontier owner,
+who checks the cited sources. Delegate browser work to a capable economical
+model with the actual browser tools and image input. If that capability is
+unavailable, record the limit and use the supported fallback; do not pretend
+an API-only model inspected a screen. Children return work to the parent and
+never delegate further.
+
+When delegating independent units, use [parallel](playbooks/parallel.md) to
+assign ownership and integrate the results. Prove one complete
 unit first. Use [self-reflect](../self-reflect/SKILL.md) when repeated failure or
 stalled progress calls for a different observation, not at every completion.
 For a recorded or repeated mistake, use

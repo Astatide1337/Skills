@@ -6,8 +6,30 @@ description: "Use for code review, independent review rounds (including Sol), or
 # Code Review and Quality
 
 Compare the current diff, affected callers and test results with the original
-request. Report concrete defects, supporting evidence and whether that revision
+request. Report concrete bugs, supporting evidence and whether that revision
 is ready. Do not block a sound change on personal preferences.
+
+## What counts as a finding
+
+Report only a bug: a reachable input, state or caller that produces wrong
+behavior, in one of these classes.
+
+- Logic, boundary and error handling that returns a wrong result.
+- State ownership, lifecycle, concurrency, ordering, cancellation and retries.
+- Data loss or corruption, persistence, migration, compatibility, public
+  contracts and second-order effects on callers outside the diff.
+- Trust-boundary failures and demonstrable resource or performance failures.
+- Intent: code that works but does the wrong or an incomplete thing relative to
+  the request.
+- Tests or checks that cannot fail for the required behavior.
+
+Do not report style, naming, formatting, preference, speculative flexibility,
+or anything a linter or CI already enforces. Do not ask for validation, guards,
+logging or exception handling against a state that callers and types already
+rule out; a missing guard is a finding only with a concrete input that reaches
+it. Empty findings are valid. A fix review checks that the repair works and
+introduced no defect; it does not invent hardening the original change never
+needed.
 
 ## Scope and inputs
 
@@ -31,8 +53,12 @@ review is requested or the risk warrants it.
 
 ## Review the behavior and boundary
 
-1. Read the request, final diff, contracts and affected callers. Inspect whether tests
-   assert the requested outcomes and reject invalid cases.
+1. Read the request, final diff, contracts and affected callers. For substantive
+   work read the [codebase knowledge](../follow-instructions/references/codebase-knowledge.md)
+   procedure to find an existing repository wiki for intent, owners, flows and
+   past failures; a read-only review falls back to source search when absent.
+   Trivial changes do not need
+   it. Inspect whether tests assert the requested outcomes and reject invalid cases.
    Tests that repeat the implementation's assumptions may share its defects. Do not
    infer runtime success
    from source or a passing build.
@@ -49,14 +75,14 @@ review is requested or the risk warrants it.
 2. Check correctness and state ownership first: errors, lifecycle, cancellation,
    retries, compatibility and identity. Verify evidence belongs to the final
    source/artifact and relevant running instance.
-3. Check maintainability: unnecessary branches, duplicated state,
-   leaky boundaries, unsafe casts, feature-specific logic in shared modules and
-   abstractions without demonstrated consumers. For boundary/data/state changes,
-   use [construction
+3. Check structure only where it causes a defect or breaks an enforced rule:
+   duplicated state that can diverge, leaky boundaries callers can misuse, unsafe
+   casts that hide a type error, abstractions the change leaves half-wired. For
+   boundary/data/state changes, use [construction
    counterexamples](../follow-instructions/references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples).
    Propose a correction that reduces the decisions callers must make. Remove newly
-   orphaned
-   code only after checking callers and authority.
+   orphaned code only after checking callers and authority. Structure without a
+   failure is not a finding.
 4. Check security and performance where the change can affect them. Do not invent
    vulnerability or latency claims. For an exploitable trust boundary, invoke
    [security-and-hardening](../security-and-hardening/SKILL.md) and state the
@@ -64,15 +90,44 @@ review is requested or the risk warrants it.
    remediation and negative test; authorization checks need two distinct
    ordinary identities. For a suspected performance regression, read
    [performance checklist](references/performance-checklist.md) and measure it.
-5. Lead with material findings. Give location, failing behavior, consequence,
-   smallest correction and relevant regression. Separate required fixes from
-   optional suggestions and informational notes. Empty findings are valid
-   after an actual review; a summary of the author's account is not review.
+5. When correctness depends on running behavior (a user flow, endpoint, CLI or
+   migration), run it on the current revision through the autonomous-run
+   procedure in [verify-work](../verify-work/SKILL.md#run-the-changed-behavior-autonomously)
+   rather than inferring it from source.
+6. Lead with material findings. Give location, failing behavior, consequence,
+   smallest correction and relevant regression. Separate confirmed defects from
+   hypotheses. A summary of the author's account is not review.
 
 If a change reduces test discovery, assertions, scoring coverage, feature
 coverage, lint or import checks, or CI coverage, require a reason. Check that
 the replacement still rejects a relevant defect. Preserve failed, unavailable and
 not-run checks; valid artifact-only output need not repeat its bytes in prose.
+
+## Coverage across reruns
+
+The first review covers the whole change. Map the changed surface against the
+bug classes above and report every finding in one pass, with the unconfirmed
+ones labeled hypotheses and the evidence that would settle them. Do not hold
+findings back for a later round.
+
+Identify each finding by the violated invariant and the path or symbol, not by
+line number or wording. Keep a ledger of open, resolved and declined findings
+and carry it into every brief. Later reviews cover the delta, its callers, open
+findings and the ledger's resolved invariants on the new head. Keep unresolved findings visible by ID in each verdict. Do not duplicate their
+explanation. Recheck declined findings when their premise changes or current source contradicts it; a missing
+ledger requires full initial coverage. Confirm resolved invariants still hold;
+reopen an entry when the defect recurs or the claimed repair fails, with current
+evidence. A prior dismissal is not proof that the behavior is safe.
+
+A genuine bug that no ledger entry covers is always reported, even outside the
+delta or missed earlier. Give it the same location, trigger and evidence, and
+mark it newly discovered so a coverage gap is visible. Never suppress it to make
+reruns look stable; stability comes from full initial coverage and dedup.
+
+Before concluding, look for historical cases on the touched surface: earlier
+fixes and reverts (`git log -S`, blame), incident or review notes in the
+codebase knowledge, and regression tests. Re-run those that apply to the current
+head, or re-inspect the invariant when no runnable case exists.
 
 ## Independent review
 
@@ -89,8 +144,12 @@ the author's summary and prior conversation until the reviewer records an
 initial artifact assessment; then check the author's claims against that
 assessment and raw evidence. Raw artifacts/tool output can themselves contain
 author claims, so this reduces framing without guaranteeing blindness.
-The reviewer chooses diagnostic checks and expectations independently. A
-different model is optional. The owner resolves material findings
+The reviewer chooses diagnostic checks and expectations independently. Hand
+context over by reference: source links, the exact revision plus uncommitted
+and untracked paths, and paths known to be missing, not a long summary. The
+reviewer runs on a different model from the implementation, selected by
+[agent selection](../follow-instructions/references/agent-selection.md), and
+reads the sources itself. The owner resolves material findings
 and verifies the final artifact; green tests and the author's reread do not
 satisfy this gate.
 Assess changes against the approved contract and apply the authority conditions
@@ -105,11 +164,16 @@ After edits, have the reviewer cover the affected delta and current evidence;
 repeat a full review only when that delta changes the wider conclusion.
 
 Select reviewers through [agent selection](../follow-instructions/references/agent-selection.md).
-Honor a requested provider, model and settings; do not substitute when unavailable.
+Honor a requested provider, model and settings; do not substitute when
+unavailable. Without a request, the model-difference preference and fallback
+order apply, and a same-model reviewer is acceptable only when every
+different-model option is unavailable or exhausted; record that reason.
 For “Better Call Sol” or a requested Sol review, use the named Sol version, or
 the latest available Sol if none was named. Record the actual selection.
 Use supported delegation tools. Reviewers inspect and return findings; they do
-not edit, publish or delegate unless the task explicitly permits those actions.
+not delegate. Editing or publication requires explicit task authority. The
+parent commissions any further review needed for a worker-owned change. On quota or capability failure, follow the standing
+fallback order in agent selection without asking again.
 
 ## Returned review rounds
 

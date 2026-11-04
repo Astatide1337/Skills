@@ -153,7 +153,7 @@ class WorkflowContractTests(unittest.TestCase):
 
     def test_model_free_pilot_does_not_supply_native_agent_answers(self) -> None:
         dataset = skills.workflow_fixture_pilot().dataset
-        self.assertEqual(len(dataset), 10)
+        self.assertEqual(len(dataset), 12)
         self.assertTrue(all(not str(sample.id).startswith("workflow-native-") for sample in dataset))
 
     def test_supplied_cases_establish_inspectable_git_baselines(self) -> None:
@@ -255,7 +255,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            58,
+            61,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -383,6 +383,9 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-agent-role-reasoning",
                 "workflow-native-agent-explicit-effort",
                 "workflow-native-agent-worktree-candidate",
+                "knowledge-history-non-object-receipt",
+                "knowledge-history-incomplete-cache-row",
+                "workflow-native-review-recurring-cache-defect",
             },
         )
         for sample in cases.values():

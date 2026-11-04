@@ -88,7 +88,8 @@ do not verify a real application.
    operation, let pending work settle, and inspect persistence, navigation
    and owned resources. Hiding a UI does not prove that a save was cancelled.
    If the repository has a `verify-<app>` skill, follow its launch, doctor,
-   drive, evidence and cleanup procedure.
+   drive, evidence and cleanup procedure; otherwise
+   [run the changed behavior autonomously](#run-the-changed-behavior-autonomously).
 
 5. **Inspect visual work.** Open the actual interface, reach the changed state
    and interact with it. Capture and inspect screenshots at the relevant
@@ -116,6 +117,32 @@ do not verify a real application.
 9. **Report only what the evidence supports.** State what was verified and
    what remains unverified. Do not claim “done,” “fixed,” “working” or
    “deployed” beyond the observed result.
+
+## Run the changed behavior autonomously
+
+When the claim depends on a running product (UI flow, endpoint, CLI, job) and
+a launch path exists (a `verify-<app>` skill, documented dev command or the
+application's CLI), run it rather than reading the diff.
+
+1. Establish authority and actual target before startup, jobs, migrations or
+   seeding. Use [production-safety](../production-safety/SKILL.md) for shared or
+   unverified resources. Prefer verified disposable test data; read-only review
+   permits isolated checks, not mutation of a shared environment. If isolation
+   or necessary authority is unavailable, finish independent checks and report
+   the exact missing requirement. Pin the current revision, including uncommitted and untracked files. For a
+   before/after claim also pin the baseline revision. Run each from its own
+   checkout or worktree with isolated ports, data, credentials and browser
+   session.
+2. Launch through the supported path and confirm the running instance is that
+   build, not a stale server, before driving it.
+3. Drive the requested or mapped flows. A browser or screen-driving child may do
+   this if its model has verified tool use and image input; the owner inspects
+   the raw screenshots and output before concluding.
+4. Capture before and after from these real runs, not from reconstructions.
+5. Stop the processes and remove the temp data, ports and sessions you started,
+   confirm they are gone, and keep the evidence. Leave user data alone.
+6. If launch or a flow fails, report the failing stage and leave the claim
+   unverified; do not substitute source reading or a mock.
 
 ## Capture useful visual evidence
 
