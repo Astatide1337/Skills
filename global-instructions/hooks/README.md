@@ -132,8 +132,10 @@ needs correction; running a later check cannot make that history true.
 For T3, locate the project's active hook source through Codex `/hooks` in that
 environment before registering definitions. A linked worktree may load hooks
 from the main checkout instead of its own `.codex` directory. Preserve existing
-definitions and use the supported review and trust flow. A file in the worktree
-is not proof of registration. This repository does not install task-specific
+definitions and use the supported review and trust flow. Project discovery may
+also require a `.codex` directory in the target worktree, even when definitions
+come from the main checkout. Confirm the source and exact commands in `/hooks`
+from the target workspace. This repository does not install task-specific
 registrations automatically.
 
 Use an owned workspace first and check actual invocation through T3. When a
