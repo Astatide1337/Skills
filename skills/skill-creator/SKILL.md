@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: "Creates, revises, validates and evaluates agent skills with trigger tests and measured comparisons. Use when writing or changing a SKILL.md, skill description or skill eval."
+description: "Use when creating or changing skills, their selection descriptions or their evaluations."
 ---
 
 # Skill Creator
@@ -51,18 +51,14 @@ catalog deliverable; adjacent documents need a separate purpose.
 
 Every skill needs `SKILL.md` with YAML `name` and `description` fields.
 
-Write the description for skill selection. Use third person to state what the
-skill does, followed by `Use when` and the requests that should select it.
-Use the user's likely words. Add a nearby non-trigger only to prevent a
-collision. Keep the description on one line within the catalog validator's
+Write the description as a selection trigger: `Use when` followed by the
+requests that need the skill. Name likely user terms; add a nearby non-trigger
+only to prevent a collision. Put capabilities, procedure and output requirements
+in the body. Keep the description on one line within the catalog validator's
 [description budget](https://github.com/Astatide1337/Skills/blob/main/scripts/validate_catalog.py).
-The body is unavailable until selection; procedure belongs there.
 
-Good: `Drafts, opens, reviews or monitors GitHub PRs and GitLab MRs. Use for
-any PR/MR task. Never merges.`
-
-`Helps with pull requests` says too little. `When watching a PR` omits the
-capability and other requests that should select it.
+Good: `Use when drafting, opening, reviewing or monitoring a GitHub PR or GitLab MR.`
+`Helps with pull requests` leaves the trigger unclear.
 
 Keep the body to the workflow, decisions, required checks and reference links.
 Assume a capable reader. Omit tutorials and motivational prose. Start with

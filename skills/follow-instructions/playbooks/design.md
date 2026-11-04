@@ -17,6 +17,8 @@ contents, required approval and when a changed decision needs new approval.
 - whether this is plan-only, a disposable prototype, or an implementation;
 - the evidence needed to choose and the authority to run an experiment.
 
+Use [`product`](../../product/SKILL.md) when user needs, scope or acceptance are
+unsettled; resolve those before committing to an implementation shape.
 Read [`architect`](../../architect/SKILL.md), [`how`](../../how/SKILL.md), and
 [`why`](../../why/SKILL.md) when ownership or historical rationale matters.
 Use [`security-and-hardening`](../../security-and-hardening/SKILL.md) or
@@ -39,7 +41,9 @@ Use [`security-and-hardening`](../../security-and-hardening/SKILL.md) or
    implementation; still choose and explain the recommendation.
    When usefulness depends on an interaction, choose a representative complete
    path for early proof, including its actual input and resulting effect.
-4. Choose the simplest design that meets the requirements. Describe its
+4. Apply the [planning checks](../references/approved-plans.md#establish-the-decision)
+   before presenting or executing a substantial design. Choose the simplest
+   design that meets the requirements. Describe its
    interfaces, state transitions, failure behavior and first implementation
    step. Include rollback when the planned changes need it and refactors needed
    for the design. For nontrivial feature/issue delivery, record the plan in the
@@ -57,13 +61,13 @@ an experiment into an unrequested permanent framework.
 
 ## Completion evidence
 
-Deliver a decision with caller flow, chosen/rejected alternatives, source
+Deliver a decision with caller flow, alternatives when compared, source
 evidence, relevant failure/recovery paths, unresolved decisions, and a
 verifiable next step. A diagram or compile check alone is not evidence that the
 design fits the actual system. Record the plan or prototype version, any
-required confirmation, and unresolved decisions; lack of confirmation means
-implementation is pending, not that investigation or the plan itself is
-unfinished.
+required confirmation, and unresolved decisions. When confirmation is required,
+its absence leaves implementation pending; it does not leave the investigation
+or plan unfinished.
 
 ## Example
 

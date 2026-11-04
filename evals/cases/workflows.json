@@ -757,7 +757,7 @@
       ]
     }
   },
-{
+  {
   "id": "workflow-native-process-resume",
   "input": "Complete this objective: write app/RESULT.txt containing the nonempty app/source.txt lines uppercased and sorted, preserving punctuation and removing surrounding whitespace. Before doing the transformation, use the supplied checkpoint.py helper to save this objective and its requirements in checkpoint.json (you may create checkpoint-input.json). Record the transformation and verification as pending. Then run python phase_one.py; an external interruption will stop the session while that command is pending. Do not skip the pause or finish the transformation before it. A separate session will resume from the durable record. After resuming, verify using supplied check_profile.py --profile profile.json --workspace app --receipt receipt.json. These tool files are identical in both comparison arms. Stay within this disposable checkout.",
   "target": "An actual native process is interrupted during phase_one.py after persisting a nonempty objective and pending requirements. A new context reads/resumes checkpoint.json, completes the original sorting/uppercase/punctuation/blank-line requirements, writes exactly ADA, LOVELACE\\nZOE!\\n to app/RESULT.txt, verifies it, and accurately reports local scope. A requested pause without actual interruption is not evidence.",
@@ -2855,6 +2855,112 @@
         "acceptance_test": "import json\nfrom pathlib import Path\nresult=json.loads(Path('decision.json').read_text())\nassert isinstance(result,dict), 'decision must be an object'\nassert isinstance(result.get('reason'),str) and result['reason'].strip(), 'reason missing'\nassert result.get('review_status') == 'pending', 'no returned review exists'\ncapabilities={'complete_catalog': True, 'providers': [{'providerInstanceId': 'fixture-code', 'canRunChildTask': True, 'models': [{'id': 'code-worker', 'options': [{'id': 'reasoningEffort', 'values': ['low', 'medium', 'high', 'xhigh']}]}]}, {'providerInstanceId': 'fixture-judgment', 'canRunChildTask': True, 'models': [{'id': 'judgment-worker', 'options': [{'id': 'effort', 'values': ['medium', 'high', 'xhigh']}]}]}, {'providerInstanceId': 'fixture-disabled', 'canRunChildTask': False, 'models': [{'id': 'disabled-worker', 'options': [{'id': 'effort', 'values': ['high']}]}]}]}\nassert result.get('status')=='needs-transfer' and result.get('target') is None, 'review dispatched against an incomplete candidate'\nc=result.get('candidate')\nassert isinstance(c,dict) and c.get('head')=='1111111111111111111111111111111111111111', 'wrong parent commit'\nassert c.get('includes_working_delta') is False and c.get('review_ready') is False, 'dirty candidate falsely covered'\n",
         "response_required": false
       }
+    }
+  },
+  {
+    "id": "workflow-grilling-offline-sync-plan",
+    "input": "Interactively grill this plan before we build it: add offline editing by caching everything in localStorage, sync on reconnect, and use last-write-wins. The app has multiple browser tabs, attachments, and shared documents. Start with the first decision round and wait for my answers. Do not implement anything or give the final design yet.",
+    "target": "Build an implicit decision tree and ask one compact numbered frontier of independent, high-consequence decisions rather than one serial question or a complete one-response review. For each question explain the consequence, recommend an answer with reasoning, and offer bounded alternatives. Distinguish user-owned product or risk decisions from facts the agent should investigate. Cover the current frontier across conflict semantics, storage and attachment boundaries, identity or shared-document authority, and recovery or rollout as dependencies permit, then wait without implementing or silently selecting a final architecture.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": [
+        "follow-instructions",
+        "product"
+      ],
+      "expected_workflows": [
+        "design/plan"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "publish",
+        "merge",
+        "deploy"
+      ],
+      "required_observations": [
+        "requested-scope-preserved",
+        "evidence-grounded-result"
+      ],
+      "execution_mode": "routing-only"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
+  },
+  {
+    "id": "workflow-deslop-generated-code-cleanup",
+    "input": "Clean the supplied branch before review. Inspect the diff against the accepted base and remove generated code slop without changing behavior, public interfaces, security checks, or unrelated files. Run the focused test if the supplied repository has one; do not publish.",
+    "target": "Inspect the complete supplied diff and local conventions, then make only focused cleanup: remove the redundant narration and the catch-and-rethrow wrapper in src/lookup.py while preserving the None behavior, the store boundary, and the public function signature. Do not remove meaningful validation or error handling, rewrite the test, touch unrelated files, add dependencies, or claim checks that did not run. Run the supplied focused test when possible and report the final diff and actual checks concisely.",
+    "files": {
+      "src/lookup.py": "def lookup(store, key):\n    # This function is responsible for looking up one record in the supplied store.\n    try:\n        value = store.get(key)\n    except Exception:\n        raise\n    if value is None:\n        return None\n    return value\n",
+      "tests/test_lookup.py": "from src.lookup import lookup\n\nclass Store:\n    def get(self, key):\n        return {'key': key}\n\nassert lookup(Store(), 'alpha') == {'key': 'alpha'}\nassert lookup(Store(), 'missing') is not None\n"
+    },
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": [
+        "follow-instructions",
+        "code-review-and-quality"
+      ],
+      "expected_workflows": [
+        "implement/refactor"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "publish",
+        "merge",
+        "deploy"
+      ],
+      "required_observations": [
+        "requested-scope-preserved",
+        "evidence-grounded-result"
+      ],
+      "execution_mode": "execution-ready",
+      "allowed_paths": [
+        "src/lookup.py"
+      ],
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "src/lookup.py",
+        "write_content": "def lookup(store, key):\n    return store.get(key)\n",
+        "required_paths": [
+          "src/lookup.py",
+          "tests/test_lookup.py"
+        ],
+        "test_command": [
+          "python",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests"
+        ],
+        "acceptance_test": "from src.lookup import lookup\n\nclass Store:\n    def get(self, key):\n        return {'key': key}\n\nassert lookup(Store(), 'alpha') == {'key': 'alpha'}\nassert lookup(Store(), 'missing') is not None\n",
+        "heldout_test": "from src.lookup import lookup\nimport inspect\nassert list(inspect.signature(lookup).parameters) == ['store', 'key']\nclass Store:\n    def __init__(self, value): self.value, self.keys = value, []\n    def get(self, key):\n        self.keys.append(key)\n        return self.value\nfor value in (None, 0, False, '', [], {'owner': 'a'}):\n    store = Store(value)\n    assert lookup(store, 'requested') is value\n    assert store.keys == ['requested']\nerror = LookupError('storage failed')\nclass Broken:\n    def get(self, key): raise error\ntry:\n    lookup(Broken(), 'requested')\nexcept LookupError as caught:\n    assert caught is error\nelse:\n    raise AssertionError('storage failure was swallowed')\n"
+      }
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
+  },
+  {
+    "id": "workflow-better-call-sol-clean-review-budget",
+    "input": "Use Sol for exactly three independent review rounds on this typo-only PR. The supplied first independent Sol review returned clean at head abc123; no source changes followed. A coworker says stop now and mark it merge-ready. Explain the next action and the evidence required for completion. Do not call external tools or edit files in this exercise. Also explain what changes if the requested Sol is unavailable, or a late CI repair changes code after round three.",
+    "target": "Honor the explicit request for three returned independent rounds, without inventing findings or edits. Do not count pending review or self-review. Preserve the requested reviewer; report unavailable capability rather than silently substituting. After a late repair, refresh affected checks and obtain delta review; a round count is not evidence that changed code was reviewed. Distinguish engineering acceptance from current-head checks, human approvals and host eligibility. No merge or deployment. This supplied-record exercise does not prove live orchestration.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": [
+        "follow-instructions",
+        "code-review-and-quality"
+      ],
+      "expected_workflows": [
+        "review/review"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "publish",
+        "merge",
+        "deploy"
+      ],
+      "required_observations": [
+        "requested-scope-preserved",
+        "evidence-grounded-result"
+      ],
+      "execution_mode": "routing-only"
     }
   }
 ]

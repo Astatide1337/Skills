@@ -1,6 +1,6 @@
 ---
 name: code-review-and-quality
-description: "Reviews a diff, branch or PR against intent, callers and tests; returns evidence-backed findings and readiness. Use for code review or quality checks. Not for prose (unslop)."
+description: "Use for code review, independent review rounds (including Sol), or behavior-preserving code cleanup. Use unslop for prose."
 ---
 
 # Code Review and Quality
@@ -19,6 +19,10 @@ tools, applications and network access. For an offline or text-only review,
 use supplied source and release notes; report external maintenance,
 vulnerability and license facts as unknown. A review grants
 no authority to edit, install, publish or deploy.
+
+A cleanup request permits scoped edits; a review request permits findings.
+For cleanup, use [behavior-preserving simplification](references/behavior-preserving-simplification.md)
+and keep correctness repairs distinct. Do not turn a cleanup into a redesign.
 
 For an ordinary mechanical edit without
 [review-risk triggers](../follow-instructions/references/principles/authority-and-claims.md#review-risk-triggers),
@@ -100,6 +104,13 @@ If no reviewer is available, finish safe local work and report the gate pending.
 After edits, have the reviewer cover the affected delta and current evidence;
 repeat a full review only when that delta changes the wider conclusion.
 
+Select reviewers through [agent selection](../follow-instructions/references/agent-selection.md).
+Honor a requested provider, model and settings; do not substitute when unavailable.
+For “Better Call Sol” or a requested Sol review, use the named Sol version, or
+the latest available Sol if none was named. Record the actual selection.
+Use supported delegation tools. Reviewers inspect and return findings; they do
+not edit, publish or delegate unless the task explicitly permits those actions.
+
 ## Returned review rounds
 
 A review round starts in fresh context and covers an identified candidate:
@@ -131,11 +142,12 @@ reported path does not establish the invariant across those paths. Skip paths th
 cannot affect.
 
 The [PR delivery policy](../pull-requests/SKILL.md#review-budget) owns round counts
-and stopping. [Agent selection](../follow-instructions/references/agent-selection.md)
-describes how to choose and launch a reviewer; [Better Call
-Sol](../better-call-sol/SKILL.md) applies
-when Sol is selected and does not define a second quality standard. Ordinary standalone
-reviews retain their requested scope; PR delivery uses the linked risk-based budget.
+and stopping. Later briefs retain the original outcome, permitted actions,
+current revision, changed paths, open findings and raw evidence. Another round
+needs a concrete coverage goal. When the final artifact has adequate review
+coverage and no material findings remain, stop. An explicit spending limit or
+unavailable reviewer leaves required review pending, never implicitly approved.
+Standalone reviews retain their requested scope.
 
 ## Select detail only when relevant
 

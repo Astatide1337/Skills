@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: "Writes or revises prose for its reader: plain, specific, natural, without AI tells or overexplanation. Use for docs, READMEs, PR descriptions, messages and reports. Not for code (deslop)."
+description: "Use when writing or revising prose, including docs, PR descriptions and reports. Use code-review-and-quality for code cleanup."
 ---
 
 # Unslop

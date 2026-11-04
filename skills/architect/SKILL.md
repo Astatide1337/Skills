@@ -1,6 +1,6 @@
 ---
 name: architect
-description: "Designs ownership, interfaces and data shapes from real callers. Use for API/schema design or uncertain module boundaries. Routine calls across established interfaces need no architecture procedure."
+description: "Use when designing APIs or schemas, changing ownership, or resolving uncertain module boundaries."
 ---
 
 # Architect
@@ -15,8 +15,9 @@ ownership, and one success and failure sequence. Identify transaction and
 side-effect boundaries, durability, retry ownership, and unresolved decisions.
 A diagram cannot replace a missing ownership decision.
 
-1. Trace the existing system with `how`. Use `why` when historical decisions
-   constrain the change.
+1. Inspect the responsible code, its callers and a comparable accepted change.
+   Use `how` for an unclear call flow and `why` when history constrains the design.
+   Start from established interfaces and operational conventions.
 2. Write caller usage before types. For a boundary, data shape or shared-state
    decision, apply [construction
    decisions](../follow-instructions/references/principles/ownership-and-domain.md#construction-decisions-and-counterexamples).
@@ -29,7 +30,7 @@ A diagram cannot replace a missing ownership decision.
    to distinguish these defects from useful boundaries.
 6. Record the chosen design, tradeoffs, open decisions and next implementation
    step in the existing plan or task record.
-7. Implement the design. If implementation repeatedly needs exceptions,
+7. When implementation is authorized, implement the design. If it repeatedly needs exceptions,
    revisit the design rather than adding more escape hatches.
 
 Before handing off a design, trace one successful operation and one failure

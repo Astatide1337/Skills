@@ -47,7 +47,8 @@ The [global instructions](global-instructions/AGENTS.md) include personal defaul
 for PR delivery and environment access. Installing skills does not install those
 instructions. Review them before choosing to use them. Under those defaults,
 implementation includes a scoped PR unless restricted, merging needs explicit
-approval, and auto-merge and deployment are prohibited.
+approval, auto-merge is prohibited, and deployment requires preparation, verification and
+explicit final approval.
 
 Delegation follows the [model-selection policy](skills/follow-instructions/references/agent-selection.md).
 It chooses from available models and reasoning options, honors explicit user
@@ -72,13 +73,12 @@ flowchart TD
   specialty["Choose the requested specialty"]
   production["production-safety"]
   architect["architect"]
+  product["product"]
   debug["systematic-debugging"]
   security["security-and-hardening"]
   web["web-interface"]
-  deslop["deslop"]
   how["how"]
   why["why"]
-  grilling["grilling"]
   hillclimb["hillclimb"]
   wizard["wizard"]
   teach["teach"]
@@ -89,7 +89,6 @@ flowchart TD
   check["Check requested result"]
   verify["verify-work"]
   quality["code-review-and-quality"]
-  sol["better-call-sol"]
   pr["pull-requests"]
   reflect["self-reflect"]
   accept{"Required outcomes established?"}
@@ -101,6 +100,9 @@ flowchart TD
   follow --> release
   follow --> other
   issue --> plan
+  plan -.->|"unclear user need or scope"| product
+  product -.->|"bounded outcome and acceptance"| plan
+  plan -.->|"unclear interfaces"| architect
   plan --> work
   review -->|"read-only"| quality
   release --> production
@@ -114,14 +116,10 @@ flowchart TD
   security -.->|"return to owning task"| check
   work -.->|"visible UI"| web
   web -.->|"return to owning task"| check
-  work -.->|"observed code clutter"| deslop
-  deslop -.->|"return to owning task"| check
   specialty -.->|"when requested"| how
   how -.->|"check requested result"| check
   specialty -.->|"when requested"| why
   why -.->|"check requested result"| check
-  specialty -.->|"when requested"| grilling
-  grilling -.->|"check requested result"| check
   specialty -.->|"when requested"| hillclimb
   hillclimb -.->|"check requested result"| check
   specialty -.->|"when requested"| wizard
@@ -136,13 +134,12 @@ flowchart TD
   creator -.->|"check requested result"| check
   specialty -.->|"when requested"| workflow
   workflow -.->|"check requested result"| check
+  work -.->|"code cleanup"| quality
   work --> check
   check -.->|"dedicated or consequential verification"| verify
   verify -.->|"observed result"| check
   check -->|"delivery change"| quality
   quality -.->|"needed counterexample"| check
-  quality -.->|"Sol selected"| sol
-  sol -.->|"returned review"| quality
   quality -->|"authorized delivery"| pr
   pr -->|"current-head evidence"| accept
   check -->|"other task"| accept
@@ -168,10 +165,10 @@ missing evidence into a pass.
 | Skill | Use it to |
 | --- | --- |
 | [follow-instructions](skills/follow-instructions/SKILL.md) | Select a workflow and carry the task through completion. |
+| [product](skills/product/SKILL.md) | Define the user problem, smallest useful scope and acceptance. |
 | [architect](skills/architect/SKILL.md) | Design interfaces, ownership and state from real callers. |
 | [systematic-debugging](skills/systematic-debugging/SKILL.md) | Reproduce a failure, find its cause and verify the fix. |
-| [code-review-and-quality](skills/code-review-and-quality/SKILL.md) | Review code against requirements, callers and tests. |
-| [better-call-sol](skills/better-call-sol/SKILL.md) | Run independent Sol review and repair rounds. |
+| [code-review-and-quality](skills/code-review-and-quality/SKILL.md) | Review code, run independent rounds and remove unnecessary code. |
 | [pull-requests](skills/pull-requests/SKILL.md) | Draft, open, review or monitor PRs and MRs. |
 | [verify-work](skills/verify-work/SKILL.md) | Verify claims and build project-specific checkers. |
 | [security-and-hardening](skills/security-and-hardening/SKILL.md) | Find and repair reachable security failures. |
@@ -179,11 +176,9 @@ missing evidence into a pass.
 | [web-interface](skills/web-interface/SKILL.md) | Build and review usable, accessible web interfaces. |
 | [html-artifacts](skills/html-artifacts/SKILL.md) | Create a standalone HTML report, diagram or interactive explanation. |
 | [hillclimb](skills/hillclimb/SKILL.md) | Improve a measured result through controlled experiments. |
-| [grilling](skills/grilling/SKILL.md) | Challenge a proposal and resolve important decisions. |
 | [how](skills/how/SKILL.md) | Trace how code works. |
 | [why](skills/why/SKILL.md) | Find why a design or implementation was chosen. |
 | [teach](skills/teach/SKILL.md) | Explain code so the reader can maintain it. |
-| [deslop](skills/deslop/SKILL.md) | Remove needless code, comments and abstractions from a diff. |
 | [unslop](skills/unslop/SKILL.md) | Write or revise clear prose without changing its meaning. |
 | [writing-for-agents](skills/writing-for-agents/SKILL.md) | Write actionable agent instructions and runbooks. |
 | [skill-creator](skills/skill-creator/SKILL.md) | Create, revise and evaluate skills. |
@@ -204,6 +199,20 @@ Add `--apply` to make the changes. Repeat `--target` for other installations.
 Sync updates only catalog packages already present, backs up local changes and
 restores them if a write fails. Unrelated skills remain untouched. Restart agent
 sessions after updating.
+
+When upgrading from a catalog with `grilling`, `deslop` or `better-call-sol`,
+install the replacement owners first, then retire the old packages:
+
+```sh
+./scripts/install.sh --skill product --skill code-review-and-quality --target ~/.agents/skills
+./scripts/install.sh --retire grilling --target ~/.agents/skills
+./scripts/install.sh --retire deslop --target ~/.agents/skills
+./scripts/install.sh --retire better-call-sol --target ~/.agents/skills
+```
+
+Retirement removes only a known, unchanged package. Customized copies are
+preserved for manual review. Sync alone does not remove retired skills or add
+new ones.
 
 Optional sync settings:
 

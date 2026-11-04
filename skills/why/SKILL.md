@@ -1,6 +1,6 @@
 ---
 name: why
-description: "Finds why code or architecture was built a certain way from history, PRs, issues and docs, separating evidence from inference. Use when asked why something exists or was designed this way."
+description: "Use when asked why code or a design exists, tracing the decision through history and sources."
 ---
 
 # Why

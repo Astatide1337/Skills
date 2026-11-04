@@ -1,6 +1,6 @@
 ---
 name: production-safety
-description: "Checks targets, effects and recovery for operational changes. Use for shared or unverified write targets, credentials, databases, clusters, migrations or deletes, including test setup."
+description: "Use before operational changes to shared or unverified targets, credentials, databases, clusters or persistent state, including test setup."
 ---
 
 # Production Safety

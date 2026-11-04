@@ -1,6 +1,6 @@
 ---
 name: how
-description: "Traces how code actually works: entry points, call flow, data, side effects and boundaries, with source links. Use when asked how something works or to explain or critique a subsystem."
+description: "Use when asked to trace how code works or walk through a request, subsystem or runtime flow."
 ---
 
 # How

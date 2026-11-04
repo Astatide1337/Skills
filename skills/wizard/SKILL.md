@@ -1,6 +1,6 @@
 ---
 name: wizard
-description: "Builds a user-run interactive setup or onboarding script for a repo: prerequisites, inputs, secrets, verification. Use when asked for a setup wizard, bootstrap script or guided install."
+description: "Use when asked to build an interactive setup wizard, bootstrap script or guided installation."
 ---
 
 # Wizard

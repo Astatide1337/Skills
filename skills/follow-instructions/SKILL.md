@@ -1,6 +1,6 @@
 ---
 name: follow-instructions
-description: "Selects workflows and skills for non-trivial work. Use for unclear causes, consequential boundaries or substantial delivery. Clear local work with known owners and checks uses the short path."
+description: "Use for substantial engineering work, unclear causes or consequential changes. Clear local corrections use the short path."
 ---
 
 # Follow instructions
@@ -50,8 +50,8 @@ These responsibilities do not require a standing team of agents.
 
 For implementation, understand the problem, choose the smallest complete change,
 implement it, remove unnecessary code, verify it, obtain required review, repair
-findings and rerun affected checks. Use `deslop` before final verification when
-cleanup is needed. Use `unslop` for substantial prose, preserving facts and
+findings and rerun affected checks. Use [code cleanup](../code-review-and-quality/SKILL.md) before final verification
+when the diff contains unnecessary code. Use `unslop` for substantial prose, preserving facts and
 uncertainty. Before finishing, check that the result meets the request and that
 each completion claim has evidence. Skip steps that do not apply to read-only,
 plan-only or short-path work.
@@ -74,6 +74,7 @@ Read that playbook and the domain skills needed for the work.
 | Request | Route | Procedure |
 | --- | --- | --- |
 | Diagnosis or explanation | `investigate/read` | [investigate](playbooks/investigate.md) |
+| Product problem, feature scope or acceptance | `design/plan` | [product](../product/SKILL.md) |
 | Architecture or authorized prototype | `design/plan` or `design/prototype` | [design](playbooks/design.md) |
 | Bug, feature or refactor | `implement/bug`, `implement/feature`, `implement/refactor` | [implement](playbooks/implement.md) |
 | Measure or improve performance | `performance/measure` or `performance/improve` | [performance](playbooks/performance.md) |
@@ -92,7 +93,7 @@ Use [systematic-debugging](../systematic-debugging/SKILL.md) for unclear causes,
 review, [security-and-hardening](../security-and-hardening/SKILL.md) for trust
 boundaries, [production-safety](../production-safety/SKILL.md) for operational
 state or credentials, and [web-interface](../web-interface/SKILL.md) for UI work.
-Select `how`, `why`, `teach`, `deslop` and `unslop` for their requested outputs,
+Select `how`, `why`, `teach` and `unslop` for their requested outputs,
 not incidental words in the task. If a task needs an unusual combination, use
 existing methods in a temporary sequence; do not create a permanent framework.
 

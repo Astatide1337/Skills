@@ -1,6 +1,6 @@
 ---
 name: verify-work
-description: "Proves claims with current evidence and builds project verifiers. Use for verification requests or consequential changes. Clear low-risk fixes with existing checks use direct verification."
+description: "Use for dedicated verification, consequential changes, real visual evidence or project verifiers. Clear local fixes use direct checks."
 ---
 
 # Verify Work
@@ -94,7 +94,8 @@ do not verify a real application.
    and interact with it. Capture and inspect screenshots at the relevant
    viewport, theme, role and state. Check layout, clipping, hierarchy, spacing,
    text, contrast and the requested appearance. Rendering without an error
-   does not establish visual correctness.
+   does not establish visual correctness. Use the capture procedure below
+   when visual evidence helps a reviewer assess the change.
 
 6. **Watch motion.** Record the complete changed interaction and watch the
    entire recording. Check timing, continuity, easing, clipping, jank,
@@ -115,6 +116,42 @@ do not verify a real application.
 9. **Report only what the evidence supports.** State what was verified and
    what remains unverified. Do not claim “done,” “fixed,” “working” or
    “deployed” beyond the observed result.
+
+## Capture useful visual evidence
+
+For a visible change, capture the relevant state before editing and after
+verification. Use the real application and comparable viewport, inputs, role
+and environment. Show both captures in one labeled before/after image so a
+reviewer can see the difference without switching files. Retain the original
+captures and identify their revisions, environment and action in the evidence
+caption or linked record. Inspect the finished comparison for legibility and
+consistency with the originals.
+
+For backend or deployment work, attach a real terminal, response or operations
+dashboard capture when it makes the result easier to judge. Show the relevant
+target and result, not a generic green dashboard. Link structured responses or
+logs when those communicate the result better. A screenshot proves only what
+it shows: it cannot establish authorization, persistence, rollout health or
+test coverage without the corresponding checks. Do not deploy solely to
+obtain a screenshot; deployment still requires the user's approval.
+
+Capture live output through the available screenshot tool. Never render logs
+into a fake terminal, reconstruct an old screen, use a mock, or replay a
+recording as evidence of a new run. If the original state is unavailable,
+label the evidence as after-only and use other observations for the comparison.
+An isolated run of the actual old revision can supply a baseline when safe;
+state that environment rather than implying it was a production capture.
+
+Choose a safe role, input and view before capture; exclude credentials and
+unnecessary personal data. Retain originals only when safe. If a capture
+accidentally includes sensitive material, recapture safely and remove the unsafe
+task copy rather than archiving it. Crop, label, combine or redact copies to
+make evidence readable and safe to share; disclose redactions and preserve the
+relevant behavior. Use a supported host attachment or authorized artifact
+store, then verify the attachment renders for the intended reviewers. Local
+paths are not remote PR attachments. If upload is unavailable, retain the
+artifact and state that limitation; do not invent a URL or broaden sharing.
+Keep evidence out of the source tree unless the repository requires it.
 
 ## Validate the measuring instrument
 

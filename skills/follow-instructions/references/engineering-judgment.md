@@ -45,6 +45,12 @@ A well-integrated local feature is usually more relevant than a universal
 architecture template. Preserve the model's freedom to find another valid
 solution. Reproduce an example only when fidelity is part of the request.
 
+Before committing to a substantial design, apply the
+[planning checks](approved-plans.md#establish-the-decision): inspect a local
+exemplar, resolve material unknowns and challenge the simplest complete approach.
+Use [product](../../product/SKILL.md) when the user outcome or scope itself is
+unclear; technical investigation cannot decide an unknown business preference.
+
 For substantial features, prove a representative complete slice before
 replicating it. Finish the remaining approved scope after the first slice works.
 Challenge consequential ownership and interaction choices before broad code is

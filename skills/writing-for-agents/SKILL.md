@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: "Writes or revises instructions for agents: AGENTS.md, CLAUDE.md, prompts, runbooks, specs, with triggers and checkable completion. Use when authoring agent-facing guidance. Not SKILL.md files."
+description: "Use when writing or revising AGENTS.md, CLAUDE.md, agent prompts, runbooks or specifications. Use skill-creator for skill files."
 ---
 
 # Writing for Agents

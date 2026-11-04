@@ -8,12 +8,48 @@ short path.
 
 ## Establish the decision
 
-Inspect the responsible code, callers, existing automation, constraints and
-checks. Record the desired outcome, smallest correction, affected interfaces,
-permitted actions and acceptance criteria in the existing task record. Use that
-compact record for ordinary implementation. Produce a separate plan artifact
-when requested or when it helps the user decide; choose HTML for useful visual
-comparison or interaction. Otherwise use the requested prose format.
+Build the recommendation before asking the user to approve it. Inspect the
+responsible code, callers, tests, deployment configuration and a nearby accepted
+implementation of the same kind. Reuse its ownership, naming and operational
+path unless a concrete constraint makes that unsuitable. Check whether an
+existing capability or smaller change already meets the request.
+
+Keep the plan in the existing task record. It should answer:
+
+- What observable outcome is required, and what is outside scope?
+- Which existing owners and conventions will carry the change?
+- What is the smallest complete implementation, and why does it fit?
+- Which compatibility, failure or recovery concern could invalidate it?
+- How will the actual behavior be verified, including useful before evidence?
+
+Resolve material factual unknowns with inspection or a bounded authorized
+experiment before presenting a plan as executable. Compare alternatives only
+when a real choice remains. Prefer fewer moving parts, dependencies and ongoing
+operational obligations at equal correctness; a shorter patch that scatters
+ownership or hides failure is not simpler. Trace a normal use and a plausible
+failure through the proposed design. Consider the next likely maintenance change
+from current callers and history, not hypothetical future platforms.
+
+For a substantial or consequential design, obtain an independent challenge
+before dependent implementation when delegation is available. Give the reviewer
+the original request, relevant code, proposed change and acceptance; ask for
+concrete reasons a maintainer would reject it, not endorsement. Resolve material
+findings and update the affected decision before presenting it for approval.
+A clean review does not guarantee correctness or replace execution evidence.
+If review is unavailable, state that limit rather than claiming it occurred.
+
+Match precautions to observed state. Verify the actual target, dependencies and
+data before treating an environment as disposable. Re-creatable isolated test
+state usually needs a reset path, not a new backup system. Shared consumers,
+unique data or production traffic require recovery appropriate to that exposure,
+even when the environment is named “test.” Reuse established deployment and
+recovery procedures; do not invent infrastructure for a routine change.
+
+Present the decision, reason, essential steps and meaningful remaining tradeoff
+concisely. Do not make the user detect missing research in a long checklist.
+Produce a separate plan artifact only when requested or needed for a decision;
+use the requested format. Approval authorizes the agreed work; it does not prove
+the design is sound or discharge verification.
 
 An investigation does not authorize permanent tooling; first establish the
 recurring need and missing native capability. For uncertain UI direction,

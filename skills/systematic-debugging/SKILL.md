@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: "Finds root cause before fixing: reproduce, isolate, test hypotheses, prove the fix. Use when a cause is unclear, evidence conflicts or fixes keep failing. Not for obvious one-line fixes."
+description: "Use when a failure has an unclear cause, evidence conflicts or attempted fixes keep failing. Not for obvious local corrections."
 ---
 
 # Systematic Debugging

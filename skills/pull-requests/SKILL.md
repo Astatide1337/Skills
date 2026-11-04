@@ -1,6 +1,6 @@
 ---
 name: pull-requests
-description: "Drafts, opens, reviews, monitors or comments on GitHub PRs and GitLab MRs within the requested permissions. Use for any PR/MR task. Never merges or enables auto-merge."
+description: "Use when drafting, opening, reviewing, monitoring or responding to a GitHub PR or GitLab MR."
 ---
 
 # Pull requests
@@ -90,12 +90,36 @@ Follow [Google's Writing good CL
 descriptions](https://google.github.io/eng-practices/review/developer/cl-descriptions.html)
 for PR/MR titles and descriptions. Apply an explicit user format or required
 repository template when present.
-Write a short, specific title. Use the repository's template when one exists.
-Otherwise use **Summary** and **Verification**; add **Open work** only for a
-draft with unresolved requirements. State the problem and resulting behavior,
-then the checks actually run and their results. Link long evidence instead of
-pasting logs, implementation history, research notes or a file-by-file recap.
-Recheck the description against the final change before submission.
+Write a short title naming the resulting change. Unless a required template
+or user format says otherwise, use:
+
+```md
+## Summary
+<The concrete problem and its effect on the user or system.>
+<What changes and why this approach fits the existing codebase.>
+
+## Verification
+<The scenario exercised and observed result, with a useful evidence link.>
+<Before/after image when the changed behavior is meaningfully visible.>
+```
+
+Replace the placeholders and omit inapplicable lines. Keep a small change to
+a few sentences. Add **Decisions** only for a material tradeoff, compatibility
+change or operational consequence a reviewer needs to assess. Add **Open work**
+only to a draft with unresolved requirements. Describe the final change for a
+maintainer who has not read the conversation; omit the work diary, file-by-file
+recap, research notes and discarded approaches unless they explain a decision.
+
+Verification should explain what now works and how it was observed. Do not
+repeat routine CI status or test counts already visible on the PR/MR. Still run
+the required checks and inspect their results; disclose failed, skipped or
+unavailable checks that affect readiness. Link a relevant run or focused check
+when it supplies evidence the reviewer needs. For visible results, follow
+[visual evidence](../verify-work/SKILL.md#capture-useful-visual-evidence): attach
+a real, labeled before/after comparison, not a mock or a screenshot of a test
+count. For nonvisual changes, use the most direct observed output instead.
+Recheck the description and attachment access against the final change before
+submission.
 
 In Create and Approved delivery modes, assign the PR/MR to Soham's verified
 account on that host. Reuse a known identity or resolve it from the host; do not
@@ -196,8 +220,8 @@ For every PR/MR delivered under this policy, obtain at least one independent
 [returned round](../code-review-and-quality/SKILL.md#returned-review-rounds).
 Select an available independent reviewer
 through [agent selection](../follow-instructions/references/agent-selection.md).
-Use [Better Call Sol](../better-call-sol/SKILL.md) when Sol is requested or chosen;
-generic review does not require that particular model. Preserve explicit model
+Use the [review procedure](../code-review-and-quality/SKILL.md#returned-review-rounds)
+with the selected reviewer; generic review does not require a particular model. Preserve explicit model
 constraints and never count self-review as a substitute. Start with one
 round covering the original outcome, scope, contracts, affected callers and
 verification. Stop when the current artifact has adequate independent coverage,

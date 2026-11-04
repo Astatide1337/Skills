@@ -10,7 +10,8 @@ change. Substantial design decisions use [design](design.md) and [plans and
 authority](../references/approved-plans.md); an existing implementation
 authorization does not require a separate presentation or confirmation. Use
 [`systematic-debugging`](../../systematic-debugging/SKILL.md) for unclear
-causes, [`architect`](../../architect/SKILL.md) for unclear boundaries,
+causes, [`product`](../../product/SKILL.md) for unsettled user outcomes or scope,
+[`architect`](../../architect/SKILL.md) for unclear boundaries,
 [`web-interface`](../../web-interface/SKILL.md) for UI, and
 [`code-review-and-quality`](../../code-review-and-quality/SKILL.md) before
 handoff.
@@ -54,8 +55,8 @@ handoff.
    before expanding variants. Carry the accepted interaction and UI constraints
    through integration; finish the remaining approved scope after the first path
    works.
-5. Remove observed redundant code or needless abstractions with `deslop` before
-   final checks, preserving behavior and local conventions. Re-run the original
+5. Apply the cleanup guidance in `code-review-and-quality` to redundant code
+   or needless abstractions before final checks, preserving behavior and local conventions. Re-run the original
    path and affected native/supplemental checks; exercise the real UI/API/CLI
    when relevant through its actual tools. Obtain independent review of approved
    nontrivial delivery, fix in-scope findings and refresh affected checks and
