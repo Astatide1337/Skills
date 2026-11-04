@@ -25,6 +25,76 @@ Keep the parent model, global settings, keys, quota and permissions unchanged.
    selection; never claim requested settings were used when the runtime reports
    otherwise.
 
+## Refresh OpenCode NVIDIA inventory
+
+For OpenCode v2.2.5, run from this checkout:
+
+```bash
+python3 skills/follow-instructions/scripts/nim-models.py
+python3 skills/follow-instructions/scripts/nim-models.py --apply
+opencode reload
+```
+
+The first invocation is a dry run. The helper reads NVIDIA's `/v1/models`,
+rejects malformed, empty, partial or wholly deprecated inventories, and syncs
+only the NVIDIA provider. Newly advertised entries stay disabled with tools
+false: this catalog includes non-chat models and does not prove authenticated
+callability. Existing model metadata survives refresh, including disabled tombstones.
+Supported legacy model fields are translated to v2; complex legacy controls
+are refused with instructions to migrate using OpenCode. Removed entries are disabled. After verifying the inherited default is available and suitable,
+add `--clear-unavailable-overrides` to remove references absent from the
+nondeprecated inventory. Otherwise preserve role settings and report unresolved
+references; an advertised default is not proof of authenticated callability.
+The helper also reads `opencode models` and keeps disabled entries for absent
+built-in catalog models, because config overlays rather than replaces that catalog.
+Inspect remaining overrides before dispatch: an advertised disabled entry can
+still have an explicit role reference. No replacement is chosen by name or size.
+
+Use `--probe EXACT_ADVERTISED_ID --apply` to test one advertised candidate
+through OpenCode v2.2.5's supported stateless
+`POST /api/experimental/generate/text` API (`opencode api --standalone`). A
+subprocess-only config overlay enables the candidate for this test and sets a
+64-token output bound; it never changes the on-disk config. The runtime resolves
+its own live credentials, including SQLite-backed connections. The helper never
+reads `opencode.db` or legacy `auth.json`. Existing `OPENCODE_CONFIG_CONTENT`
+is refused for probes because it would conflict with the test overlay.
+
+A matching text response enables that candidate on apply without claiming tool
+verification. For a forced harmless tool-call check, explicitly supply an
+existing secret environment variable by name with `--key-env NVIDIA_API_KEY`
+alongside `--probe`; never pass the key itself as an argument. Only a matching
+`ping({"value":"ok"})` response marks tools verified. No key is changed.
+A requested probe failure exits nonzero and skips all config writes. A 403 means
+the request was denied; it does not establish an invalid key or general model
+inaccessibility. Endpoint inventory alone is not proof of callable models.
+Neither text nor API tool success proves the T3 child path; verify that separately.
+
+Apply atomically replaces the config and leaves a unique private backup beside
+it, preserving the config's mode. Errors preserve the last good config. Restore
+with `--restore /path/to/opencode.json.nim-backup-… --apply`, even if the current
+target is corrupt, then run `opencode reload`. Restart clients if their catalog
+remains cached. Target discovery honors `--config`, then `OPENCODE_CONFIG`, then `OPENCODE_CONFIG_DIR`,
+then `XDG_CONFIG_HOME/opencode` (default `~/.config/opencode`). JSONC targets are
+refused; when both global JSON and JSONC exist, select a JSON target explicitly
+and inspect the runtime's merged settings. The helper refuses ambiguous
+legacy/native NVIDIA definitions and malformed options/settings maps.
+
+Reports list unresolved `model`, `small_model`, and `agent`/`agents` model
+references to absent or disabled NIM entries; unrelated providers are preserved.
+`removed_overrides` separately records explicit removals of absent NIM references.
+No startup hook or scheduler is installed; invoke refresh explicitly before
+model selection. Offline checks, discovered by the existing CI suite:
+`uv run --frozen python -m unittest discover -s evals/tests -p test_nim_models.py -v`.
+
+Version evidence: the [v2.2.5 NVIDIA plugin](https://github.com/anomalyco/opencode/blob/v2.2.5/packages/core/src/plugin/provider/nvidia.ts)
+adds headers, without inventory discovery. Custom providers need explicit models
+([v2 providers](https://dev.opencode.ai/v2/docs/providers)); plugins can implement
+inventory transforms ([server plugins](https://dev.opencode.ai/v2/docs/build/plugins/server)).
+This explicit sync uses the [v2.2.5 provider schema](https://github.com/anomalyco/opencode/blob/v2.2.5/packages/schema/src/config/provider.ts)
+and installed `opencode reload` command, avoiding a persistent plugin and its
+credential lifecycle. NVIDIA documents the inference endpoint in its
+[LLM API reference](https://docs.api.nvidia.com/nim/reference/llm-apis).
+
 ## Match the role to the work
 
 | Work | Starting capability and reasoning | Raise effort when |
