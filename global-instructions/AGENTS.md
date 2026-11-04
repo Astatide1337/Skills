@@ -8,7 +8,8 @@
   scoped PR unless I request local-only work or set another restriction.
   For planning, explanation or review, perform only the requested actions.
   Merge only after I explicitly approve that merge.
-  Never enable auto-merge or deploy.
+  Never enable auto-merge. Prepare and verify the deployment before asking for
+  my final approval. Deploy only after I explicitly approve that deployment.
 - An issue URL sent as a work item means implementation through a verified
   PR/MR. Preserve explicit read-only requests and repository-specific write rules.
 - Keep one-off plans, research, investigation notes and verification reports
