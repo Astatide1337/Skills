@@ -6,8 +6,8 @@ is valid when the design fits its needs.
 
 ## Abstraction fit
 
-Does each abstraction hide meaningful complexity or stabilize a volatile
-dependency? Flag wrappers whose callers still need to understand the wrapped
+Does each abstraction hide meaningful complexity or isolate a dependency that changes
+often? Flag wrappers whose callers still need to understand the wrapped
 implementation. Also flag modules that combine unrelated decisions and force
 changes to travel together.
 
@@ -21,8 +21,9 @@ structure without naming the access pattern it improves.
 ## Boundaries and testability
 
 Are parsing, validation, authorization, side effects, and failure translation
-owned at clear edges? Can policy be tested without constructing unrelated
-infrastructure? Identify cycles, hidden global state, and cross-layer reach.
+handled by clearly identified modules? Can policy be tested without constructing unrelated
+infrastructure? Identify cycles, hidden global state, and code that bypasses another
+module's interface.
 
 ## Plausible evolution
 
@@ -32,10 +33,9 @@ locality from indirection that merely spreads the edit across more files.
 
 ## Complexity and value
 
-Every layer, queue, cache, configuration option, and framework has operational
-and cognitive cost. Ask which current requirement pays for it. Over-abstraction
-is as real as under-abstraction; prefer the smallest design that protects real
-invariants and likely change seams.
+For each layer, queue, cache, option and framework, identify the current
+requirement it serves and the work needed to understand and operate it. Prefer
+the smallest design that preserves required behavior and isolates likely changes.
 
 ## Consistency
 

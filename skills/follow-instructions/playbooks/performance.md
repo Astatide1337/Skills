@@ -9,8 +9,8 @@ system.
 ## Inputs to establish
 
 - user-visible symptom, representative workload/data, correctness constraints,
-  environment, and metric (including tail/resource limits);
-- repeatability, noise budget, and finite experiment/repetition budget;
+  environment, and metric, including tail latency and resource limits;
+- expected measurement variation and the allowed number or cost of experiments;
 - `measure` versus `improve` authority and rollback for an optimization.
 
 Use [`hillclimb`](../../hillclimb/SKILL.md) for controlled repeated tuning and
@@ -40,8 +40,8 @@ different budgets. Undo only run-owned rejected changes.
 ## Completion evidence
 
 Provide baseline/candidate measurements under the same conditions, relevant
-correctness results, resource/tail effects, repetitions and uncertainty. A
-single faster command or benchmark setup is not an improvement claim.
+correctness results, resource/tail effects, repetitions and uncertainty. Setting
+up a benchmark or observing one faster run does not establish an improvement.
 
 ## Example
 

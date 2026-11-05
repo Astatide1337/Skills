@@ -153,17 +153,12 @@ class WorkflowContractTests(unittest.TestCase):
 
     def test_model_free_pilot_does_not_supply_native_agent_answers(self) -> None:
         dataset = skills.workflow_fixture_pilot().dataset
-        self.assertEqual(len(dataset), 9)
+        self.assertEqual(len(dataset), 12)
         self.assertTrue(all(not str(sample.id).startswith("workflow-native-") for sample in dataset))
 
-    def test_writing_cases_establish_inspectable_git_baselines(self) -> None:
+    def test_supplied_cases_establish_inspectable_git_baselines(self) -> None:
         cases = {sample.id: sample for sample in skills.workflows_dataset()}
-        for case_id in (
-            "workflow-native-prose-concise",
-            "workflow-native-prose-detailed",
-            "workflow-native-attributed-review-draft",
-            "workflow-native-html-plan-only",
-        ):
+        for case_id in (key for key, sample in cases.items() if sample.setup and sample.files):
             sample = cases[case_id]
             with self.subTest(case=case_id), tempfile.TemporaryDirectory() as raw:
                 root = Path(raw)
@@ -260,7 +255,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            52,
+            61,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -330,6 +325,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(
             set(cases),
             {
+                "workflow-deslop-generated-code-cleanup",
                 "workflow-ui-clutter-regression",
                 "workflow-user-input-shortcut",
                 "workflow-fresh-start-prerequisite",
@@ -382,6 +378,14 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-security-blocked-path",
                 "workflow-native-security-reachable-private-resolution",
                 "workflow-native-security-insufficient-reachability-evidence",
+                "workflow-native-agent-generic-review",
+                "workflow-native-agent-named-unavailable",
+                "workflow-native-agent-role-reasoning",
+                "workflow-native-agent-explicit-effort",
+                "workflow-native-agent-worktree-candidate",
+                "knowledge-history-non-object-receipt",
+                "knowledge-history-incomplete-cache-row",
+                "workflow-native-review-recurring-cache-defect",
             },
         )
         for sample in cases.values():
@@ -454,6 +458,26 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIsNone(error)
         self.assertIsNotNone(command)
         return subprocess.run(command or [], cwd=root, capture_output=True, text=True)
+
+    def test_migrated_cleanup_preserves_behavior_with_alternative_implementations(self):
+        sample = next(s for s in skills.workflows_dataset()
+                      if s.id == "workflow-deslop-generated-code-cleanup")
+        contract = sample.metadata["fixture_contract"]
+        valid = [contract["write_content"],
+                 "def lookup(store, key):\n    value = store.get(key)\n    if value is None:\n        return None\n    return value\n"]
+        invalid = [
+            "def lookup(store, key):\n    return store.get(key) or None\n",
+            "def lookup(store, key):\n    try:\n        return store.get(key)\n    except Exception:\n        return None\n",
+            "def lookup(store, key):\n    store.get(key)\n    return store.get(key)\n",
+        ]
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self._write_case_files(root, sample)
+            for source in valid + invalid:
+                with self.subTest(source=source):
+                    (root / "src/lookup.py").write_text(source)
+                    result = self._run_case_acceptance(sample, root)
+                    self.assertEqual(result.returncode == 0, source in valid, result.stderr)
 
     def test_api_contract_provenance_keeps_the_valid_unit_mock_control(self) -> None:
         sample = next(s for s in skills.workflows_dataset() if s.id == "workflow-native-api-contract-provenance")

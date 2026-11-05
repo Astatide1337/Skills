@@ -6,16 +6,30 @@
   `Co-Authored-By: Codex` or `Codex-Session`.
 - Implementation requests normally include committing, pushing and opening a
   scoped PR unless I request local-only work or set another restriction.
-  Planning, explanation and review-only requests retain their requested effects.
+  For planning, explanation or review, perform only the requested actions.
   Merge only after I explicitly approve that merge.
-  Never enable auto-merge or deploy.
+  Never enable auto-merge. Prepare and verify the deployment before asking for
+  my final approval. Deploy only after I explicitly approve that deployment.
+- An issue URL sent as a work item means implementation through a verified
+  PR/MR. Preserve explicit read-only requests and repository-specific write rules.
+- Keep one-off plans, research, investigation notes and verification reports
+  outside project checkouts. Add maintained Markdown only when requested or
+  needed to use or operate the changed behavior; update existing docs first.
 
 ## Personal context
 
-- For who I am and cross-project decisions, read the [wiki decisions](https://github.com/Astatide1337/astatide-wiki/tree/main/content/decisions).
-- Skills holds how to work; each repository's `AGENTS.md` holds that codebase.
-- Keep mechanically enforceable invariants in types, lint, tests and CI.
+- When I say “fleet”, read the [Fleet repository](https://github.com/Astatide1337/fleet)
+  README, operations guide and relevant machine records before choosing targets
+  or procedures. Verify recorded state on the target; Fleet provides context,
+  not additional authority.
 
+- For who I am and cross-project decisions, read the [wiki decisions](https://github.com/Astatide1337/astatide-wiki/tree/main/content/decisions).
+- Skills describes how to work; each repository's `AGENTS.md` supplies its local rules.
+- Enforce rules in types, lint, tests or CI when those tools can check them.
+- For delegated engineering work, select an available model and reasoning level
+  suited to the role using `follow-instructions`' agent-selection policy. Honor
+  explicit model, provider, effort and spending constraints. Keep parent-session
+  and global settings unchanged; do not silently switch after a failed dispatch.
 
 ## Kubernetes and OpenShift
 

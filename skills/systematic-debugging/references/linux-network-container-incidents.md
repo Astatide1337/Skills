@@ -30,11 +30,11 @@ rollback gates.
    Mark each edge with the exact observation source and scope. Compare a
    failing request with one allowed control from the same source and namespace
    where practical.
-   Carry the diagnosis as a cited chain: connect the initiating peer to the
-   target address or source tuple, then to a time-stamped listener state or
-   matching filter rule, then to the failed request and any paired counter
-   change. Name both the affected component and the interface, namespace,
-   chain, or other boundary scope. When configuration and runtime observations
+   Cite the evidence connecting the initiating peer, target address or source
+   tuple, timestamped listener state or matching filter rule, failed request
+   and any corresponding counter change. Name the affected component and the interface,
+   namespace, rule chain or
+   other boundary involved. When configuration and runtime observations
    differ, cite both and describe configured intent separately from the later
    observed runtime.
 3. **Take the smallest read-only snapshot.** After confirming the target and
@@ -74,7 +74,8 @@ rollback gates.
    restart services or containers, build/pull images, prune resources, change
    routes/firewall/sysctls, alter network policy, run `kubectl exec`, or change
    credentials/security settings as a diagnostic shortcut. Those actions need
-   separate authorization and the relevant `production-safety` recovery plan.
+   authorization for those actions and the relevant `production-safety`
+   recovery plan.
 6. **Verify an authorized change at the same boundary.** If a change is
    explicitly authorized, capture pre-change state, make one scoped change,
    repeat the original failing request and the allowed control, check service

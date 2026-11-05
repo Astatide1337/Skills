@@ -1,9 +1,9 @@
 # Plain language and ASD-STE100
 
-Use this reference selectively. It is a local adaptation of public guidance,
-not a reproduction of either standard and not a certification of compliance.
-The existing `unslop` procedure remains authoritative for preserving meaning,
-voice, evidence, and uncertainty.
+Use this reference when a procedure or audience needs consistent technical
+language. It adapts public guidance; it does not reproduce either standard or
+certify compliance. Follow `unslop` to preserve meaning, voice, evidence and
+uncertainty.
 
 ## Choose the standard by destination
 
@@ -15,8 +15,8 @@ voice, evidence, and uncertainty.
 
 ## Plain-language baseline
 
-Plain language is reader-first. Before rewriting, identify what the reader
-needs to find, understand, and use. Then:
+Before rewriting, identify what the reader needs to find, understand and use.
+Then:
 
 - state the answer, decision, or requested action early;
 - use familiar words and concrete verbs;

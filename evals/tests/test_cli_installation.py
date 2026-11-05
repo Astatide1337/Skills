@@ -1,6 +1,8 @@
 """Disposable installation boundaries; native CLI manifests stay with their owner."""
 import os
 import json
+import re
+import shlex
 from pathlib import Path
 import shutil
 import subprocess
@@ -46,6 +48,40 @@ class InstallationBoundaryTests(unittest.TestCase):
         self.assertTrue(evidence['diagnostics_available'])
         self.assertEqual(evidence['diagnostics'][0]['rule'], 'F821')
         self.assertEqual((app / 'sample.py').read_text(), source)
+
+    def test_installed_parent_acceptance_guide_runs_with_separate_hook_bundle(self):
+        target = self.root / 'installed-skills'
+        result = self.install('--skill', 'follow-instructions', '--skill', 'verify-work',
+                              '--target', str(target))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        skill = target / 'verify-work/SKILL.md'
+        link = re.search(r'\[independent acceptance\]\(([^)]+)\)', skill.read_text()).group(1)
+        guide = (skill.parent / link.split('#')[0]).resolve()
+        self.assertTrue(guide.is_file())
+        self.assertFalse((target.parent / 'global-instructions').exists())
+        text = guide.read_text().split('## Parent acceptance', 1)[1].split('## Decision', 1)[0]
+        example = re.search(r'```sh\n(.*?)\n```', text, re.S).group(1)
+        bundle = self.root / 'reviewed hooks'
+        bundle.mkdir()
+        for name in ('agent_gates.py', 'test_integrity.py'):
+            shutil.copyfile(ROOT / 'global-instructions/hooks' / name, bundle / name)
+        checker = self.root / 'task checker.py'
+        checker.write_text("import json\nfrom pathlib import Path\n"
+                           "ok=Path('artifact').read_text()=='valid'\n"
+                           "print(json.dumps({'status':'complete' if ok else 'incomplete','reason':'Actual artifact checked'}))\n")
+        command = example.replace('/path/to/hooks/agent_gates.py', shlex.quote(str(bundle / 'agent_gates.py')))
+        command = command.replace('/trusted/task_acceptance.py', shlex.quote(str(checker)))
+        command = command.replace('python3', shlex.quote(os.sys.executable))
+        artifact = self.root / 'artifact'
+        for content, expected in [('valid', 0), ('invalid', 1)]:
+            artifact.write_text(content)
+            result = subprocess.run(['sh', '-c', command], cwd=self.root,
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, expected, result.stderr)
+        checker.unlink()
+        result = subprocess.run(['sh', '-c', command], cwd=self.root,
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2, result.stderr)
 
     def test_custom_dependency_is_preserved_until_explicitly_selected(self):
         root = Path(__file__).resolve().parents[2]

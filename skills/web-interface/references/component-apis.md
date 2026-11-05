@@ -1,7 +1,7 @@
 # Component APIs
 
-Read this when designing a reusable component or refactoring an API with prop
-sprawl, shared child state, or awkward customization.
+Read this when designing a reusable component or refactoring an API with too many props,
+shared child state, or awkward customization.
 
 ## Contents
 
@@ -26,8 +26,9 @@ Use the smallest mechanism that expresses the real variation:
 | Several consumers need swappable state ownership | Provider contract |
 
 Preserve booleans such as `disabled`, `required`, `readOnly`, and `multiple`
-when they represent independent semantic state. The smell is a growing set of
-booleans that select mutually exclusive layouts or hide/show structural slots.
+when they represent independent semantic state. Reconsider a growing set of booleans
+that selects mutually exclusive layouts
+or controls which structural parts appear.
 
 ## Avoid presentation booleans
 
@@ -61,7 +62,7 @@ Do not force unrelated experiences through one universal component merely to
 avoid duplication.
 
 Prefer `children` over a render prop when the child does not need values from
-the component. Use a render prop only for a genuine function contract:
+the component. Use a render prop when the caller needs values supplied by the component:
 
 ```tsx
 <Collection>{items}</Collection>

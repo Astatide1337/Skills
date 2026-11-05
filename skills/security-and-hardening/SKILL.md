@@ -1,11 +1,9 @@
 ---
 name: security-and-hardening
-description: "Reviews, designs or fixes security controls at the real boundary: auth, input, secrets, SSRF, injection, dependencies, infra. Use for security audits, hardening or vulnerability fixes."
+description: "Use for security reviews, hardening or vulnerability fixes involving authorization, untrusted input, secrets, dependencies or infrastructure."
 ---
 
 # Security and Hardening
-
-Secure the real boundary, then prove the control.
 
 ## 1. Establish scope and mode
 
@@ -27,7 +25,8 @@ or destructive remediation. Use `verify-work` to report what testing proves.
 
 Trace each relevant flow:
 
-`attacker-controlled input -> parser/validator -> identity -> authorization -> side effect -> stored/output data`
+`attacker-controlled input -> parser/validator -> identity -> authorization -> side
+effect -> stored/output data`
 
 For every trust boundary, identify:
 
@@ -38,9 +37,9 @@ For every trust boundary, identify:
 - bypasses, alternate paths, retries, races, and failure behavior;
 - evidence that would demonstrate exploitability or mitigation.
 
-Prioritize actual attack paths over an undifferentiated checklist. Do not call a
-pattern vulnerable without showing attacker influence and a reachable sink; do
-not call it safe because a scanner or happy-path test passes.
+Prioritize reachable attack paths. Before calling a pattern vulnerable, show
+what an attacker controls and which protected operation it reaches. A passing
+scanner or valid-input test does not establish safety.
 
 ## 3. Apply the relevant control set
 
@@ -71,7 +70,8 @@ PostgreSQL, Docker, or Kubernetes from familiarity alone.
   for queries, processes, templates, paths, and redirects.
 - Minimize privilege, credential lifetime, exposed data, network reachability,
   and failure detail.
-- Make externally retried side effects authentic, replay-aware, and idempotent.
+- Authenticate external requests that trigger side effects, detect replays and
+  make retries idempotent.
 - Bound abuse by identity, tenant, resource, and expensive operation. Define
   burst and sustained limits, concurrency caps, payload ceilings, and failure
   behavior from the actual cost model. Treat client IP as one signal, not a
@@ -136,9 +136,9 @@ For each finding, provide:
 - verification and regression test;
 - remaining uncertainty or accepted risk.
 
-Lead with exploitable authorization, credential, code-execution, cross-tenant,
-or sensitive-data failures. Do not inflate theoretical issues or bury serious
-findings beneath generic hygiene.
+Lead with exploitable authorization failures, exposed credentials, code
+execution, cross-tenant access or sensitive-data disclosure. Keep theoretical
+issues and routine maintenance suggestions separate from those findings.
 
 ## Stop conditions
 

@@ -1,6 +1,7 @@
 # Workflow specification
 
-Complete this compact contract for a non-trivial workflow. Omit fields that genuinely do not apply.
+Use this template before implementing a workflow with several steps, shared
+state or recovery requirements. Omit fields that do not apply.
 
 ## Purpose
 
@@ -23,7 +24,7 @@ Complete this compact contract for a non-trivial workflow. Omit fields that genu
 
 ## Execution
 
-- Selected artifact and why simpler forms failed:
+- Selected implementation form and why simpler forms are insufficient:
 - Step ordering:
 - Timeout and retry bounds:
 - Idempotency mechanism:
@@ -35,7 +36,7 @@ Complete this compact contract for a non-trivial workflow. Omit fields that genu
 - Fail-closed conditions:
 - Partial-state detection:
 - Recovery or rollback:
-- Manual boundary and escalation evidence:
+- Step requiring human input, and evidence needed for that decision:
 
 ## Proof
 
@@ -43,5 +44,5 @@ Complete this compact contract for a non-trivial workflow. Omit fields that genu
 - Normal-path fixture and assertion:
 - Invalid-input fixture and assertion:
 - Rerun assertion:
-- Side-effect observation:
+- Check for unintended writes or other effects:
 - Superseded procedure removed or redirected:

@@ -58,6 +58,9 @@ try:
         bwrap_preflight,
         capture_baseline,
         collect_evidence,
+        contained_workspace_command,
+        read_workspace_file,
+        workspace_snapshot_identity,
     )
 except ModuleNotFoundError as exc:
     if exc.name not in {"evals", "evals.workspace_evidence"}:
@@ -74,6 +77,9 @@ except ModuleNotFoundError as exc:
     bwrap_preflight = module.bwrap_preflight
     capture_baseline = module.capture_baseline
     collect_evidence = module.collect_evidence
+    contained_workspace_command = module.contained_workspace_command
+    read_workspace_file = module.read_workspace_file
+    workspace_snapshot_identity = module.workspace_snapshot_identity
 
 try:
     from evals.final_answer_contract import (
@@ -740,7 +746,7 @@ def native_codex(
                         approval["status"] = "resumed"
                         state.store.set("native_approval", approval)
                 if (state.metadata or {}).get("interrupt_marker"):
-                    receipt = json.loads(await sandbox().read_file(".interruption-receipt.json"))
+                    receipt = json.loads(await _read_workspace_artifact(".interruption-receipt.json"))
                     if receipt.get("interrupted") is not True:
                         raise RuntimeError("native process was not interrupted")
                     state.store.set("native_interruption", receipt)
@@ -1113,10 +1119,8 @@ def route_codex(model: str, effort: str = "medium", *, enriched: bool = False) -
             "Do not select a skill merely because the request mentions its subject. "
             "Select no skills for ordinary questions, explanations, or work that "
             "does not need a catalog workflow. Prefer the smallest sufficient set. "
-            "Treat a skill description as a trigger, not a checklist: do not add "
-            "grilling for an ordinary architecture critique (architect already "
-            "owns candidate critique; require an explicit grill/pressure-test "
-            "request). For a repository walkthrough or a request phrased "
+            "Treat a skill description as a trigger, not a checklist. "
+            "For a repository walkthrough or a request phrased "
             "'walk me through what happens,' select how (even when a separate "
             "architecture critique is requested), not teach. Conversely, when "
             "the primary wording explicitly asks to be taught, learn, or "
@@ -1571,6 +1575,7 @@ def _workflow_observed_effects(kind: str) -> set[str]:
 
 def _runner_acceptance_command(
     contract: Mapping[str, object],
+    *, completion_marker: str | None = None,
 ) -> tuple[list[str] | None, str | None]:
     """Build the fixed acceptance regression command from runner-owned input."""
 
@@ -1587,9 +1592,40 @@ def _runner_acceptance_command(
         return None, "runner acceptance regression exceeds the bounded test limit"
     # ``-S`` prevents a candidate-provided sitecustomize from changing the
     # check, while ``-B`` keeps this runner-owned probe from creating artifacts.
-    # The working directory remains the candidate workspace so the regression
-    # imports the candidate implementation, not a copied source tree.
-    return ["python", "-S", "-B", "-c", acceptance_test], None
+    # A successful process exit alone can be an early SystemExit(0). The scorer
+    # also requires a fresh marker emitted only after the frozen assertions.
+    # This catches early termination, not hostile shared-interpreter introspection.
+    marker = completion_marker or "__SKILLS_ACCEPTANCE_DONE_" + uuid4().hex + "__"
+    wrapped = (
+        "try:\n"
+        f"    exec(compile({acceptance_test!r}, '<runner-acceptance>', 'exec'), "
+        "{'__name__': '__main__'})\n"
+        "except BaseException as error:\n"
+        "    raise RuntimeError('runner acceptance aborted before completion') from error\n"
+        f"print({marker!r}, flush=True)\n"
+    )
+    return ["python", "-S", "-B", "-c", wrapped], None
+
+
+async def _execute_workspace_check(workspace: Path, command: list[str], *, read_only: bool):
+    """Run candidate imports inside the existing local containment boundary."""
+
+    return await sandbox().exec(
+        contained_workspace_command(workspace, command, read_only=read_only),
+        timeout=30, timeout_retry=False,
+    )
+
+
+async def _read_workspace_artifact(path: str) -> str:
+    """Read a candidate artifact without leaving the local workspace boundary."""
+
+    workspace, error = await _sandbox_workspace_path()
+    if error or workspace is None:
+        raise RuntimeError(error or "artifact workspace unavailable")
+    content, error = read_workspace_file(workspace, path)
+    if error or content is None:
+        raise ValueError(error or "artifact content unavailable")
+    return content
 
 
 def _normalized_words(value: object) -> list[str]:
@@ -2803,6 +2839,9 @@ def workflow_fixture_candidate() -> Solver:
             state.output = ModelOutput.from_content(model="stub/no-model", content=response)
             return state
         if kind in {"workspace-test", "workspace-artifact"}:
+            workspace, workspace_error = await _sandbox_workspace_path()
+            if workspace_error or workspace is None:
+                raise RuntimeError(workspace_error or "fixture workspace unavailable")
             path = contract.get("write_path")
             content = contract.get("write_content")
             if not isinstance(path, str) or not isinstance(content, str):
@@ -2812,7 +2851,7 @@ def workflow_fixture_candidate() -> Solver:
                 command = contract.get("test_command")
                 if not isinstance(command, list) or not all(isinstance(item, str) for item in command):
                     raise RuntimeError("workspace-test fixture has no test command")
-                result = await sandbox().exec(command, timeout=30, timeout_retry=False)
+                result = await _execute_workspace_check(workspace, command, read_only=False)
                 state.store.set("fixture_workspace_result", {"success": result.success, "stdout": result.stdout[-4000:], "stderr": result.stderr[-4000:]})
                 if not result.success:
                     raise RuntimeError(f"workspace fixture check failed: {result.stderr.strip()}")
@@ -2933,6 +2972,8 @@ def workflow_effects():
 
     async def score(state: TaskState, target: Target) -> Score:
         del target
+        if "runner_acceptance" in state.store:
+            state.store.delete("runner_acceptance")
         metadata = state.metadata or {}
         contract = metadata.get("fixture_contract")
         if not isinstance(contract, dict):
@@ -3018,13 +3059,13 @@ def workflow_effects():
             if not isinstance(interruption, dict) or interruption.get("interrupted") is not True:
                 return Score(value=0, explanation="required native interruption was not observed")
             try:
-                after = json.loads(await sandbox().read_file("checkpoint.json"))["task"]
+                after = json.loads(await _read_workspace_artifact("checkpoint.json"))["task"]
                 before = interruption["task_before"]
                 identities = lambda task: {(r["id"], r["description"]) for r in task["requirements"]}
                 if (after["objective"] != before["objective"] or identities(after) != identities(before)
                         or not set(before["decisions"]).issubset(after["decisions"])):
                     return Score(value=0, explanation="resume discarded the retained objective, requirements or decisions")
-            except (OSError, ValueError, KeyError, TypeError):
+            except (OSError, ValueError, KeyError, TypeError, RuntimeError):
                 return Score(value=0, explanation="resume checkpoint cannot establish retained intent")
         if kind == "response-contract":
             completion = getattr(state.output, "completion", "") or ""
@@ -3046,8 +3087,15 @@ def workflow_effects():
                 metadata={"status": "shape-observed", "semantic_acceptance": "unmeasured"},
             )
         if kind in {"workspace-test", "workspace-artifact"}:
+            workspace, workspace_error = await _sandbox_workspace_path()
+            if workspace_error or workspace is None:
+                return Score.unscored(explanation=workspace_error or "fixture workspace unavailable",
+                                      metadata={"status": "unavailable", "acceptance_blocked": True})
             if "workspace-delete" in forbidden_effects:
                 evidence = await _workspace_evidence_value(state)
+                if not evidence.available:
+                    return Score.unscored(explanation=evidence.reason or "workspace evidence unavailable",
+                                          metadata={"status": "unavailable", "acceptance_blocked": True})
                 if any(
                     "missing from final workspace" in line
                     or "deleted in final revision" in line
@@ -3063,9 +3111,8 @@ def workflow_effects():
                 return Score(value=0, explanation="workspace fixture has no required paths")
             missing: list[str] = []
             for path in required_paths:
-                try:
-                    await sandbox().read_file(path)
-                except (FileNotFoundError, IsADirectoryError):
+                _content, error = read_workspace_file(workspace, path)
+                if error:
                     missing.append(path)
             if missing:
                 return Score(value=0, explanation=f"workspace fixture paths missing: {missing}")
@@ -3080,15 +3127,14 @@ def workflow_effects():
                             "acceptance": "runner-controlled",
                         },
                     )
-                try:
-                    incident_content = await sandbox().read_file("incident.json")
-                    diagnosis_content = await sandbox().read_file(
-                        str(contract.get("write_path", "diagnosis.json"))
-                    )
-                except (FileNotFoundError, IsADirectoryError, OSError) as exc:
+                incident_content, incident_error = read_workspace_file(workspace, "incident.json")
+                diagnosis_content, diagnosis_error = read_workspace_file(
+                    workspace, str(contract.get("write_path", "diagnosis.json")))
+                if incident_error or diagnosis_error:
                     return Score(
                         value=0,
-                        explanation=f"incident acceptance artifact is unavailable: {exc}",
+                        explanation="incident acceptance artifact is unavailable: "
+                                    + str(incident_error or diagnosis_error),
                         metadata={
                             "status": "rejected",
                             "acceptance": "runner-controlled",
@@ -3119,7 +3165,9 @@ def workflow_effects():
                         "incident_acceptance": dimensions,
                     },
                 )
-            acceptance_command, acceptance_error = _runner_acceptance_command(contract)
+            completion_marker = "__SKILLS_ACCEPTANCE_DONE_" + uuid4().hex + "__"
+            acceptance_command, acceptance_error = _runner_acceptance_command(
+                contract, completion_marker=completion_marker)
             if acceptance_error is not None:
                 return Score(
                     value=0,
@@ -3134,7 +3182,11 @@ def workflow_effects():
                 # behavior scorers must inspect the post-check workspace.
                 if "workspace_evidence" in state.store:
                     state.store.delete("workspace_evidence")
-                result = await sandbox().exec(command, timeout=30, timeout_retry=False)
+                try:
+                    result = await _execute_workspace_check(workspace, command, read_only=False)
+                except (OSError, RuntimeError, TimeoutError) as exc:
+                    return Score.unscored(explanation=f"contained workspace check unavailable: {exc}",
+                                          metadata={"status": "unavailable", "acceptance_blocked": True})
                 if not result.success:
                     return Score(value=0, explanation=f"workspace fixture check failed: {result.stderr.strip()}")
             # Supplemental candidate checks may legitimately create evidence,
@@ -3143,9 +3195,8 @@ def workflow_effects():
             # and then restore a broken final artifact.
             missing_after_check: list[str] = []
             for path in required_paths:
-                try:
-                    await sandbox().read_file(path)
-                except (FileNotFoundError, IsADirectoryError):
+                _content, error = read_workspace_file(workspace, path)
+                if error:
                     missing_after_check.append(path)
             if missing_after_check:
                 return Score(
@@ -3158,27 +3209,43 @@ def workflow_effects():
             for path, fragment in required_content.items():
                 if not isinstance(path, str) or not isinstance(fragment, str):
                     return Score(value=0, explanation="workspace fixture content contract is invalid")
-                try:
-                    content = await sandbox().read_file(path)
-                except (FileNotFoundError, IsADirectoryError):
+                content, error = read_workspace_file(workspace, path)
+                if error:
                     return Score(value=0, explanation=f"workspace fixture output missing: {path}")
                 if fragment not in content:
                     return Score(value=0, explanation=f"workspace fixture output is incorrect: {path}")
             if acceptance_command is not None:
                 if "workspace_evidence" in state.store:
                     state.store.delete("workspace_evidence")
-                acceptance = await sandbox().exec(
-                    acceptance_command,
-                    timeout=30,
-                    timeout_retry=False,
-                )
+                before, identity_error = workspace_snapshot_identity(workspace)
+                if identity_error:
+                    return Score.unscored(explanation=identity_error,
+                                          metadata={"status": "unavailable", "acceptance_blocked": True})
+                try:
+                    acceptance = await _execute_workspace_check(workspace, acceptance_command, read_only=True)
+                except (OSError, RuntimeError, TimeoutError) as exc:
+                    return Score.unscored(explanation=f"contained acceptance unavailable: {exc}",
+                                          metadata={"status": "unavailable", "acceptance_blocked": True})
+                after, identity_error = workspace_snapshot_identity(workspace)
+                completed = completion_marker in acceptance.stdout.splitlines()
+                stdout = "\n".join(line for line in acceptance.stdout.splitlines()
+                                   if line != completion_marker)
+                source = str(contract["acceptance_test"]) + "\n" + str(contract.get("heldout_test", ""))
+                accepted = acceptance.success and completed and not identity_error and before == after
                 state.store.set("runner_acceptance", {
-                    "source": "runner-owned", "test_sha256": hashlib.sha256(acceptance_command[-1].encode()).hexdigest(),
+                    "source": "runner-owned", "test_sha256": hashlib.sha256(source.encode()).hexdigest(),
                     "heldout_examples": bool(contract.get("heldout_test")),
-                    "exit_code": acceptance.returncode, "stdout": acceptance.stdout[-8000:], "stderr": acceptance.stderr[-8000:],
+                    "exit_code": 0 if accepted else (acceptance.returncode or 1),
+                    "process_exit_code": acceptance.returncode, "completed": completed,
+                    "workspace_sha256": before, "final_workspace_sha256": after,
+                    "stdout": stdout[-8000:], "stderr": acceptance.stderr[-8000:],
                 })
-                if not acceptance.success:
+                if not accepted:
                     detail = (acceptance.stderr.strip() or acceptance.stdout.strip())[-4000:]
+                    if identity_error or before != after:
+                        detail = identity_error or "candidate workspace changed during acceptance"
+                    elif acceptance.success and not completed:
+                        detail = "runner acceptance exited without completing its assertions"
                     return Score(
                         value=0,
                         explanation=(
@@ -3295,9 +3362,9 @@ def workflow_final_answer():
             if path in artifacts:
                 continue
             try:
-                content = await sandbox().read_file(path)
+                content = await _read_workspace_artifact(path)
                 artifacts[path] = parse_unique_json_object(content)
-            except (OSError, TypeError, ValueError):
+            except (OSError, TypeError, ValueError, RuntimeError):
                 return Score(value=0, explanation=f"final-answer evidence artifact is unavailable: {path}")
 
         completion = getattr(state.output, "completion", "") or ""

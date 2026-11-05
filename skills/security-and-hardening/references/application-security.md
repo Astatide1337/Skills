@@ -1,7 +1,8 @@
 # Application security
 
-Use an explicit assurance target for substantial reviews. OWASP ASVS 5.0 is a
-verification standard; Top 10 lists are awareness aids, not completeness claims.
+For a substantial review, name the security requirements being checked. OWASP
+ASVS 5.0 supplies verification requirements; a Top 10 list alone does not define
+a complete review.
 
 ## Identity and session boundary
 
@@ -24,7 +25,7 @@ verification standard; Top 10 lists are awareness aids, not completeness claims.
   query is not an authorization control.
 - Allowlist writable and returned fields. Prevent mass assignment and disclosure
   of internal, credential, recovery, billing, or role-management properties.
-- Model workflow state: ownership alone may not permit approval, refund, export,
+- Check workflow state: ownership alone may not permit approval, refund, export,
   invitation, role change, or other sensitive business actions.
 - Deny by default. Test alternate HTTP methods, batch/GraphQL operations,
   background jobs, exports, and legacy endpoints.

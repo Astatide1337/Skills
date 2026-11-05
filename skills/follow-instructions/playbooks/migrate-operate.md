@@ -6,7 +6,8 @@ Use for an upgrade, data or contract migration, release, or incident response
 that touches production-like infrastructure, persistent state, credentials,
 or an external service. A plan-only request stops before mutation.
 
-Read [`production-safety`](../../production-safety/SKILL.md) first; add
+Read [`production-safety`](../../production-safety/SKILL.md) before operational
+changes. Add
 [`security-and-hardening`](../../security-and-hardening/SKILL.md) for secrets,
 identity, untrusted inputs, or permissions, and [`verify-work`](../../verify-work/SKILL.md)
 for the claimed result.
@@ -23,8 +24,13 @@ for the claimed result.
 
 1. Start read-only. Inspect authoritative desired and actual state, dependencies,
    versions and migration notes with the permitted read tools. An authorized
-   `kubectl get` is inspection; it is not an `apply`. Never infer “production”
-   or “latest.”
+   `kubectl get` permits inspection, not `apply`. Verify the environment and
+   exact version instead of assuming “production” or “latest.”
+   Find the procedure in repository instructions, release automation, manifests
+   and the owning environment's runbook. Trace from source to built artifact to
+   desired state; identify which system writes each step. Reuse that procedure
+   and verify the target explicitly. Do not copy changing environment facts into
+   global guidance or substitute the current CLI context for target discovery.
 2. For upgrades, update only required callers/configuration and run compatibility
    checks. For migrations, validate representative data, completeness,
    idempotency/retry, and recovery before executing authorized steps.
@@ -39,14 +45,17 @@ for the claimed result.
 ## Failure and recovery
 
 If target identity, consumers, writer ownership, recovery, rollback, or
-authorization is unknown, stop before mutation and report the exact gap. An
-ambiguous/failed write is inspected before retrying. Report mitigation separately
-from unresolved root cause; do not expose secrets to guess a path.
+authorization is unknown, inspect the owning sources and supported read-only
+tools first. Prepare and verify the authorized work independent of that gap;
+stop before the dependent mutation if it remains unresolved. If a
+write fails or its result is unclear, inspect the current state before retrying.
+Report mitigation separately from unresolved root cause; do not expose secrets
+to guess a path.
 
 ## Completion evidence
 
-Return achieved state, exact versions/revisions, observations at the relevant
-runtime layer, recovery/rollback status, remaining risk, and deferred steps.
+Report the resulting state, tested versions and revisions, runtime observations,
+recovery or rollback status, remaining risk and deferred steps.
 Keep static, CI, deployed, and user-visible evidence distinct.
 
 ## Example

@@ -14,5 +14,21 @@
       "references/zen-bridge.md": "f55fc8baa48ccdbefb3ab1f75b7219a9528129b2cddae2300af4af969dbc62a2",
       "scripts/reach.py": "acad0de92538903cb10ccc084224d8b4ae8da83578eafb7f3239549dadc24ea5"
     }
+  },
+  "grilling": {
+    "255e50aa0a96a274df44ebb5a8971afa8aa464f6": {
+      "SKILL.md": "a71bb8cdd11f7bd63af122461d3f11135ccbc7b7643db16d44a5491d6802b5b0",
+      "agents/openai.yaml": "96465a0a485c5d2a7a6040e442fe1ef794f41b05a6f0cbdba6839a3e9ef17817"
+    }
+  },
+  "deslop": {
+    "255e50aa0a96a274df44ebb5a8971afa8aa464f6": {
+      "SKILL.md": "fdd9c4fcaaf54f553d2d497d56995c6a4db97e064113f244eb02dc343e5793ca"
+    }
+  },
+  "better-call-sol": {
+    "255e50aa0a96a274df44ebb5a8971afa8aa464f6": {
+      "SKILL.md": "760a3fd3a4a862a43e23c1d607cd7c6773c599fa7374c054f873507a2cdf5a19"
+    }
   }
 }

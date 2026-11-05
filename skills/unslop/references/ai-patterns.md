@@ -1,6 +1,6 @@
 # AI-pattern catalog
 
-Use this catalog to diagnose a draft. Patterns are evidence only in context.
+Use this catalog to diagnose a draft. Judge each pattern in context.
 Do not replace every listed word, flatten an established voice, or change
 quoted language.
 
@@ -45,7 +45,7 @@ quoted language.
 15. **Filler:** "in order to," "due to the fact that," "it is important to
     note," and other phrases removable without changing meaning.
 16. **Stacked hedges:** "could potentially possibly" or several qualifications
-    performing one uncertainty judgment. Keep the calibrated hedge that fits.
+    expressing the same uncertainty. Keep the one that matches the evidence.
 17. **Weak verb plus adverb:** "significantly improves" without a measured
     delta or "runs quickly" where a stronger verb or number is available.
 18. **Needlessly formal synonym:** utilize, leverage, facilitate, numerous, or
@@ -93,9 +93,8 @@ quoted language.
     irrelevant, or intentionally de-emphasized.
 32. **Dense clause chain:** a sentence with several conditions and conclusions
     that makes the reader backtrack. Split by idea or remove subordinate detail.
-33. **Portable non-information:** a sentence that could appear unchanged in an
-    unrelated project's documentation. Replace it with a project-specific
-    mechanism or remove it.
+33. **Generic advice:** a sentence that could appear unchanged in an unrelated
+    project's documentation. Name the relevant action or mechanism, or remove it.
 
 ## Replacement test
 

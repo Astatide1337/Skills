@@ -89,7 +89,7 @@ manually recreated semantics.
 - Use built-in `variant` and `size` options before overriding component
   typography, color, radius, or state styles.
 - Use the project's class merge helper for conditional classes.
-- Prefer `gap-*` in flex/grid layouts over margin choreography or `space-*`
+- Prefer `gap-*` in flex/grid layouts over individually arranged margins or `space-*`
   when children can be conditional or wrap.
 - Use a combined size utility when width and height are equal if that convention
   exists in the project's Tailwind version.
@@ -138,4 +138,4 @@ After any generated or registry-supplied code enters the repository:
 
 This catalog does not itself authorize a network fetch or package mutation.
 When required local configuration or an approved registry snapshot is missing,
-state the missing evidence rather than inventing shadcn context.
+state what is missing rather than guessing the project's setup.

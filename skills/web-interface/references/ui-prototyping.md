@@ -11,9 +11,10 @@ Prefer an adjustment to an existing page. Real navigation, data shape, density,
 tokens, and surrounding UI make the comparison more trustworthy. Keep the
 prototype in an isolated copy or an existing authorized preview, use the actual
 application's components and conventions, and visibly mark it as temporary.
-Record source/preview identity and owned cleanup. A standalone visual imitation
-cannot demonstrate actual-component fidelity; when that fidelity is required,
-an unavailable host remains pending.
+Record the source revision or preview and which temporary resources to remove.
+A standalone imitation does not show whether the application's components can
+produce the design. If that is required and the application is unavailable,
+report the prototype check as pending.
 
 Create a new throwaway route only when no plausible host exists. Follow the
 project's current routing convention and avoid introducing a second framework,
@@ -23,9 +24,10 @@ build system, or design language.
 
 1. State one decision question and its success criteria.
 2. Use one recommended clickable flow when alternatives are not the decision.
-   For a comparison, default to two or three variants; cap at five.
+   For a comparison, choose a small set of variants that distinguish the actual
+   decisions. Honor a requested count or explicit experiment budget.
 3. When comparing, make variants structurally distinct. Change hierarchy,
-   layout, information density, navigation or the primary affordance rather
+   layout, information density, navigation or the primary control rather
    than merely colors or labels.
 4. Keep shared facts constant: use the same representative data, domain copy,
    surrounding chrome, and product constraints unless the question tests one
@@ -64,8 +66,9 @@ Record:
 - the selected direction and why.
 
 Do not spend time on production abstractions, exhaustive error handling, or
-tests unrelated to the design decision. The prototype must still be runnable
-and honest enough to answer its question.
+tests unrelated to the design decision. The prototype must still run and accurately
+represent the behavior needed to
+answer the design question.
 
 ## Resolve and clean up
 

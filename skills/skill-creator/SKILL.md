@@ -1,112 +1,106 @@
 ---
 name: skill-creator
-description: "Creates, revises, validates and evaluates agent skills with trigger tests and measured comparisons. Use when writing or changing a SKILL.md, skill description or skill eval."
+description: "Use when creating or changing skills, their selection descriptions or their evaluations."
 ---
 
 # Skill Creator
 
-Improve engineering outcomes with the smallest justified intervention. A
-changed procedure is not an improvement until the evidence supports it.
-Use [measured improvement](references/measured-improvement.md) when a change
-claims better quality, lower overhead, or transfer. Use
-[worked examples](references/worked-examples.md) when adding teaching material,
-and [tool contracts](references/tool-contracts.md) when adding repeatable
-operations. Load only the reference owning the current decision.
+Fix the observed problem with the smallest change that can address it. Claim
+an improvement only when evidence supports it. Read
+[measured improvement](references/measured-improvement.md) to compare quality,
+overhead or performance on new tasks; [worked examples](references/worked-examples.md)
+when adding teaching material; and [tool contracts](references/tool-contracts.md)
+when automating a repeated operation.
 
 ## 1. Define the job
 
-Before editing, establish:
+Before editing, identify:
 
-- concrete requests that should trigger the skill;
-- nearby requests that should not trigger it;
-- the behavior Codex needs help performing;
-- required tools, evidence, and execution boundaries;
-- the target catalog and install location.
+- requests that should select the skill and nearby requests that should not;
+- the behavior the agent needs help with;
+- required tools, evidence and permitted actions;
+- the target catalog and installation location.
 
-Derive these from the user's real workflow before inventing an ideal one. Review
-the current conversation, existing skill, recurring requests, corrections,
-failed attempts, and tools actually available. Corrections are especially
-valuable: they show where generic agent behavior diverges from the user's
-expectations. Ask for missing success criteria or edge cases only when they
-cannot be discovered safely from that evidence.
+Use the conversation, existing skill, recurring requests, corrections, failed
+attempts and available tools. Ask for missing requirements only when they
+cannot be found safely in those sources. The description should let a reader
+predict when the skill applies, what it produces and where it stops.
 
-Design for lack of surprise. A user who reads the description should predict
-when the skill activates, what authority it assumes, what artifact it produces,
-and where it stops.
+Choose where to fix the problem using
+[learn from repeats](../self-reflect/references/learn-from-repeats.md):
 
-Choose the lowest layer that fixes the observed failure, then the strongest
-enforcement within it (see
-[learn from repeats](../self-reflect/references/learn-from-repeats.md)):
+- Fix a one-off need in the current request or response.
+- Put a cross-repository working default in personal or global instructions.
+- Put project-specific behavior in repository instructions, configuration,
+  tests or scripts. Enforce it in code when possible.
+- Add a skill only for a distinct recurring task that needs focused guidance.
 
-- current request or response for a one-off need;
-- personal/global instruction for a cross-repository working default;
-- repository instruction, configuration, test, or script for project-specific
-  behavior that can be enforced there; and
-- a skill only when a distinct recurring invocation needs focused guidance.
+For a structural rule, identify the allowed pattern, forbidden alternative,
+enforcing type, lint rule, runtime check or CI job, and a test that rejects a
+violation. If judgment is still necessary, write one concise instruction
+stating when it applies and what evidence to use. Do not repeat an enforced
+rule as emphatic prose or create a skill for generic knowledge the agent
+already handles well.
 
-For a structural rule, record the approved pattern, the forbidden alternative,
-the enforcing type/lint/runtime/CI boundary, and a violating fixture that
-fails there. If no check can enforce it and judgment remains necessary, keep
-one concise instruction with the trigger and evidence. Do not duplicate a
-working enforcement rule as emphatic prose.
-
-Do not create a skill for generic knowledge Codex already handles well. Use a
-temporary task workspace freely for research, plans, draft instructions, and
-experiments. Apply the [documentation boundary](../follow-instructions/SKILL.md#documentation-boundary)
-when choosing what belongs in the catalog or project. A requested `SKILL.md`
-is the catalog artifact; adjacent docs need a purpose in the delivered result.
+Use a temporary workspace for research, drafts and experiments. Follow the
+[documentation boundary](../follow-instructions/SKILL.md#documentation-boundary)
+when deciding what belongs in the project. A requested `SKILL.md` is a
+catalog deliverable; adjacent documents need a separate purpose.
 
 ## 2. Design progressive disclosure
 
-Every skill requires `SKILL.md` with YAML frontmatter containing `name` and
-`description`.
+Every skill needs `SKILL.md` with YAML `name` and `description` fields.
 
-- Treat `description` as a routing instruction, not a miniature manual. Write
-  it in the third person: what the skill does, then `Use when` with the
-  situations and the words a user would actually type, then one nearby
-  non-trigger when it prevents a collision. The body is unavailable until
-  after selection.
-- Stay within the catalog validator's
-  [description budget](https://github.com/Astatide1337/Skills/blob/main/scripts/validate_catalog.py) on one line; keep
-  procedure in the body. This is a local budget, not a harness guarantee.
-- Good: `Drafts, opens, reviews or monitors GitHub PRs and GitLab MRs. Use for
-  any PR/MR task. Never merges.` Bad: `Helps with pull requests.` Also bad:
-  `When watching a PR.`, which names neither the capability nor the words that
-  should select it.
-- Keep the body to essential workflow, decisions, safety gates, and reference
-  routing. Assume Codex is capable; omit tutorials and motivational prose.
-- Put detailed variants, schemas, domain rules, and examples in one-level
-  `references/` files and link to each directly from `SKILL.md`.
-- Add `scripts/` only for repeated deterministic operations that were tested.
-- Add `assets/` for relevant visual/data inputs or output resources, with provenance and permissions. Do not add auxiliary
-  READMEs, changelogs, installation guides, or duplicate summaries.
+Write the description as a selection trigger: `Use when` followed by the
+requests that need the skill. Name likely user terms; add a nearby non-trigger
+only to prevent a collision. Put capabilities, procedure and output requirements
+in the body. Keep the description on one line within the catalog validator's
+[description budget](https://github.com/Astatide1337/Skills/blob/main/scripts/validate_catalog.py).
 
-Start with only `SKILL.md`. Add a reference, script, or asset only when a named
-decision or repeated operation cannot stay reliable and lean in the root file.
-A possible future audience, format, or template is not sufficient justification.
+Good: `Use when drafting, opening, reviewing or monitoring a GitHub PR or GitLab MR.`
+`Helps with pull requests` leaves the trigger unclear.
 
-Use lowercase hyphenated names under 64 characters and keep the directory name
-identical to the frontmatter name.
+Keep the body to the workflow, decisions, required checks and reference links.
+Assume a capable reader. Omit tutorials and motivational prose. Start with
+`SKILL.md` alone, then add files only when they have a concrete job:
+
+- Put detailed variants, schemas, domain rules and examples in one-level
+  `references/` files linked directly from `SKILL.md`.
+- Add tested scripts for repeated deterministic operations.
+- Add assets needed for the result, with provenance and reuse permissions.
+
+Do not add auxiliary READMEs, changelogs, installation guides or duplicate
+summaries. A possible future audience or template is not a reason for a file.
+Each Markdown file needs a reader, a condition for loading it, a decision it
+helps make and a reason to remain separate. State that purpose in the file
+and its incoming link, without maintaining a duplicate registry. Catalog
+validation checks reachability through links and explicit inline paths; it
+cannot prove usefulness. For this catalog, keep source attribution in
+`catalog.yaml`. Store
+one-off audit and experiment records in working artifacts or the PR unless
+the user asks to version them. Git history preserves removed documentation.
+
+Use lowercase hyphenated names under 64 characters. The directory name must
+match the frontmatter name.
 
 ## 3. Set the right freedom
 
-- Use guidance and heuristics when several valid approaches depend on context.
-- Use a bounded procedure when ordering or failure handling matters.
-- Use a tested script when repetition or fragility makes natural-language
-  execution unreliable.
+Use guidance when several approaches may be valid. Use an ordered procedure
+when sequence or failure handling matters. Use a tested script when repetition
+or fragile steps make prose unreliable.
 
-Do not encode one example so narrowly that the skill fails to generalize.
-Explain the reason for non-obvious constraints so the agent can apply them to
-new cases. Reserve absolute language for real invariants and safety boundaries.
+Explain non-obvious constraints so the agent can apply them to new cases.
+Avoid turning one example into the only permitted solution. Reserve absolute
+language for requirements and safety boundaries.
 
 ## 4. Implement safely
 
-For an existing skill, inspect its root file and only the references relevant to
-the requested change. Preserve user-authored material and provenance.
+For an existing skill, read its root file and the references relevant to the
+change. Preserve user-authored material and provenance.
 
-For a new skill, create only the necessary directories and files. Validate any
-bundled script by running a representative safe case. Never include credentials,
-cookies, copied session data, malicious behavior, or surprising external writes.
+For a new skill, create only the files it needs. Run a representative safe
+case for each bundled script. Do not include credentials, cookies, copied
+session data, malicious behavior or unexpected external writes.
 
 ## 5. Validate structure
 
@@ -125,44 +119,39 @@ python skills/skill-creator/scripts/package_skill.py skills/<name> <output-dir>
 
 ## 6. Evaluate behavior with Inspect
 
-Do not build a bespoke runner, grader, viewer, provider adapter, or statistics
-layer. Preserve the catalog's primary-case invariant. Use the existing workflow
-cases for task-level comparisons and add only cases required by the changed
-behavior. Prefer shared cases over one suite per skill. Known teaching examples
-and their regression tests are not held-out evidence.
+Use the existing workflow cases and Inspect runner. Preserve the catalog's
+primary-case invariant. Add cases only for changed behavior, and share them
+across skills where possible. Do not build another runner, grader, viewer,
+provider adapter or statistics layer. Teaching examples and their regression
+tests are not held-out evidence.
 
-When asked to design an evaluation, the deliverable must name all four parts:
-the representative case, candidate guidance, the accepted baseline, and the
-behavioral evidence used to compare them. Keep task inputs, model/settings,
-tools, environment, permissions and budget comparable. A no-skill control is
-an optional, explicitly named diagnostic, not a replacement for the accepted
-baseline. A case without that comparison does not establish improvement.
+An evaluation design must name the representative case, candidate guidance,
+accepted baseline and behavioral evidence used for comparison. Keep task
+inputs, model settings, tools, environment, permissions and budget comparable.
+A no-skill control is an optional diagnostic, not a substitute for the
+accepted baseline. Without that comparison, a case cannot show improvement.
 
-For execution, blinding, effort settings and outcome/cost metrics, read
-[the evaluation procedure](references/evaluation.md). It uses the existing
-Inspect tasks and authenticated native CLI; do not create another framework.
-Expected answers stay outside candidate prompts. Missing required output is a
-failure; legitimate artifact-only answers and unsupported environments retain
-their existing contracts.
+Read [the evaluation procedure](references/evaluation.md) before execution.
+It covers the existing Inspect tasks, authenticated native CLI, blinding,
+effort settings and outcome and cost measurements. Keep expected answers out
+of candidate prompts. Missing required output fails; preserve the stated
+rules for artifact-only answers and unsupported environments.
 
-For a design-only skill proposal, finish with concrete repository commands for
-structural validation and task discovery, plus a compact case specification
-showing input, hidden target behavior, treatment, baseline, and comparison
-signal. Do not leave these as “use the existing validator” or “add an eval.”
-Inspect the repository before naming those commands. If the design task does
-not provide a catalog checkout, give the expected command shape conditionally
-and say it was not verified; do not invent paths, task names, models, or
-automatic-routing settings.
+For a design-only proposal, provide concrete repository commands for
+structural validation and task discovery. Include a compact case specification:
+input, hidden target behavior, candidate, baseline and comparison signal.
+Inspect the repository before naming commands. Without a checkout, label the
+expected command shape as unverified. Do not invent paths, task names, models
+or automatic-routing settings.
 
 ## 7. Finish deliberately
 
-- Re-read the description against positive and negative triggers.
-- Remove duplicated or generic text.
-- Ensure every reference is reachable from `SKILL.md`.
-- Give the revised instructions to a cold reader or clean context, including a
-  positive trigger, nearby non-trigger, and adversarial attempt to skip a
-  required check. Correct what fails and rerun the same case.
-- Compare the result with the original conversation and corrections. Confirm
-  that it solves the user's workflow rather than only passing the eval wording.
-- Report validation actually run and limitations of any evaluation evidence.
-- Install, commit, or publish only when the user requests that stage.
+- Check the description against requests that should and should not select it.
+- Remove repeated or generic text and ensure every reference is reachable.
+- Give the revised instructions to a fresh reader with a positive request,
+  a nearby non-trigger and an attempt to skip a required check. Fix failures
+  and rerun the same cases.
+- Compare the result with the user's original request and corrections. Passing
+  a fixture is not enough if the user's workflow remains unresolved.
+- Report checks actually run and the limits of the evaluation evidence.
+- Install, commit or publish only when the user requests that stage.

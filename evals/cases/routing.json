@@ -81,7 +81,6 @@
       "expected_skills": [
         "follow-instructions",
         "pull-requests",
-        "better-call-sol",
         "code-review-and-quality"
       ],
       "route_kind": "positive"
@@ -94,7 +93,7 @@
       "expected_skills": [],
       "route_kind": "negative",
       "harmful_skills": [
-        "better-call-sol"
+        "code-review-and-quality"
       ]
     }
   },
@@ -126,7 +125,7 @@
     "metadata": {
       "expected_skills": [
         "follow-instructions",
-        "deslop"
+        "code-review-and-quality"
       ],
       "route_kind": "positive"
     }
@@ -138,7 +137,7 @@
       "expected_skills": [],
       "route_kind": "negative",
       "harmful_skills": [
-        "deslop"
+        "code-review-and-quality"
       ]
     }
   },
@@ -171,7 +170,6 @@
       "expected_skills": [
         "follow-instructions",
         "pull-requests",
-        "better-call-sol",
         "code-review-and-quality"
       ],
       "route_kind": "positive"
@@ -186,11 +184,51 @@
         "follow-instructions"
       ],
       "harmful_skills": [
-        "better-call-sol",
+        "code-review-and-quality",
         "architect",
         "self-reflect"
       ],
       "route_kind": "negative"
+    }
+  },
+  {
+    "id": "route-product-feature-scope",
+    "input": "Determine the smallest useful offline editing feature for our shared document app. Inspect the current user journey and challenge the need before proposing scope and acceptance. Do not implement yet.",
+    "metadata": {
+      "expected_skills": [
+        "follow-instructions",
+        "product"
+      ],
+      "optional_skills": [
+        "architect"
+      ],
+      "route_kind": "positive"
+    }
+  },
+  {
+    "id": "route-product-near-miss",
+    "input": "Fix this misspelled label using its existing owner and check. The intended behavior is settled. Local-only.",
+    "metadata": {
+      "expected_skills": [],
+      "optional_skills": [
+        "follow-instructions"
+      ],
+      "harmful_skills": [
+        "product"
+      ],
+      "route_kind": "negative"
+    }
+  },
+  {
+    "id": "route-real-visual-evidence",
+    "input": "Verify the changed checkout journey and attach real before and after screenshots in one image to the existing PR. Do not deploy.",
+    "metadata": {
+      "expected_skills": [
+        "follow-instructions",
+        "verify-work",
+        "pull-requests"
+      ],
+      "route_kind": "positive"
     }
   }
 ]

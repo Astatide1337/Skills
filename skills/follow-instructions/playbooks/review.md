@@ -2,13 +2,15 @@
 
 ## When
 
-Use for findings on a revision, a security/quality audit, or a re-review after
-the head changed. Review-only is read-only; fixes and posting are separate
-requested follow-ons. Use [`code-review-and-quality`](../../code-review-and-quality/SKILL.md)
-for the five-axis review and [`security-and-hardening`](../../security-and-hardening/SKILL.md)
-for a material trust boundary. For a PR/MR review, also use
-[`pull-requests`](../../pull-requests/SKILL.md) to resolve the host, current head
-and requested feedback surface; private review does not imply posting.
+Use to review a revision, audit security or code quality, or re-review a changed
+head. Review-only work is read-only. Fixes and posted feedback require
+authorization. Use
+[`code-review-and-quality`](../../code-review-and-quality/SKILL.md) for the
+five-axis review and
+[`security-and-hardening`](../../security-and-hardening/SKILL.md) for a material
+trust boundary. For a PR/MR review, also use
+[`pull-requests`](../../pull-requests/SKILL.md) to resolve the host, current
+head and requested feedback surface; private review does not imply posting.
 
 ## Inputs to establish
 
@@ -16,9 +18,10 @@ and requested feedback surface; private review does not imply posting.
 - whether the result is private findings, suggested patch, posted review, or
   authorized fixes;
 - requirements, affected callers/tests/interfaces, security/operational scope,
-  and current checks that actually match the head.
-- approved plan identity and behavior/interfaces/owners when reviewing approved
-  delivery; native, portable-lint and real-journey raw evidence where relevant.
+  and current checks that match the head;
+- the approved plan version, behavior, interfaces and responsible code when
+  reviewing approved delivery; raw project-test, portable-lint and user-journey
+  results where relevant.
 
 ## Steps and decision points
 
@@ -29,8 +32,9 @@ and requested feedback surface; private review does not imply posting.
 2. Run a targeted counterexample or reproducer when it can distinguish a real
    defect. Classify each item as confirmed defect, hypothesis, preference,
    pre-existing, stale, or scope-expanding; do not invent a comment quota.
-3. For each material finding record severity/confidence, location, trigger,
-   impact, evidence, smallest correction, and regression expected. In a
+3. For each material finding, state its severity, confidence, location, trigger,
+   impact and evidence. Describe the smallest correction and the regression
+   check it needs. In a
    re-review, re-run or re-inspect the original case on the new head.
 4. Decide readiness only from current findings and checks. If publication is
    requested, use [`pull-requests`](../../pull-requests/SKILL.md), submit rather
@@ -50,8 +54,9 @@ implementation route and their own verification.
 ## Completion evidence
 
 Return current-head findings, checks and scope, with posted-review URL/state
-only when fetched back. Say whether conclusions are executed, source-derived,
-or unverified. “No findings” is not proof that all bugs are absent.
+only when fetched back. Distinguish behavior observed in a run, conclusions from
+source inspection, and unverified hypotheses. “No findings” is not proof that
+all bugs are absent.
 
 ## Example
 

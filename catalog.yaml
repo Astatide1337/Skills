@@ -7,11 +7,20 @@ policy:
   default_profile: all
 profiles:
   web-engineering: [web-interface, html-artifacts]
-  agent-workflows: [follow-instructions, self-reflect, grilling, writing-for-agents, wizard, how, architect, teach, unslop, deslop, why, pull-requests, better-call-sol]
+  agent-workflows: [follow-instructions, self-reflect, product, writing-for-agents, wizard, how, architect, teach, unslop, why, pull-requests]
   production-engineering: [code-review-and-quality, security-and-hardening, production-safety, systematic-debugging, verify-work]
   workflow-automation: [create-workflow, hillclimb]
   catalog-admin: [skill-creator]
 skills:
+  - profile: agent-workflows
+    trust: local-reviewed
+    exported_path: skills/product/SKILL.md
+    source:
+      origin: local
+      adaptation: user problem, smallest complete journey, scope and observable acceptance without mandatory product documents
+      references:
+        - {repository: 'https://github.com/garrytan/gstack', commit: 622e8b1f76d293b647eca7b33d9dd060ab618b21, path: plan-ceo-review/SKILL.md}
+        - {repository: 'https://github.com/haniabdemai/product-management-skills', commit: cd8b2519a5b44d346a30d346586e4e30d812f23e, path: SKILL.md}
   - profile: agent-workflows
     trust: local-reviewed
     exported_path: skills/follow-instructions/SKILL.md
@@ -21,6 +30,18 @@ skills:
       references:
         - {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/poteto-mode/SKILL.md}
         - {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/docs/guide/08-principles.md}
+        - {repository: 'https://github.com/cursor/plugins', commit: ae5650febf4320793844c12c4adaa937f417f8da, path: pstack/skills/poteto-mode/playbooks/orchestrate.md}
+        - {repository: 'https://github.com/cursor/plugins', commit: ae5650febf4320793844c12c4adaa937f417f8da, path: pstack/skills/poteto-mode/SKILL.md}
+        - {repository: 'https://github.com/cursor/plugins', commit: ae5650febf4320793844c12c4adaa937f417f8da, path: pstack/skills/setup-pstack/SKILL.md}
+        - {repository: 'https://github.com/cursor/plugins', commit: 889ec4b68fa5aab0e867dad71ec3fdf386ae48f3, path: pstack/skills}
+        - {repository: 'https://github.com/cursor/plugins', commit: 7022c81efb48d8b5eb15498ce6043a3bd74b694c, paths: [pstack/skills/principle-encode-lessons-in-structure/SKILL.md, pstack/skills/principle-boundary-discipline/SKILL.md, pstack/skills/principle-make-operations-idempotent/SKILL.md, pstack/skills/create-verification-skill/SKILL.md]}
+        - {repository: 'https://github.com/DeusData/codebase-memory-mcp', commit: a7158ac2f48ca646b4527341b76f930f2aeff87e, path: README.md}
+        - {url: 'https://github.com/joernio/joern'}
+        - {url: 'https://handbook.gitlab.com/handbook/engineering/careers/matrix/development/dev/principal/'}
+        - {url: 'https://google.github.io/eng-practices/review/reviewer/standard.html'}
+        - {url: 'https://google.github.io/eng-practices/review/developer/small-cls.html'}
+        - {url: 'https://sre.google/sre-book/simplicity/'}
+        - {url: 'https://dora.dev/capabilities/continuous-delivery/'}
   - profile: agent-workflows
     trust: local-reviewed
     exported_path: skills/self-reflect/SKILL.md
@@ -28,7 +49,9 @@ skills:
       repository: 'https://github.com/cursor/plugins'
       commit: 60c641e4fad674784b30abcf9f8915dea39df38d
       path: pstack/skills/reflect/SKILL.md
-      adaptation: proactive close, recovery, and long-run checkpoints using the existing task record; retains bounded durable-lesson approval without mandatory transcript fan-out or Cursor-specific orchestration
+      adaptation: recovery and checkpoints using existing task evidence; diagnoses repeated failures and reuses scoped authorization without a lesson ledger
+      references:
+        - {repository: 'https://github.com/cursor/plugins', commit: 8b3326d99fd4b993cb33a24dad8af03175c642c5, path: pstack/skills/correct/SKILL.md}
   - profile: web-engineering
     trust: local-reviewed
     exported_path: skills/web-interface/SKILL.md
@@ -44,21 +67,23 @@ skills:
         - {repository: 'https://github.com/mattpocock/skills', commit: fa460cbf095a893d14bf41d3db7798cada500259, path: skills/engineering/prototype}
       adaptation: lean offline UI composition
   - {profile: web-engineering, trust: local-reviewed, exported_path: skills/html-artifacts/SKILL.md, source: {repository: 'https://github.com/dogum/html-artifacts', commit: c14a4ec2a5ad09fe24163f4430d46ee4bb8c1269, path: skill, adaptation: platform-neutral trigger boundaries, strict offline packaging, modern accessibility, factual reporting, deterministic validation, and rendered verification}}
-  - {profile: agent-workflows, trust: established, exported_path: skills/grilling/SKILL.md, source: {repository: 'https://github.com/mattpocock/skills', commit: 885e2ca4d842d139e9aef4e48d366c63cb1b8013, path: skills/productivity/grilling, adaptation: portable evidence lookup}}
-  - {profile: agent-workflows, trust: established, exported_path: skills/writing-for-agents/SKILL.md, source: {repository: 'https://github.com/mattpocock/skills', commit: 885e2ca4d842d139e9aef4e48d366c63cb1b8013, path: skills/productivity/writing-for-agents, adaptation: Codex-supported mechanics}}
+  - {profile: agent-workflows, trust: established, exported_path: skills/writing-for-agents/SKILL.md, source: {repository: 'https://github.com/mattpocock/skills', commit: 885e2ca4d842d139e9aef4e48d366c63cb1b8013, path: skills/productivity/writing-for-agents, adaptation: executable instructions with changing facts resolved from their owner, references: [{repository: 'https://github.com/mattpocock/skills', commit: 4ae2317ddb22b046e26455e4f9c9b3aaaf62212d, path: skills/productivity/writing-for-agents/SKILL.md}]}}
   - {profile: agent-workflows, trust: established, exported_path: skills/wizard/SKILL.md, source: {repository: 'https://github.com/mattpocock/skills', commit: 885e2ca4d842d139e9aef4e48d366c63cb1b8013, path: skills/engineering/wizard, adaptation: user-controlled and secret-safe}}
   - {profile: agent-workflows, trust: established, exported_path: skills/how/SKILL.md, source: {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/how, adaptation: removed fixed model and subagent assumptions}}
   - {profile: agent-workflows, trust: established, exported_path: skills/architect/SKILL.md, source: {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/architect, adaptation: standalone candidate synthesis}}
   - {profile: agent-workflows, trust: established, exported_path: skills/teach/SKILL.md, source: {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/teach, adaptation: portable how/why composition}}
   - {profile: agent-workflows, trust: local-reviewed, exported_path: skills/unslop/SKILL.md, source: {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/unslop, adaptation: fact-preserving reconstruction, context-sensitive factual/voice/agent modes, restored AI-pattern taxonomy, and safeguards against invented personality or destructive terminology bans}}
-  - {profile: agent-workflows, trust: local-reviewed, exported_path: skills/deslop/SKILL.md, source: {repository: 'https://github.com/cursor/plugins', commit: 889ec4b68fa5aab0e867dad71ec3fdf386ae48f3, path: cursor-team-kit/skills/deslop, adaptation: code-focused cleanup with local-style, behavior-preservation, boundary-safety, and focused-verification guardrails; kept distinct from prose-focused unslop}}
   - {profile: agent-workflows, trust: established, exported_path: skills/why/SKILL.md, source: {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/why, adaptation: available-source evidence workflow}}
-  - {profile: agent-workflows, trust: local-reviewed, exported_path: skills/pull-requests/SKILL.md, source: {repository: 'https://github.com/pingdotgg/t3code', commit: 592c5983c14d248aa3cfddb8e6c7372f12cd1ab6, path: AGENTS.md, adaptation: unified GitHub PR and GitLab MR lifecycle with deterministic mode/authority gates, Google CL-description guidance without a fixed template, current-head evidence, and user-requested model-slug attribution}}
+  - {profile: agent-workflows, trust: local-reviewed, exported_path: skills/pull-requests/SKILL.md, source: {repository: 'https://github.com/pingdotgg/t3code', commit: 592c5983c14d248aa3cfddb8e6c7372f12cd1ab6, path: AGENTS.md, adaptation: GitHub and GitLab delivery with scoped authority, concise descriptions, current-artifact evidence and review of affected repairs, references: [{repository: 'https://github.com/t3dotgg/tstack', commit: 1085050f3baed1ac724caa4a8166145fb2ac88af, paths: [skills/full-stop/SKILL.md, skills/file-pr/SKILL.md]}]}}
   - profile: production-engineering
     trust: local-reviewed
     exported_path: skills/code-review-and-quality/SKILL.md
     source:
+      references:
+        - {url: 'https://www.greptile.com/blog/how-to-build-a-code-review-agent'}
       composition:
+        - {repository: 'https://github.com/cursor/plugins', commit: 889ec4b68fa5aab0e867dad71ec3fdf386ae48f3, path: cursor-team-kit/skills/deslop}
+        - {repository: 'https://github.com/t3dotgg/tstack', commit: 6efae364201abc9d9f07443e9caa461f42e51090, path: skills/sol-loop/SKILL.md}
         - {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/code-review-and-quality}
         - {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/code-simplification}
         - {repository: 'https://github.com/addyosmani/agent-skills', commit: bdf76c7c6b7b3b3e01bb15c9fdc42ac5351855c1, path: skills/performance-optimization}
@@ -83,7 +108,6 @@ skills:
   - {profile: workflow-automation, trust: local-reviewed, exported_path: skills/create-workflow/SKILL.md, source: {repository: 'https://github.com/Astatide1337/Skills', commit: df079bb7b902c4c61b698e3cb3937940059d6777, path: skills/zero-token-architecture/custom/minimalism-audit, adaptation: renamed and broadened from audit to creation and simplification}}
   - {profile: workflow-automation, trust: local-reviewed, exported_path: skills/hillclimb/SKILL.md, source: {repository: 'https://github.com/cursor/plugins', commit: 60c641e4fad674784b30abcf9f8915dea39df38d, path: pstack/skills/poteto-mode/playbooks/hillclimb.md, adaptation: standalone platform-neutral controlled optimization with frozen measurements, non-regression gates, untouched evaluation, and no mandatory repository artifacts}}
   - {profile: catalog-admin, trust: local-reviewed, exported_path: skills/skill-creator/SKILL.md, source: {repository: 'https://github.com/anthropics/skills', commit: b29e7cf65e5cb78a5ac33d582270551bc74a14eb, path: skills/skill-creator, adaptation: lean catalog workflow using Inspect AI and Inspect SWE instead of bundled evaluation machinery}}
-  - {profile: agent-workflows, trust: local-reviewed, exported_path: skills/better-call-sol/SKILL.md, source: {origin: local, adaptation: bounded Sol review orchestration using the existing review standard and user-confirmed delivery policy, references: [{repository: 'https://github.com/t3dotgg/tstack', commit: 6efae364201abc9d9f07443e9caa461f42e51090, path: skills/sol-loop/SKILL.md}]}}
 
 blocked:
   - {id: next-best-practices, reason: knowledge moved to version-matched Next.js bundled docs}

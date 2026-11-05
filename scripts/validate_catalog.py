@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 LINK = re.compile(r"\[[^]]*\]\(([^)]+)\)")
+INLINE_MARKDOWN_PATH = re.compile(r"`([^`\n ]+\.md)(?:#[^`\n ]*)?`")
 # Local routing budget (harness limit is 1,024). Room for what + when + key
 # terms while keeping always-visible catalog metadata compact.
 MAX_DESCRIPTION_CHARS = 200
@@ -107,6 +108,28 @@ def validate_links(path: Path) -> None:
             fail(f"broken link in {path.relative_to(ROOT)}: {raw}")
 
 
+def validate_reference_routes(skill_dir: Path) -> None:
+    """Every bundled Markdown reference needs a route from its skill entry."""
+    owner = skill_dir.resolve()
+    pending = [owner / "SKILL.md"]
+    reached: set[Path] = set()
+    while pending:
+        path = pending.pop()
+        if path in reached:
+            continue
+        reached.add(path)
+        text = path.read_text()
+        for raw in LINK.findall(text) + INLINE_MARKDOWN_PATH.findall(text):
+            target = (path.parent / raw.split("#", 1)[0]).resolve()
+            if (target.is_relative_to(owner) and target.is_file()
+                    and target.suffix == ".md"):
+                pending.append(target)
+    missing = {path.resolve() for path in owner.rglob("*.md")} - reached
+    if missing:
+        fail(f"unreachable Markdown in {owner.name}: "
+             + ", ".join(str(path.relative_to(owner)) for path in sorted(missing)))
+
+
 def main() -> None:
     catalog = yaml.safe_load((ROOT / "catalog.yaml").read_text())
     entries = catalog.get("skills") if isinstance(catalog, dict) else None
@@ -135,6 +158,8 @@ def main() -> None:
 
     for path in ROOT.glob("skills/**/*.md"):
         validate_links(path)
+    for skill_file in skill_files:
+        validate_reference_routes(skill_file.parent)
 
     coordinator = SKILLS / "follow-instructions"
     playbooks = {path.name for path in (coordinator / "playbooks").glob("*.md")}

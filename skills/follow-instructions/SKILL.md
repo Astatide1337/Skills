@@ -1,84 +1,80 @@
 ---
 name: follow-instructions
-description: "Selects workflows and skills for non-trivial work. Use for unclear causes, consequential boundaries or substantial delivery. Clear local work with known owners and checks uses the short path."
+description: "Use for substantial engineering work, unclear causes or consequential changes. Clear local corrections use the short path."
 ---
 
 # Follow instructions
 
-Initialize once per active task; reuse its record across domain-skill loads,
-continuations and compaction. Reclassify when the outcome or boundary changes,
-not merely because another skill applies. Choose the procedure that reaches
-the requested result; leaf skills must not call this coordinator recursively.
-Resolve each relative reference from the directory containing its owning
-`SKILL.md`; use the supplied skill locator rather than guessing directories.
-Read repository guidance and apply the shared
+Choose a workflow once per task. Reconsider it when the requested outcome or
+scope changes, not whenever another skill is loaded. Other skills must not call
+this coordinator recursively. Read the repository instructions and apply the
 [execution boundary](references/principles/authority-and-claims.md#execution-boundary).
-A skill supplies procedure, never permission to edit, publish, merge, or deploy.
+Use the supplied skill path rather than guessing an install directory. Resolve
+relative links from the directory containing the owning `SKILL.md`.
 
-Retain the requested outcome, permitted effects, deliverable format and
-acceptance across workflow selection, delegation and handoff. Include these
-constraints in worker briefs. Supporting procedures choose working methods;
-they do not replace the task's requirements. Before delivery compare the actual
-artifact with this contract, including its required format and evidence.
-Use [authority and claims](references/principles/authority-and-claims.md) for
-requirement precedence and proportional action/recovery decisions.
+Keep the requested outcome, permitted actions, output format and acceptance
+criteria through planning, delegation and handoff. Include them in worker
+briefs and check the final result against them. Skills describe how to work;
+they do not grant permission to edit, publish, merge or deploy. For conflicting
+instructions or uncertainty about permission, use
+[authority and claims](references/principles/authority-and-claims.md).
 
 ## Short task path
 
-First inspect the owner, caller and check to classify eligibility; a bug label
-alone does not justify preloading diagnosis or verification skills, while
-explicit skill requests and repository-required procedures apply immediately.
+Inspect the implementation, caller and available check first. Use this path
+when the intended behavior and responsible code are clear and no
+[review-risk trigger](references/principles/authority-and-claims.md#review-risk-triggers)
+applies. A small pure-function correction may qualify; line count alone does
+not decide. Always honor explicit skill requests and repository procedures.
 
-Use this inline procedure for a local task whose owner, intended behavior and
-focused check are clear, provided the
-[review-risk triggers](references/principles/authority-and-claims.md#review-risk-triggers)
-are absent. An obvious pure-function correction can qualify; line count alone
-cannot. Explicitly requested skills and repository-required procedures win.
+1. Establish the expected result. For a bug, reproduce the original failure.
+2. Make the smallest authorized correction. Preserve negative cases.
+3. Run the focused check on the final code and inspect the diff. Exercise the
+   requested behavior; a build alone does not prove a user interaction works.
+4. For local-only work, report the result and relevant limits, then finish.
+   Otherwise follow [PR delivery](../pull-requests/SKILL.md#complete-authorized-delivery),
+   including independent review. Reviewing your own diff does not replace it.
 
-1. Inspect the owner, relevant caller/contract and available check. Establish
-   the expected result before editing. For a bug, observe the original failure.
-2. Make the smallest authorized correction. Preserve existing negative cases.
-3. Run the focused check on the final code and inspect the diff/scope. Exercise
-   the actual requested path: a passing build cannot prove a user journey.
-4. For local-only work, report the observed result and material limits, then
-   finish. Otherwise continue through [PR delivery](../pull-requests/SKILL.md#complete-authorized-delivery),
-   including its risk-based independent review. A clean diff reread is author
-   review and cannot replace those independent rounds.
-
-This path owns routine engineering diagnosis, verification and author diff review. Do not load
-full playbooks, principle details or additional owner skills merely to repeat
-these steps. No formal plan, competing hypotheses, durable checkpoint,
-reflection or reviewer is required for local-only work without a review-risk
-trigger. PR delivery still requires its independent rounds. Escalate to the route below
-if the cause, ownership or check becomes unclear, a check contradicts the
-explanation, or a consequential boundary appears. Never use the short path to
-skip a required check or silently downgrade a real blocker.
+This path already covers diagnosis, verification and author review. Do not load
+more procedures to repeat those steps. Local-only work without a review-risk
+trigger needs no formal plan, invented alternatives, checkpoint, reflection or
+independent reviewer. PR delivery still requires independent review. Switch to
+the full route if the cause, ownership or check becomes unclear, evidence
+contradicts the explanation, or a review-risk trigger appears. Keep required
+checks and genuine blockers visible.
 
 ## Engineer, verify, improve
 
-One engineer owns integration. A fresh reviewer challenges substantive work.
-Improvement changes the reusable method, not the current task's acceptance.
-These are responsibilities, not a mandatory agent roster.
+One engineer integrates the result. A fresh reviewer checks substantive work.
+These responsibilities do not require a standing team of agents.
 
-Keep requirements, defaults and examples distinct. Requirements bind the result
-and effects. Defaults may yield to a task-grounded better approach. Examples
-illustrate judgment, not the only acceptable architecture or visual style.
-Automate stable mechanics with existing tools, leaving contextual decisions to
-the agent. A repeatable result is not necessarily correct.
+For implementation, understand the problem, choose the smallest complete change,
+implement it, remove unnecessary code, verify it, obtain required review, repair
+findings and rerun affected checks. Use [code cleanup](../code-review-and-quality/SKILL.md) before final verification
+when the diff contains unnecessary code. Use `unslop` for substantial prose, preserving facts and
+uncertainty. Before finishing, check that the result meets the request and that
+each completion claim has evidence. Skip steps that do not apply to read-only,
+plan-only or short-path work.
 
-For a consequential choice, unclear quality bar, or stalled approach, use
-[engineering judgment](references/engineering-judgment.md). Do not load it for
-an already-clear short-path edit. Select only resources that change a decision.
+Requirements bind the result and permitted actions. Defaults allow a justified
+alternative. Examples illustrate a decision; they do not require the same
+architecture or visual style. Use existing tools for repeatable mechanical work
+and judgment for choices that depend on context. Changing a method must not
+weaken the task's acceptance criteria.
+
+For a consequential choice, unclear quality standard or stalled approach, read
+[engineering judgment](references/engineering-judgment.md). Load only material
+that helps make the current decision.
 
 ## Route other work
 
-Keep outcome, supporting expertise, follow-ons and permitted effects separate.
-Choose one primary route; add a follow-on for a distinct requested deliverable.
-Read its playbook and only the domain skills owning material decisions.
+Choose one primary route. Add a follow-on only for another requested deliverable.
+Read that playbook and the domain skills needed for the work.
 
 | Request | Route | Procedure |
 | --- | --- | --- |
 | Diagnosis or explanation | `investigate/read` | [investigate](playbooks/investigate.md) |
+| Product problem, feature scope or acceptance | `design/plan` | [product](../product/SKILL.md) |
 | Architecture or authorized prototype | `design/plan` or `design/prototype` | [design](playbooks/design.md) |
 | Bug, feature or refactor | `implement/bug`, `implement/feature`, `implement/refactor` | [implement](playbooks/implement.md) |
 | Measure or improve performance | `performance/measure` or `performance/improve` | [performance](playbooks/performance.md) |
@@ -90,88 +86,116 @@ Read its playbook and only the domain skills owning material decisions.
 | Reusable workflow/skill improvement | `workflow-improvement/improve` | [create-workflow](../create-workflow/SKILL.md), [skill-creator](../skill-creator/SKILL.md) |
 | Establish whether a claim is true | `verify-work/verify` | [verify-work](../verify-work/SKILL.md) |
 
-Attach expertise only where it changes a decision: unclear causes use
-[systematic-debugging](../systematic-debugging/SKILL.md); unclear boundaries use
-[architect](../architect/SKILL.md); material review uses
-[code-review-and-quality](../code-review-and-quality/SKILL.md); trust boundaries
-use [security-and-hardening](../security-and-hardening/SKILL.md); production-like
-state or credentials use [production-safety](../production-safety/SKILL.md);
-real UI work uses [web-interface](../web-interface/SKILL.md). Use `how`, `why`,
-`teach`, `deslop`, or `unslop` for the corresponding requested deliverable,
-not incidental subject words. For a bespoke task, compose the closest existing
-methods in a temporary sequence in this task record; do not create a new playbook
-or persistent framework merely because the combination is unfamiliar.
 
-Use the [principle index](references/principles.md) only for a material choice,
-then read the relevant detail. Source context is optional:
-[provenance](references/principles-background.md),
-[case studies](references/case-studies.md), and
-[observed failures](references/failure-to-checks.md).
+Use [systematic-debugging](../systematic-debugging/SKILL.md) for unclear causes,
+[architect](../architect/SKILL.md) for unclear ownership or interfaces,
+[code-review-and-quality](../code-review-and-quality/SKILL.md) for substantive
+review, [security-and-hardening](../security-and-hardening/SKILL.md) for trust
+boundaries, [production-safety](../production-safety/SKILL.md) for operational
+state or credentials, and [web-interface](../web-interface/SKILL.md) for UI work.
+Select `how`, `why`, `teach` and `unslop` for their requested outputs,
+not incidental words in the task. If a task needs an unusual combination, use
+existing methods in a temporary sequence; do not create a permanent framework.
+
+For a difficult decision, consult the [principle index](references/principles.md)
+or a relevant [worked example](references/case-studies.md).
 
 ## Authority and delivery
 
-Use [plans and authority](references/approved-plans.md) for a substantial design
-or an explicit approval gate. Reuse authorization already given.
-
-For implementation, apply the user's standing PR-delivery authority unless a
-local-only request or other restriction overrides it. Retain the original objective
-and follow [delivery completion](../pull-requests/SKILL.md#complete-authorized-delivery).
-Ordinary failed checks and in-scope findings create the next engineering action.
-Read-only requests and local-only changes retain their own stopping conditions.
+Use [plans and authority](references/approved-plans.md) for substantial implementation,
+substantial design or an explicit approval requirement. Reuse authorization already given.
+Implementation follows the user's standing PR-delivery policy unless a local-only
+request or another restriction overrides it. Keep the original objective and
+follow [delivery completion](../pull-requests/SKILL.md#complete-authorized-delivery).
+Fix ordinary failed checks and in-scope findings; do not hand them back as finished
+work. Read-only and local-only requests keep their own stopping conditions.
 
 ## Documentation boundary
 
-When you need working files, create a task-specific temporary workspace outside
-the project, for example with `mktemp -d "${TMPDIR:-/tmp}/agent-work.XXXXXX"`.
-Use it freely for notes, research, plans, drafts, scripts, and experiments that
-support the task. Choose the working method and artifacts yourself; routine
-scratch work needs no additional permission within the task's existing authority.
-Keep the project checkout for implementation and intended deliverables. Move
-material into project docs when the user requests it, a repository requirement
-applies, or changed behavior would otherwise leave existing instructions wrong.
-Include only what a future reader needs to use or maintain the result. Source
-comments should explain a useful reason, invariant, or constraint. Before
-handoff, inspect the diff for scratch material and unnecessary narration from
-your work; preserve existing and independently edited material. Use the existing
-checkpoint procedure when work needs durable continuation beyond temporary storage.
+Keep task notes, research, drafts, scripts and experiments in a temporary
+workspace outside the project, for example:
+
+```sh
+mktemp -d "${TMPDIR:-/tmp}/agent-work.XXXXXX"
+```
+
+Choose the working method and scratch files within the task's existing
+permissions; no extra approval is needed. Keep the project checkout for intended
+deliverables. Add project documentation when requested, required by the repository,
+or needed to keep existing instructions accurate after the change. Include what
+a future reader needs to use or maintain the result. Comments should explain a
+useful reason, invariant or constraint. Unless the user asks to version them,
+keep one-off audits, experiment results and PR progress in task artifacts or the
+PR. Keep reusable instructions in their owning skill and regression cases in
+the test suite; do not turn the catalog into a history of its development.
+
+Before handoff, remove scratch material and unnecessary work narration added by
+this task. Preserve existing material and other people's edits. Use the checkpoint
+procedure below when work must survive beyond temporary storage.
 
 ## Effort and continuation
 
-Keep only obligations that can change action, order, permission, stopping or
-completion in the task record:
+For substantive work, use the existing task record:
 `Outcome / Route / Domains / Effects / Constraints (including format) / Done`.
-For substantive work, link authoritative inputs, acceptance, candidate identity,
-current evidence and unresolved decisions in that same record, not a new ledger.
-A simple answer needs no formal record. Use current CLI/model settings; when
-controls exist, start routine work at the configured ordinary effort and
-escalate for demonstrated uncertainty. Do not change the user's model or quota
-settings without authority, or claim a setting change that the harness cannot
-make. Bound optional experiments and comparisons before running them; do not invent a
-tiny budget as a stopping condition for already-authorized delivery.
+Include only facts that affect the next action, its order, permission or
+completion. Link requirements, the current revision and uncommitted changes,
+evidence and unresolved decisions there. A simple answer needs no formal record.
 
-Use [parallel](playbooks/parallel.md) only when independent ownership, a real
-delegation tool and a benefit justify it. Prove one complete unit first. Use
-[self-reflect](../self-reflect/SKILL.md) when repeated failure or stalled progress
-requires a new observation; ordinary completion needs no extra reflection.
-A correction of a recorded or repeated mistake uses
-[learn from repeats](../self-reflect/references/learn-from-repeats.md); nothing
-is applied without the user's approval.
-Across handoff or compaction retain the objective, accepted decisions,
-unfinished gates, next action and exact blockers. Use
-[durable checkpoints](references/durable-checkpoints.md) for expected
-interruption or work outliving the session, not every edit.
+For authorized delegation, use [agent and reasoning selection](references/agent-selection.md).
+Match the model and effort to the role, difficulty and available capabilities.
+Keep the parent model, global settings and quota unchanged. Set a budget before
+optional experiments; do not invent a small trial budget to stop authorized
+delivery early.
+
+For substantive work, discover the repository's
+[codebase knowledge](references/codebase-knowledge.md) before planning or review.
+Build missing knowledge during authorized implementation. Read-only work uses
+existing knowledge or source search. Verify source links against the current tree.
+A clear local correction does not need a repository-wide indexing pass.
+For substantial authorized implementation, index the task at enrollment and
+refresh it at handoff using [delivery history](references/delivery-history.md).
+Existing task and PR evidence remains authoritative; the index is rebuildable.
+Read-only requests may inspect existing records but do not create them.
+
+When delegation is available, delegate context gathering and exploration to an
+efficient model. Without it, perform bounded local investigation and record the
+capability limit; ordinary work continues. Give it a
+bounded question and require relevant source paths, revisions and missing
+context. Keep architecture and subtle bug analysis with the frontier owner,
+who checks the cited sources. Delegate browser work to a capable economical
+model with the actual browser tools and image input. If that capability is
+unavailable, record the limit and use the supported fallback; do not pretend
+an API-only model inspected a screen. Children return work to the parent and
+never delegate further.
+
+When delegating independent units, use [parallel](playbooks/parallel.md) to
+assign ownership and integrate the results. Prove one complete
+unit first. Use [self-reflect](../self-reflect/SKILL.md) when repeated failure or
+stalled progress calls for a different observation, not at every completion.
+For a recorded or repeated mistake, use
+[learn from repeats](../self-reflect/references/learn-from-repeats.md); apply its
+proposed changes only with the user's approval.
+
+Across handoff or compaction, retain the objective, accepted decisions, unfinished
+checks, next action and exact blockers. Use
+[durable checkpoints](references/durable-checkpoints.md) before an expected
+interruption or when work outlives the session.
 
 ## Evidence and completion
 
-Inspect the actual owner and authoritative inputs before changing behavior.
-Reuse evidence only while relevant source, environment, requirement, fixture
-and artifact/instance identity are unchanged; rerun affected checks after a
-change. Preserve original reproducers and negative cases. Distinguish accepted,
-failed, skipped and not-run checks. Diagnose safe recovery before declaring a
-capability blocker; missing capability is unavailable, not silently inapplicable.
+Inspect the responsible code and authoritative inputs before changing behavior.
+Reuse evidence only while the relevant source, environment, requirement, fixture
+and tested artifact or instance remain unchanged. Rerun affected checks after a
+change. Preserve original reproductions and negative cases. Distinguish passed,
+failed, skipped and not-run checks. Investigate safe recovery before declaring a
+capability unavailable; do not drop a required check because its tool is missing.
 
-Review the final artifact and affected consumers. Required independent review
-must cover that artifact; self-review or a requested-but-unreturned review does
-not satisfy it. Inspect remote results only when publication was requested and
-verify the actual write. Report the result, meaningful decisions, checks and
-material limits at the layer proven. Stop before unrequested effects.
+Validate machine-readable files you deliver with their parser or schema checker
+after the last write. Passing tests on the inputs or generator do not establish
+that the resulting file is valid.
+
+Review the final result and affected consumers. Required independent review must
+cover that result; self-review and an unanswered review request do not count.
+When publication is authorized, inspect the remote object to verify the write.
+Report the result, meaningful decisions, checks and limits supported by the
+evidence. Stop before unrequested actions.

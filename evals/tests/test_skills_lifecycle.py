@@ -538,8 +538,9 @@ class WorkspaceBaselineLifecycleTests(unittest.IsolatedAsyncioTestCase):
         state.store.set("workspace_baseline", Baseline(status="available", revision="abc"))
         state.output = ModelOutput.from_content(model="stub/no-model", content="")
         target = Target("verified artifact")
-        artifact = SimpleNamespace(read_file=AsyncMock(return_value="verified artifact"))
-        with patch.object(skills, "sandbox", return_value=artifact):
+        (self.native_workspace / "result.txt").write_text("verified artifact")
+        with patch.object(skills, "_sandbox_workspace_path",
+                          AsyncMock(return_value=(self.native_workspace, None))):
             artifact_contract = await skills.workflow_effects()(state, target)
         self.assertEqual(artifact_contract.value, 1)
 

@@ -1,7 +1,7 @@
 # Sourced AI-code failures
 
-Use when plausible generated code needs a concrete integration or code-health
-counterexample. Sources explicitly identify the artifacts as AI-generated.
+Use these examples when reviewing generated code for incomplete integration or
+redundant state. Sources explicitly identify the artifacts as AI-generated.
 Authorship is not inferred from style. These historical examples do not establish
 failure rates for today's models or for this preview.
 
@@ -46,8 +46,8 @@ min_index = i
 return min_diff
 ```
 
-**Review:** Establish whether that state contributes to the contract. For this
-function, remove redundant assignments. A caller requiring an index could instead
+**Review:** Establish whether that state contributes to the contract. In this function,
+the assignments are redundant. A caller requiring an index could instead
 justify returning one. Native lint supports the review, but temporary variables
 are not universally wrong. This is a minor maintainability issue, not a security
 incident. The paper concerns an older model and benchmark setting.
@@ -56,8 +56,9 @@ Sources were checked on 2026-10-14. We did not re-execute the complete original
 programs. Reconstructions are labeled and claims remain attributed. Do not copy
 an example into a new product and treat it as that product's acceptance contract.
 Use the [maintainability exercise](maintainability-exercise.md) for a credible
-follow-up change. Accept different correct structures. These are teaching cases,
-not hidden tests or proof that the new guidance improves an agent.
+follow-up change. Accept different correct structures. These teaching cases are not
+hidden tests and do not show whether the guidance
+improves agent performance.
 
 [anthropic]: https://www.anthropic.com/engineering/harness-design-long-running-apps
 [fastapi]: https://fastapi.tiangolo.com/tutorial/path-params/#order-matters

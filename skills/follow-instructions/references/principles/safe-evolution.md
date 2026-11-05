@@ -1,9 +1,8 @@
 # Safe evolution
 
-This local reference combines pstack's Make Operations Idempotent, Migrate
-Callers Then Delete Legacy APIs, and Separate Before Serializing Shared State.
-It is the architectural complement to the repository's production and
-security skills.
+Adapted from pstack's Make Operations Idempotent, Migrate Callers Then Delete
+Legacy APIs, and Separate Before Serializing Shared State. Use with the
+production and security skills when their triggers apply.
 
 ## Trigger
 
@@ -22,22 +21,17 @@ behavior.
 
 ## Procedure
 
-1. Map the state, consumers, writers, identity, and exact effect boundary.
+1. Identify the state, its readers and writers, the target object and the point
+   where each change becomes persistent or visible externally.
 2. Ask what happens if the operation runs twice or crashes after each step.
 3. Use stable identity, content comparison, reconciliation, or an idempotency
    key where the existing owner supports it. Reject conflicting replays.
 4. For a coordinated internal refactor, inventory callers, migrate them,
-   update behavior tests, and delete the old path in the same wave when safe.
+   update behavior tests, and delete the old path in the same change when safe.
 5. Give independent workers separate state. Serialize only when one shared
    writer is a real invariant.
 6. Establish rollback and verify the resulting state before publication or
    declaring recovery.
-
-## Principal-engineer lens
-
-The important decision is how the system behaves under uncertainty. A principal
-engineer designs for retries, ownership, and evolution before the incident or
-the migration makes those choices expensive.
 
 ## Evidence
 

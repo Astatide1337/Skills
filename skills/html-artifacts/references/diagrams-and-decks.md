@@ -11,8 +11,8 @@ sequence or table is clearer.
 - Keep labels as text, not paths or raster images.
 - Use arrowheads and explicit direction; distinguish paths with labels, shape,
   or line style as well as color.
-- Highlight the common path and collapse rare detail instead of drawing a
-  complete dependency hairball.
+- Highlight the common path and collapse uncommon detail so labels and
+  connections remain readable.
 - Keep one visual language across a figure set: type, line weight, nodes,
   arrowheads, and semantic color.
 - Provide “Copy SVG” or download when figures are intended for reuse.
@@ -22,7 +22,7 @@ details. Every clickable node must also be focusable and keyboard operable.
 
 ## Slide decks
 
-Use a deck only for narrated material with distinct beats. Dense material meant
+Use a deck for narrated material that divides into distinct ideas. Dense material meant
 for self-study belongs in a report.
 
 - Use one full-viewport section per slide and one idea per slide.

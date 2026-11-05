@@ -1,8 +1,8 @@
 # Ownership and domain
 
-This local reference combines pstack's Foundational Thinking, Model the
-Domain, Boundary Discipline, and Type System Discipline. The existing
-`architect` and security skills remain the detailed owners for their domains.
+Adapted from pstack's Foundational Thinking, Model the Domain, Boundary
+Discipline, and Type System Discipline. Use `architect` and the security skills
+for their detailed procedures.
 
 ## Trigger
 
@@ -30,13 +30,6 @@ layer happens to call it first.
 5. Check concurrent writers and lifecycle transitions before sharing mutable
    state.
 6. Implement at the owning layer and verify the caller's observable behavior.
-
-## Principal-engineer lens
-
-Principal-level architecture is often ownership management. The question is
-not only “what code is shortest?” but “who owns this invariant, who can change
-it, and what other teams or callers inherit?” Clear ownership reduces future
-coordination cost.
 
 ## Evidence
 
@@ -70,14 +63,10 @@ turn every local edit into a design exercise. Existing repository contracts win.
 | A proposed layer has one trivial caller | Direct code or the existing owner until another real use case needs the layer. | Generic repositories, factories or wrappers that merely forward values. | Trace the caller and name the decision hidden by each layer. A one-caller adapter is useful when it isolates an actual external protocol or failure boundary. |
 
 For TypeScript, rely on checked narrowing and exhaustive variants rather than
-asserting a desired type. Supplemental checks live in
-[portable lint](../../../code-review-and-quality/references/portable-lint.md);
+asserting a desired type. Supplemental checks live in [portable
+lint](../../../code-review-and-quality/references/portable-lint.md);
 compiler/native project checks remain necessary. Do not ban all `as` syntax or
-force branded types into an already-total function. Architecture and complete
-runtime validation remain judgments, not installed universal lint rules.
+force branded types into an already-total function. These lint checks do not
+replace architectural judgment or complete runtime validation.
 
-These construction choices adapt P-stack's
-[TypeScript guidance](https://github.com/cursor/plugins/blob/7022c81efb48d8b5eb15498ce6043a3bd74b694c/pstack/skills/typescript-best-practices/SKILL.md)
-and the original audit's boundary misclassification, divergent views and discarded
-drafts. Those audit mappings motivate tests; they do not certify the original
-applications fixed or establish a principal-engineer quality score.
+These construction choices draw on pstack's [TypeScript guidance](https://github.com/cursor/plugins/blob/7022c81efb48d8b5eb15498ce6043a3bd74b694c/pstack/skills/typescript-best-practices/SKILL.md).

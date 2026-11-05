@@ -1,8 +1,8 @@
 # Decision principles
 
-Use this index only when a material choice needs a principle. Read the one
-linked detail that changes that choice; the short task path needs no index.
-Owner skills supply procedure. A principle name is not completion evidence.
+Use this index when a decision needs more guidance. Read the relevant reference;
+the short task path does not require it. Use the owning skill for the procedure
+and verify the result before claiming completion.
 
 | Choice | Reference |
 | --- | --- |
@@ -15,6 +15,3 @@ Owner skills supply procedure. A principle name is not completion evidence.
 | Repeated work or delegation | [leverage and verifiable units](principles/leverage-and-verifiable-units.md) |
 | Repeated failed premise | [challenge and adapt](principles/challenge-and-adapt.md) |
 | Authority or completion claim | [authority and claims](principles/authority-and-claims.md) |
-
-For source attribution or background only, see
-[provenance and calibrators](principles-background.md).

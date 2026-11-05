@@ -3,7 +3,7 @@
 ## When
 
 Use for a tracker issue's content or lifecycle. `draft` returns copy only;
-`create`/`update`/`triage` have only the explicitly requested tracker effects.
+`create`, `update` and `triage` permit only the tracker actions requested.
 No issue task authorizes code edits, PRs, or deployment by implication.
 
 ## Inputs to establish
@@ -12,17 +12,17 @@ No issue task authorizes code edits, PRs, or deployment by implication.
   authority;
 - problem evidence, expected/observed behavior, source locations, constraints,
   non-goals and duplicate candidates;
-- for an update, which old instruction is superseded; for a write, readback and
-  ambiguous-failure behavior.
+- for an update, which previous instruction it replaces; for a write, how to
+  fetch the result and check for success after a timeout.
 
 ## Steps and decision points
 
 1. Read the current issue and relevant comments for update/triage. Search for
    duplicates before create. Keep facts, hypotheses, and proposed interfaces
    distinct; never copy sensitive data.
-2. Write the smallest coherent **Problem**, **Scope**, **Acceptance**, and
-   optional **Implementation notes**. Acceptance must be observable, not a
-   file-count or vague quality promise.
+2. Write a concise **Problem**, **Scope** and **Acceptance** section. Include
+   **Implementation notes** only when they help resolve the issue. Acceptance
+   must be observable, not a file-count or vague quality promise.
 3. In draft mode, stop before remote writes. In create/update mode, perform
    only the requested write, then fetch the returned object and verify
    repository, title, essential body, status, and superseded scope. In triage,
@@ -39,8 +39,9 @@ inventing a cause.
 
 ## Completion evidence
 
-Provide draft text or exact tracker ID/URL, fetched-back essential fields and
-status, write/readback observations, and forbidden effects that remained absent.
+Return the draft, or the tracker ID/URL with the essential fields and status
+verified by fetching it. Report any uncertain write result or unintended effect,
+and confirm that prohibited actions were not taken.
 An issue comment or final response is not itself proof of remote state.
 
 ## Example

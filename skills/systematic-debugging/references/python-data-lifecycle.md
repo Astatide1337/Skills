@@ -18,7 +18,7 @@ for production-like stores or planned migrations.
    nulls, key values, duplicate count, order, and relevant time boundaries. Redact
    private values without changing those properties. Record the expected and
    observed rows or values before normalizing the input.
-2. **Trace the data owner path.** Follow the input from parser and boundary
+2. **Trace the data path.** Follow the input from parser and boundary
    validation through transformation, transaction or batch writer, durable
    store, query, and response. Name the canonical key, ordering rule, filter or
    tenant scope, transaction owner, and authoritative reader. Inspect the real
@@ -45,9 +45,9 @@ for production-like stores or planned migrations.
    inspect the actual transaction boundary before adding retries.
 6. **Fix the owning boundary.** Validate external structure once where it
    enters; keep domain rules with their owner and persistence constraints in the
-   store. Use bound parameters and explicit transactions. Implement replay
-   behavior at the durable identity boundary; a generated request ID alone is
-   not duplicate protection. For keyset pagination, order by a stable tuple
+   store. Use bound parameters and explicit transactions. Use a persisted operation ID
+   to enforce replay behavior; generating a
+   request ID alone does not prevent duplicates. For keyset pagination, order by a stable tuple
    such as `(created_at, id)` and resume after the last row returned, not a
    lookahead row that was not returned.
 7. **Check the affected lifecycle.** Re-run the original failure, then cover the
@@ -62,16 +62,17 @@ for production-like stores or planned migrations.
    result, command, and observed rows. Separate a Python unit test, local
    disposable database, integration database, CI, and deployed store. A local
    fixture establishes only its stated contract; it does not establish
-   production contents, engine behavior, migration safety, or agent efficacy.
+   production contents, engine behavior, migration safety or agent performance.
 
 ## Worked task: a page cursor skips the lookahead row
 
-The practitioner case in the local Jobmark example observed five ordered
-records traversed with page size two as `[A, B]` then `[D, E]`; `C` was popped as
+In the Jobmark case, paginating five ordered records with page size two
+returned `[A, B]` then `[D, E]`; `C` was popped as
 the lookahead but incorrectly used as the next cursor. The owner was the domain
 pagination function. The correction used the last returned record as the
 bookmark, and later work added deterministic ordering for timestamp ties. See
-the cited [test-only revision](https://github.com/Astatide1337/Jobmark/commit/b3be144cdbb5fd34cc419ce0c119bcb04d24f800),
+the cited [test-only
+revision](https://github.com/Astatide1337/Jobmark/commit/b3be144cdbb5fd34cc419ce0c119bcb04d24f800),
 [focused correction](https://github.com/Astatide1337/Jobmark/commit/d037f6a020d80ba9452e9cc0519467535d91c7b0),
 [tie-ordering revision](https://github.com/Astatide1337/Jobmark/commit/885e5d8bd24cf4627b0aea1155a4543698969b1d),
 and its [before-fix](https://github.com/Astatide1337/Jobmark/actions/runs/34673673384)

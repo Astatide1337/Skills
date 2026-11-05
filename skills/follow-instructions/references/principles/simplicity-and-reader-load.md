@@ -1,7 +1,7 @@
 # Simplicity and reader load
 
-This local reference combines pstack's Laziness Protocol and Minimize Reader
-Load with the repository's code-review standards.
+Adapted from pstack's Laziness Protocol and Minimize Reader Load. Apply it with
+the repository's code-review standards.
 
 ## Trigger
 
@@ -28,17 +28,11 @@ introduces.
 5. Read the changed path as a new maintainer. If the source of a value or its
    writers are unclear, flatten the path or name the invariant at the boundary.
 
-## Principal-engineer lens
-
-Reader load is a system-wide cost. A principal engineer protects the future
-maintainer's time, not just today's implementation speed. A simpler boundary
-also improves review, onboarding, incident response, and safe delegation.
-
 ## Evidence
 
 Review the final diff for removed indirection and unchanged ownership. Explain
-why each new moving part earns its maintenance cost. A lower line count is not
-proof if it hides behavior or weakens a contract.
+what each new component does and why that benefit warrants maintaining it. A
+lower line count is not proof if it hides behavior or weakens a contract.
 
 ## Example
 

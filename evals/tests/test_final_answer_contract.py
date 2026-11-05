@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+import tempfile
 import unittest
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from inspect_ai.model import ModelOutput
@@ -138,12 +139,37 @@ class FinalAnswerScorerTests(unittest.IsolatedAsyncioTestCase):
             input=sample.input, messages=[], metadata=sample.metadata,
         )
         state.output = ModelOutput.from_content(model="stub/no-model", content=completion)
-        sandbox = SimpleNamespace(
-            read_file=AsyncMock(return_value='{"status":"supported_local_blocker"}')
-        )
-        with patch.object(skills, "sandbox", return_value=sandbox):
-            result = await skills.workflow_final_answer()(state, None)
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            (root / "diagnosis.json").write_text('{"status":"supported_local_blocker"}')
+            with patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(root, None))):
+                result = await skills.workflow_final_answer()(state, None)
         self.assertEqual(result.value, 1)
+
+    async def test_artifact_binding_rejects_outside_links_and_accepts_regular_file(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw) / "workspace"
+            root.mkdir()
+            outside = Path(raw) / "outside"
+            outside.mkdir()
+            (outside / "report.json").write_text('{"status":"owned-outside-value"}')
+            (root / "leaf.json").symlink_to(outside / "report.json")
+            (root / "parent").symlink_to(outside, target_is_directory=True)
+            (root / "regular.json").write_text('{"status":"different-valid-value"}')
+            for path, status, expected in (
+                ("leaf.json", "owned-outside-value", 0),
+                ("parent/report.json", "owned-outside-value", 0),
+                ("regular.json", "different-valid-value", 1),
+            ):
+                with self.subTest(path=path):
+                    state = TaskState(model="stub/no-model", sample_id="artifact-boundary", epoch=1,
+                                      input="Return the artifact status", messages=[])
+                    state.metadata = {"final_answer_contract": {"fields": {
+                        "status": {"artifact_field": {"path": path, "field": "status"}}}}}
+                    state.output = ModelOutput.from_content(model="stub/no-model", content=json.dumps({"status": status}))
+                    with patch.object(skills, "_sandbox_workspace_path", AsyncMock(return_value=(root, None))):
+                        result = await skills.workflow_final_answer()(state, None)
+                    self.assertEqual(result.value, expected, result.explanation)
 
 
 if __name__ == "__main__":

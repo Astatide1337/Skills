@@ -14,6 +14,11 @@ Choose the first form that can encode the workflow completely and safely.
 
 ## Tie-breakers
 
-Prefer fewer owners, less persistent state, fewer credentials, narrower permissions, local reproducibility, explicit inputs, and deletion over synchronization. Count the maintenance surface introduced, not only the commands removed.
+Compare the owners, persistent state, credentials and permissions each option
+requires. Prefer explicit inputs and a locally reproducible result. Remove
+unneeded copies instead of adding synchronization. Count what must be maintained
+as well as the commands saved.
 
-Do not automate a rare, high-judgment procedure merely because it is tedious. Document it once and record what frequency, failure rate, or evidence would justify revisiting automation.
+Do not automate a rare procedure that requires substantial judgment merely
+because it is tedious. Document it once and record what frequency, failure rate,
+or evidence would justify revisiting automation.

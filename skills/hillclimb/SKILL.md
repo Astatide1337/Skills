@@ -1,11 +1,12 @@
 ---
 name: hillclimb
-description: "Improves one measured metric through repeated baseline-and-experiment loops with non-regression gates. Use for performance, latency, size, cost or eval-score optimization with a target."
+description: "Use when optimizing a measured performance, latency, size, cost or evaluation target through controlled experiments."
 ---
 
 # Hillclimb
 
-Improve the measured result without sacrificing the system around it.
+Improve one measured result while preserving the required correctness, safety
+and quality checks.
 
 Use [instrument validity](../verify-work/SKILL.md#validate-the-measuring-instrument)
 when introducing or repairing a metric; an explicitly authorized instrument
@@ -24,9 +25,9 @@ Before changing the candidate:
 4. Check that the measurement is repeatable and sensitive enough to distinguish
    a meaningful change from noise. Use repeated samples and a declared summary
    statistic when the result varies.
-5. Freeze the workload, metric calculation, and gates for the run. If the ruler
-   is defective, repair it and discard earlier comparisons rather than changing
-   it after seeing an inconvenient result.
+5. Freeze the workload, metric calculation, and gates for the run. If measurement is
+   defective, repair it and discard incompatible earlier
+   comparisons. Do not change it merely because a result is unfavorable.
 
 Do not optimize a proxy without explaining why it represents the requested
 outcome. Keep final evaluation cases separate from the examples used to choose
@@ -45,8 +46,8 @@ artifact.
 For each attempt:
 
 1. Read the current accepted state and previous results.
-2. State a mechanism-based hypothesis and the result that would support or
-   reject it.
+2. State why the change should affect the metric and what result would support
+   or reject that explanation.
 3. Change one meaningful variable when practical. If variables must move
    together, explain why the combination is indivisible.
 4. Run the frozen measurement and every relevant non-regression gate.
@@ -56,8 +57,7 @@ For each attempt:
    them.
 
 Do not stack unmeasured changes, retain a neutral change because it looks
-promising, or claim improvement from source inspection. The observed result
-decides.
+promising, or claim improvement from source inspection.
 
 ## Search without overfitting
 
@@ -86,8 +86,8 @@ use blinded or consistently ordered comparison when practical.
 
 Stop when the target or experiment budget is reached, remaining hypotheses are
 not worth their cost, the measurement cannot support a conclusion, or a safety
-boundary prevents further experiments. A plateau is evidence to reconsider the
-mechanism, not permission to relax the target.
+boundary prevents further experiments. If results plateau, reconsider the cause rather
+than relaxing the target.
 
 Before finishing, restore rejected work, run the non-regression gates on the
 retained state, and evaluate the untouched cases once. Do not call a tuning win

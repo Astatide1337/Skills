@@ -24,8 +24,8 @@ separately authorizes remediation.
   migrations, webhooks, imports/exports, scheduled jobs, legacy versions, and
   scripts with production access.
 
-Build a compact coverage map linking each exposed surface to its enforcement
-point and evidence. Use it to find missing paths rather than counting files.
+Map each entry point to the code that enforces its restrictions and the
+evidence checked. Use the map to find unreviewed paths.
 
 ## 3. Search for candidates safely
 
@@ -40,7 +40,7 @@ point and evidence. Use it to find missing paths rather than counting files.
 - Review dependency manifests, lockfiles, lifecycle scripts, container builds,
   CI includes/actions, and deployment configuration as executable supply-chain
   inputs.
-- Treat searches and scanners as candidate generators. Confirm attacker control,
+- Treat search and scanner results as leads. Confirm attacker control,
   reachability, missing control, affected environment, and impact in source.
 
 Prefer repository-native analyzers and existing configuration. Do not install,
@@ -62,12 +62,12 @@ targets unless the requested mode authorizes it.
 
 ## 5. Correlate and report
 
-- Deduplicate multiple symptoms with one root enforcement failure.
+- Group symptoms caused by the same missing or ineffective control.
 - Classify each item as confirmed vulnerability, likely vulnerability requiring
   one bounded check, defense-in-depth gap, or hygiene observation.
 - Rank by reachable impact and attacker prerequisites, not scanner severity
   alone. Keep speculative patterns out of the confirmed list.
-- Cite exact path and symbol, trace source to sink/control, name the affected
-  environment assumption, propose the smallest fix, and specify a regression test.
+- Cite exact path and symbol, trace attacker input to the affected operation or control, state the
+  assumed environment, propose the smallest fix, and specify a regression test.
 - End with audited coverage, excluded/unknown surfaces, tool limitations, and the
   highest-value next verification steps. Never claim the codebase is secure.

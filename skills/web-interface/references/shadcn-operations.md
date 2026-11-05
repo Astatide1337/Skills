@@ -77,8 +77,7 @@ hard-coded import in third-party files—review them.
 ## Handle registries safely
 
 `components.json` may define namespace-to-URL templates and may interpolate
-environment variables into headers or parameters. Treat those values as
-configuration and secrets, not output.
+environment variables into headers or parameters. Keep expanded values private; do not print them.
 
 - Require an explicit item address such as `@team/button`, `owner/repo/item`, a
   configured URL, or a local path.
@@ -96,7 +95,7 @@ configuration and secrets, not output.
 A preset can change components, tokens, fonts, icon choices, base primitives,
 and global CSS. Resolve the user's intended merge policy before applying it:
 
-- **Overwrite:** replace the affected generated surface. Require explicit
+- **Overwrite:** replace the affected generated files. Require explicit
   approval for the exact scope.
 - **Partial:** apply only a supported subset, such as theme or font, after
   inspecting the resolved preset and CLI help.
@@ -110,7 +109,7 @@ Before a preset change:
 1. inspect current and incoming preset data;
 2. record the current primitive base and theme files;
 3. check for local component/global-CSS modifications;
-4. create a recoverable diff through the repository workflow;
+4. preserve a recoverable diff using the repository's workflow;
 5. run the command from the intended project root;
 6. review every changed file afterward.
 

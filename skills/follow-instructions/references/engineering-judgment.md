@@ -2,21 +2,22 @@
 
 Use for a consequential decision, unclear quality standard or stalled approach.
 The short task path remains sufficient for an already-understood local edit.
-This resource supplies methods, not authority or a required sequence of calls.
+Use these methods as needed; they do not grant permission or require extra tool
+calls.
 
 ## Establish what has to be true
 
 Separate the user outcome, required invariants and effects from useful defaults
 and examples. Derive acceptance from the request and authoritative application
-contracts before the candidate's output can bias it. Pre-change behavior can
-identify a regression invariant but cannot legitimize the bug being repaired.
+contracts before the candidate's output can bias it. Existing behavior shows
+what may need preserving; it does not justify keeping the bug being repaired.
 For appearance, determine the relevant visual reference and actual user task.
 For architecture, inspect the owner, callers, types and nearby accepted feature.
 Do not silently invent a domain, product benefit or compatibility requirement.
 
-Keep these decisions and current evidence in the existing task record. Reuse a
-covering approval. Reopen only materially changed behavior, architecture,
-acceptance or authority. The original objective remains recoverable after a
+Keep these decisions and current evidence in the existing task record. Reuse
+approval that covers the work. Reopen only materially changed behavior,
+architecture, acceptance or authority. Keep the original objective in the
 handoff. Investigation and safe independent work can continue during design.
 
 ## Choose the appropriate owner
@@ -44,15 +45,21 @@ A well-integrated local feature is usually more relevant than a universal
 architecture template. Preserve the model's freedom to find another valid
 solution. Reproduce an example only when fidelity is part of the request.
 
+Before committing to a substantial design, apply the
+[planning checks](approved-plans.md#establish-the-decision): inspect a local
+exemplar, resolve material unknowns and challenge the simplest complete approach.
+Use [product](../../product/SKILL.md) when the user outcome or scope itself is
+unclear; technical investigation cannot decide an unknown business preference.
+
 For substantial features, prove a representative complete slice before
-replicating it. A working slice does not discharge the remaining approved scope.
+replicating it. Finish the remaining approved scope after the first slice works.
 Challenge consequential ownership and interaction choices before broad code is
 written. Do not require multiple design variants when the direction is clear.
 
 ## Choose the next useful action
 
-Within the task, resolve the uncertainty that most obstructs a defensible
-result. A real user journey may be more informative than another diff reread.
+Resolve the uncertainty that most affects whether the result will meet the
+request. A real user journey may be more informative than another diff reread.
 Inspect supported alternatives and repair in-scope setup before declaring a
 blocker. Preserve the strongest candidate, not automatically the latest one.
 A retry needs new evidence, a changed hypothesis or a justified correction.
@@ -66,15 +73,15 @@ existing approval decision. Honor the finite budget and retain unfinished gates.
 ## Accept and learn separately
 
 Use `verify-work` and required independent review for the identified final
-artifact. Tests, renders, evidence and required quality must agree with the
-contract. An explanation cannot fill missing execution evidence. Review
-findings state a concrete issue and resolution condition, with optional
-preferences kept separate.
+artifact. Check the required behavior and quality in tests, rendered output and
+other evidence appropriate to the request. An explanation cannot fill missing
+execution evidence. Review findings state a concrete issue and resolution
+condition, with optional preferences kept separate.
 
 An accepted artifact does not prove this workflow improved the model. Use the
 `skill-creator` improvement procedure before proposing permanent lessons.
-Requirements can demand enforcement without an empirical speed win. Methods
-and examples must earn their overhead and remain revisable. Automatic rule
+Requirements can demand enforcement without an empirical speed win. Keep methods
+and examples only when their benefit justifies the work they add. Automatic rule
 promotion, merge and deployment are not authorized by this resource.
 
 ## Counterexample
@@ -84,5 +91,5 @@ formal plan, mutation test and PR. Conversely, a tiny-looking permission edit
 can require two-identity runtime checks and independent review. Risk and the
 requested claim, not line count or ceremony, choose the work.
 
-Keep this reference only while it improves decisions or clarifies real
-boundaries. Delete duplicate instructions rather than building an exception tree.
+Remove duplicate instructions. Keep a method only while it helps resolve a
+real decision.

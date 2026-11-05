@@ -80,13 +80,6 @@
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
   },
   {
-    "id": "grilling-offline-sync-plan",
-    "input": "Interactively grill this plan before we build it: add offline editing by caching everything in localStorage, sync on reconnect, and use last-write-wins. The app has multiple browser tabs, attachments, and shared documents. Start with the first decision round and wait for my answers. Do not implement anything or give the final design yet.",
-    "target": "Build an implicit decision tree and ask one compact numbered frontier of independent, high-consequence decisions rather than one serial question or a complete one-response review. For each question explain the consequence, recommend an answer with reasoning, and offer bounded alternatives. Distinguish user-owned product or risk decisions from facts the agent should investigate. Cover the current frontier across conflict semantics, storage and attachment boundaries, identity or shared-document authority, and recovery or rollout as dependencies permit, then wait without implementing or silently selecting a final architecture.",
-    "metadata": {"allow_changes": false, "skill": "grilling"},
-    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
-  },
-  {
     "id": "how-request-flow",
     "input": "I am new to this repository. Walk me through what happens when POST /invoice is called, then critique the proposal to add retries in routes.py and put provider response dicts directly into store.py. Use the supplied files and do not edit them.",
     "target": "First trace the runtime path from routes.py through billing.py to gateway.py and store.py and identify ownership and data boundaries. Then critique with concrete consequences: route-owned retries couple transport to provider failure policy and risk duplicating a larger operation; passing provider dicts into persistence leaks the external representation and makes provider changes spread. Recommend retry ownership near the provider boundary with idempotency considerations and a deliberate translation or domain boundary before storage. Clearly label uncertainties and avoid generic architectural preferences.",
@@ -128,17 +121,6 @@
       "draft.md": "# Operational Update\n\nI just wanted to take a moment to provide everyone with a quick update regarding our truly pivotal migration journey. We are incredibly excited to share that the migration was successfully completed on Tuesday, showcasing the team's enduring commitment to excellence. It is important to note that two of our twelve workers were restarted manually. Latency has now returned to baseline. While specific details are limited, the underlying cause of the worker stalls is unknown. Logs are retained for seven days. Overall, this represents a meaningful step forward and the future looks bright.\n\n# A Personal Reflection\n\nIn today's rapidly evolving landscape, developer tools are not just utilities, but transformative partners that are fundamentally reshaping how we build. I used the agent at 2 a.m. on Saturday and watched it continue after I had run out of ideas. I was impressed, but there was also something unsettling about it. I wrote in my notes, \"It felt like leaving a light on in an empty workshop.\" This pivotal experience underscores the intricate interplay between human creativity and automated systems.\n\n# Technical Architecture\n\nThe API surface serves as the foundational substrate for the system and is defined in `routes.ts`. Requests are parsed by the loader. The `.toSQL()` method returns the exact string sent to the database, ensuring transparency and fostering developer confidence. This robust test harness showcases a seamless developer experience.\n"
     },
     "metadata": {"allow_changes": true, "required_files": ["revised.md"], "skill": "unslop"},
-    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
-  },
-  {
-    "id": "deslop-generated-code-cleanup",
-    "input": "Clean the supplied branch before review. Inspect the diff against the accepted base and remove generated code slop without changing behavior, public interfaces, security checks, or unrelated files. Run the focused test if the supplied repository has one; do not publish.",
-    "target": "Inspect the complete supplied diff and local conventions, then make only focused cleanup: remove the redundant narration and the catch-and-rethrow wrapper in src/lookup.py while preserving the None behavior, the store boundary, and the public function signature. Do not remove meaningful validation or error handling, rewrite the test, touch unrelated files, add dependencies, or claim checks that did not run. Run the supplied focused test when possible and report the final diff and actual checks concisely.",
-    "files": {
-      "src/lookup.py": "def lookup(store, key):\n    # This function is responsible for looking up one record in the supplied store.\n    try:\n        value = store.get(key)\n    except Exception:\n        raise\n    if value is None:\n        return None\n    return value\n",
-      "tests/test_lookup.py": "from src.lookup import lookup\n\nclass Store:\n    def get(self, key):\n        return {'key': key}\n\nassert lookup(Store(), 'alpha') == {'key': 'alpha'}\nassert lookup(Store(), 'missing') is not None\n"
-    },
-    "metadata": {"allow_changes": true, "required_files": ["src/lookup.py"], "skill": "deslop"},
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
   },
   {
@@ -220,12 +202,15 @@
     "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
   },
   {
-    "id": "better-call-sol-clean-review-budget",
-    "input": "Use Better Call Sol for this typo-only PR. The supplied first independent Sol review returned clean at head abc123; no source changes followed. A coworker says stop now and mark it merge-ready. Explain the next action and the evidence required for completion. Do not call external tools or edit files in this exercise. Also explain what changes if the requested Sol is unavailable, or a late CI repair changes code after round three.",
-    "target": "Honor three returned independent rounds even after a clean first round and for a typo PR. Continue with fresh-context rounds two and three and distinct policy coverage without inventing findings or churn. Do not count requested-but-pending review or self-review. Do not silently substitute an unavailable reviewer. Late changes require affected checks and delta review within the same budget; extra rounds only for evidenced consequential findings, maximum five. If no permitted review budget remains, retain non-ready state rather than resetting the loop or claiming approval. Distinguish engineering acceptance from required current-head CI, human approvals and host eligibility. No merge, deployment or unsupported external action. This supplied-record exercise does not prove live orchestration.",
+    "id": "product-smallest-complete-journey",
+    "input": "We want offline editing for shared documents. Read the supplied product notes and recommend the smallest useful first release, acceptance and any decision I actually need to make. Do not implement or create a PRD.",
+    "target": "Ground scope in the supplied interrupted-writing problem; preserve online-only attachments and online permission checks. Recommend draft recovery using the existing draft store, explicitly distinguish recovery from collaborative offline synchronization, include reopen/reconnect and permission-revoked cases, and preserve the existing conflict prompt without inventing a new approval gate, demand or a sync platform. Do not create documents, code or seek approval for factual investigation.",
+    "files": {
+      "product-notes.txt": "Support reports lost writing on brief connection loss. The existing editor has a per-user draft store and revision IDs. Attachments require online upload; permission is rechecked on reconnect. There is no evidence users need to edit attachments offline. Shared-document conflicts currently prompt the user before overwrite.\n"
+    },
     "metadata": {
       "allow_changes": false,
-      "skill": "better-call-sol"
+      "skill": "product"
     }
   }
 ]

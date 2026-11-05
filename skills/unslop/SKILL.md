@@ -1,32 +1,30 @@
 ---
 name: unslop
-description: "Writes or revises prose for its reader: plain, specific, natural, without AI tells or overexplanation. Use for docs, READMEs, PR descriptions, messages and reports. Not for code (deslop)."
+description: "Use when writing or revising prose, including docs, PR descriptions and reports. Use code-review-and-quality for code cleanup."
 ---
 
 # Unslop
 
-Compose or revise prose around what this reader needs to understand. Preserve
-the writer's meaning and voice. For a new draft, work from the supplied facts
-and purpose. Use a temporary task workspace for outlines, competing drafts, or
-other working material whenever useful; return the requested result in its
-intended destination.
+Write for the intended reader and purpose. Preserve the writer's meaning and
+voice. Base new drafts on supplied facts. Use temporary files for outlines or
+alternative drafts when useful, and put the finished text in the requested
+destination.
 
 ## Writing standards
 
 Use [plain-language and STE guidance](references/plain-language-and-ste.md)
-when the audience or document type makes a writing standard useful. Apply its
-plain-language principles selectively. STE-informed guidance is available for
-technical procedures or translation-sensitive documentation; use a formal
-standard when the task requires it. Preserve the intended voice and do not
-claim compliance without the required review.
+when the document needs a writing standard. Its STE guidance is useful for
+technical procedures and text that must translate consistently. Apply a formal
+standard when required, but claim compliance only after the required review.
+Preserve the intended voice.
 
 ## 1. Lock what must survive
 
-Inventory the source's atomic facts, decisions, instructions, citations,
-qualifications, uncertainties, and intentional opinions. Also identify the
-audience, destination, and requested tone. Do not mistake unsupported praise,
-importance claims, or emotional framing for facts unless the request makes
-them substantive.
+Identify the facts, decisions, instructions, citations, qualifications,
+uncertainties and intentional opinions that must survive the edit. Establish
+the audience, destination and requested tone. Unsupported praise and claims of
+importance are not facts; keep them only when they are part of the requested
+content.
 
 Preserve exact technical terms, quoted material, links, numbers, commitments,
 and uncertainty. Flag ambiguity rather than silently resolving it.
@@ -39,10 +37,10 @@ and uncertainty. Flag ambiguity rather than silently resolving it.
 - **Voice:** essays, posts, product copy, and conversational explanations.
   Preserve or strengthen the source's real perspective, rhythm, and emotional
   complexity without inventing experiences or a persona.
-- **Agent-facing:** prompts, runbooks, `AGENTS.md`, and `SKILL.md`. Precision,
-  scope, evidence, and executable wording outrank human texture. Follow
-  `writing-for-agents` or `skill-creator` when applicable; use this skill only
-  to remove padding, vague directives, repetition, and promotional framing.
+- **Agent-facing:** prompts, runbooks, `AGENTS.md` and `SKILL.md`. Keep actions,
+  scope, permissions and evidence precise. Follow `writing-for-agents` or
+  `skill-creator` as applicable. Use this skill to remove padding, vague
+  instructions, repetition and promotional framing.
 
 If the destination mixes modes, classify each section separately. Read
 [voice and context](references/voice-and-context.md) before a voice-mode or
@@ -50,12 +48,12 @@ mixed-mode rewrite.
 
 ## 3. Diagnose before rewriting
 
-Start with the composition: what is the central point, where does the reader
-enter, and what must they understand next? Identify misplaced background,
-equally weighted minor points, disconnected sections, and an ending that imposes
-a lesson or resolution. Read [composition and progression](references/voice-and-context.md#composition-and-progression)
-when choosing or repairing the structure. Fix selection, order, and emphasis
-before polishing individual sentences. Required output formats still apply.
+Check the structure before polishing sentences. Does the opening answer the
+reader's question? Does each section supply what the next one needs? Move
+misplaced background, reduce overemphasized minor points and remove conclusions
+that invent a lesson or resolution. Read
+[composition and progression](references/voice-and-context.md#composition-and-progression)
+when repairing structure. Preserve required output formats.
 
 Read the [AI-pattern catalog](references/ai-patterns.md). Treat its entries as
 signals, not automatic violations. A term or construction may be correct when
@@ -72,9 +70,9 @@ example. Shortening each sentence while keeping all that material is not enough.
 
 ## 4. Reconstruct the draft
 
-Rebuild from the preserved inventory when sentence-by-sentence editing would
-retain the original framing. Otherwise make the smallest edits that remove the
-identified tells.
+Rewrite from the facts and requirements you preserved if editing individual
+sentences would leave the structural problem intact. Otherwise fix the
+specific passages that need work.
 
 Choose the opening and sequence for this particular purpose. An explanation
 may follow a concrete case through its cause; a story may let an event change
@@ -115,8 +113,8 @@ Check the revision in this order:
 3. **Context:** factual sections remain factual, voice sections sound like the
    intended author, and agent instructions remain testable.
    Check that the opening, order, emphasis, and ending serve the intended purpose.
-4. **AI tells:** ask what still makes the text feel generated, then fix the
-   remaining substantive patterns rather than chasing isolated words.
+4. **AI tells:** remove remaining vague claims, padding, repeated ideas and
+   formulaic phrasing. Judge the sentence in context, not by isolated words.
 5. **Naturalness:** read it as a whole. Restore useful transitions or cadence
    if removal made it sterile or abrupt.
 6. **Proportion:** every remaining paragraph earns its space. Do not compress

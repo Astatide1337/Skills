@@ -13,6 +13,11 @@ import subprocess
 import sys
 import time
 
+if __package__:
+    from .workspace_evidence import read_workspace_file
+else:
+    from workspace_evidence import read_workspace_file
+
 
 def interrupt(command, marker: Path, checkpoint: Path, record: Path, stdin: bytes, timeout=180, absent: Path | None = None):
     if marker.exists() or record.exists():
@@ -30,7 +35,11 @@ def interrupt(command, marker: Path, checkpoint: Path, record: Path, stdin: byte
             time.sleep(.05)
         if marker.is_symlink() or checkpoint.is_symlink():
             raise ValueError("interruption input must not be a symlink")
-        raw = checkpoint.read_bytes()
+        checkpoint.lstat()
+        content, error = read_workspace_file(checkpoint.parent, checkpoint.name)
+        if error or content is None:
+            raise ValueError(error or "checkpoint content unavailable")
+        raw = content.encode("utf-8")
         saved = json.loads(raw)
         if not saved.get("task", {}).get("objective"):
             raise ValueError("checkpoint has no active objective")
