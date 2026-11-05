@@ -6,9 +6,10 @@ Use when the requested outcome changes repository behavior or structure. Pick
 `bug`, `feature`, or `refactor`; include the PR route under the standing
 implementation-delivery authority unless local-only work or another restriction
 overrides it. Use the coordinator's short path for a clear mechanical local
-change. Substantial design decisions use [design](design.md) and [plans and
-authority](../references/approved-plans.md); an existing implementation
-authorization does not require a separate presentation or confirmation. Use
+change. For substantial implementation, use [plans and
+authority](../references/approved-plans.md), including its required Orchestration
+section. Unsettled design decisions also use [design](design.md). Existing
+implementation authorization needs no separate presentation or confirmation. Use
 [`systematic-debugging`](../../systematic-debugging/SKILL.md) for unclear
 causes, [`product`](../../product/SKILL.md) for unsettled user outcomes or scope,
 [`architect`](../../architect/SKILL.md) for unclear boundaries,

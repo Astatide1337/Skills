@@ -1,7 +1,7 @@
 # Select the agent and its reasoning budget
 
 Use before an authorized delegation to choose the child's model and reasoning
-level. The coordinator, PR review and Better Call Sol share this procedure; their
+level. The coordinator and independent code review share this procedure; their
 own rules still determine scope, acceptance and whether review is required.
 Keep the parent model, global settings, keys, quota and permissions unchanged.
 
@@ -96,6 +96,20 @@ credential lifecycle. NVIDIA documents the inference endpoint in its
 [LLM API reference](https://docs.api.nvidia.com/nim/reference/llm-apis).
 
 ## Match the role to the work
+
+For ordinary delegation, prefer the least expensive capable worker available
+within the user's constraints, including a smaller model from the parent's
+provider or model family. A frontier orchestrator may use a smaller model at
+high or maximum reasoning for bounded implementation, context gathering or
+browser work when its capabilities and the task justify that setting. High
+reasoning does not by itself make a smaller model a frontier model or establish
+browser capability. The different-model preference and provider order below
+apply only to independent code review, not ordinary workers.
+
+Delegate bounded execution and evidence gathering by default when supported;
+keep architecture, ambiguous tradeoffs, subtle-bug reasoning and final acceptance
+with the frontier owner. Workers may run sequentially when their tasks depend
+on one another. Keep trivial work local when dispatch costs more than doing it.
 
 | Work | Starting capability and reasoning | Raise effort when |
 | --- | --- | --- |

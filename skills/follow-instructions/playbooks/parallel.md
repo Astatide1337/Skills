@@ -14,6 +14,10 @@ explicitly requested standing program that outlives one agent, the coordinator
 still owns the briefs and commissions independent review while workers write code. An ordinary feature does not
 need a hierarchy.
 
+For substantial implementation, record assignments in the plan’s required
+[Orchestration section](../references/approved-plans.md). Delegation need not be
+concurrent or cross-provider.
+
 Assign by role ([agent selection](../references/agent-selection.md)): an
 efficient model gathers context and explores; an economical model with verified
 tool use and image input drives browser and user-flow checks; the frontier

@@ -1,7 +1,7 @@
 # Plans, authority and changed scope
 
-Use when a substantial implementation needs a design decision, or the user or
-project explicitly requires approval. The user's instructions determine
+Use for substantial implementation even when the design is settled, substantial
+design decisions, or an explicit user or project approval requirement. The user's instructions determine
 permission; a plan records that permission and does not expand it. Read-only
 explanations, research and reviews stay read-only. Clear small changes use the
 short path.
@@ -21,6 +21,23 @@ Keep the plan in the existing task record. It should answer:
 - What is the smallest complete implementation, and why does it fit?
 - Which compatibility, failure or recovery concern could invalidate it?
 - How will the actual behavior be verified, including useful before evidence?
+
+Every substantial implementation plan must include an **Orchestration** section
+in the existing task record. State:
+
+- what the frontier owner will decide and integrate;
+- which bounded tasks go to smaller workers, with model, reasoning level and
+  required tools chosen through [agent selection](agent-selection.md);
+- dependencies, file or environment ownership, and which tasks can overlap;
+- the evidence each worker returns and how the parent checks the integrated result;
+- who performs independent code review, using its separate model-selection rule.
+
+Delegate as much bounded work as useful without duplicating exploration or
+splitting unsettled interfaces. Same-provider workers are valid. If delegation
+is unavailable or adds no useful work, give the concrete reason in this section
+and proceed locally; do not create empty worker roles to satisfy the format.
+Update assignments when runtime availability changes. This section does not
+create another approval gate or require a committed plan file.
 
 Resolve material factual unknowns with inspection or a bounded authorized
 experiment before presenting a plan as executable. Compare alternatives only

@@ -102,8 +102,8 @@ or a relevant [worked example](references/case-studies.md).
 
 ## Authority and delivery
 
-Use [plans and authority](references/approved-plans.md) for substantial design
-or an explicit approval requirement. Reuse authorization already given.
+Use [plans and authority](references/approved-plans.md) for substantial implementation,
+substantial design or an explicit approval requirement. Reuse authorization already given.
 Implementation follows the user's standing PR-delivery policy unless a local-only
 request or another restriction overrides it. Keep the original objective and
 follow [delivery completion](../pull-requests/SKILL.md#complete-authorized-delivery).
