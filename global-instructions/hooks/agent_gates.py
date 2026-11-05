@@ -485,6 +485,24 @@ def protected(path: Path) -> bool:
     return resolved == gates or gates in resolved.parents or settings
 
 
+def literal_cat_read(command: str) -> bool:
+    """Recognize a single file read, not general shell programs claiming to read."""
+    # Reject shell execution, redirection and expansion syntax even inside quotes.
+    # This intentionally accepts fewer reads than a shell can safely express.
+    if re.search(r"[\\$`|;&<>()[\]{}*?!\n\r]", command):
+        return False
+    try:
+        args = shlex.split(command)
+    except ValueError:
+        return False
+    if len(args) < 2 or args[0] not in {"cat", "/bin/cat", "/usr/bin/cat"}:
+        return False
+    operands = args[2:] if args[1] == "--" else args[1:]
+    return bool(operands) and (
+        args[1] == "--" or all(not arg.startswith("-") for arg in operands)
+    )
+
+
 def handle_guard(payload: dict) -> int:
     session = session_id(payload)
     state = load_state(session)
@@ -498,16 +516,23 @@ def handle_guard(payload: dict) -> int:
         reason = next(
             (why for pattern, why in BYPASSES if pattern.search(command)), None
         )
-        if reason is None and (
-            str(state_dir()) in command
-            or "state/agent-gates" in command
-            or re.search(r"\.claude/settings", command)
+        if (
+            reason is None
+            and not literal_cat_read(command)
+            and (
+                str(state_dir()) in command
+                or "state/agent-gates" in command
+                or re.search(r"\.claude/settings", command)
+            )
         ):
-            reason = "this command touches the agent gates or Claude Code hook settings"
+            reason = (
+                "this command may modify agent gate state or Claude Code hook settings; "
+                "only literal cat reads are recognized here"
+            )
     else:
         raw = tool_input.get("file_path") or tool_input.get("notebook_path") or ""
         target = Path(raw) if Path(raw).is_absolute() else cwd / raw
-        if raw and protected(target):
+        if tool != "Read" and raw and protected(target):
             reason = (
                 "agent gate state and Claude Code hook settings are not agent-editable"
             )
@@ -515,8 +540,8 @@ def handle_guard(payload: dict) -> int:
         save_state(session, state)
     if reason:
         print(
-            f"Blocked by agent gates: {reason}. If the user wants this, they can run it "
-            "themselves.",
+            f"Blocked by agent gates: {reason}. This hook cannot authenticate user "
+            "approval for protected changes; it does not override the user's authority.",
             file=sys.stderr,
         )
         return 2
