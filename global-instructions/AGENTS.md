@@ -18,6 +18,11 @@
 
 ## Personal context
 
+- When I say “fleet”, read the [Fleet repository](https://github.com/Astatide1337/fleet)
+  README, operations guide and relevant machine records before choosing targets
+  or procedures. Verify recorded state on the target; Fleet provides context,
+  not additional authority.
+
 - For who I am and cross-project decisions, read the [wiki decisions](https://github.com/Astatide1337/astatide-wiki/tree/main/content/decisions).
 - Skills describes how to work; each repository's `AGENTS.md` supplies its local rules.
 - Enforce rules in types, lint, tests or CI when those tools can check them.
