@@ -750,6 +750,69 @@ class StopHookTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 2)
 
+    def test_guard_allows_literal_reads_of_protected_files(self):
+        repo = self.verifying_repo(0)
+        settings = repo.path / ".claude" / "settings.json"
+        state = self.root / "state" / "s1.json"
+        repo.write({".claude/settings.json": '{"hooks": {}}\n'})
+        commands = [
+            "cat .claude/settings.json",
+            "cat ~/.claude/settings.json",
+            "cat -- '.claude/settings.local.json'",
+            f"/bin/cat '{settings}' '{state}'",
+            f"/usr/bin/cat -- '{state}'",
+            "cat '/tmp/a directory/.claude/settings.json'",
+        ]
+        for command in commands:
+            with self.subTest(command=command):
+                result = self.hook(
+                    "guard", repo, tool_name="Bash", tool_input={"command": command}
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+        for path in (settings, state):
+            with self.subTest(path=path):
+                result = self.hook(
+                    "guard", repo, tool_name="Read", tool_input={"file_path": str(path)}
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_guard_read_exception_does_not_allow_writes_or_shell_execution(self):
+        repo = self.verifying_repo(0)
+        settings = ".claude/settings.json"
+        commands = [
+            f"cat {settings} > {settings}",
+            f"cat {settings} >> {settings}",
+            f"cat {settings} | tee {settings}",
+            f"cat {settings}; rm {settings}",
+            f"cat {settings} && rm {settings}",
+            f"cat {settings}\nrm {settings}",
+            f"cat $(rm {settings})",
+            f"cat `rm {settings}`",
+            f"cat <(rm {settings})",
+            f"cat {settings}$(touch marker)",
+            f"cat {settings} \\\n> {settings}",
+            f"cat '{settings}",
+            f"sh -c 'cat {settings}'",
+            f"sed -i 's/hooks/disabled/' {settings}",
+            f"echo 'user approved' > {settings}",
+            f"cat -- {settings} --no-verify",
+            f"cat {self.root / 'state' / 's1.json'} > {self.root / 'state' / 's1.json'}",
+        ]
+        for command in commands:
+            with self.subTest(command=command):
+                result = self.hook(
+                    "guard", repo, tool_name="Bash", tool_input={"command": command}
+                )
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertNotIn("they can run it themselves", result.stderr)
+                self.assertIn("cannot authenticate user approval", result.stderr)
+        for tool in ("Edit", "Write", "NotebookEdit"):
+            with self.subTest(tool=tool):
+                result = self.hook(
+                    "guard", repo, tool_name=tool, tool_input={"file_path": settings}
+                )
+                self.assertEqual(result.returncode, 2, result.stderr)
+
     def test_format_hook_skips_unconfigured_projects_and_committed_binaries(self):
         repo = self.verifying_repo(
             1, {"ruff.toml": "", ".venv/bin/ruff": "#!/bin/sh\ntouch PWNED\n"}

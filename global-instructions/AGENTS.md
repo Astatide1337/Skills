@@ -15,6 +15,8 @@
 - Keep one-off plans, research, investigation notes and verification reports
   outside project checkouts. Add maintained Markdown only when requested or
   needed to use or operate the changed behavior; update existing docs first.
+- Present substantial implementation plans as standalone HTML unless I request
+  another format. Keep working notes separate from the plan I review.
 
 ## Personal context
 
