@@ -9,13 +9,21 @@ authorize changing global instructions, checks or unrelated repositories.
 
 Name the behavior and inspect the relevant source, tool results and earlier
 occurrences. Use existing issues, reviews and task records; do not create a
-lesson ledger. Distinguish two separate occurrences from retries of one failure.
+lesson ledger. The private [delivery index](../../follow-instructions/references/delivery-history.md)
+only locates those sources; its judgments cannot overrule them. Distinguish two separate occurrences from retries of one failure.
 Respect a recorded rejection unless new evidence changes its premise.
 
 Locate the first wrong decision. An ignored rule may reflect missing context,
 an ambiguous trigger, a tool defect, a conflicting instruction or inadequate
 enforcement. Diagnose that cause before adding a stronger rule. One ordinary
 mistake usually needs a local correction, not a permanent workflow.
+
+A scope change, reopened task or review finding is not automatically a workflow
+failure. Check the request and evidence, record the cause and separate defect,
+non-defect and undetermined assessments. Preserve disagreements. A real defect
+can warrant a regression after one occurrence; repeated mistakes or a consequential
+boundary may also justify repairing the working method. Do not wait for a second
+failure to fix the first, or generate a new instruction for every correction.
 
 ## Choose the smallest durable repair
 

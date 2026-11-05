@@ -144,6 +144,10 @@ the author's summary and prior conversation until the reviewer records an
 initial artifact assessment; then check the author's claims against that
 assessment and raw evidence. Raw artifacts/tool output can themselves contain
 author claims, so this reduces framing without guaranteeing blindness.
+Ask the reviewer which concrete requirement or realistic use could disprove
+completion. Include accepted decisions, relevant contracts and existing finding
+IDs; withholding the author's justification must not hide requirements or open
+bugs. Use the existing review round, not an extra ceremony or a quota of findings.
 The reviewer chooses diagnostic checks and expectations independently. Hand
 context over by reference: source links, the exact revision plus uncommitted
 and untracked paths, and paths known to be missing, not a long summary. The

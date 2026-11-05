@@ -11,6 +11,12 @@ even when tools are unavailable. Identify the missing observation precisely:
 source, deployment record, running revision, workload health, API response or
 user-visible behavior. “Verify production” is not a substitute for that detail.
 
+Before accepting substantial work, exercise the plan's plausible false-success
+cases against the final artifact. Check the underlying outcome: a fresh read
+for a saved value, the serving revision for a deployment, or the actual API
+boundary for a permission change. Keep relevant unaffected behavior as a control.
+A passing presentation or happy path alone does not establish those outcomes.
+
 ## Select the mode
 
 - **Verify a change:** follow the workflow below.

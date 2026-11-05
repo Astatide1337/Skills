@@ -192,6 +192,13 @@ Keep three states distinct:
    independently covers the required outcome. Keep pending or unknown checks
    visible.
 
+At substantive delivery or interruption, refresh the private
+[delivery index](../follow-instructions/references/delivery-history.md) from the
+actual task, acceptance and PR evidence. Keep later follow-up unknown until
+observed. Record in-scope corrections and unresolved work without expanding the
+PR description into a performance report. Index validity is not a readiness gate;
+failed or interrupted work still belongs in the history.
+
 Honor cancellation immediately: stop further implementation and perform only
 safe owned-resource shutdown within the remaining authority. A hard runtime or
 quota stop may prevent even a checkpoint; preserve one when possible. Neither

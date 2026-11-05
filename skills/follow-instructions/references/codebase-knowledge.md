@@ -167,6 +167,14 @@ alternative valid implementation and a clean negative with the same check.
 Retain failed attempts and limitations. Do not count two fixes from one PR as
 independent evidence that a workflow generalizes.
 
+## Delivery outcomes
+
+Use [delivery history](delivery-history.md) to index substantial task outcomes
+and later corrections in the excluded wiki. It points to authoritative task,
+PR and check records; it is not another acceptance store. Relevant observed
+escapes can supply historical cases through the procedure above. Review catches,
+new requirements and ambiguous reports must not be relabeled escaped defects.
+
 ## Existing Inspect integration
 
 Use `evals/skills.py::workflows`, existing `workspace-test` fixture contracts and

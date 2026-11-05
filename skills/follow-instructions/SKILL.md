@@ -152,6 +152,10 @@ For substantive work, discover the repository's
 Build missing knowledge during authorized implementation. Read-only work uses
 existing knowledge or source search. Verify source links against the current tree.
 A clear local correction does not need a repository-wide indexing pass.
+For substantial authorized implementation, index the task at enrollment and
+refresh it at handoff using [delivery history](references/delivery-history.md).
+Existing task and PR evidence remains authoritative; the index is rebuildable.
+Read-only requests may inspect existing records but do not create them.
 
 When delegation is available, delegate context gathering and exploration to an
 efficient model. Without it, perform bounded local investigation and record the

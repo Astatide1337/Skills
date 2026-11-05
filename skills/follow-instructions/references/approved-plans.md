@@ -21,6 +21,9 @@ Keep the plan in the existing task record. It should answer:
 - What is the smallest complete implementation, and why does it fit?
 - Which compatibility, failure or recovery concern could invalidate it?
 - How will the actual behavior be verified, including useful before evidence?
+- What could look finished while still being wrong, and which observation would
+  expose it? Choose concrete risks from the request, callers and past failures;
+  do not attach a generic checklist.
 
 Every substantial implementation plan must include an **Orchestration** section
 in the existing task record. State:
