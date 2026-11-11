@@ -19,6 +19,11 @@ they do not grant permission to edit, publish, merge or deploy. For conflicting
 instructions or uncertainty about permission, use
 [authority and claims](references/principles/authority-and-claims.md).
 
+For implementation, prefer a task-owned worktree or isolated remote workspace;
+reuse an existing scoped workspace. Read the [workspace lifecycle
+contract](references/workspace-lifecycle.md) when selecting, allocating, resuming
+or retiring it.
+
 ## Short task path
 
 Inspect the implementation, caller and available check first. Use this path
