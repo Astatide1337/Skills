@@ -20,6 +20,12 @@
 
 ## Personal context
 
+- I primarily work in T3 Code. Prefer Codex Cloud or my native agent-work
+  libvirt VM, kagent (`kagent-vm` on `sohim`), when tools, repository access and
+  runtime support the task; state when execution falls back to the laptop.
+  kagent means this VM, not the kagent.dev Kubernetes framework. See Fleet's
+  [machine record](https://github.com/Astatide1337/fleet/blob/main/machines/kagent.md)
+  for operations. OpenBot means [nightly-labs/openbot](https://github.com/nightly-labs/openbot).
 - When I say “fleet”, read the [Fleet repository](https://github.com/Astatide1337/fleet)
   README, operations guide and relevant machine records before choosing targets
   or procedures. Verify recorded state on the target; Fleet provides context,
