@@ -154,7 +154,8 @@ class DiscoveryTests(unittest.TestCase):
 
     def test_config_precedence_and_jsonc_refusal(self):
         with tempfile.TemporaryDirectory() as folder, patch.dict(nim.os.environ, {
-                "OPENCODE_CONFIG_DIR": folder+"/custom", "XDG_CONFIG_HOME": folder+"/xdg"}, clear=True):
+                "HOME": folder+"/home", "OPENCODE_CONFIG_DIR": folder+"/custom",
+                "XDG_CONFIG_HOME": folder+"/xdg"}, clear=True):
             custom = Path(folder)/"custom"
             custom.mkdir()
             self.assertEqual(nim.config_path(), custom/"opencode.json")
@@ -168,7 +169,12 @@ class DiscoveryTests(unittest.TestCase):
             del nim.os.environ["OPENCODE_CONFIG_DIR"]
             self.assertEqual(nim.config_path(), Path(folder)/"xdg/opencode/opencode.json")
             del nim.os.environ["XDG_CONFIG_HOME"]
-            self.assertEqual(nim.config_path(), Path.home()/".config/opencode/opencode.json")
+            home_config = Path(folder)/"home/.config/opencode"
+            self.assertEqual(nim.config_path(), home_config/"opencode.json")
+            home_config.mkdir(parents=True)
+            (home_config/"opencode.jsonc").write_text("// comment")
+            with self.assertRaisesRegex(nim.DiscoveryError, "JSONC"):
+                nim.config_path()
 
     def test_restore_recovers_corrupt_target_without_discovery(self):
         with tempfile.TemporaryDirectory() as folder:
