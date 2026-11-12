@@ -8,6 +8,9 @@ import math
 import hashlib
 import json
 import os
+import select
+import signal
+import subprocess
 import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 from pathlib import Path
@@ -1341,7 +1344,71 @@ class UserTurnLifecycleTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(events=events):
                 self.assertIsNone(skills._session_thread_id(events))
 
+
+PF_EXITING = 0x00000004  # include/linux/sched.h
+
+
+def _proc_stat(proc_dir: int) -> tuple[str, int, int] | None:
+    """Return (state, pgrp, flags) through a pinned /proc/<pid> fd, or None once reaped.
+
+    The pinned directory keeps the identity of the observed process: after it is
+    reaped, reads fail with ESRCH instead of describing a recycled pid.
+    """
+
+    try:
+        stat = os.open("stat", os.O_RDONLY, dir_fd=proc_dir)
+    except (FileNotFoundError, ProcessLookupError):
+        return None
+    try:
+        raw = os.read(stat, 4096)
+    except ProcessLookupError:
+        return None
+    finally:
+        os.close(stat)
+    fields = raw.decode().rsplit(")", 1)[1].split()
+    return fields[0], int(fields[2]), int(fields[6])
+
+
+def _left_user_space(observed: tuple[str, int, int] | None) -> bool:
+    """True when the process can never execute user code again.
+
+    do_exit() sets PF_EXITING before exit_files() closes inherited pipes and
+    never returns to user space; the zombie state comes later in exit_notify().
+    """
+
+    return observed is None or observed[0] in {"Z", "X"} or bool(observed[2] & PF_EXITING)
+
+
 class NativeSkillStartupTests(unittest.IsolatedAsyncioTestCase):
+    def test_exit_observation_rejects_a_process_that_can_still_run_user_code(self):
+        process = subprocess.Popen([sys.executable, "-c",
+            "import sys,time; sys.stdout.write('ready'); sys.stdout.flush(); time.sleep(60)"],
+            stdout=subprocess.PIPE, start_new_session=True)
+        pidfd = os.pidfd_open(process.pid)
+        proc_dir = os.open(f"/proc/{process.pid}", os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            self.assertEqual(process.stdout.read(5), b"ready")
+            live = _proc_stat(proc_dir)
+            self.assertEqual(live[1], process.pid)
+            self.assertFalse(_left_user_space(live), live)
+            signal.pidfd_send_signal(pidfd, signal.SIGKILL)
+            self.assertEqual(select.select([pidfd], [], [], 5)[0], [pidfd])
+            zombie = _proc_stat(proc_dir)
+            self.assertEqual(zombie[0], "Z")
+            self.assertTrue(_left_user_space(zombie))
+            process.wait(timeout=5)
+            self.assertIsNone(_proc_stat(proc_dir))
+            self.assertTrue(_left_user_space(None))
+        finally:
+            try:
+                signal.pidfd_send_signal(pidfd, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=5)
+            process.stdout.close()
+            os.close(proc_dir)
+            os.close(pidfd)
+
     async def test_startup_failure_prevents_any_native_model_execution(self):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -1431,7 +1498,8 @@ class NativeSkillStartupTests(unittest.IsolatedAsyncioTestCase):
             started = root / "started.json"
             binary.write_text(f"#!{sys.executable}\n"
                 "import json,os,pathlib,time\n"
-                f"pathlib.Path({str(started)!r}).write_text(json.dumps({{'pid':os.getpid()}}))\n"
+                f"ready=pathlib.Path({str(started)!r}+'.tmp'); ready.write_text(json.dumps({{'pid':os.getpid()}}))\n"
+                f"os.replace(ready, {str(started)!r})\n"
                 "time.sleep(60)\n"
                 "home=pathlib.Path(os.environ['HOME']); home.mkdir(parents=True,exist_ok=True)\n"
                 "(home/'late-write.txt').write_text('owned test canary')\n")
@@ -1471,12 +1539,14 @@ class NativeSkillStartupTests(unittest.IsolatedAsyncioTestCase):
                 "import json,os,pathlib,time\n"
                 "child=os.fork()\n"
                 "if child: os._exit(0)\n"
-                f"pathlib.Path({str(started)!r}).write_text(json.dumps({{'pid':os.getpid()}}))\n"
+                f"ready=pathlib.Path({str(started)!r}+'.tmp'); ready.write_text(json.dumps({{'pid':os.getpid()}}))\n"
+                f"os.replace(ready, {str(started)!r})\n"
                 "time.sleep(60)\n"
                 "home=pathlib.Path(os.environ['HOME']); home.mkdir(parents=True,exist_ok=True)\n"
                 "(home/'late-write.txt').write_text('owned test canary')\n")
             binary.chmod(0o700)
             children = []
+            pidfd = proc_dir = None
             create_process = asyncio.create_subprocess_exec
 
             async def capture_process(*args, **kwargs):
@@ -1493,15 +1563,23 @@ class NativeSkillStartupTests(unittest.IsolatedAsyncioTestCase):
                             await asyncio.sleep(0.01)
                     await asyncio.wait_for(wait_started(), timeout=5)
                     pid = json.loads(started.read_text())["pid"]
+                    pidfd = os.pidfd_open(pid)
+                    proc_dir = os.open(f"/proc/{pid}", os.O_RDONLY | os.O_DIRECTORY)
+                    observed = _proc_stat(proc_dir)
+                    self.assertEqual(observed[1], children[0].pid)
+                    self.assertFalse(_left_user_space(observed), observed)
                     self.assertFalse(pending.done())
                     pending.cancel()
                     with self.assertRaises(asyncio.CancelledError):
                         await asyncio.wait_for(pending, timeout=5)
                     self.assertTrue(children[0].stdout.at_eof())
                     self.assertTrue(children[0].stderr.at_eof())
-                    status = Path(f"/proc/{pid}/stat")
-                    if status.exists():
-                        self.assertIn(status.read_text().split(")", 1)[1].strip().split()[0], {"Z", "X"})
+                    # Pipe EOF precedes the zombie state, so require only that the
+                    # owned descendant can no longer run user code here, then
+                    # require it to terminate within a bounded wait.
+                    observed = _proc_stat(proc_dir)
+                    self.assertTrue(_left_user_space(observed), observed)
+                    self.assertEqual(select.select([pidfd], [], [], 5)[0], [pidfd])
                     self.assertFalse((home / "late-write.txt").exists())
                     home.rmdir()
                     self.assertFalse(home.exists())
@@ -1512,6 +1590,14 @@ class NativeSkillStartupTests(unittest.IsolatedAsyncioTestCase):
                             await pending
                         except asyncio.CancelledError:
                             pass
+                    if pidfd is not None:
+                        try:
+                            signal.pidfd_send_signal(pidfd, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                        os.close(pidfd)
+                    if proc_dir is not None:
+                        os.close(proc_dir)
 
 
 class NativePermissionScopeTests(unittest.IsolatedAsyncioTestCase):
