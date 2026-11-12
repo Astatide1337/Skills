@@ -25,6 +25,28 @@ Keep the requested operation precise: copying does not authorize moving,
 restoring does not authorize replacing, testing does not authorize production
 changes, and diagnosis does not authorize modification.
 
+### Keep safety work within the requested outcome
+
+“Production ready” does not expand the requested outcome into platform
+hardening. Establish the repository's existing patterns, platform controls and
+responsible owners before proposing application-specific infrastructure.
+For each extra control, identify a concrete hazard or unmet requirement and
+choose the smallest mechanism that addresses it, accounting for maintenance
+and the user's support constraints. Existing controls can satisfy the need;
+additional protection is justified when evidence shows a gap.
+
+Use suitable shared services already provided by the platform. Introduce an
+isolated fixture when a demonstrated testing or isolation need requires it;
+verify that test writes cannot affect shared data. Keep application
+initialization with its responsible application owner. Chart hooks or
+controller-specific application logic need a concrete reason to cross that
+ownership boundary.
+
+Assign an external dependency defect to its responsible owner and withhold
+only the rollout or action that depends on its resolution. Continue authorized
+source changes and independent tests. A blocked dependency does not authorize
+replacing a shared service or changing another owner's infrastructure.
+
 ## 2. Start read-only
 
 Inspect before writing:
@@ -187,6 +209,12 @@ For an authorized write:
 Do not batch risky changes that make the cause of failure ambiguous.
 
 ## 7. Verify recovery and outcome
+
+Choose verification for the actual effects, failure modes and recovery risk.
+Use existing evidence where it covers the target and proposed change; add
+checks for material gaps. This guidance adds no permission gate or routine
+checklist and does not waive the identity, authorization, destructive-action
+or data-safety requirements above.
 
 When relevant:
 
