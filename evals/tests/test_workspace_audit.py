@@ -92,7 +92,7 @@ class WorkspaceAuditTests(unittest.TestCase):
             manifest,
         )
 
-    def run_audit(self, explicit=True):
+    def run_audit(self, explicit=True, expected_count=6):
         before = self.snapshot()
         command = [sys.executable, str(SCRIPT)]
         if explicit:
@@ -108,8 +108,34 @@ class WorkspaceAuditTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         rows = [json.loads(line) for line in result.stdout.splitlines()]
         self.assertEqual(before, self.snapshot(), "audit mutated fixture state")
-        self.assertEqual(len(rows), 6)
+        self.assertEqual(len(rows), expected_count)
         return {row["path"]: row for row in rows}
+
+    def test_unsearchable_parent_is_unknown_and_does_not_stop_other_rows(self):
+        parent = self.root / "inaccessible parent"
+        parent.mkdir()
+        path = parent / "hidden"
+        self.git(self.repo, "worktree", "add", "-q", "-b", "hidden", str(path))
+        parent.chmod(0)
+        try:
+            rows = self.run_audit(expected_count=7)
+        finally:
+            parent.chmod(0o700)
+        row = rows[str(path)]
+        for field in (
+            "exists",
+            "branch",
+            "head",
+            "tracked_changes",
+            "untracked_paths",
+            "ignored_by_top_level",
+            "commits_not_in_local_remote_refs",
+        ):
+            self.assertIsInstance(row[field], dict)
+            self.assertIn("unknown", row[field])
+            self.assertIn("Permission denied", row[field]["unknown"])
+        self.assertEqual(row["registration"]["branch"], "refs/heads/hidden")
+        self.assertTrue(rows[str(self.repo)]["exists"])
 
     def test_registered_worktrees_and_no_mutation(self):
         rows = self.run_audit()

@@ -2,8 +2,10 @@
 """Read-only JSON Lines inventory of registered Git worktrees.
 
 Unknown observations are objects {"unknown": "reason"}, including a detached
-branch. Registration metadata is separate from directory observations; primary
-and locked describe the registration (Git lists the primary worktree first).
+branch or existence that cannot be checked. exists is otherwise a boolean
+indicating whether the registered path is a directory. Registration metadata is
+separate from directory observations; primary and locked describe the
+registration (Git lists the primary worktree first).
 tracked_changes counts status entries, once per renamed or unmerged path;
 untracked_paths and ignored_by_top_level count paths reported by Git (-uall),
 not bytes. Ignored entries are grouped by their first path component.
@@ -18,6 +20,7 @@ No fetch, cleanup, index refresh or other repository writes are performed.
 import argparse
 import json
 import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -88,8 +91,15 @@ def audit(repo):
     common = common.resolve()
     for index, registration in enumerate(registrations(repo)):
         path = Path(registration["worktree"])
-        exists = path.is_dir()
-        reason = "directory missing" if not exists else "directory not observable"
+        try:
+            exists = stat.S_ISDIR(path.stat().st_mode)
+            reason = "directory not observable" if exists else "path is not a directory"
+        except (FileNotFoundError, NotADirectoryError):
+            exists = False
+            reason = "directory missing"
+        except OSError as exc:
+            reason = f"directory existence not observable: {exc}"
+            exists = unknown(reason)
         row = {
             "path": str(path),
             "exists": exists,
@@ -108,7 +118,7 @@ def audit(repo):
             "commits_not_in_local_remote_refs",
         )
         row.update({key: unknown(reason) for key in fields})
-        if exists:
+        if exists is True:
             try:
                 top = Path(os.fsdecode(git(path, "rev-parse", "--show-toplevel")[:-1]))
                 actual_common = Path(
