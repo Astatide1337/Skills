@@ -137,6 +137,48 @@ class WorkspaceAuditTests(unittest.TestCase):
         self.assertEqual(row["registration"]["branch"], "refs/heads/hidden")
         self.assertTrue(rows[str(self.repo)]["exists"])
 
+    def test_unreadable_children_are_unknown(self):
+        path = self.paths["clean"]
+        hidden = [path / "private", path / "cache"]
+        for directory in hidden:
+            directory.mkdir()
+            (directory / "state").write_text("unique data")
+        for directory in hidden:
+            directory.chmod(0)
+        try:
+            rows = self.run_audit()
+        finally:
+            for directory in hidden:
+                directory.chmod(0o700)
+        row = rows[str(path)]
+        self.assertTrue(row["exists"])
+        self.assertEqual(row["head"], self.base)
+        for field in ("tracked_changes", "untracked_paths", "ignored_by_top_level"):
+            self.assertIn("Permission denied", row[field]["unknown"])
+        readable = self.run_audit()[str(path)]
+        self.assertEqual(readable["untracked_paths"], 1)
+        self.assertEqual(readable["ignored_by_top_level"], {"counts": {"cache": 1}})
+
+    def test_ignored_unknown_name_is_a_count(self):
+        path = self.paths["clean"]
+        (path / "unknown").mkdir()
+        (path / "unknown" / "state.sqlite").write_text("data")
+        row = self.run_audit()[str(path)]
+        self.assertEqual(row["ignored_by_top_level"], {"counts": {"unknown": 1}})
+
+    def test_replaced_registered_repository_is_unknown(self):
+        path = self.paths["clean"]
+        original = path.with_name("retained-original")
+        path.rename(original)
+        try:
+            path.mkdir()
+            self.git(path, "init", "-q")
+            row = self.run_audit()[str(path)]
+            self.assertIn("not the registered repository", row["head"]["unknown"])
+        finally:
+            shutil.rmtree(path)
+            original.rename(path)
+
     def test_registered_worktrees_and_no_mutation(self):
         rows = self.run_audit()
         for name, path in {"main": self.repo, **self.paths}.items():
@@ -169,7 +211,7 @@ class WorkspaceAuditTests(unittest.TestCase):
                 self.assertEqual(row["untracked_paths"], int(name == "untracked"))
                 self.assertEqual(
                     row["ignored_by_top_level"],
-                    {"state.sqlite": 1, "cache": 2} if name == "ignored" else {},
+                    {"counts": {"state.sqlite": 1, "cache": 2} if name == "ignored" else {}},
                 )
                 self.assertEqual(row["commits_not_in_local_remote_refs"], 0)
         self.assertEqual(
@@ -182,9 +224,11 @@ class WorkspaceAuditTests(unittest.TestCase):
         self.assertEqual(rows[str(self.repo)]["commits_not_in_local_remote_refs"], 1)
         self.git(self.repo, "remote", "remove", "origin")
         rows = self.run_audit()
-        self.assertEqual(rows[str(self.repo)]["commits_not_in_local_remote_refs"], 2)
+        self.assertEqual(rows[str(self.repo)]["commits_not_in_local_remote_refs"],
+                         {"unknown": "no local remote-tracking refs"})
         self.assertEqual(
-            rows[str(self.paths["clean"])]["commits_not_in_local_remote_refs"], 1
+            rows[str(self.paths["clean"])]["commits_not_in_local_remote_refs"],
+            {"unknown": "no local remote-tracking refs"}
         )
 
     def test_staged_rename_and_unmerged(self):

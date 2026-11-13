@@ -8,12 +8,12 @@ separate from directory observations; primary and locked describe the
 registration (Git lists the primary worktree first).
 tracked_changes counts status entries, once per renamed or unmerged path;
 untracked_paths and ignored_by_top_level count paths reported by Git (-uall),
-not bytes. Ignored entries are grouped by their first path component.
+not bytes. Known ignored entries use {"counts": {top_level: count}}; unknown
+observations use {"unknown": "reason"}.
 
 commits_not_in_local_remote_refs uses rev-list HEAD --not --remotes: it is
 relative only to remote-tracking refs present locally at the last fetch, never
-live remote state. With no remote refs it counts all commits reachable from
-HEAD. These are non-atomic observations, not an authoritative inventory.
+live remote state. With no local remote refs the count is unknown. These are non-atomic observations, not an authoritative inventory.
 No fetch, cleanup, index refresh or other repository writes are performed.
 """
 
@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 
 
-def git(repo, *args):
+def git(repo, *args, reject_stderr=False):
     env = os.environ.copy()
     for key in (
         "GIT_DIR",
@@ -38,12 +38,15 @@ def git(repo, *args):
         "GIT_NAMESPACE",
     ):
         env.pop(key, None)
-    return subprocess.run(
+    result = subprocess.run(
         ["git", "--no-optional-locks", "-C", os.fspath(repo), *args],
         env=env,
         capture_output=True,
         check=True,
-    ).stdout
+    )
+    if reject_stderr and result.stderr:
+        raise ValueError("incomplete Git observation: " + os.fsdecode(result.stderr).strip())
+    return result.stdout
 
 
 def unknown(reason):
@@ -81,7 +84,7 @@ def status_counts(data):
             tracked += 1
             if b"R" in code or b"C" in code:
                 next(entries)  # -z rename/copy source is a separate NUL field.
-    return tracked, untracked, ignored
+    return tracked, untracked, {"counts": ignored}
 
 
 def audit(repo):
@@ -146,12 +149,16 @@ def audit(repo):
                         "-z",
                         "--untracked-files=all",
                         "--ignored=traditional",
+                        reject_stderr=True,
                     )
                 )
                 row.update(zip(fields[2:5], counts))
-                row[fields[5]] = int(
-                    git(path, "rev-list", "--count", "HEAD", "--not", "--remotes")
-                )
+                if git(path, "for-each-ref", "--format=%(refname)", "refs/remotes"):
+                    row[fields[5]] = int(
+                        git(path, "rev-list", "--count", "HEAD", "--not", "--remotes")
+                    )
+                else:
+                    row[fields[5]] = unknown("no local remote-tracking refs")
             except (OSError, subprocess.CalledProcessError, ValueError) as exc:
                 # Preserve earlier successful observations, explain remaining unknowns.
                 for key in fields:
