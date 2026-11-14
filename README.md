@@ -187,6 +187,7 @@ missing evidence into a pass.
 | [why](skills/why/SKILL.md) | Find why a design or implementation was chosen. |
 | [teach](skills/teach/SKILL.md) | Explain code so the reader can maintain it. |
 | [unslop](skills/unslop/SKILL.md) | Write or revise clear prose without changing its meaning. |
+| [agent-contracts](skills/agent-contracts/SKILL.md) | Full implementation specs, R/A IDs and readiness confidence; compact-task exemptions. |
 | [writing-for-agents](skills/writing-for-agents/SKILL.md) | Write actionable agent instructions and runbooks. |
 | [skill-creator](skills/skill-creator/SKILL.md) | Create, revise and evaluate skills. |
 | [create-workflow](skills/create-workflow/SKILL.md) | Automate a recurring procedure. |

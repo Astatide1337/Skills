@@ -212,5 +212,15 @@
       "allow_changes": false,
       "skill": "product"
     }
+  },
+  {
+    "id": "agent-contracts-portable-spec",
+    "input": "Draft a full portable agent contract for an authorized personal-repository adapter. Remote verification is untested. Keep the canonical Markdown outside the checkout, preserve remaining budget and separate deployment authority; report readiness and dependent blockers. Do not implement or call models.",
+    "target": "Use the full twelve-section format and explicit R/A/AC declarations, exact conditional requirements, source/evidence, assumptions unresolved until observed, design and linked existing Orchestration. Use canonical task record unless portable file needed; validate file structure without claiming truth. Report confidence with basis, uncertainty and next evidence; score cannot authorize effects. Preserve remote-readable continuation and revision ownership. Do not claim behavioral gain.",
+    "metadata": {
+      "allow_changes": false,
+      "skill": "agent-contracts"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit --allow-empty -qm baseline"
   }
 ]

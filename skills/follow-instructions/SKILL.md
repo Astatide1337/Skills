@@ -108,7 +108,10 @@ or a relevant [worked example](references/case-studies.md).
 ## Authority and delivery
 
 Use [plans and authority](references/approved-plans.md) for substantial implementation,
-substantial design or an explicit approval requirement. Reuse authorization already given.
+substantial design or an explicit approval requirement. Reuse authorization already
+given. For full specs under that trigger, load
+[agent-contracts](../agent-contracts/SKILL.md); compact corrections and bounded
+research/review briefs retain their existing records.
 Implementation follows the user's standing PR-delivery policy unless a local-only
 request or another restriction overrides it. Keep the original objective and
 follow [delivery completion](../pull-requests/SKILL.md#complete-authorized-delivery).
