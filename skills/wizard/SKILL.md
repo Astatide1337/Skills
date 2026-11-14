@@ -14,9 +14,9 @@ setup end-to-end on their behalf.
 
 1. Inspect the repository's existing setup, package manager, environment conventions,
    and documented prerequisites.
-2. Derive the stages from the project's actual setup steps. For every input, record its
-   source, destination, whether it is secret, validation rule, and check that
-   confirms completion without exposing secrets. Discover or derive non-secret
+2. Derive the stages from the project's actual setup steps. For each input, record its
+   source, destination, whether it is secret, validation rule, and the check that
+   confirms completion without exposing secret values. Discover or derive non-secret
    values from authoritative project or runtime sources before asking the user.
    Ask for genuine choices, unavailable inputs and credentials through the supported
    secret-entry path; do not treat discovery as authority for external writes.

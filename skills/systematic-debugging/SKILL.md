@@ -28,9 +28,9 @@ a clear owner and focused reproducer, use the short path in
      waiting for a perfect repro.
    - Run at least one command, request, or interaction capable of producing the
      failure before calling it reproduced. A test plan alone does not reproduce the failure.
-   - Minimize the reproduction. Remove inputs, services, timing, and setup one
-     at a time until every remaining element is needed to trigger the failure. Record what can
-     be removed without changing the failure.
+   - Minimize the reproduction by removing one input, service, timing condition, or
+     setup step at a time. Keep each element only if removing it stops the failure.
+     Record which elements you removed without changing the result.
 
 3. **Inspect the real system.**
    - Read the relevant code, configuration, tests, logs, runtime state, and recent changes.

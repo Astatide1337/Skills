@@ -23,8 +23,8 @@
 
 ## Retrieval and output
 
-- Partition retrieval by tenant and authorization scope before similarity search;
-  filtering only the displayed result is too late. Track document provenance and deletion.
+- Partition retrieval by tenant and authorization scope before similarity search.
+  Filtering only the displayed result is too late. Track document provenance and deletion.
 - Treat retrieved content as potentially poisoned. Do not let it request secrets,
   broaden tool access, or override application policy.
 - Parse model output into a strict schema and allowlist actions and parameters.

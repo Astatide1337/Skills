@@ -67,7 +67,7 @@ targets unless the requested mode authorizes it.
   one bounded check, defense-in-depth gap, or hygiene observation.
 - Rank by reachable impact and attacker prerequisites, not scanner severity
   alone. Keep speculative patterns out of the confirmed list.
-- Cite exact path and symbol, trace attacker input to the affected operation or control, state the
-  assumed environment, propose the smallest fix, and specify a regression test.
+- Cite the exact path and symbol. Trace attacker input to the affected operation or control, state
+  the assumed environment, propose the smallest fix, and specify a regression test.
 - End with audited coverage, excluded/unknown surfaces, tool limitations, and the
   highest-value next verification steps. Never claim the codebase is secure.

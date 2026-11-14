@@ -5,21 +5,25 @@ description: "Use when authoring or revising a substantial implementation spec o
 
 # Agent Contracts
 
-Own the spec format, requirement/assumption IDs and readiness confidence. Use the
+Use this skill for the spec format, requirement and assumption IDs, and
+confidence in the spec's readiness. Use the
 [full template and grammar](references/contract.md) when the existing
 [plans trigger](../follow-instructions/references/approved-plans.md) applies or a
 spec is explicitly requested. Inspect authoritative inputs before drafting.
-Keep requirement conditions and acceptance observable; distinguish facts from
-assertions. Resolve ordinary factual unknowns with bounded authorized discovery.
+State each requirement's conditions and expected result so they can be checked.
+Distinguish observed facts from assertions. Resolve factual unknowns through
+scoped observations within the task's authority.
 
-The existing task record holds the canonical spec by default. When portability
-or versioned review needs a file, keep one Markdown source outside the checkout
-in the task's private artifacts and record its location. HTML is a review view
-identifying the canonical source and revision, never another editable authority.
-No committed plan or new approval gate is required.
+Keep the canonical spec in the existing task record by default. If another agent
+needs a portable file or a reviewer needs a versioned copy, keep one Markdown
+source in the task's private artifacts outside the checkout. Record its location
+in the task. When presenting it as HTML, identify the source and revision; make
+edits in the source. Writing a spec does not require a commit or approval beyond
+the task's existing rules.
 
-Tiny corrections use compact outcome/inputs, scope/authority, acceptance and
-confidence in the task record; add design/assumptions only when material.
+For tiny corrections, record the outcome, inputs, scope, authority, acceptance
+and confidence briefly in the task record. Add design decisions or assumptions
+only when material.
 Research, review and explanation retain their bounded briefs. These records
 need neither twelve headings nor the file validator.
 
@@ -31,15 +35,16 @@ SKILL.md, using the supplied skill location rather than the project directory:
 python3 "<skill-dir>/scripts/validate_spec.py" /absolute/private/spec.md
 ```
 
-It reads UTF-8, emits JSON errors/assumption diagnostics and exits 0 for valid
-structure, 1 for structural errors, 2 for invocation/read errors. It writes
+The validator reads UTF-8 and reports errors and assumption diagnostics as JSON.
+It exits 0 for valid structure, 1 for structural errors, and 2 for invocation or
+read errors. It writes
 nothing and uses no network. It cannot establish semantic truth, authorization,
 feasibility or runtime enforcement. Fix structural errors without changing
 acceptance to evade a check. Unresolved/refuted assumptions are valid documented
 planning states: inspect their evidence and affected R-IDs, resolve or explicitly
 block dependent work, and continue only unaffected authorized work.
 
-Keep assignments, return envelopes and revision recovery with
+Keep assignment and result formats, and recovery from stale revisions, with
 [parallel](../follow-instructions/playbooks/parallel.md); the template links the
 single Orchestration definition. Workers propose changes; only the integrating
 owner issues revisions within existing authority. Full access is an execution
@@ -47,20 +52,23 @@ mode, separate from task authority. A revision never replenishes a budget.
 
 ## Confidence
 
-Assess readiness of this exact revision for the next authorized stage. Record
-an integer 1–10, assessor, evidence basis, principal uncertainty and next evidence
-that would change it. Use these local anchors:
+Assess whether this exact revision is ready for the next authorized stage.
+Record an integer from 1 to 10, who assessed it, the supporting evidence, the
+main uncertainty, and the next observation that would change the score.
+Use these local anchors:
 
 - 1–2: intended outcome or essential constraints are not established.
 - 3–4: plausible approach; key source, interface or acceptance facts missing.
-- 5–6: grounded and checkable; material feasibility/design assumptions unresolved.
-- 7–8: relevant code/constraints inspected; requirements, design and acceptance
+- 5–6: grounded and checkable; material feasibility or design assumptions unresolved.
+- 7–8: relevant code and constraints inspected; requirements, design and acceptance
   align; explicit bounded uncertainties remain.
-- 9–10: independent challenge and representative feasibility/failure checks
+- 9–10: independent challenge and representative feasibility and failure checks
   support the spec; no known material gap remains at the assessed scope.
 
-Scores are judgments, never probabilities, authority or arithmetic averages.
-Missing authorization or a blocking prerequisite remains blocking at 9 or 10.
+Treat the score as an evidence-backed judgment. Do not interpret it as a
+probability, calculate it by averaging unrelated factors, or use it to grant
+authority. A score of 9 or 10 does not resolve missing authorization or a
+blocking prerequisite.
 For example, 7 can support local adapter work with inspected callers while an
 untested remote dependency still blocks claiming remote integration complete.
 Name the affected stage. Reassess after material evidence or revision changes;

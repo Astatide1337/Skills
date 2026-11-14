@@ -17,8 +17,8 @@ existing capability or smaller change already meets the request.
 Use [agent-contracts](../../agent-contracts/SKILL.md) for the full spec format,
 R/A IDs and confidence when substantial planning applies or a spec is explicitly
 requested. Keep its canonical content in the existing task record; use a portable
-Markdown file outside the checkout only when needed, with HTML as a source-revision
-review view. Compact tiny-task records and research/review briefs are exempt
+Markdown file outside the checkout only when needed. An HTML version for review
+must identify that source and revision. Compact tiny-task records and research/review briefs are exempt
 from the full template and file validator. This adds no approval gate.
 
 The plan should answer:
