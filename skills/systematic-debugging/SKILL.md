@@ -29,7 +29,7 @@ a clear owner and focused reproducer, use the short path in
    - Run at least one command, request, or interaction capable of producing the
      failure before calling it reproduced. A test plan alone does not reproduce the failure.
    - Minimize the reproduction by removing one input, service, timing condition, or
-     setup step at a time. Keep each element only if removing it stops the failure.
+     setup step at a time. Keep each element if removing it stops or changes the failure.
      Record which elements you removed without changing the result.
 
 3. **Inspect the real system.**

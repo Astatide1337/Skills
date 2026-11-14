@@ -53,8 +53,9 @@ mode, separate from task authority. A revision never replenishes a budget.
 ## Confidence
 
 Assess whether this exact revision is ready for the next authorized stage.
-Record an integer from 1 to 10, who assessed it, the supporting evidence, the
-main uncertainty, and the next observation that would change the score.
+Use the template's fields: `Score` (an integer from 1 to 10), `Assessor`,
+`Basis` (supporting evidence), `Uncertainty`, and `Next evidence` (what would
+change the score).
 Use these local anchors:
 
 - 1–2: intended outcome or essential constraints are not established.
@@ -66,7 +67,7 @@ Use these local anchors:
   support the spec; no known material gap remains at the assessed scope.
 
 Treat the score as an evidence-backed judgment. Do not interpret it as a
-probability, calculate it by averaging unrelated factors, or use it to grant
+probability, calculate it as an arithmetic average, or use it to grant
 authority. A score of 9 or 10 does not resolve missing authorization or a
 blocking prerequisite.
 For example, 7 can support local adapter work with inspected callers while an

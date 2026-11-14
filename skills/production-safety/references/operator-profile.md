@@ -30,9 +30,11 @@ target before relying on them.
 For personal cluster or kagent diagnosis, start with Fleet's
 `docs/operations.md` and `machines/kagent.md` (local checkout: `~/Desktop/Fleet`).
 kagent is the native VM on sohim; use Fleet's SSH and service procedures and
-verify its live identity before operations. Personal-cluster queries require
-their own explicit context and namespace; Rutgers is separate.
-GitOps owns VM provisioning. The native workspace owns its installed Skills;
+verify its live identity before operations. Before personal-cluster queries,
+verify the context and namespace against current metadata and pass both
+explicitly. Rutgers is separate.
+GitOps owns the k3s nodes, cluster workloads and VM provisioning.
+The native workspace owns its installed Skills;
 inspect its checkout and installed files rather than looking for an image pin
 or assuming they match the laptop. An installed revision does not establish
 what an existing agent session loaded. If the records are unavailable, report
