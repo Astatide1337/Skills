@@ -52,7 +52,7 @@ class ContractTests(unittest.TestCase):
         self.assertIn(f'malformed declaration at source line {expected_line}', module.validate(draft)['errors'])
 
     def test_scaffolding_alone_does_not_fill_a_section(self):
-        for content in ('-', '*', '---', '<!-- TODO -->', '### TBD',
+        for content in ('-', '*', '---', '* * *', '- - -', '_ _ _', '<!-- TODO -->', '### TBD',
                         '<!-- multi\nline -->\n*\n---'):
             draft = re.sub(r'(?<=## SCOPE\n).*?(?=\n## AUTHORITY)', content + '\n', DRAFT, flags=re.DOTALL)
             with self.subTest(content=content):

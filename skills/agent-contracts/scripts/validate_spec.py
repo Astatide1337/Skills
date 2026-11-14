@@ -70,7 +70,9 @@ def validate(source: str) -> dict:
             current = heading[1]
             seen.append(current)
             continue
-        line = re.sub(r'^\s*[-+*]\s+', '', raw).strip()
+        line = raw.strip()
+        if not re.fullmatch(r'(?:[-*_]\s*){3,}', line):
+            line = re.sub(r'^[-+*]\s+', '', line).strip()
         if current in sections:
             sections[current].append(line)
         for token in re.findall(r'@(?:AC|R|A)-[A-Za-z0-9_-]*', line):
