@@ -43,6 +43,14 @@ any claim a worker cites before relying on it.
   untracked knowledge; verify access and source freshness from the worker's
   checkout before reuse. Do not paste a large summary; the worker reads the sources itself.
 
+For a full spec, extend the assignment with its canonical source and revision,
+assigned R-IDs with exact applicability conditions, and dependent A-IDs with
+current status, evidence and resolution owner. Keep original authority and
+remaining budgets. Verify remote access to sources and continuation state;
+a laptop-local path alone is insufficient. Supply a minimal authorized snapshot
+in the brief or accessible branch/attachment with source/revision when needed.
+Compact corrections and research/review briefs retain their existing envelopes.
+
 ## Steps and decision points
 
 1. For a new task pattern, complete and verify one representative unit end to
@@ -114,7 +122,23 @@ agent for a discriminating next action when tools and authority permit. Present
 the author's theory as a hypothesis. If delegation is unavailable, record that
 limit; do not claim an independent review occurred.
 
+For spec revision mismatch, pause work whose requirements, ownership or
+authority may have changed and report assigned/current revision to the integrating
+owner. Only demonstrably unaffected authorized work may continue. The owner
+supplies the current contract and reconciles existing effects before dependent
+work resumes; workers cannot ratify stale assignments. Only the integrating spec
+owner issues revisions, identifying affected R/A IDs; workers propose changes.
+Reconcile changed/refuted assumptions before dependent work continues. Revisions
+never change budgets without their original authority. Reconcile the existing
+native task before replacement/retry after uncertain delivery.
+
 ## Completion evidence
+
+For each assigned R-ID, return reported-pass / failed / not-run / blocked with
+evidence. Return A-ID observations as verified / refuted / unresolved, evidence
+and affected R-IDs; include actual host, artifact/spec revision, effects/usage,
+remaining action and owner. Retain unfinished acceptance; subtask completion
+and worker self-report do not establish product acceptance.
 
 Provide each returned artifact, integrated diff/revision, conflict decisions,
 checks and actual user journey. Passing individual workers without the

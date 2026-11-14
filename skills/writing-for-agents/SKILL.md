@@ -9,6 +9,10 @@ Write instructions that an agent can act on without guessing. State when to
 use them, the required result, permitted actions, necessary inputs, steps,
 checks and stopping conditions.
 
+For substantial implementation specs or explicitly requested agent contracts,
+use [agent-contracts](../agent-contracts/SKILL.md) as the format/ID/confidence
+owner. This skill continues to own instruction prose.
+
 ## Method
 
 1. Identify the behavior the instructions need to change.

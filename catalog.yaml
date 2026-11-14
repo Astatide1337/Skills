@@ -7,11 +7,22 @@ policy:
   default_profile: all
 profiles:
   web-engineering: [web-interface, html-artifacts]
-  agent-workflows: [follow-instructions, self-reflect, product, writing-for-agents, wizard, how, architect, teach, unslop, why, pull-requests]
+  agent-workflows: [agent-contracts, follow-instructions, self-reflect, product, writing-for-agents, wizard, how, architect, teach, unslop, why, pull-requests]
   production-engineering: [code-review-and-quality, security-and-hardening, production-safety, systematic-debugging, verify-work]
   workflow-automation: [create-workflow, hillclimb]
   catalog-admin: [skill-creator]
 skills:
+  - profile: agent-workflows
+    trust: local-reviewed
+    exported_path: skills/agent-contracts/SKILL.md
+    source:
+      origin: local
+      adaptation: authorized user lecture outline and proposal v2.2; traceable requirements, explicit assumptions and local readiness rubric; no standards compliance or behavioral efficacy claim
+      references:
+        - {url: 'https://swehb.nasa.gov/spaces/SWEHBVD/pages/102695669/5.09+-+SRS+-+Software+Requirements+Specification'}
+        - {url: 'https://arc42.org/overview/'}
+        - {url: 'https://alistairmavin.com/ears/'}
+        - {url: 'https://www.anthropic.com/research/effective-harnesses-for-long-running-agents'}
   - profile: agent-workflows
     trust: local-reviewed
     exported_path: skills/product/SKILL.md

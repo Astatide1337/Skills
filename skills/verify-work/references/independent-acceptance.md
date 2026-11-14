@@ -46,9 +46,9 @@ establish application behavior, independent review or production readiness.
 A fresh reviewer starts with the requirement, actual artifact and direct results
 before the author's justification. For independent code review, follow the
 [review model policy](../../follow-instructions/references/agent-selection.md#independent-review-model).
-Different models do not remove shared blind spots. Findings identify the issue, affected requirement or
-quality criterion, evidence and resolution condition. Separate blockers from
-optional refinements. An unconventional valid solution is not a defect.
+Different models do not remove shared blind spots. Each finding identifies the
+issue, affected requirement or quality criterion, evidence, and resolution
+condition. Separate blockers from optional refinements. An unconventional valid solution is not a defect.
 
 Required functional, visual, usability, security and maintainability properties
 cannot be averaged into one passing score. Judge the whole applicable artifact,

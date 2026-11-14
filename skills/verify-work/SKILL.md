@@ -144,7 +144,7 @@ application's CLI), run it rather than reading the diff.
 3. Drive the requested or mapped flows. A browser or screen-driving child may do
    this if its model has verified tool use and image input; the owner inspects
    the raw screenshots and output before concluding.
-4. Capture before and after from these real runs, not from reconstructions.
+4. Capture the before and after states during these real runs; do not reconstruct them.
 5. Stop the processes and remove the temp data, ports and sessions you started,
    confirm they are gone, and keep the evidence. Leave user data alone.
 6. If launch or a flow fails, report the failing stage and leave the claim
