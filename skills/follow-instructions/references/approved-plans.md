@@ -14,7 +14,14 @@ implementation of the same kind. Reuse its ownership, naming and operational
 path unless a concrete constraint makes that unsuitable. Check whether an
 existing capability or smaller change already meets the request.
 
-Keep the plan in the existing task record. It should answer:
+Use [agent-contracts](../../agent-contracts/SKILL.md) for the full spec format,
+R/A IDs and confidence when substantial planning applies or a spec is explicitly
+requested. Keep its canonical content in the existing task record; use a portable
+Markdown file outside the checkout only when needed, with HTML as a source-revision
+review view. Compact tiny-task records and research/review briefs are exempt
+from the full template and file validator. This adds no approval gate.
+
+The plan should answer:
 
 - What observable outcome is required, and what is outside scope?
 - Which existing owners and conventions will carry the change?

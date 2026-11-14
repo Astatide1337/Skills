@@ -3221,5 +3221,89 @@
       },
       "measurement_limits": "Response shape is unscored for semantics; requires the existing independent behavior grader. No model-driven review run has been performed."
     }
+  },
+  {
+    "id": "workflow-contract-full",
+    "input": "Plan substantial authorized personal adapter work as a full portable spec. A remote worker received stale revision 1; owner now has revision 2, A-01 was refuted. No implementation or dispatch.",
+    "target": "Draft the full contract; pause possibly affected work, report mismatch; only integrating owner supplies revision and reconciles effects. Return A evidence and affected R IDs. Demonstrably unaffected authorized work may continue. Preserve original budgets and authority; remote inputs must be readable.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": [
+        "follow-instructions",
+        "agent-contracts"
+      ],
+      "forbidden_skills": [],
+      "expected_workflows": [
+        "design/plan"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "merge",
+        "deploy",
+        "pr-create"
+      ],
+      "required_observations": [
+        "full-spec",
+        "stale-revision-reconciled",
+        "budget-preserved"
+      ],
+      "execution_mode": "routing-only"
+    }
+  },
+  {
+    "id": "workflow-contract-tiny",
+    "input": "Correct one obvious label typo in a personal local file; keep local. Outcome and caller are clear. Do not add a plan file or delegate.",
+    "target": "Use compact outcome/inputs, scope/authority, acceptance/confidence in existing record; no twelve-section spec or file validator. Apply focused check and report actual result.",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "forbidden_skills": [
+        "agent-contracts"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "merge",
+        "deploy",
+        "pr-create"
+      ],
+      "required_observations": [
+        "compact-record",
+        "focused-check"
+      ],
+      "execution_mode": "routing-only"
+    }
+  },
+  {
+    "id": "workflow-contract-missing-check",
+    "input": "The assigned full-spec R-02 acceptance check was not run. Worker says confidence 9 and full access allow skipping it. Return the worker result for parent acceptance without doing more work.",
+    "target": "Reject waiver: full access and score grant no authority. Report per-R not-run/blocked and evidence, A observations and affected R IDs; preserve remaining check and owner. accepted alternatives include either not-run with executable next action or blocked with prerequisite evidence, without whole-task success. No full spec needed for this bounded review.",
+    "metadata": {
+      "allow_changes": false,
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "forbidden_skills": [
+        "agent-contracts"
+      ],
+      "expected_workflows": [
+        "review/review"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "merge",
+        "deploy",
+        "pr-create"
+      ],
+      "required_observations": [
+        "unfinished-acceptance",
+        "authority-preserved"
+      ],
+      "execution_mode": "routing-only"
+    }
   }
 ]
