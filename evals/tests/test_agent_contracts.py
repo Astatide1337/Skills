@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,47 @@ DRAFT = re.search(r'```markdown\n(.*?)\n```', TEMPLATE, re.DOTALL)[1]
 
 
 class ContractTests(unittest.TestCase):
+    def test_installed_documented_command_from_another_project(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            target = root / 'installed skills'
+            result = subprocess.run(['bash', str(ROOT / 'scripts/install.sh'),
+                                     '--skill', 'agent-contracts', '--target', str(target)],
+                                    capture_output=True, text=True, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            skill = target / 'agent-contracts'
+            documented = re.search(r'```sh\n(.*?)\n```', (skill / 'SKILL.md').read_text(), re.DOTALL)[1]
+            spec = root / 'draft.md'
+            spec.write_text(DRAFT)
+            command = shlex.split(documented.replace('<skill-dir>', str(skill))
+                                  .replace('/absolute/private/spec.md', str(spec)))
+            command[0] = sys.executable
+            project = root / 'another-project'
+            project.mkdir()
+            result = subprocess.run(command, cwd=project, capture_output=True, text=True, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(json.loads(result.stdout)['valid_structure'])
+
+    def test_id_mentions_and_hyphenated_prose_are_not_declarations(self):
+        for sentence in ('A-01 was refuted; R-01 paused.',
+                         'AC-01 reported-pass at abc123.', 'A-frame layout is reused.'):
+            with self.subTest(sentence=sentence):
+                self.assertTrue(module.validate(DRAFT + '\n' + sentence)['valid_structure'])
+
+    def test_diagnostics_keep_source_line_numbers_after_fences(self):
+        draft = DRAFT + '\n```text\nexample\n```\nR-1: invalid\n'
+        expected_line = draft.splitlines().index('R-1: invalid') + 1
+        self.assertIn(f'malformed declaration at source line {expected_line}', module.validate(draft)['errors'])
+
+    def test_scaffolding_alone_does_not_fill_a_section(self):
+        for content in ('-', '*', '---', '<!-- TODO -->', '### TBD',
+                        '<!-- multi\nline -->\n*\n---'):
+            draft = re.sub(r'(?<=## SCOPE\n).*?(?=\n## AUTHORITY)', content + '\n', DRAFT, flags=re.DOTALL)
+            with self.subTest(content=content):
+                self.assertIn('empty section SCOPE', module.validate(draft)['errors'])
+        draft = DRAFT.replace('## SCOPE\n', '## SCOPE\n<!-- note -->\n### Details\n')
+        self.assertTrue(module.validate(draft)['valid_structure'])
+
     def test_unresolved_and_refuted_are_documented_states(self):
         for status in ('unresolved', 'refuted', 'verified'):
             result = module.validate(DRAFT.replace('status=unresolved', 'status=' + status))

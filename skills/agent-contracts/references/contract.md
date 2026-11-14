@@ -5,7 +5,8 @@ example content below with concrete answers, or justified non-applicability
 where a field allows prose. This grammar checks structure, not the answers.
 
 Use these twelve exact `##` headings once, in order. Each section must contain
-nonempty unfenced content. Ordinary Markdown prose, lists, links and subheadings
+nonempty unfenced body content; bare list markers, horizontal rules, HTML
+comments and headings alone do not count. Ordinary Markdown prose, lists, links and subheadings
 are allowed. Backtick and tilde fenced examples are ignored, including apparent
 headings, fields, declarations and references inside them.
 
@@ -15,7 +16,9 @@ Owner; Assigned; Score, Assessor, Basis, Uncertainty, Next evidence. Score is a
 base-ten integer from 1 through 10, never a boolean or fraction.
 
 Declarations are single lines, optionally unordered list items:
-`R-01: key=value | key=value`. IDs are R-, A-, or AC- followed by at least two
+`R-01: key=value | key=value`. A declaration starts with an ID immediately
+followed by a colon; an ID followed by ordinary prose is not a declaration.
+IDs are R-, A-, or AC- followed by at least two
 ASCII decimal digits. Declare each ID once in its owning section. Fields must
 be nonempty; keys are exact, required, unordered and unique. Literal pipes in
 values are unsupported; use prose continuation outside the declaration instead.

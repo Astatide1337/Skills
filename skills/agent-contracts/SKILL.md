@@ -24,10 +24,11 @@ Research, review and explanation retain their bounded briefs. These records
 need neither twelve headings nor the file validator.
 
 For file-backed full specs, run the read-only structural check before claiming
-format validity:
+format validity. Resolve `<skill-dir>` to the absolute directory containing this
+SKILL.md, using the supplied skill location rather than the project directory:
 
 ```sh
-python3 skills/agent-contracts/scripts/validate_spec.py /absolute/private/spec.md
+python3 "<skill-dir>/scripts/validate_spec.py" /absolute/private/spec.md
 ```
 
 It reads UTF-8, emits JSON errors/assumption diagnostics and exits 0 for valid

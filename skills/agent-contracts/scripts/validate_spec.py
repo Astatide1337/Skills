@@ -26,11 +26,11 @@ METADATA = {
 ID = r'(?:AC|R|A)-[0-9]{2,}'
 
 
-def unfenced(source: str) -> list[str]:
+def unfenced(source: str) -> list[tuple[int, str]]:
     """Ignore CommonMark-style fenced examples, including longer closers."""
     lines = []
     fence = None
-    for line in source.splitlines():
+    for number, line in enumerate(source.splitlines(), 1):
         if fence:
             if re.fullmatch(r' {0,3}' + re.escape(fence[0]) + '{' + str(fence[1]) + r',}\s*', line):
                 fence = None
@@ -39,8 +39,21 @@ def unfenced(source: str) -> list[str]:
         if match and not (match[1][0] == '`' and '`' in match[2]):
             fence = (match[1][0], len(match[1]))
             continue
-        lines.append(line)
+        lines.append((number, line))
     return lines
+
+
+def has_content(lines: list[str]) -> bool:
+    """Require body content beyond comments, headings and Markdown scaffolding."""
+    body = re.sub(r'<!--.*?-->', '', '\n'.join(lines), flags=re.DOTALL)
+    for line in body.splitlines():
+        line = line.strip()
+        if (not line or re.fullmatch(r'[-+*]|[0-9]+[.)]', line)
+                or re.fullmatch(r'(?:[-*_]\s*){3,}', line)
+                or re.match(r'#{1,6}(?:\s|$)', line)):
+            continue
+        return True
+    return False
 
 
 def validate(source: str) -> dict:
@@ -51,7 +64,7 @@ def validate(source: str) -> dict:
     declarations = {}
     references = set()
     current = None
-    for number, raw in enumerate(unfenced(source), 1):
+    for number, raw in unfenced(source):
         heading = re.fullmatch(r'## (.+?)\s*', raw)
         if heading:
             current = heading[1]
@@ -65,11 +78,11 @@ def validate(source: str) -> dict:
                 errors.append(f'malformed reference {token}')
             else:
                 references.add(token[1:])
-        if not re.match(r'^(?:AC|R|A)-', line):
+        if not re.match(r'^(?:AC|R|A)-[^\s:]*:', line):
             continue
         match = re.fullmatch('(' + ID + r'):\s*(.*)', line)
         if not match:
-            errors.append(f'malformed declaration at content line {number}')
+            errors.append(f'malformed declaration at source line {number}')
             continue
         identity, body = match.groups()
         kind = identity.split('-')[0]
@@ -92,7 +105,7 @@ def validate(source: str) -> dict:
         errors.append('required section headings must occur exactly once in order')
     metadata = {}
     for heading, lines in sections.items():
-        if not any(lines):
+        if not has_content(lines):
             errors.append(f'empty section {heading}')
         for label in METADATA.get(heading, ()):
             values = [line[len(label) + 1:].strip() for line in lines if line.startswith(label + ':')]
