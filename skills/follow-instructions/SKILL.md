@@ -24,6 +24,11 @@ reuse an existing scoped workspace. Read the [workspace lifecycle
 contract](references/workspace-lifecycle.md) when selecting, allocating, resuming
 or retiring it.
 
+Before creating or changing code, load and apply the [official Ponytail core
+skill](references/principles/simplicity-and-reader-load.md#before-writing-code)
+once per active task, including the short path and scripts. Read-only and
+prose-only work do not require it.
+
 ## Short task path
 
 Inspect the implementation, caller and available check first. Use this path
