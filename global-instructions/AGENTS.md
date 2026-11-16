@@ -2,6 +2,8 @@
 
 - For non-trivial engineering work, start with the `follow-instructions` skill
   when it is installed; it picks the procedure and the domain skills to load.
+- Before creating or changing code, load `follow-instructions` and complete its
+  Ponytail prerequisite, including for tiny fixes and scripts.
 - Never add AI-agent co-author or session trailers to commits, including
   `Co-Authored-By: Codex` or `Codex-Session`.
 - Implementation requests normally include committing, pushing and opening a
