@@ -217,6 +217,11 @@ coverage and no material findings remain, stop. An explicit spending limit or
 unavailable reviewer leaves required review pending, never implicitly approved.
 Standalone reviews retain their requested scope.
 
+For each confirmed defect, apply [prevention at its owner](../follow-instructions/references/prevent-a-defect.md).
+In a read-only review, identify the enforcing boundary or regression and the
+control that should still pass. When implementing the repair, verify that
+evidence before closing the finding.
+
 ## Select detail only when relevant
 
 - Plausible generated code with weak integration or redundant bookkeeping:

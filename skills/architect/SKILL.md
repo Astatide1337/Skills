@@ -33,6 +33,12 @@ A diagram cannot replace a missing ownership decision.
 7. When implementation is authorized, implement the design. If it repeatedly needs exceptions,
    revisit the design rather than adding more escape hatches.
 
+During feature design as well as repair, look for decisions every caller must
+get right. When a narrower API or refactor can eliminate a class of mistakes,
+[propose it concretely](../follow-instructions/references/prevent-a-defect.md):
+show a real call before and after, the illegal operation it excludes, a valid
+alternative it preserves, and the compatibility cost.
+
 Before handing off a design, trace one successful operation and one failure
 through its signatures. For asynchronous or durable work, show who claims,
 acknowledges, fails and retries it, and which transactions can commit

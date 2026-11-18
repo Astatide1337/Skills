@@ -63,6 +63,11 @@ do not verify a real application.
    pre-change behavior before inspecting candidate output. The candidate
    cannot define its own expected answer.
 
+   Ask what could still fail if that check passes. Select a complementary
+   layer for each material gap. For stateful UI, protocols, or uncertain
+   coverage, use [verification layers](references/verification-layers.md)
+   to choose the property, exercise and evidence. Start with project tools.
+
 3. **Check whether existing evidence still applies.** Inspect the source
    revision, environment, requirement, fixture, artifact or instance, check
    and result. Reuse evidence only when the relevant inputs are unchanged

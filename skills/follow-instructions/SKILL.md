@@ -29,6 +29,9 @@ skill](references/principles/simplicity-and-reader-load.md#before-writing-code)
 once per active task, including the short path and scripts. Read-only and
 prose-only work do not require it.
 
+On either implementation path, close every confirmed mistake, including one
+you catch yourself, with [prevention at its owner](references/prevent-a-defect.md).
+
 ## Short task path
 
 Inspect the implementation, caller and available check first. Use this path
