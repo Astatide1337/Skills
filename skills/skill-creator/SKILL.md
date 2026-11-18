@@ -35,6 +35,10 @@ Choose where to fix the problem using
   tests or scripts. Enforce it in code when possible.
 - Add a skill only for a distinct recurring task that needs focused guidance.
 
+Before promoting a correction into a standing rule, test its scope against
+a legitimate exception or neighboring permitted action. Keep the rule
+conditional on the actual failure and retain supported exceptions.
+
 For a structural rule, identify the allowed pattern, forbidden alternative,
 enforcing type, lint rule, runtime check or CI job, and a test that rejects a
 violation. If judgment is still necessary, write one concise instruction

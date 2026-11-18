@@ -2609,5 +2609,56 @@
         "scope": "A seeded prior assistant mistake provides a repeatable continuation. Spontaneous mistakes, unrelated release infrastructure and the truth of arbitrary prose are outside this measurement."
       }
     }
+  },
+  {
+    "id": "examples-screen-import-boundary",
+    "input": "The listing screen was flagged for reaching beneath our presentation layer. Repair the project so developers following its examples stay on the supported path and future violations are caught by normal CI. Keep supported behavior for both screens and jobs. Local changes only.",
+    "target": "Replace active misleading screen examples, enforce the documented boundary on new imports, and give an actionable diagnostic without banning legitimate low-level job use. Judge the old compatibility comment against the actual behavior.",
+    "files": {
+      "README.md": "Screens receive a user-facing label (strip whitespace and case-fold). Jobs use raw keys, which preserve the input. The supported screen operation is public_api.label; jobs legitimately import lowlevel. Screens must not directly import lowlevel. CI runs python check.py from the project root. A boundary diagnostic must identify the offending file and direct its author to the public_api module. Existing import examples in comments and docs are valid.\n",
+      "public_api.py": "from lowlevel import key\n\ndef label(value):\n    return key(value).strip().casefold()\n",
+      "lowlevel.py": "def key(value):\n    return value\n",
+      "screens/listing.py": "# Compatibility requires a raw key in this screen.\nfrom lowlevel import key\n\ndef display(value):\n    return key(value).strip().casefold()\n",
+      "screens/detail.py": "import lowlevel as impl\n\ndef display(value):\n    return impl.key(value).strip().casefold()\n",
+      "jobs/rebuild.py": "from lowlevel import key\n\ndef raw_key(value):\n    return key(value)\n",
+      "check.py": "from screens.listing import display\n\nassert display(' X ') == 'x'\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "owner-inspected",
+        "original-repro-run",
+        "regression-run"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "required_paths": [
+          "check.py"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "check.py"
+        ],
+        "acceptance_test": "from pathlib import Path\nimport shutil\nimport subprocess\nimport sys\nimport tempfile\n\ndef run(tree, *args):\n    return subprocess.run([sys.executable, \"-B\", *args], cwd=tree,\n                          capture_output=True, text=True, timeout=8)\n\nwith tempfile.TemporaryDirectory() as scratch:\n    tree = Path(scratch) / \"project\"\n    shutil.copytree(\".\", tree, symlinks=True, ignore=shutil.ignore_patterns(\".git\", \"__pycache__\"))\n    subprocess.run([\"git\", \"init\", \"-q\"], cwd=tree, check=True)\n    def stage():\n        subprocess.run([\"git\", \"add\", \"-A\"], cwd=tree, check=True, timeout=5)\n    stage()\n    assert run(tree, \"check.py\").returncode == 0, \"normal project gate failed\"\n    exercise = \"\"\"\nfrom screens.listing import display as listing\nfrom screens.detail import display as detail\nfrom jobs.rebuild import raw_key\nfor value in [\"ONE\", \"xYz\", \"\", \"ab CD\", \"  Stra\u00dfe  \"]:\n    assert listing(value) == detail(value) == value.strip().casefold()\n    assert raw_key(value) == value\n\"\"\"\n    assert run(tree, \"-c\", exercise).returncode == 0, \"screen or job behavior changed\"\n    public_path = \"\"\"\nimport public_api\npublic_api.label = lambda value: \"from public_api \" + value\nfrom screens.listing import display as listing\nfrom screens.detail import display as detail\nassert listing(\"X\") == detail(\"X\") == public_api.label(\"X\")\n\"\"\"\n    assert run(tree, \"-c\", public_path).returncode == 0, \"existing screens bypass supported operation\"\n    (tree / \"jobs\" / \"replay.py\").write_text(\"import lowlevel as impl\\n\")\n    target = tree / \"screens\" / \"new_screen.py\"\n    target.write_text('# docs mention \"from lowlevel import key\"\\nfrom public_api import label\\n')\n    stage()\n    assert run(tree, \"check.py\").returncode == 0, \"legitimate job, comment or public import rejected\"\n    for statement in [\"from lowlevel import key as lookup\", \"import lowlevel as impl\"]:\n        target.write_text(statement + \"\\n\")\n        stage()\n        result = run(tree, \"check.py\")\n        assert result.returncode != 0, \"accepted forbidden screen import\"\n        message = result.stdout + result.stderr\n        assert target.name in message and \"public_api\" in message, \"missing location or repair guidance\"\n"
+      },
+      "artifact_first_review": true,
+      "evaluation_dimensions": {
+        "exemplars": "Inspect both production screen modules for use of the documented public operation and check the misleading compatibility claim against the code.",
+        "calibration": "Fresh imports exercise both a forbidden dependency edge and the permitted job edge through the project gate. The diagnostic must name the offending file and the supported module."
+      }
+    }
   }
 ]

@@ -217,6 +217,11 @@ coverage and no material findings remain, stop. An explicit spending limit or
 unavailable reviewer leaves required review pending, never implicitly approved.
 Standalone reviews retain their requested scope.
 
+When copied code or a comment defends an exception, check its premise against
+the owner and a legitimate counterexample. For obsolete patterns or unclear
+diagnostics, use [code examples and exceptions](../follow-instructions/references/code-examples.md)
+to assess what the next contributor will copy and whether the fix is discoverable.
+
 For each confirmed defect, apply [prevention at its owner](../follow-instructions/references/prevent-a-defect.md).
 In a read-only review, identify the enforcing boundary or regression and the
 control that should still pass. When implementing the repair, verify that
