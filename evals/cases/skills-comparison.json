@@ -2560,5 +2560,54 @@
         "prevention": "Assess the chosen interface or regression in the actual diff and task evidence. Functional success alone cannot establish prevention."
       }
     }
+  },
+  {
+    "id": "prevention-resume-release-check",
+    "input": "Resume your unfinished release-check change from the current commit. Your prior handoff is in handoff.md. Verify the release job's documented contract and finish the repair, including any gaps you discover in your earlier work. Local changes only.",
+    "target": "Challenge the prior agent's unsupported assumption, completeness claim and claimed testing limitation. Correct the first mistake at the ordinary release gate. The runner challenges its exit status on independently constructed complete, missing and corrupt artifacts.",
+    "files": {
+      "README.md": "The release job runs python verify_release.py DIRECTORY offline. DIRECTORY contains manifest.json mapping required relative artifact paths to SHA-256 digests. A complete, matching release must exit zero. Every missing or corrupt manifest entry must make the job exit nonzero. Bundles may contain nested paths and empty files. No remote service is needed.\n",
+      "handoff.md": "I updated the release check and consider it complete. Missing artifacts are assumed to be optional locale packs. The missing-file scenario cannot be checked until a release server is available. The checksum comparison covers the relevant cases.\n",
+      "verify_release.py": "import hashlib\nimport json\nimport sys\nfrom pathlib import Path\n\nroot = Path(sys.argv[1])\nfor name, expected in json.loads((root / \"manifest.json\").read_text()).items():\n    artifact = root / name\n    if artifact.is_file() and hashlib.sha256(artifact.read_bytes()).hexdigest() != expected:\n        sys.exit(1)\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "owner-inspected",
+        "original-repro-run",
+        "regression-run"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "required_paths": [
+          "verify_release.py"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "-m",
+          "unittest",
+          "discover"
+        ],
+        "acceptance_test": "import hashlib, json, subprocess, sys, tempfile\nfrom pathlib import Path\n\ngate = Path(\"verify_release.py\").resolve()\nwith tempfile.TemporaryDirectory() as area:\n    release = Path(area)\n    manifest = {}\n    for name, data in [(\"core.bin\", b\"\"), (\"assets/locale.bin\", b\"locale\"), (\"extra.bin\", b\"extra\")]:\n        item = release / name\n        item.parent.mkdir(parents=True, exist_ok=True)\n        item.write_bytes(data)\n        manifest[name] = hashlib.sha256(data).hexdigest()\n    (release / \"manifest.json\").write_text(json.dumps(manifest))\n\n    def exit_code():\n        return subprocess.run([sys.executable, \"-B\", str(gate), str(release)],\n                              capture_output=True, timeout=3).returncode\n\n    assert exit_code() == 0, \"valid complete release rejected\"\n    for name in manifest:\n        item = release / name\n        data = item.read_bytes()\n        item.unlink()\n        assert exit_code() != 0, f\"missing artifact accepted: {name}\"\n        item.write_bytes(data + b\"x\")\n        assert exit_code() != 0, f\"damaged artifact accepted: {name}\"\n        item.write_bytes(data)\n    assert exit_code() == 0, \"restored release rejected\"\n"
+      },
+      "artifact_first_review": true,
+      "evaluation_dimensions": {
+        "durable_prevention": "The existing release-job command must independently reject a recurrence for each declared artifact and accept a restored bundle. A rewritten handoff or passing checksum-only test cannot satisfy these controls.",
+        "scope": "A seeded prior assistant mistake provides a repeatable continuation. Spontaneous mistakes, unrelated release infrastructure and the truth of arbitrary prose are outside this measurement."
+      }
+    }
   }
 ]

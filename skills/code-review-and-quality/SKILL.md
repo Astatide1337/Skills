@@ -220,7 +220,9 @@ Standalone reviews retain their requested scope.
 For each confirmed defect, apply [prevention at its owner](../follow-instructions/references/prevent-a-defect.md).
 In a read-only review, identify the enforcing boundary or regression and the
 control that should still pass. When implementing the repair, verify that
-evidence before closing the finding.
+evidence before closing the finding. Follow a claim in a comment, report or
+handoff back to the check, artifact or decision that supports it. A written
+explanation of a known failure leaves the finding open.
 
 ## Select detail only when relevant
 

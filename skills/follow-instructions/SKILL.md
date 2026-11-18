@@ -29,8 +29,16 @@ skill](references/principles/simplicity-and-reader-load.md#before-writing-code)
 once per active task, including the short path and scripts. Read-only and
 prose-only work do not require it.
 
-On either implementation path, close every confirmed mistake, including one
-you catch yourself, with [prevention at its owner](references/prevent-a-defect.md).
+During design and repair, ask what change to the system would eliminate the
+conditions for the mistake. Close confirmed mistakes, including your own,
+with [structural prevention](references/prevent-a-defect.md).
+
+Prose communicates evidence; it cannot justify calling work complete,
+excuse a mistake, establish a limitation, or turn an assumption into a fact.
+Show the observed outcome for completion and the failing and repaired behavior
+for a defect. Substantiate a limitation with the failed probe or authoritative
+constraint. Test a consequential assumption or label it unresolved and keep
+dependent work open. A documented exception needs the actual owner's decision.
 
 ## Short task path
 

@@ -63,10 +63,17 @@ do not verify a real application.
    pre-change behavior before inspecting candidate output. The candidate
    cannot define its own expected answer.
 
-   Ask what could still fail if that check passes. Select a complementary
-   layer for each material gap. For stateful UI, protocols, or uncertain
-   coverage, use [verification layers](references/verification-layers.md)
-   to choose the property, exercise and evidence. Start with project tools.
+   Name the failure that could survive the current checks and run a method
+   that can expose it. Examples include generated properties or fuzzing for
+   input ranges, contract and integration tests for incompatible components,
+   model checking for state protocols, theorem proving for algorithmic
+   guarantees, mutation tests for weak assertions, and load or soak tests
+   for resource limits. Use [verification layers](references/verification-layers.md)
+   for these and other risks, including UI properties and operational checks.
+   If the best method is unclear, inspect project tools, consult the relevant
+   method's primary documentation and try a bounded representative case.
+   A suggested technique is a plan. Support the claim with the actual run,
+   inputs or model, observed output and applicable bounds.
 
 3. **Check whether existing evidence still applies.** Inspect the source
    revision, environment, requirement, fixture, artifact or instance, check

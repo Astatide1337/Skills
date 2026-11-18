@@ -13,6 +13,26 @@ Start with a claim someone could disprove. Use the cheapest existing check that 
 | What does operation reveal? | Tap comparison using teeing or shadowing, traffic shaping, feature flags, canarying, A/B tests, real-user monitoring, exception tracking, logs/events, tracing, monitoring, auditing and on-call experience | Specify the signal, comparison and decision. Use authorized observations. A canary needs a control and evaluation window. Shadow traffic can trigger writes; verify isolation before replay. |
 | Does a trust boundary or recovery contract hold? | Threat modeling, scoped penetration testing and controlled fault or chaos tests | Establish an authorized environment, the boundary or injected fault, and the observable denial or recovery. |
 
+## Examples beyond the UI
+
+- **Inputs and sequences.** For a codec, generate valid records and check
+  that decoding the encoded bytes yields the original record. Fuzz malformed
+  and truncated byte streams separately and check the documented error result.
+  Keep a minimized failing input. Use a language-native fuzzer such as
+  [Go fuzzing](https://go.dev/doc/security/fuzz/), or use
+  [Hypothesis stateful testing](https://hypothesis.readthedocs.io/en/latest/stateful.html)
+  for operations whose validity depends on earlier actions.
+- **Compatibility and fault recovery.** For a changed message format, run a
+  contract test with an older producer and the new reader. If delivery can
+  repeat after a timeout, inject that fault in an isolated integration test
+  and observe the number of stored records after retry. Coverage of the
+  handler alone cannot distinguish one write from two.
+- **Capacity over time.** Use a load test to find the concurrency at which
+  latency crosses the agreed budget. For suspected resource growth, hold a
+  representative workload steady and compare resource use over time in a
+  [soak test](https://grafana.com/docs/k6/latest/testing-guides/test-types/soak-testing/).
+  Record workload, duration and measurements for the build tested.
+
 ## Stateful UI
 
 Choose actions the user can actually take, vary their order and define an invariant in user terms. For a draft editor, enter text, navigate between views and allow an older save response to arrive. The editor must preserve the newer text until it is explicitly discarded. Check the rendered text or persisted draft against the input; reading the component's own “saved” flag could miss data loss. Use the project's UI driver or [Bombadil](https://antithesishq.github.io/bombadil/browser/1-introduction.html) to run generated sequences on the local app. Exercise generated actions on the running UI itself when claiming UI property coverage. Report hand-picked browser replays and generated model transitions separately. Keep the initial state and seed or action trace. Minimize a failing sequence, replay it against the repaired build and retain the sequence as a regression.
