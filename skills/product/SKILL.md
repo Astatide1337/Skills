@@ -27,6 +27,15 @@ result and relevant failure or recovery behavior. Include empty, denied or
 interrupted states when they affect that journey. A collection of components is
 not a usable feature.
 
+When two plausible interpretations lead to different outcomes, draw the intended
+journey as a small statechart. Label states with what the user sees or retains,
+arrows with actions or events, and branches with the conditions that distinguish
+them. For example, if a connection drops during an upload, does reconnecting
+resume it or leave it waiting for Retry? Trace that path against the requirement
+with the reviewer. Mark unresolved transitions as questions. A chart derived
+from the running code describes current behavior and can preserve the same
+misunderstanding as the code. Use the agreed transitions to select runtime cases.
+
 Keep explicit requirements. Separate essential behavior from optional polish and
 future possibilities; do not add speculative features to make a proposal sound
 ambitious. For prioritization, compare user benefit, evidence, dependencies,

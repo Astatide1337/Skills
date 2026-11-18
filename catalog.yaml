@@ -30,6 +30,7 @@ skills:
       origin: local
       adaptation: user problem, smallest complete journey, scope and observable acceptance without mandatory product documents
       references:
+        - {repository: 'https://github.com/cursor/plugins', commit: 35a90942a7f02e1ebbc2443643179815f2147954, path: pstack/skills/statechart/SKILL.md}
         - {repository: 'https://github.com/garrytan/gstack', commit: 622e8b1f76d293b647eca7b33d9dd060ab618b21, path: plan-ceo-review/SKILL.md}
         - {repository: 'https://github.com/haniabdemai/product-management-skills', commit: cd8b2519a5b44d346a30d346586e4e30d812f23e, path: SKILL.md}
   - profile: agent-workflows
