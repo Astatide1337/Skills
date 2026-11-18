@@ -51,6 +51,12 @@ state or repeated assumption causes a real risk.
 
 ## Construction decisions and counterexamples
 
+When a feature introduces another caller, look for facts each caller must
+supply or rules each caller must remember. If the shared owner could derive
+that fact or expose only legal transitions, [propose the narrower API](../prevent-a-defect.md)
+before extending the old one. Trace a supported caller and legacy input
+through the change.
+
 Use these examples when choosing or reviewing a boundary/data shape; do not
 turn every local edit into a design exercise. Existing repository contracts win.
 

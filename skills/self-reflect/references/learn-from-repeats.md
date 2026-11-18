@@ -20,8 +20,11 @@ mistake usually needs a local correction, not a permanent workflow.
 
 A scope change, reopened task or review finding is not automatically a workflow
 failure. Check the request and evidence, record the cause and separate defect,
-non-defect and undetermined assessments. Preserve disagreements. Use [prevention at its owner](../../follow-instructions/references/prevent-a-defect.md)
-for every confirmed defect, including the first. Recurrence or a consequential
+non-defect and undetermined assessments. Preserve disagreements. At the first confirmed defect, have the owner exclude the mistake through its
+API, reject it with a type or boundary check, or catch it with a behavioral
+regression. Reserve prose for judgment. With the coordinator installed, use
+[prevention at its owner](../../follow-instructions/references/prevent-a-defect.md)
+to calibrate the repair. Recurrence or a consequential
 boundary can also justify repairing the shared working method.
 
 ## Choose the smallest durable repair
