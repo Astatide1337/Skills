@@ -33,6 +33,12 @@ A diagram cannot replace a missing ownership decision.
 7. When implementation is authorized, implement the design. If it repeatedly needs exceptions,
    revisit the design rather than adding more escape hatches.
 
+When callers repeatedly coordinate a delicate operation, design the entry
+point that owns the sequence. Make module boundaries discoverable and use a
+native visibility or dependency check to enforce the allowed direction. See
+[code examples and exceptions](../follow-instructions/references/code-examples.md)
+for a migration and a legitimate low-level counterexample.
+
 During design and repair, ask what makes the failure possible and whether
 the system can remove that condition. Trace a real failure and a supported
 alternative through the proposed change. For example, removing shared
