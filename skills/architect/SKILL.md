@@ -33,6 +33,15 @@ A diagram cannot replace a missing ownership decision.
 7. When implementation is authorized, implement the design. If it repeatedly needs exceptions,
    revisit the design rather than adding more escape hatches.
 
+During design and repair, ask what makes the failure possible and whether
+the system can remove that condition. Trace a real failure and a supported
+alternative through the proposed change. For example, removing shared
+mutable state can eliminate a race; building once and promoting the same
+artifact can eliminate drift between tested and shipped builds. Compare
+compatibility, operational cost and the new failure modes.
+Use [the prevention procedure](../follow-instructions/references/prevent-a-defect.md)
+when a design addresses a confirmed defect.
+
 Before handing off a design, trace one successful operation and one failure
 through its signatures. For asynchronous or durable work, show who claims,
 acknowledges, fails and retries it, and which transactions can commit

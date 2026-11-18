@@ -29,6 +29,17 @@ skill](references/principles/simplicity-and-reader-load.md#before-writing-code)
 once per active task, including the short path and scripts. Read-only and
 prose-only work do not require it.
 
+During design and repair, ask what change to the system would eliminate the
+conditions for the mistake. Close confirmed mistakes, including your own,
+with [structural prevention](references/prevent-a-defect.md).
+
+Prose communicates evidence; it cannot justify calling work complete,
+excuse a mistake, establish a limitation, or turn an assumption into a fact.
+Show the observed outcome for completion and the failing and repaired behavior
+for a defect. Substantiate a limitation with the failed probe or authoritative
+constraint. Test a consequential assumption or label it unresolved and keep
+dependent work open. A documented exception needs the actual owner's decision.
+
 ## Short task path
 
 Inspect the implementation, caller and available check first. Use this path
@@ -41,6 +52,11 @@ not decide. Always honor explicit skill requests and repository procedures.
 2. Make the smallest authorized correction. Preserve negative cases.
 3. Run the focused check on the final code and inspect the diff. Exercise the
    requested behavior; a build alone does not prove a user interaction works.
+   Match the breadth of the check to the claim. If correctness depends on a
+   range of inputs, event orderings, or sustained load, use the
+   [verification methods](../verify-work/references/verification-layers.md)
+   to choose and run a property test, bounded model check, soak test, or
+   another method that exercises the relevant variation.
 4. For local-only work, report the result and relevant limits, then finish.
    Otherwise follow [PR delivery](../pull-requests/SKILL.md#complete-authorized-delivery),
    including independent review. Reviewing your own diff does not replace it.

@@ -20,20 +20,13 @@ mistake usually needs a local correction, not a permanent workflow.
 
 A scope change, reopened task or review finding is not automatically a workflow
 failure. Check the request and evidence, record the cause and separate defect,
-non-defect and undetermined assessments. Preserve disagreements. A real defect
-can warrant a regression after one occurrence; repeated mistakes or a consequential
-boundary may also justify repairing the working method. Do not wait for a second
-failure to fix the first, or generate a new instruction for every correction.
+non-defect and undetermined assessments. Preserve disagreements. At the first confirmed defect, remove the condition that permits the failure
+or enforce a check where it can be detected. Reserve prose for judgment. With the coordinator installed, use
+[prevention at its owner](../../follow-instructions/references/prevent-a-defect.md)
+to calibrate the repair. Recurrence or a consequential
+boundary can also justify repairing the shared working method.
 
 ## Choose the smallest durable repair
-
-Put project facts with their owner and reusable working methods in Skills.
-Prefer the lowest layer that can prevent the failure:
-
-1. An existing owner or interface that makes the wrong path unnecessary.
-2. A type, schema, permission, lint rule or runtime check that rejects it.
-3. A regression test that exposes the mistake.
-4. One concise instruction when the decision requires judgment.
 
 A hook is useful only where the runtime invokes it and its check can establish
 the required fact. Another sentence is useful only if it changes a decision.

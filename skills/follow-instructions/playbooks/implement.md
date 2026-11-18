@@ -59,7 +59,10 @@ handoff.
 5. Apply the cleanup guidance in `code-review-and-quality` to redundant code
    or needless abstractions before final checks, preserving behavior and local conventions. Re-run the original
    path and affected native/supplemental checks; exercise the real UI/API/CLI
-   when relevant through its actual tools. Obtain independent review of approved
+   when relevant through its actual tools. When ordinary tests leave a material
+   failure mode open, use [verification layers](../../verify-work/references/verification-layers.md)
+   to select and run a discriminating check, such as protocol model checking
+   for interleavings or a soak test for gradual resource growth. Obtain independent review of approved
    nontrivial delivery, fix in-scope findings and refresh affected checks and
    reviewer coverage on the final artifact. Fix ordinary failed checks and
    material in-scope findings before handoff; the existing implementation

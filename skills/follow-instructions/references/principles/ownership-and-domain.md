@@ -51,6 +51,12 @@ state or repeated assumption causes a real risk.
 
 ## Construction decisions and counterexamples
 
+Before extending an existing pattern, ask which condition lets the mistake
+happen and which design decision could remove it. This may change the data
+flow, process lifetime, build pipeline, default behavior, user interaction,
+or interface. Trace the affected path and a legitimate alternative through
+the proposed change. See [structural prevention](../prevent-a-defect.md).
+
 Use these examples when choosing or reviewing a boundary/data shape; do not
 turn every local edit into a design exercise. Existing repository contracts win.
 
