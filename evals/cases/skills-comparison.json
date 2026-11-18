@@ -2511,5 +2511,54 @@
         "scope": "local source and evidence; no live host, deployment, independent peer or CI claim"
       }
     }
+  },
+  {
+    "id": "prevention-audit-entry",
+    "input": "Queue imports occasionally appear as operator actions. Repair the local audit library and validate it. Preserve public flows entry points and older rows. The project uses unittest discovery. No publication.",
+    "target": "Derive attribution at the entry boundary for both callers, preserving unknown old origins. Make the first defect produce a reusable enforced contract. Show the old violation, positive compatibility and final result.",
+    "files": {
+      "audit.py": "def append(label, body):\n    return {\"origin\": label, \"text\": body}\n",
+      "flows.py": "from audit import append\n\ndef from_queue(msg):\n    return append(msg.get(\"origin\", \"worker\"), msg[\"text\"])\n\ndef from_console(msg):\n    return append(msg.get(\"origin\", \"operator\"), msg[\"text\"])\n\ndef read(rows):\n    return [(row.get(\"origin\"), row[\"text\"]) for row in rows]\n",
+      "test_flows.py": "from flows import from_queue, from_console, read\nimport unittest\n\nclass LogTest(unittest.TestCase):\n    def test_append(self):\n        row = from_queue({\"text\": \"one\"})\n        self.assertEqual(read([row]), [(\"worker\", \"one\")])\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "implement/bug"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "owner-inspected",
+        "original-repro-run",
+        "regression-run"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "required_paths": [
+          "flows.py"
+        ],
+        "test_command": [
+          "python",
+          "-B",
+          "-m",
+          "unittest",
+          "discover"
+        ],
+        "acceptance_test": "from flows import from_queue, from_console, read\nfor text in (\"sample\", \"\", \"other\"):\n    for fn, expected in ((from_queue, \"worker\"), (from_console, \"operator\")):\n        for label in (\"worker\", \"operator\", \"mobile\", None):\n            assert read([fn({\"origin\": label, \"text\": text})]) == [(expected, text)]\nassert read([{\"text\":\"old\"}, {\"origin\":None,\"text\":\"unknown\"}]) == [(None,\"old\"),(None,\"unknown\")]\n"
+      },
+      "artifact_first_review": true,
+      "evaluation_dimensions": {
+        "functional_correctness": "Frozen black-box tests check both public entry points and readers of historical rows.",
+        "prevention": "Assess the chosen interface or regression in the actual diff and task evidence. Functional success alone cannot establish prevention."
+      }
+    }
   }
 ]
