@@ -36,8 +36,8 @@ Choose where to fix the problem using
 - Add a skill only for a distinct recurring task that needs focused guidance.
 
 Before promoting a correction into a standing rule, test its scope against
-a case where the original action is appropriate. Keep the rule conditional
-on the actual failure and retain exceptions supported by the project contract.
+a legitimate exception or neighboring permitted action. Keep the rule
+conditional on the actual failure and retain supported exceptions.
 
 For a structural rule, identify the allowed pattern, forbidden alternative,
 enforcing type, lint rule, runtime check or CI job, and a test that rejects a

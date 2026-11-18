@@ -41,7 +41,9 @@ that commits or rolls back for the caller.
 ## Scope corrections and exceptions
 
 Before turning a correction into persistent guidance, state the condition that
-made the original behavior wrong and try a case where that behavior is valid.
+made the original behavior wrong. Look for a valid exception. If the boundary
+has none, test a permitted neighboring behavior, such as importing a shared
+module from the renderer.
 Keep a local preference or temporary constraint with its owner. A broader rule
 needs evidence that the same condition applies across the proposed scope.
 
@@ -49,4 +51,4 @@ Treat an exception comment as a claim. Trace it to the dependency, supported
 behavior or owner decision it cites. Preserve useful rationale for verified
 exceptions and keep their scope narrow. If the premise has expired, repair
 the workaround and remove its stale justification together. Within a read-only
-review, report the evidence, concrete repair and valid exception instead.
+review, report the evidence, concrete repair and permitted behavior to preserve.
