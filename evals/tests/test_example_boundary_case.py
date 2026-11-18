@@ -37,10 +37,18 @@ class ExampleBoundaryCase(unittest.TestCase):
         direct = "from public_api import label as display\n"
         wrapped = "import public_api\n\ndef display(value):\n    return public_api.label(value)\n"
         original = case["files"]["screens/listing.py"]
-        for label, gate, screen, accepted in [
+        tracked = SCAN.replace(
+            'for path in Path("screens").rglob("*.py"):',
+            'import subprocess\nfor name in subprocess.check_output(["git", "ls-files", '
+            '"screens/*.py"], text=True).splitlines():\n    path = Path(name)')
+        for label, gate, screen, accepted, *override in [
             ("valid alias", SCAN, direct, True),
-            ("valid wrapper", SCAN, wrapped, True),
+            ("valid wrapper with tracked-file scanner", tracked, wrapped, True),
             ("still copies normalization", SCAN, "def display(v): return v.strip().casefold()", False),
+            ("incomplete label normalization", SCAN, wrapped, False,
+             {"public_api.py": "def label(v): return v.lower()"}),
+            ("job discards raw whitespace", SCAN, wrapped, False,
+             {"jobs/rebuild.py": "def raw_key(v): return v.strip()"}),
             ("old production example", SCAN, original, False),
             ("cleanup alone", case["files"]["check.py"], direct, False),
             ("message lacks repair", SCAN.replace("use public_api.label", "bad import"), direct, False),
@@ -51,6 +59,8 @@ class ExampleBoundaryCase(unittest.TestCase):
                 tree = Path(temp)
                 files = {**case["files"], "check.py": gate, "screens/listing.py": direct,
                          "screens/detail.py": screen}
+                if override:
+                    files.update(override[0])
                 for name, content in files.items():
                     path = tree / name
                     path.parent.mkdir(parents=True, exist_ok=True)
