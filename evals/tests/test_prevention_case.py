@@ -36,6 +36,8 @@ class PreventionFixture(unittest.TestCase):
         for label, candidate, accepted in [
             ("original", before, False), ("one caller", queue_fixed, False),
             ("trusted entry points", both_fixed, True), ("alternate representation", alternate, True),
+            ("discarded legacy origin", both_fixed.replace('row.get("origin")',
+                'row.get("origin") if row.get("origin") in ("worker", "operator") else None'), False),
             ("invented legacy origin", both_fixed.replace('row.get("origin")',
                                                           'row.get("origin", "operator")'), False),
         ]:

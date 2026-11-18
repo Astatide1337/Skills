@@ -2552,7 +2552,7 @@
           "unittest",
           "discover"
         ],
-        "acceptance_test": "from flows import from_queue, from_console, read\nfor text in (\"sample\", \"\", \"other\"):\n    for fn, expected in ((from_queue, \"worker\"), (from_console, \"operator\")):\n        for label in (\"worker\", \"operator\", \"mobile\", None):\n            assert read([fn({\"origin\": label, \"text\": text})]) == [(expected, text)]\nassert read([{\"text\":\"old\"}, {\"origin\":None,\"text\":\"unknown\"}]) == [(None,\"old\"),(None,\"unknown\")]\n"
+        "acceptance_test": "from flows import from_queue, from_console, read\nfor text in (\"sample\", \"\", \"other\"):\n    for fn, expected in ((from_queue, \"worker\"), (from_console, \"operator\")):\n        for label in (\"worker\", \"operator\", \"mobile\", None):\n            assert read([fn({\"origin\": label, \"text\": text})]) == [(expected, text)]\nassert read([{\"origin\":\"mobile\",\"text\":\"historical\"}, {\"text\":\"old\"}, {\"origin\":None,\"text\":\"unknown\"}]) == [(\"mobile\",\"historical\"),(None,\"old\"),(None,\"unknown\")]\n"
       },
       "artifact_first_review": true,
       "evaluation_dimensions": {
