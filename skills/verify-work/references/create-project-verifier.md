@@ -28,6 +28,18 @@ For each feature, the map must name:
 - the independently chosen expected result and a failure path;
 - the evidence to retain.
 
+Index the journey by the names people use, including visible landmarks. For
+“the thing in the left sidebar,” record the actual label, the navigation path
+and the driver action that selects it. Resolve ambiguous landmarks by trying
+the path from a fresh start and observing which feature opens.
+
+When a journey repeatedly needs the same manual steps, expose those steps
+through a tested command in the application's existing driver if verifier
+development is in scope. Let it accept the varying inputs and return observed
+values or artifacts so callers can check different expectations. Test its
+failure behavior too, for example when the named control is absent. A driver
+that exits successfully after clicking still needs an assertion on the result.
+
 Keep the map in the application when repository edits are authorized. Otherwise,
 use an external user-owned profile as described in
 [portable profiles](portable-profiles.md). Pin the CLI version in the app's

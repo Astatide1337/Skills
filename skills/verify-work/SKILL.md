@@ -75,6 +75,21 @@ do not verify a real application.
    A suggested technique is a plan. Support the claim with the actual run,
    inputs or model, observed output and applicable bounds.
 
+   For interactive behavior, resolve the user's words against the feature map
+   or visible navigation. Drive the running candidate through its supported
+   controls. When the visible result is ambiguous, inspect the same action in
+   a debugger, browser console or network trace (for example through Chrome
+   DevTools Protocol). Tie the observation to the UI outcome. For review, use
+   an inspected screenshot for a state, a watched recording for timing, or a
+   [product statechart](../product/SKILL.md#choose-the-scope) for intended paths.
+   A diagram can expose a wrong expectation before a passing test enshrines it.
+
+   Reserve enough effort to challenge the result after implementation. Continue
+   while a material claim lacks evidence and a feasible check could change the
+   decision. Stop when the claims are covered or a concrete limit prevents the
+   next observation. Scale effort to uncertainty and consequences without a
+   fixed token share.
+
 3. **Check whether existing evidence still applies.** Inspect the source
    revision, environment, requirement, fixture, artifact or instance, check
    and result. Reuse evidence only when the relevant inputs are unchanged
