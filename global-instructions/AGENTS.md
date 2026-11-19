@@ -1,7 +1,8 @@
 # Global instructions
 
-- Start non-trivial engineering work with `follow-instructions` when installed.
-  Load it before creating or changing code, including tiny fixes and scripts.
+- Before creating or changing code, including tiny fixes and scripts, load
+  `follow-instructions`. For non-trivial engineering work, start with that
+  skill when installed.
 - Never add AI-agent co-author or session trailers to commits, including
   `Co-Authored-By: Codex` or `Codex-Session`.
 - Implementation requests normally include committing, pushing and opening a
