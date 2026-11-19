@@ -49,6 +49,11 @@ current status, evidence and resolution owner. Keep original authority and
 remaining budgets. Verify remote access to sources and continuation state;
 a laptop-local path alone is insufficient. Supply a minimal authorized snapshot
 in the brief or accessible branch/attachment with source/revision when needed.
+A reviewer opens the exact candidate revision from their own environment and
+cites what they inspected before giving a whole-change verdict. If they can
+open only an excerpt, they limit the verdict to it. If the candidate is
+unavailable, they tell the requester which reference failed and what access
+would resolve it.
 Compact corrections and research/review briefs retain their existing envelopes.
 
 ## Steps and decision points
