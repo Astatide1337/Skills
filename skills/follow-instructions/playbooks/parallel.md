@@ -43,6 +43,14 @@ any claim a worker cites before relying on it.
   untracked knowledge; verify access and source freshness from the worker's
   checkout before reuse. Do not paste a large summary; the worker reads the sources itself.
 
+When a transport reuses the same authorized conversation, keep the unchanged
+role, task contract, and source references stable. Append progress, new evidence,
+and the current action to the latest message. Repeat changed authority, scope,
+or candidate identity explicitly. Give a fresh worker a complete scoped brief
+and the evidence references it can open. Follow the transport's requirements for
+starting reviews and rechecks. Measure [prompt cache reuse](performance.md#prompt-cache-reuse)
+only where the receiving runtime exposes it.
+
 For a full spec, extend the assignment with its canonical source and revision,
 assigned R-IDs with exact applicability conditions, and dependent A-IDs with
 current status, evidence and resolution owner. Keep original authority and

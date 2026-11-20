@@ -30,6 +30,22 @@ failure, not merely a slow result, is being diagnosed.
    latency tails, errors, resource use, and correctness, not only a favorable
    average. Retain a change only after the declared win is reproduced.
 
+## Prompt cache reuse
+
+Compare consecutive requests at the closest observable provider boundary.
+Identify the first changed block and whether the application or runtime owns it.
+Within each instruction role, put stable instructions and shared context before
+task-specific material where the provider supports prefix reuse. Preserve tool
+permissions, instruction priority, and deliberate invalidation when sources or
+access change.
+
+Compare cold and warm sequences at the same model, settings, workload, and
+cadence. Record provider cache reads and writes where exposed. Count application
+cache hits separately because they can skip the provider call. Report cost and
+latency from comparable usage and timings. If the runtime hides provider usage,
+record which part of request assembly you verified and leave cache benefit
+unmeasured.
+
 ## Failure and recovery
 
 If the workload is unrepresentative, metric unavailable, or results vary beyond
