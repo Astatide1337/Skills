@@ -255,7 +255,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            61,
+            65,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -386,6 +386,10 @@ class WorkflowContractTests(unittest.TestCase):
                 "knowledge-history-non-object-receipt",
                 "knowledge-history-incomplete-cache-row",
                 "workflow-native-review-recurring-cache-defect",
+                "workflow-native-handoff-continue-ci",
+                "workflow-native-handoff-fresh-recovery",
+                "workflow-native-handoff-revoke-publishing",
+                "workflow-native-handoff-missing-review",
             },
         )
         for sample in cases.values():
@@ -406,6 +410,52 @@ class WorkflowContractTests(unittest.TestCase):
             required = contract["required_content"]
             self.assertTrue(required)
             self.assertTrue(all(fragment in contract["response"] for fragment in required))
+
+    def test_handoff_receipts_grade_current_authority_and_evidence(self) -> None:
+        controls = {
+            "continue-ci": ({"evidence": "mirror.txt"}, {"evidence": "local-only.txt"}, "evidence unavailable to receiver"),
+            "fresh-recovery": ({"next_action": "Ask the new reviewer for the replay result."},
+                               {"worker": "chalk-review"}, "worker continuity or independence lost"),
+            "revoke-publishing": ({"next_action": "Ask for a read-only review of both gates."},
+                                  {"permissions": ["publish", "read"]}, "authorization mismatch"),
+            "missing-review": ({"next_action": "Request access to exact.txt before deciding."},
+                               {"receipt": "Earlier candidate passed."}, "unsupported verdict"),
+        }
+        ids = [f"workflow-native-handoff-{name}" for name in controls]
+        for sample in skills.workflows_dataset(execution_ready_only=True, case_ids=ids):
+            with self.subTest(case_id=sample.id), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                metadata = sample.metadata
+                self.assertEqual(metadata["user_turns"][0]["allowed_paths_before"], [])
+                self.assertEqual(metadata["allowed_paths"], ["handoff.json"])
+                contract = metadata["fixture_contract"]
+                self.assertNotIn(contract["acceptance_test"], sample.files.values())
+                for path, content in sample.files.items():
+                    (root / path).write_text(content)
+                baseline = json.loads(contract["write_content"])
+                alternate, defect, reason = controls[sample.id.removeprefix("workflow-native-handoff-")]
+                marker = "HANDOFF_ACCEPTANCE_COMPLETE"
+                command, error = skills._runner_acceptance_command(contract, completion_marker=marker)
+                self.assertIsNone(error)
+                variants = [({}, None), (alternate, None), (defect, reason)]
+                if sample.id == "workflow-native-handoff-missing-review":
+                    variants.extend([
+                        ({"permissions": ["read"]}, "authorization mismatch"),
+                        ({"next_action": "Grant access."}, "next action must name the missing receipt"),
+                    ])
+                for mutation, expected in variants:
+                    (root / "handoff.json").write_text(json.dumps(baseline | mutation))
+                    result = subprocess.run(
+                        [sys.executable, *command[1:]], cwd=root, text=True, capture_output=True,
+                        timeout=10, check=False,
+                    )
+                    if expected is None:
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                        self.assertIn(marker, result.stdout.splitlines())
+                    else:
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertNotIn(marker, result.stdout)
+                        self.assertIn(f"AssertionError: {expected}", result.stderr)
 
     def test_native_regression_cases_keep_expectations_separate_and_scope_bounded(self) -> None:
         cases = [sample for sample in skills.workflows_dataset().samples

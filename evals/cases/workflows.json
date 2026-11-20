@@ -3305,5 +3305,239 @@
       ],
       "execution_mode": "routing-only"
     }
+  },
+  {
+    "id": "workflow-native-handoff-continue-ci",
+    "input": "Continue the existing read-only check review with worker ci-reader for revision c3a722d. The check log is not yet available.\n\nWrite only handoff.json after the follow-up. Use a JSON object with decision (continue, fresh-review, or blocked), revision, worker (an existing assignment ID or null for no existing assignment), permissions (an array using read, write, or publish), evidence (relative path or null), receipt (exact outcome line from the evidence, or null), and next_action (a concrete sentence for the receiver or the required unblock action). This is a draft. Do not launch a worker, edit other files, or contact any live system. End this first turn with a brief acknowledgement so I can send the follow-up. Create the file only in the next turn.\nFixture sender and receiver identities are synthetic. Report a dispatch only as a planned action.",
+    "target": "Direct the existing reviewer to verify the named revision from the named current receipt.",
+    "files": {
+      "required.txt": "required checks: 2 succeeded\n",
+      "mirror.txt": "required checks: 2 succeeded\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git -c commit.gpgsign=false commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "handoff.json"
+      ],
+      "execution_mode": "execution-ready",
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "investigate/read"
+      ],
+      "expected_modifiers": [
+        "parallel"
+      ],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_capabilities": [
+        "user-turns"
+      ],
+      "user_turns": [
+        {
+          "text": "The new check log is accessible to ci-reader now in required.txt. Ask the existing worker to verify the exact revision. Use either required.txt or its mirror, which has the same access and contents.",
+          "allowed_paths_before": []
+        }
+      ],
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "handoff.json",
+        "write_content": "{\"decision\": \"continue\", \"revision\": \"c3a722d\", \"worker\": \"ci-reader\", \"permissions\": [\"read\"], \"evidence\": \"required.txt\", \"receipt\": \"required checks: 2 succeeded\", \"next_action\": \"Direct the existing reviewer to verify the named revision from the named current receipt.\"}\n",
+        "required_paths": [
+          "handoff.json",
+          "required.txt",
+          "mirror.txt"
+        ],
+        "acceptance_test": "import json\nfrom pathlib import Path\n\nbrief = json.loads(Path('handoff.json').read_text())\nassert isinstance(brief, dict), 'brief must be a JSON object'\nassert brief.get('decision') == 'continue', 'incorrect handoff disposition'\nassert brief.get('revision') == 'c3a722d', 'wrong candidate'\nassert 'worker' in brief and brief['worker'] == 'ci-reader', 'worker continuity or independence lost'\ngrants = brief.get('permissions')\nassert isinstance(grants, list) and sorted(grants) == ['read'], 'authorization mismatch'\nsources = {'required.txt': 'required checks: 2 succeeded', 'mirror.txt': 'required checks: 2 succeeded'}\nif sources:\n    source = brief.get('evidence')\n    assert source in sources, 'evidence unavailable to receiver'\n    assert Path(source).read_text().splitlines() == [sources[source]], 'source receipt changed'\n    assert brief.get('receipt') == sources[source], 'receipt mismatch'\nelse:\n    assert 'evidence' in brief and brief['evidence'] is None, 'claimed unavailable evidence'\n    assert 'receipt' in brief and brief['receipt'] is None, 'unsupported verdict'\naction = brief.get('next_action')\nassert isinstance(action, str) and action.strip(), 'receiver action missing'\n",
+        "response_required": false
+      },
+      "evidence_limit": "Synthetic, audit-derived draft and receiver-readable receipt. No native delegation is attempted or measured.",
+      "required_observations": [
+        "current-revision",
+        "handoff-disposition",
+        "receiver-access",
+        "current-authority"
+      ],
+      "optional_skills": [
+        "writing-for-agents"
+      ]
+    }
+  },
+  {
+    "id": "workflow-native-handoff-fresh-recovery",
+    "input": "Worker chalk-review read revision 0005270. They are waiting on a new assignment. Prepare a draft for my next request.\n\nWrite only handoff.json after the follow-up. Use a JSON object with decision (continue, fresh-review, or blocked), revision, worker (an existing assignment ID or null for no existing assignment), permissions (an array using read, write, or publish), evidence (relative path or null), receipt (exact outcome line from the evidence, or null), and next_action (a concrete sentence for the receiver or the required unblock action). This is a draft. Do not launch a worker, edit other files, or contact any live system. End this first turn with a brief acknowledgement so I can send the follow-up. Create the file only in the next turn.\nFixture sender and receiver identities are synthetic. Report a dispatch only as a planned action.",
+    "target": "Give a fresh reviewer the check to verify against the new revision.",
+    "files": {
+      "recovery.txt": "compatibility replay: 21 fixtures passed\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git -c commit.gpgsign=false commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "handoff.json"
+      ],
+      "execution_mode": "execution-ready",
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "investigate/read"
+      ],
+      "expected_modifiers": [
+        "parallel"
+      ],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_capabilities": [
+        "user-turns"
+      ],
+      "user_turns": [
+        {
+          "text": "Independently review the new candidate 67beeb6. The previous reviewer is ineligible for this independent review. The acceptance evidence is recovery.txt. Use read-only access.",
+          "allowed_paths_before": []
+        }
+      ],
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "handoff.json",
+        "write_content": "{\"decision\": \"fresh-review\", \"revision\": \"67beeb6\", \"worker\": null, \"permissions\": [\"read\"], \"evidence\": \"recovery.txt\", \"receipt\": \"compatibility replay: 21 fixtures passed\", \"next_action\": \"Give a fresh reviewer the check to verify against the new revision.\"}\n",
+        "required_paths": [
+          "handoff.json",
+          "recovery.txt"
+        ],
+        "acceptance_test": "import json\nfrom pathlib import Path\n\nbrief = json.loads(Path('handoff.json').read_text())\nassert isinstance(brief, dict), 'brief must be a JSON object'\nassert brief.get('decision') == 'fresh-review', 'incorrect handoff disposition'\nassert brief.get('revision') == '67beeb6', 'wrong candidate'\nassert 'worker' in brief and brief['worker'] == None, 'worker continuity or independence lost'\ngrants = brief.get('permissions')\nassert isinstance(grants, list) and sorted(grants) == ['read'], 'authorization mismatch'\nsources = {'recovery.txt': 'compatibility replay: 21 fixtures passed'}\nif sources:\n    source = brief.get('evidence')\n    assert source in sources, 'evidence unavailable to receiver'\n    assert Path(source).read_text().splitlines() == [sources[source]], 'source receipt changed'\n    assert brief.get('receipt') == sources[source], 'receipt mismatch'\nelse:\n    assert 'evidence' in brief and brief['evidence'] is None, 'claimed unavailable evidence'\n    assert 'receipt' in brief and brief['receipt'] is None, 'unsupported verdict'\naction = brief.get('next_action')\nassert isinstance(action, str) and action.strip(), 'receiver action missing'\n",
+        "response_required": false
+      },
+      "evidence_limit": "Synthetic, audit-derived draft and receiver-readable receipt. No native delegation is attempted or measured.",
+      "required_observations": [
+        "current-revision",
+        "handoff-disposition",
+        "receiver-access",
+        "current-authority"
+      ],
+      "optional_skills": [
+        "writing-for-agents"
+      ]
+    }
+  },
+  {
+    "id": "workflow-native-handoff-revoke-publishing",
+    "input": "The merge-check task at 5d0d799 has an existing worker named merge-check. For purposes of the draft, they currently have read and publish authority. Wait for my follow-up.\n\nWrite only handoff.json after the follow-up. Use a JSON object with decision (continue, fresh-review, or blocked), revision, worker (an existing assignment ID or null for no existing assignment), permissions (an array using read, write, or publish), evidence (relative path or null), receipt (exact outcome line from the evidence, or null), and next_action (a concrete sentence for the receiver or the required unblock action). This is a draft. Do not launch a worker, edit other files, or contact any live system. End this first turn with a brief acknowledgement so I can send the follow-up. Create the file only in the next turn.\nFixture sender and receiver identities are synthetic. Report a dispatch only as a planned action.",
+    "target": "Ask the current worker for readiness only, with no publish or merge.",
+    "files": {
+      "checks.txt": "review and both CI gates passed\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git -c commit.gpgsign=false commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "handoff.json"
+      ],
+      "execution_mode": "execution-ready",
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "investigate/read"
+      ],
+      "expected_modifiers": [
+        "parallel"
+      ],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_capabilities": [
+        "user-turns"
+      ],
+      "user_turns": [
+        {
+          "text": "Revoke publish authority now. Keep the same worker read-only at the same revision and ask for readiness based on checks.txt.",
+          "allowed_paths_before": []
+        }
+      ],
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "handoff.json",
+        "write_content": "{\"decision\": \"continue\", \"revision\": \"5d0d799\", \"worker\": \"merge-check\", \"permissions\": [\"read\"], \"evidence\": \"checks.txt\", \"receipt\": \"review and both CI gates passed\", \"next_action\": \"Ask the current worker for readiness only, with no publish or merge.\"}\n",
+        "required_paths": [
+          "handoff.json",
+          "checks.txt"
+        ],
+        "acceptance_test": "import json\nfrom pathlib import Path\n\nbrief = json.loads(Path('handoff.json').read_text())\nassert isinstance(brief, dict), 'brief must be a JSON object'\nassert brief.get('decision') == 'continue', 'incorrect handoff disposition'\nassert brief.get('revision') == '5d0d799', 'wrong candidate'\nassert 'worker' in brief and brief['worker'] == 'merge-check', 'worker continuity or independence lost'\ngrants = brief.get('permissions')\nassert isinstance(grants, list) and sorted(grants) == ['read'], 'authorization mismatch'\nsources = {'checks.txt': 'review and both CI gates passed'}\nif sources:\n    source = brief.get('evidence')\n    assert source in sources, 'evidence unavailable to receiver'\n    assert Path(source).read_text().splitlines() == [sources[source]], 'source receipt changed'\n    assert brief.get('receipt') == sources[source], 'receipt mismatch'\nelse:\n    assert 'evidence' in brief and brief['evidence'] is None, 'claimed unavailable evidence'\n    assert 'receipt' in brief and brief['receipt'] is None, 'unsupported verdict'\naction = brief.get('next_action')\nassert isinstance(action, str) and action.strip(), 'receiver action missing'\n",
+        "response_required": false
+      },
+      "evidence_limit": "Synthetic, audit-derived draft and receiver-readable receipt. No native delegation is attempted or measured.",
+      "required_observations": [
+        "current-revision",
+        "handoff-disposition",
+        "receiver-access",
+        "current-authority"
+      ],
+      "optional_skills": [
+        "writing-for-agents"
+      ]
+    }
+  },
+  {
+    "id": "workflow-native-handoff-missing-review",
+    "input": "Our read-only receiver needs evidence at revision a18d21c. The prior verdict at 79c940b is in archived.txt.\n\nWrite only handoff.json after the follow-up. Use a JSON object with decision (continue, fresh-review, or blocked), revision, worker (an existing assignment ID or null for no existing assignment), permissions (an array using read, write, or publish), evidence (relative path or null), receipt (exact outcome line from the evidence, or null), and next_action (a concrete sentence for the receiver or the required unblock action). This is a draft. Do not launch a worker, edit other files, or contact any live system. End this first turn with a brief acknowledgement so I can send the follow-up. Create the file only in the next turn.\nFixture sender and receiver identities are synthetic. Report a dispatch only as a planned action.",
+    "target": "Name exact.txt and request read access before a verdict.",
+    "files": {
+      "archived.txt": "Earlier candidate passed. This is an archived result and cannot establish the current verdict.\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add . && git -c commit.gpgsign=false commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "handoff.json"
+      ],
+      "execution_mode": "execution-ready",
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "expected_workflows": [
+        "investigate/read"
+      ],
+      "expected_modifiers": [
+        "parallel"
+      ],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_capabilities": [
+        "user-turns"
+      ],
+      "user_turns": [
+        {
+          "text": "The exact revision's approved receipt is exact.txt, which is not available in your checkout or the receiver's. No alternate for this revision exists. Draft the blocker and request read access to that receipt. The permissions field records the permissions granted for an actual dispatch. While blocked, leave it empty and name the missing receipt and requested read access in next_action.",
+          "allowed_paths_before": []
+        }
+      ],
+      "fixture_contract": {
+        "kind": "workspace-artifact",
+        "write_path": "handoff.json",
+        "write_content": "{\"decision\": \"blocked\", \"revision\": \"a18d21c\", \"worker\": null, \"permissions\": [], \"evidence\": null, \"receipt\": null, \"next_action\": \"Name exact.txt and request read access before a verdict.\"}\n",
+        "required_paths": [
+          "handoff.json",
+          "archived.txt"
+        ],
+        "acceptance_test": "import json\nfrom pathlib import Path\n\nbrief = json.loads(Path('handoff.json').read_text())\nassert isinstance(brief, dict), 'brief must be a JSON object'\nassert brief.get('decision') == 'blocked', 'incorrect handoff disposition'\nassert brief.get('revision') == 'a18d21c', 'wrong candidate'\nassert 'worker' in brief and brief['worker'] == None, 'worker continuity or independence lost'\ngrants = brief.get('permissions')\nassert isinstance(grants, list) and sorted(grants) == [], 'authorization mismatch'\nsources = {}\nif sources:\n    source = brief.get('evidence')\n    assert source in sources, 'evidence unavailable to receiver'\n    assert Path(source).read_text().splitlines() == [sources[source]], 'source receipt changed'\n    assert brief.get('receipt') == sources[source], 'receipt mismatch'\nelse:\n    assert 'evidence' in brief and brief['evidence'] is None, 'claimed unavailable evidence'\n    assert 'receipt' in brief and brief['receipt'] is None, 'unsupported verdict'\naction = brief.get('next_action')\nassert isinstance(action, str) and action.strip(), 'receiver action missing'\nmissing = 'exact.txt'\nassert missing in action, 'next action must name the missing receipt'\n",
+        "response_required": false
+      },
+      "evidence_limit": "Synthetic, audit-derived draft and receiver-readable receipt. No native delegation is attempted or measured.",
+      "required_observations": [
+        "current-revision",
+        "handoff-disposition",
+        "receiver-access",
+        "current-authority"
+      ],
+      "optional_skills": [
+        "writing-for-agents"
+      ]
+    }
   }
 ]
