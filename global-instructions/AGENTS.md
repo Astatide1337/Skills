@@ -1,9 +1,8 @@
 # Global instructions
 
-- For non-trivial engineering work, start with the `follow-instructions` skill
-  when it is installed; it picks the procedure and the domain skills to load.
-- Before creating or changing code, load `follow-instructions`, including for
-  tiny fixes and scripts.
+- Before creating or changing code, including tiny fixes and scripts, load
+  `follow-instructions`. For non-trivial engineering work, start with that
+  skill when installed.
 - Never add AI-agent co-author or session trailers to commits, including
   `Co-Authored-By: Codex` or `Codex-Session`.
 - Implementation requests normally include committing, pushing and opening a
@@ -68,8 +67,9 @@
 ## When a check seems wrong
 
 - If a test, lint rule or verify step blocks you and you believe the check
-  itself is wrong or the task is impossible as specified, stop and report
-  `BLOCKED: <reason>`. Never edit, skip or loosen the check to get past it.
+  itself is wrong or the task is impossible as specified, stop. Start your
+  final response with `BLOCKED: <reason>`. Never edit, skip or loosen the check
+  to get past it.
 - When I explicitly authorize building or repairing an evaluator, changes to
   that evaluator are in scope. Preserve independent acceptance checks, validate
   the instrument against valid alternatives and targeted defects, and report
