@@ -25,8 +25,12 @@ head and requested feedback surface; private review does not imply posting.
 
 ## Steps and decision points
 
-1. Pin the current head and read the diff in context. Inspect ownership,
-   callers, state transitions, UX and relevant security/performance effects.
+1. Open the requested candidate revision from your own environment and cite
+   what you inspected before giving a whole-change verdict. If you can open
+   only an excerpt, limit the verdict to it. If the candidate is unavailable,
+   tell the requester which reference failed and what access would resolve it.
+   Read the diff in context. Inspect ownership, callers, state transitions,
+   UX and relevant security/performance effects.
    For approved delivery, assess the approved contract and final artifact, not
    only current pre-feature behavior or the author's summary.
 2. Run a targeted counterexample or reproducer when it can distinguish a real
