@@ -50,6 +50,9 @@ remaining budgets. Verify remote access to sources and continuation state;
 a laptop-local path alone is insufficient. Supply a minimal authorized snapshot
 in the brief or accessible branch/attachment with source/revision when needed.
 Compact corrections and research/review briefs retain their existing envelopes.
+Every review brief, including a compact brief, gives the candidate revision
+and an accessible reference. Include the
+[review evidence rule](review.md#steps-and-decision-points) in the brief.
 
 ## Steps and decision points
 
