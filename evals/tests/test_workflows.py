@@ -437,7 +437,13 @@ class WorkflowContractTests(unittest.TestCase):
                 marker = "HANDOFF_ACCEPTANCE_COMPLETE"
                 command, error = skills._runner_acceptance_command(contract, completion_marker=marker)
                 self.assertIsNone(error)
-                for mutation, expected in (({}, None), (alternate, None), (defect, reason)):
+                variants = [({}, None), (alternate, None), (defect, reason)]
+                if sample.id == "workflow-native-handoff-missing-review":
+                    variants.extend([
+                        ({"permissions": ["read"]}, "authorization mismatch"),
+                        ({"next_action": "Grant access."}, "next action must name the missing receipt"),
+                    ])
+                for mutation, expected in variants:
                     (root / "handoff.json").write_text(json.dumps(baseline | mutation))
                     result = subprocess.run(
                         [sys.executable, *command[1:]], cwd=root, text=True, capture_output=True,
