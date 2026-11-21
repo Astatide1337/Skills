@@ -40,8 +40,17 @@ any claim a worker cites before relying on it.
   files), the paths a worker needs, and paths known to be missing. For
   substantive work add the [codebase knowledge](../references/codebase-knowledge.md)
   procedure and the actual wiki's absolute path. A worktree does not inherit
-  untracked knowledge; verify access and source freshness from the worker's
-  checkout before reuse. Do not paste a large summary; the worker reads the sources itself.
+  untracked knowledge; verify access and source freshness in the worker's
+  authorized checkout or snapshot before reuse. Do not paste a large summary;
+  the worker reads the sources itself.
+
+When a brief limits a worker to specific sources or directories, apply that
+limit to every tool call, including read-only discovery, `git status`, and
+closeout checks. Set an authorized working directory for commands that use
+relative paths or infer a repository, especially after a shell resets to the
+project checkout.
+If the worker needs evidence outside its authorized scope, have it name the
+missing input and request an authorized copy.
 
 When a transport reuses the same authorized conversation, keep the unchanged
 role, task contract, and source references stable. Append progress, new evidence,
@@ -94,6 +103,9 @@ and an accessible reference. Include the
    and untracked files. Independent review covers the actual final artifact, not
    a worker's earlier green branch. Repair real in-scope defects; do not forward
    them as completed work.
+   For a bounded assignment, check available tool traces against the authorized
+   sources and output paths before accepting the result. An observed out-of-scope
+   call fails this check even when the answer is correct.
    A terminal worker status means the run ended, not that acceptance passed.
    If the task has a reviewed acceptance checker, run it afresh on the current
    candidate and inspect its underlying evidence before accepting the result;
