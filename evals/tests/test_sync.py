@@ -1,5 +1,7 @@
 """Resync preserves custom data, is repeatable, and rolls back failed writes."""
 import importlib.util
+from contextlib import redirect_stdout
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -80,3 +82,22 @@ class SyncTests(unittest.TestCase):
             with patch.object(sync.Path, 'home', return_value=root), self.assertRaises(ValueError):
                 sync.main(['--claude-settings', str(root / 'settings.json'), '--instructions', str(source), str(target), '--apply'])
             self.assertEqual(sync.identity(root), before)
+
+    def test_full_catalog_check_detects_an_omitted_package(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            archive = sync.git('-c', 'tar.umask=0022', 'archive', 'HEAD', 'skills')
+            with sync.tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+                tar.extractall(root, filter='data')
+            installed = root / 'skills'
+            argv = ['--target', str(installed)]
+            self.assertEqual(sync.main(argv + ['--check-all']), 0)
+            missing = installed / 'architect'
+            missing.rename(root / 'saved')
+            self.assertEqual(sync.main(argv), 0)
+            output = io.StringIO()
+            with redirect_stdout(output):
+                self.assertEqual(sync.main(argv + ['--check-all']), 1)
+            self.assertIn(f'MISSING {missing}', output.getvalue())
+            self.assertFalse(missing.exists())
+            self.assertTrue((root / 'saved' / 'SKILL.md').is_file())

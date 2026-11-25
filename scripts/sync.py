@@ -93,8 +93,13 @@ def main(argv=None):
     parser.add_argument('--target', type=Path, action='append', default=[], help='Existing skill root; update only catalog packages already installed here (repeatable)')
     parser.add_argument('--claude-settings', type=Path, help='Merge hooks into this Claude settings.json, preserving other settings and hooks')
     parser.add_argument('--instructions', nargs=2, action='append', default=[], metavar=('SOURCE', 'TARGET'), help='Sync explicit instruction text into a managed block; preserve text outside it')
-    parser.add_argument('--apply', action='store_true', help='Apply the printed plan; default is read-only')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--apply', action='store_true', help='Apply the printed plan; default is read-only')
+    mode.add_argument('--check-all', action='store_true',
+                      help='Verify the full catalog in each target root and exit nonzero on differences')
     args = parser.parse_args(argv)
+    if args.check_all and not args.target:
+        parser.error('--check-all requires at least one --target')
     if not (args.target or args.claude_settings or args.instructions):
         parser.error('Select --target, --claude-settings, or --instructions')
     revision = git('rev-parse', '--verify', args.ref + '^{commit}').decode().strip()
@@ -121,7 +126,7 @@ def main(argv=None):
                 raise ValueError(f'Skill root must already exist; use install.sh for first installation: {root}')
             for skill in sorted((stage / 'skills').iterdir()):
                 target = root / skill.name
-                if target.exists() or target.is_symlink():
+                if args.check_all or target.exists() or target.is_symlink():
                     add(skill, target)
         if args.claude_settings:
             target = args.claude_settings.expanduser()
@@ -145,6 +150,12 @@ def main(argv=None):
             output.chmod(target.stat().st_mode & 0o777 if target.exists() else 0o600)
             add(output, target)
         print(f'Revision: {revision}')
+        if args.check_all:
+            for _, target in changes:
+                status = 'DIFFERS' if target.exists() else 'MISSING'
+                print(f'{status} {target}')
+            print(f'{len(changes)} differences')
+            return int(bool(changes))
         for _, target in changes:
             print(f'UPDATE {target}')
         print(f'{len(changes)} changes; ' + ('applying' if args.apply else 'preview only (use --apply)'))

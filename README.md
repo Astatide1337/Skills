@@ -208,6 +208,12 @@ Sync updates only catalog packages already present, backs up local changes and
 restores them if a write fails. Unrelated skills remain untouched. Restart agent
 sessions after updating.
 
+To verify a full installation, run `python3 scripts/sync.py --check-all --ref
+<commit> --target ~/.agents/skills`. Repeat `--target` to check several
+roots. The command compares every package in the selected revision, reports
+missing or differing paths, and exits nonzero on a mismatch. It leaves the
+installed files in place. Use the ordinary preview for a partial installation.
+
 When upgrading from a catalog with `grilling`, `deslop` or `better-call-sol`,
 install the replacement owners first, then retire the old packages:
 
