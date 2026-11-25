@@ -46,9 +46,9 @@ requires one.
 The [global instructions](global-instructions/AGENTS.md) include personal defaults
 for PR delivery and environment access. Installing skills does not install those
 instructions. Review them before choosing to use them. Under those defaults,
-implementation includes a scoped PR unless restricted. The owner authorizes
-direct merges for verified personal non-OSS work, including this repository.
-OSS and unclassified changes need approval for the individual merge. The
+implementation includes a scoped PR unless restricted. Work originating under
+the owner's `~/Desktop/OSS/` folder and all OpenShift-related work need approval
+for each merge. Other work has standing merge approval after verification. The
 [PR procedure](skills/pull-requests/SKILL.md#apply-merge-authority) describes
 the evidence and host checks. Deployment requires separate explicit approval.
 
