@@ -58,9 +58,11 @@ one requirement is blocked. Honor a stop or replacement of the whole task.
 
 Use a native persistent goal when the user requests activation and the harness
 supports it. Put the root acceptance and its recovery location in the goal.
-Keep the goal active through leaf completion. For a T3 task using a portable
-checkpoint, bind the existing file on the coordinator host once. Use the
-original thread link with the `t3-thread://` scheme, without display brackets.
+Keep the goal active through leaf completion. When the handoff includes the
+checkpoint path, resume it with the workspace recorded in that checkpoint.
+If a T3 wake will supply only a thread link, bind the existing file once on
+the coordinator host. Use the original `t3-thread://` link without display
+brackets.
 
 ```sh
 python scripts/checkpoint.py bind --origin "$thread" --workspace "$root_workspace" --state "$state"
