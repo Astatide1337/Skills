@@ -8,11 +8,16 @@
 - Implementation requests normally include committing, pushing and opening a
   scoped PR unless I request local-only work or set another restriction.
   For planning, explanation or review, perform only the requested actions.
+- For merge approval, work under `~/Desktop/OSS/` on my laptop and all
+  OpenShift-related work count as OSS. Everything else is non-OSS. Use the
+  originating project's location for linked worktrees, VM and cloud checkouts.
+  Get my approval for each OSS merge. If the task could come from either side
+  of the folder boundary and its origin cannot be recovered, clarify the
+  origin before merging.
 - For my non-OSS work, merge the verified PR/MR directly when current CI passes,
   independent review and behavioral verification are complete, and applicable
-  formal verification passes. Astatide1337/Skills is personal non-OSS tooling.
-  For OSS work or uncertain scope, get my approval for that merge. Honor any
-  request to hold, keep a draft or leave the merge to me, and all project rules.
+  formal verification passes. Honor all project rules and any request to hold,
+  keep a draft or leave the merge to me.
   Never enable auto-merge. Prepare and verify the deployment before asking for
   my final approval. Deploy only after I explicitly approve that deployment,
   including when merging would trigger it.

@@ -217,11 +217,12 @@ disagreement merely to turn a status green.
 
 Use the user's current instructions to establish who may merge. Installing
 this skill grants no authority. When the user grants standing approval for
-non-OSS delivery, use it on the PR/MR for the assigned work. Identify the
-target project and whether this work is internal or an OSS contribution from
-the owner's designation, project records and intended upstream. Visibility
-alone cannot settle that question. Ask once if classification is genuinely
-unclear. Follow the user's per-PR rule for OSS and unclassified work.
+non-OSS delivery, apply the owner's scope rule to the assigned work. A linked
+worktree or cloud worker inherits the originating project's location. Use the
+task or dispatch record and Git worktree metadata to resolve it when needed.
+If a missing fact would change who may merge, investigate it. Hold the merge
+and ask for that fact if the available records cannot resolve it.
+Carry the project origin through retries and handoffs.
 
 Honor explicit draft, hold, review-only and human-merge requests. Check for
 release or deployment effects of merging to this target and obtain the separate
