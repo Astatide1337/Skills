@@ -220,7 +220,8 @@ this skill grants no authority. When the user grants standing approval for
 non-OSS delivery, apply the owner's scope rule to the assigned work. A linked
 worktree or cloud worker inherits the originating project's location. Use the
 task or dispatch record and Git worktree metadata to resolve it when needed.
-If a missing fact would change who may merge, investigate it before asking.
+If a missing fact would change who may merge, investigate it. Hold the merge
+and ask for that fact if the available records cannot resolve it.
 Carry the project origin through retries and handoffs.
 
 Honor explicit draft, hold, review-only and human-merge requests. Check for
