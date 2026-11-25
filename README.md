@@ -46,9 +46,11 @@ requires one.
 The [global instructions](global-instructions/AGENTS.md) include personal defaults
 for PR delivery and environment access. Installing skills does not install those
 instructions. Review them before choosing to use them. Under those defaults,
-implementation includes a scoped PR unless restricted, merging needs explicit
-approval, auto-merge is prohibited, and deployment requires preparation, verification and
-explicit final approval.
+implementation includes a scoped PR unless restricted. The owner authorizes
+direct merges for verified personal non-OSS work, including this repository.
+OSS and unclassified changes need approval for the individual merge. The
+[PR procedure](skills/pull-requests/SKILL.md#apply-merge-authority) describes
+the evidence and host checks. Deployment requires separate explicit approval.
 
 Delegation follows the [model-selection policy](skills/follow-instructions/references/agent-selection.md).
 It chooses from available models and reasoning options, honors explicit user

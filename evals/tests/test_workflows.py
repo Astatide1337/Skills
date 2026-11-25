@@ -332,6 +332,7 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-product-benefit-claims",
                 "workflow-defining-interaction-plan",
                 "workflow-native-outcome-first-resume",
+                "workflow-native-standing-merge-decisions",
                 "workflow-native-plan-preapproval",
                 "workflow-native-plan-approved-continuation",
                 "workflow-native-plan-material-discovery",

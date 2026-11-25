@@ -8,9 +8,14 @@
 - Implementation requests normally include committing, pushing and opening a
   scoped PR unless I request local-only work or set another restriction.
   For planning, explanation or review, perform only the requested actions.
-  Merge only after I explicitly approve that merge.
+- For my non-OSS work, merge the verified PR/MR directly when current CI passes,
+  independent review and behavioral verification are complete, and applicable
+  formal verification passes. Astatide1337/Skills is personal non-OSS tooling.
+  For OSS work or uncertain scope, get my approval for that merge. Honor any
+  request to hold, keep a draft or leave the merge to me, and all project rules.
   Never enable auto-merge. Prepare and verify the deployment before asking for
-  my final approval. Deploy only after I explicitly approve that deployment.
+  my final approval. Deploy only after I explicitly approve that deployment,
+  including when merging would trigger it.
 - An issue URL sent as a work item means implementation through a verified
   PR/MR. Preserve explicit read-only requests and repository-specific write rules.
 - Keep one-off plans, research, investigation notes and verification reports

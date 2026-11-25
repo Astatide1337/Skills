@@ -20,9 +20,10 @@ before any remote write, including work under the delivery default below.
 | Review or re-review a PR/MR or coworker's branch | Review | Read source and checks; return private findings/drafts. No source edits or remote writes. |
 | Check/watch/status a PR/MR | Monitor | Read remote state only; does not authorize edits, pushes or retries. |
 | Monitor and fix/address named in-scope defects | Monitor-and-fix | Repair only the authorized scope, then verify and push when authorized. |
-| Implement a feature/issue, unless local-only work or another restriction applies | Approved delivery | Under the standing policy, commit/push the scoped change, create a draft and finish current-head checks and reviews. Never merge or enable auto-merge. |
+| Implement a feature/issue, unless local-only work or another restriction applies | Approved delivery | Commit and push the scoped change, finish verification and review, then apply the user's merge authority. |
 | Post, reply, comment, or suggest on a PR/MR | Communicate | Post that specific checked comment only. |
-| Merge, close, reopen, rebase, or deploy | Separate action | Require explicit authorization for that action. |
+| Merge | Merge | Use standing or per-PR authority as described below. |
+| Close, reopen, rebase, or deploy | Separate action | Require explicit authorization for that action. |
 
 "Draft a PR/MR" means draft the copy only. "Open a draft PR/MR" means create
 the remote draft. When a request combines modes, run them in the order above.
@@ -149,8 +150,8 @@ request cannot create duplicate artifacts.
 
 ## Complete authorized delivery
 
-Use for an implementation task that includes a PR/MR intended for human merge.
-Continue until the change is complete, verified and eligible for human merge.
+Use for an implementation task that includes a PR/MR. Continue through the
+authorized merge or the requested handoff.
 Keep three states distinct:
 
 - **Draft:** published work with remaining implementation, review or checks.
@@ -212,14 +213,39 @@ budget is not a delivery suspension reason. Request legitimate required reviews
 through the authorized host workflow; never fabricate approval or resolve a
 disagreement merely to turn a status green.
 
-Report completion only when the work is verified and the host permits a merge.
-Keep permission to merge separate: never merge, enable auto-merge or deploy
-under this delivery contract. [Host draft
-behavior](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/changing-the-stage-of-a-pull-request)
-and [branch
-rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
-explain why a ready flag alone is insufficient; the actual project remains
-authoritative.
+### Apply merge authority
+
+Use the user's current instructions to establish who may merge. Installing
+this skill grants no authority. When the user grants standing approval for
+non-OSS delivery, use it on the PR/MR for the assigned work. Identify the
+target project and whether this work is internal or an OSS contribution from
+the owner's designation, project records and intended upstream. Visibility
+alone cannot settle that question. Ask once if classification is genuinely
+unclear. Follow the user's per-PR rule for OSS and unclassified work.
+
+Honor explicit draft, hold, review-only and human-merge requests. Check for
+release or deployment effects of merging to this target and obtain the separate
+deployment approval when needed. Project permissions and required host reviews
+still apply.
+
+For a standing merge, require successful CI that actually exercised the
+reviewed change, direct evidence of the requested outcome, and completed
+independent review with material findings resolved. Missing CI or an
+all-skipped run leaves the PR open. Identify the project's required formal
+checks and any material invariant the change introduces or alters. Run the
+applicable [formal verification](../verify-work/references/verification-layers.md#protocols-and-algorithms)
+and tie its assumptions and result to this revision. When no formal property
+applies, give the reason with the existing verification evidence.
+
+Immediately before merging, re-read the target, head, draft state, CI,
+discussions, required approvals and mergeability. If the head or target moved,
+refresh affected evidence first. Use the host's ordinary direct merge with
+the reviewed head as a precondition (GitHub's merge endpoint accepts `sha`,
+as does GitLab's MR merge endpoint). Respect branch protections and queues.
+Never enable auto-merge, bypass a protection or submit a review as the user.
+If the host rejects the merge or the response is lost, inspect remote state
+before taking further action. Confirm the merged revision on the intended
+target and report the PR/MR link and merge commit.
 
 ### Review budget
 
@@ -256,7 +282,7 @@ acceptance or request approval merely to continue an already authorized repair.
 Verified behavior and the host's permission to merge are separate facts. If agent-owned
 work is complete but a required human approval remains, report that approval
 as pending. Say merge-ready only when both facts are established at the current
-head. Never manufacture approval, merge, enable auto-merge or deploy.
+head. Apply the user's merge authority once readiness is established.
 
 ## Monitor without scope creep
 
