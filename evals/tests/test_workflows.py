@@ -255,7 +255,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            66,
+            67,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
