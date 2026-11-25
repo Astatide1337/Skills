@@ -248,6 +248,12 @@ If the host rejects the merge or the response is lost, inspect remote state
 before taking further action. Confirm the merged revision on the intended
 target and report the PR/MR link and merge commit.
 
+If the PR was one deliverable in a larger request, return its verified result
+to the parent record. Before handback, [resume the original
+scope](../follow-instructions/references/durable-checkpoints.md#return-from-a-child-task)
+and take the next authorized action. Respect an explicit hold or required
+runtime yield on the affected work.
+
 ### Review budget
 
 For every PR/MR delivered under this policy, obtain at least one independent

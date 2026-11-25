@@ -46,6 +46,41 @@ and increment the sequence. A changed objective explicitly starts a separate
 checkpoint; do not silently erase the old task. The supplied workspace identity
 must match on resume. Secrets never belong in this record.
 
+## Return from a child task
+
+Use the original user request as the parent acceptance boundary. A child
+contract can define when that child returns its patch or report. Reconcile each
+result with the parent before choosing another action or delivering a final
+answer. A merge notification, CI result or restored shell supplies evidence for
+the work it actually covers. Read new user steering first, including holds
+that apply to just one deliverable. Continue other authorized work when only
+one requirement is blocked. Honor a stop or replacement of the whole task.
+
+Use a native persistent goal when the user requests activation and the harness
+supports it. Put the root acceptance and its recovery location in the goal.
+Keep the goal active through leaf completion. For a T3 task using a portable
+checkpoint, bind the existing file on the coordinator host once. Use the
+original thread link with the `t3-thread://` scheme, without display brackets.
+
+```sh
+python scripts/checkpoint.py bind --origin "$thread" --workspace "$root_workspace" --state "$state"
+python scripts/checkpoint.py resume --origin "$thread"
+python scripts/checkpoint.py check --origin "$thread"
+```
+
+The private lookup under `$XDG_STATE_HOME` (default `~/.local/state`) points
+to the same checkpoint. Resume works from a different checkout or directory
+on that host. It returns the state path, digest, pending and blocked IDs and
+original task. Check exits 3 for open requirements or outstanding blockers.
+Exit 0 still requires inspecting the actual acceptance evidence. A hold or
+runtime-required yield can end a turn while the check reports open work.
+The next session can use the thread link to recover the same record.
+
+When the user replaces the parent scope, retain the original file and save a
+linked successor. To change that thread's lookup, bind the successor with
+`--previous "$old_state"`. Verify which objective the user authorized before
+resuming. Capture the host and path in the native record if work spans machines.
+
 For [authorized
 delivery](../../pull-requests/SKILL.md#complete-authorized-delivery), use these
 existing fields without a new schema: retain the original acceptance and

@@ -209,10 +209,15 @@ For a recorded or repeated mistake, use
 [learn from repeats](../self-reflect/references/learn-from-repeats.md); apply its
 proposed changes only with the user's approval.
 
-Across handoff or compaction, retain the objective, accepted decisions, unfinished
-checks, next action and exact blockers. Use
-[durable checkpoints](references/durable-checkpoints.md) before an expected
-interruption or when work outlives the session.
+For work spanning independent deliverables, retain the original request, its
+acceptance and the next authorized action before the first handoff. On a PR
+wake, worker completion, steering message or context restart, reopen that parent
+record and reconcile the latest user instruction. A completed work item closes
+only its requirements. Act on the next open requirement in the same turn when
+the runtime permits. If the runtime requires a yield, retain it for the next
+wake. Follow explicit holds, cancellations and changes of objective. See
+[durable checkpoints](references/durable-checkpoints.md) for native goals and
+recovering a portable parent record from the originating thread.
 
 ## Evidence and completion
 
