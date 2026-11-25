@@ -255,7 +255,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(route_only.metadata["global_rules"], skills.GLOBAL_INSTRUCTIONS.read_text())
         self.assertEqual(
             len(skills.workflows_dataset(execution_ready_only=True).samples),
-            67,
+            69,
         )
 
     def test_workflow_route_parser_requires_full_composition_contract(self) -> None:
@@ -392,6 +392,8 @@ class WorkflowContractTests(unittest.TestCase):
                 "workflow-native-handoff-fresh-recovery",
                 "workflow-native-handoff-revoke-publishing",
                 "workflow-native-handoff-missing-review",
+                "workflow-native-parent-after-merged-pr",
+                "workflow-native-parent-after-whole-task-stop",
             },
         )
         for sample in cases.values():

@@ -417,6 +417,55 @@ class PortableToolsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unsupported"):
                 checkpoint.read(path)
 
+    def test_parent_scope_reopens_from_another_checkout_after_leaf_completion(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            owner = root / "coordinator"
+            owner.mkdir()
+            checkout = root / "child"
+            checkout.mkdir()
+            state = owner / "task.json"
+            task = {
+                "objective": "Ship the catalog and the importer",
+                "requirements": [
+                    {"id": "pr", "description": "Merge the catalog verifier", "status": "reported-complete"},
+                    {"id": "import", "description": "Handle quoted commas", "status": "pending"},
+                    {"id": "release", "description": "Release to users", "status": "blocked"},
+                ],
+                "decisions": ["Hold the release until approved"],
+                "next_action": "Repair the importer", "blockers": ["Owner decision on release"],
+            }
+            identity = checkpoint.save(state, owner, task, None)
+            origin = "t3-thread://v2/host/original"
+
+            def run(*args):
+                return subprocess.run(
+                    [sys.executable, checkpoint.__file__, *map(str, args)], cwd=checkout,
+                    env={**os.environ, "XDG_STATE_HOME": str(root / "user-state")},
+                    capture_output=True, text=True, check=False,
+                )
+
+            bound = run("bind", "--origin", origin, "--state", state, "--workspace", owner)
+            self.assertEqual(bound.returncode, 0, bound.stderr)
+            self.assertEqual(run("check", "--origin", origin).returncode, 3)
+            reopened = json.loads(run("resume", "--origin", origin).stdout)
+            self.assertEqual((reopened["pending"], reopened["blocked"]), (["import"], ["release"]))
+            self.assertEqual(reopened["sha256"], identity)
+            self.assertEqual(reopened["checkpoint"]["task"], task)
+            self.assertNotEqual(run("resume", "--origin", origin + "-other").returncode, 0)
+            self.assertNotEqual(run("resume", "--origin", origin, "--workspace", checkout).returncode, 0)
+
+            successor = owner / "new-task.json"
+            updated = {**task, "objective": "Explicitly changed objective", "blockers": []}
+            updated["requirements"] = [{**item, "status": "reported-complete"} for item in task["requirements"]]
+            checkpoint.save(successor, owner, updated, None)
+            attempt = ("bind", "--origin", origin, "--state", successor, "--workspace", owner)
+            self.assertNotEqual(run(*attempt).returncode, 0)
+            self.assertEqual(json.loads(run("resume", "--origin", origin).stdout)["sha256"], identity)
+            self.assertEqual(run(*attempt, "--previous", state).returncode, 0)
+            self.assertEqual(run("check", "--origin", origin).returncode, 0)
+            self.assertEqual(checkpoint.read(state)[1], identity)
+
     def test_approved_plan_continuation_uses_existing_fields_and_linked_requirements(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -8,6 +8,8 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
+import stat
 import sys
 import tempfile
 
@@ -94,26 +96,90 @@ def save(path: Path, workspace: Path, task: dict, expected: str | None) -> str:
         return hashlib.sha256(raw).hexdigest()
 
 
+def origin_pointer(origin: str, *, create: bool = False) -> Path:
+    if not re.fullmatch(r"t3-thread://v2/[^/\s<>?#\x00-\x1f\x7f]+/[^/\s<>?#\x00-\x1f\x7f]+", origin):
+        raise ValueError("expected the originating T3 thread link")
+    base = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state")
+    if not base.is_absolute():
+        raise ValueError("XDG_STATE_HOME must be absolute")
+    directory = base / "skills-parent-tasks"
+    if create:
+        directory.mkdir(parents=True, mode=0o700, exist_ok=True)
+    info = directory.lstat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+        raise ValueError("origin directory must be private and owned by this user")
+    return directory / hashlib.sha256(origin.encode()).hexdigest()
+
+
+def bind(origin: str, path: Path, previous: Path | None) -> None:
+    pointer = origin_pointer(origin, create=True)
+    with os.fdopen(os.open(pointer.with_suffix(".lock"), os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600), "r+") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        current = pointer.readlink() if pointer.is_symlink() else None
+        if current == path:
+            return
+        if current != previous or pointer.exists() and current is None:
+            raise ValueError("this origin already has a different checkpoint; use its previous path for an explicit replacement")
+        # Keep readers on one complete pointer, including during explicit replacement.
+        with tempfile.TemporaryDirectory(dir=pointer.parent) as scratch:
+            new = Path(scratch) / "pointer"
+            new.symlink_to(path)
+            os.replace(new, pointer)
+        directory = os.open(pointer.parent, os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("save", "resume"))
-    parser.add_argument("--state", type=Path, required=True)
-    parser.add_argument("--workspace", type=Path, required=True)
+    parser.add_argument("mode", choices=("save", "resume", "bind", "check"))
+    parser.add_argument("--state", type=Path)
+    parser.add_argument("--workspace", type=Path)
+    parser.add_argument("--origin", help="originating T3 thread link on the coordinator host")
+    parser.add_argument("--previous", type=Path, help="previous checkpoint path when explicitly replacing a binding")
     parser.add_argument("--input", type=Path)
     parser.add_argument("--expect")
     args = parser.parse_args()
-    workspace = args.workspace.resolve(strict=True)
+    if args.previous is not None and args.mode != "bind":
+        raise ValueError("--previous applies only to bind")
     if args.mode == "save":
-        if args.input is None:
-            raise ValueError("save requires --input")
+        if args.input is None or args.state is None or args.workspace is None or args.origin is not None:
+            raise ValueError("save requires --input, --state and --workspace")
+        workspace = args.workspace.resolve(strict=True)
         identity = save(args.state, workspace, json.loads(args.input.read_text()), args.expect)
         print(json.dumps({"sha256": identity}))
     else:
-        value, identity = read(args.state)
+        if args.mode == "bind":
+            if not args.origin or args.state is None or args.workspace is None:
+                raise ValueError("bind requires --origin, --state and --workspace")
+            path = args.state
+        elif args.origin and args.state is None:
+            path = origin_pointer(args.origin).readlink()
+            if not path.is_absolute():
+                raise ValueError("origin points to an invalid checkpoint path")
+        elif args.state is not None and args.workspace is not None and args.origin is None:
+            path = args.state
+        else:
+            raise ValueError("use --origin or both --state and --workspace")
+        value, identity = read(path)
+        recorded = value["workspace"]
+        if not isinstance(recorded, dict) or not isinstance(recorded.get("path"), str):
+            raise ValueError("invalid checkpoint workspace")
+        workspace = (args.workspace or Path(recorded["path"])).resolve(strict=True)
         if value["workspace"] != source(workspace):
             raise ValueError("checkpoint belongs to another workspace")
-        print(json.dumps({"sha256": identity, "checkpoint": value,
+        if args.mode == "bind":
+            bind(args.origin, path.resolve(strict=True), args.previous.resolve() if args.previous else None)
+        task = value["task"]
+        pending = [r["id"] for r in task["requirements"] if r["status"] == "pending"]
+        blocked = [r["id"] for r in task["requirements"] if r["status"] == "blocked"]
+        print(json.dumps({"sha256": identity, "state": str(path.absolute()), "checkpoint": value,
+                          "pending": pending, "blocked": blocked,
                           "evidence_status": "unverified; recheck current revision and capabilities"}))
+        if args.mode == "check" and (pending or blocked or task["blockers"]):
+            return 3
     return 0
 
 
