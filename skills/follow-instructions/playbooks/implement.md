@@ -70,8 +70,8 @@ handoff.
 6. Finish the whole approved result, including a scoped final commit when
    authorized. When publication is approved, use
    [pull-requests](../../pull-requests/SKILL.md) for a draft PR/MR, in-scope
-   fixes and current-head CI readiness. A draft may be needed to obtain CI
-   before readiness; never merge or enable auto-merge.
+   fixes, current-head CI and the final merge decision. Apply the user's merge
+   authority after verification. Preserve an explicit draft or handoff request.
 
 ## Failure and recovery
 
