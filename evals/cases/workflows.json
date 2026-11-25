@@ -3539,5 +3539,87 @@
         "writing-for-agents"
       ]
     }
+  },
+  {
+    "id": "workflow-native-outcome-first-resume",
+    "input": "Improve Resume so I can get back to the right work after a break. Alphabetical ordering might be the issue. Pick an interaction using the observed sessions in field-notes.txt and implement it locally. Keep the existing caller interface. No external services.",
+    "target": "Use the observed return-to-work journey to choose a recommendation or shortlist. Preserve the current workspace, unfinished status and recency in the result. Continue through a working local implementation within the existing authority.",
+    "files": {
+      "resume.py": "def suggestions(records, workspace):\n    return sorted(row[\"id\"] for row in records)\n",
+      "field-notes.txt": "The UI's Resume button calls suggestions(records, current_workspace) and opens the first ID. The sidebar can display additional IDs. It is fine to return a single useful suggestion. A workspace with nothing to resume should show no suggestions.\nTwo observed sessions: a person returned to Audio after lunch and was taken to an unrelated job in Web. Another reopened an already finished Audio job although a newer unfinished edit was waiting. They wanted the most recently touched unfinished job in the current workspace. The person reporting it suspected alphabetical order. Workspace identifiers are exact strings. Records have unique IDs, an integer touched timestamp, and a status of open or done. Ties between equally recent jobs may be resolved either way.\n",
+      "checks.py": "from resume import suggestions\n\nrows = [\n    {\"id\": \"alpha\", \"workspace\": \"web\", \"touched\": 7, \"status\": \"open\"},\n    {\"id\": \"review\", \"workspace\": \"audio\", \"touched\": 8, \"status\": \"done\"},\n    {\"id\": \"write\", \"workspace\": \"audio\", \"touched\": 2, \"status\": \"open\"},\n]\nassert suggestions(rows, \"audio\") == [\"write\"]\nassert suggestions(rows, \"empty\") == []\n"
+    },
+    "setup": "git init -q && git config user.email eval@example.invalid && git config user.name Eval && git add -- resume.py field-notes.txt checks.py && git commit -qm baseline",
+    "metadata": {
+      "allow_changes": true,
+      "allowed_paths": [
+        "resume.py"
+      ],
+      "expected_skills": [
+        "follow-instructions",
+        "product"
+      ],
+      "optional_skills": [
+        "verify-work",
+        "architect",
+        "code-review-and-quality"
+      ],
+      "expected_workflows": [
+        "design/plan",
+        "implement/feature"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "workspace-delete"
+      ],
+      "required_observations": [
+        "owner-inspected",
+        "regression-run"
+      ],
+      "execution_mode": "execution-ready",
+      "fixture_contract": {
+        "kind": "workspace-test",
+        "write_path": "resume.py",
+        "required_paths": [
+          "resume.py",
+          "field-notes.txt",
+          "checks.py"
+        ],
+        "test_command": [
+          "python",
+          "checks.py"
+        ],
+        "acceptance_test": "from resume import suggestions\n\nrows = [\n    {\"id\": \"alpha\", \"workspace\": \"web\", \"touched\": 7, \"status\": \"open\"},\n    {\"id\": \"review\", \"workspace\": \"audio\", \"touched\": 8, \"status\": \"done\"},\n    {\"id\": \"write\", \"workspace\": \"audio\", \"touched\": 2, \"status\": \"open\"},\n]\nassert suggestions(rows, \"audio\") == [\"write\"]\nassert suggestions(rows, \"empty\") == []\n",
+        "heldout_test": "from resume import suggestions\n\nrows = [\n    {\"id\": \"z9\", \"workspace\": \"lab\", \"touched\": 21, \"status\": \"open\"},\n    {\"id\": \"z8\", \"workspace\": \"lab\", \"touched\": 21, \"status\": \"open\"},\n    {\"id\": \"a1\", \"workspace\": \"lab\", \"touched\": 2, \"status\": \"open\"},\n    {\"id\": \"zz\", \"workspace\": \"lab\", \"touched\": 99, \"status\": \"done\"},\n    {\"id\": \"away\", \"workspace\": \"lab-2\", \"touched\": 100, \"status\": \"open\"},\n]\nfor records in (rows, list(reversed(rows))):\n    result = suggestions(records, \"lab\")\n    assert isinstance(result, list) and result[0] in {\"z8\", \"z9\"}\n    assert set(result) <= {\"a1\", \"z8\", \"z9\"} and len(result) == len(set(result))\n    assert suggestions(records, \"lab-2\") == [\"away\"]\n    assert suggestions(records, \"l\") == []\nassert suggestions([], \"lab\") == []\n",
+        "write_content": "def suggestions(records, workspace):\n    available = [r for r in records if r[\"workspace\"] == workspace and r[\"status\"] == \"open\"]\n    return [r[\"id\"] for r in sorted(available, key=lambda r: r[\"touched\"], reverse=True)]\n"
+      },
+      "evidence_limit": "Synthetic local return-to-work case derived from an interrupted handoff. A valid first choice and resulting behavior are observable. Passing cannot establish a time saving or prove which guidance changed the decision."
+    }
+  },
+  {
+    "id": "workflow-settled-resume-feature",
+    "input": "Implement the approved Resume design locally. suggestions(records, workspace) must return just the most recently touched open record ID in that exact workspace as a one-element list, or an empty list when none exists. Keep the current signature and run its checks. No external work.",
+    "target": "Implement the settled behavior directly and verify the result.",
+    "metadata": {
+      "allow_changes": true,
+      "expected_skills": [
+        "follow-instructions"
+      ],
+      "optional_skills": [
+        "verify-work",
+        "code-review-and-quality"
+      ],
+      "expected_workflows": [
+        "implement/feature"
+      ],
+      "expected_modifiers": [],
+      "forbidden_effects": [
+        "pr-create",
+        "merge",
+        "deploy"
+      ],
+      "required_observations": ["settled-interaction-retained"],
+      "execution_mode": "routing-only"
+    }
   }
 ]
