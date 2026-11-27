@@ -1,0 +1,44 @@
+diff --git a/notify/sender.py b/notify/sender.py
+index b05df25..3cdad97 100644
+--- a/notify/sender.py
++++ b/notify/sender.py
+@@ -1,11 +1,13 @@
+ import smtplib
++from email.message import EmailMessage
+ 
+ 
+ def build_message(sender: str, to: str, subject: str, body: str) -> bytes:
+     """Raw RFC 822 bytes for one notification."""
+-    headers = f"From: {sender}\r\nTo: {to}\r\nSubject: {subject}\r\nContent-Type: text/plain; charset=utf-8\r\n"
+-    raw = headers + "\r\n" + body
+-    return raw.encode("utf-8")
++    msg = EmailMessage()
++    msg["From"], msg["To"], msg["Subject"] = sender, to, subject
++    msg.set_content(body)
++    return msg.as_bytes()
+ 
+ 
+ def send(host: str, sender: str, to: str, subject: str, body: str) -> None:
+diff --git a/tests/test_sender.py b/tests/test_sender.py
+index d8daf97..9ec10f6 100644
+--- a/tests/test_sender.py
++++ b/tests/test_sender.py
+@@ -1,4 +1,5 @@
+ import email
++import email.policy
+ import unittest
+ 
+ from notify.digest import daily_digest
+@@ -15,6 +16,12 @@ class SenderTests(unittest.TestCase):
+         msg = email.message_from_bytes(daily_digest("b@x.com", ["one", "two"]))
+         self.assertEqual(msg["Subject"], "Your digest (2 items)")
+ 
++    def test_non_ascii_subject_is_mime_encoded(self):
++        raw = build_message("a@x.com", "b@x.com", "Café opening", "Grüße")
++        self.assertTrue(raw.split(b"\n\n", 1)[0].isascii())
++        msg = email.message_from_bytes(raw, policy=email.policy.default)
++        self.assertEqual(str(msg["Subject"]), "Café opening")
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

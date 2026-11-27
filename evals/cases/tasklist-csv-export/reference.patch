@@ -1,0 +1,56 @@
+diff --git a/README.md b/README.md
+index fee9cc5..bc12e8d 100644
+--- a/README.md
++++ b/README.md
+@@ -7,3 +7,4 @@ A tiny personal task list stored in `tasks.json` (or `$TASKLIST_FILE`).
+     python -m tasklist add "Buy milk"
+     python -m tasklist list
+     python -m tasklist done 1
++    python -m tasklist export > tasks.csv
+diff --git a/tasklist/__main__.py b/tasklist/__main__.py
+index de1e5eb..a514e9f 100644
+--- a/tasklist/__main__.py
++++ b/tasklist/__main__.py
+@@ -1,3 +1,4 @@
++import csv
+ import sys
+ 
+ from tasklist import store
+@@ -5,7 +6,7 @@ from tasklist import store
+ 
+ def main(argv: list[str]) -> int:
+     if not argv:
+-        print("usage: tasklist add TITLE | list | done ID", file=sys.stderr)
++        print("usage: tasklist add TITLE | list | done ID | export", file=sys.stderr)
+         return 2
+     command, *rest = argv
+     if command == "add":
+@@ -17,6 +18,11 @@ def main(argv: list[str]) -> int:
+             print(f"[{mark}] {task['id']}. {task['title']}")
+     elif command == "done":
+         store.mark_done(int(rest[0]))
++    elif command == "export":
++        writer = csv.writer(sys.stdout)
++        writer.writerow(["id", "title", "done", "created"])
++        for task in store.load():
++            writer.writerow([task["id"], task["title"], task["done"], task["created"]])
+     else:
+         print(f"unknown command: {command}", file=sys.stderr)
+         return 2
+diff --git a/tests/test_cli.py b/tests/test_cli.py
+index 15ada65..55f3531 100644
+--- a/tests/test_cli.py
++++ b/tests/test_cli.py
+@@ -22,6 +22,12 @@ class CliTests(unittest.TestCase):
+         run("done", "1", env=self.env)
+         self.assertIn("[x] 1. Buy milk", run("list", env=self.env).stdout)
+ 
++    def test_export_csv(self):
++        run("add", 'Say "hi", then leave', env=self.env)
++        out = run("export", env=self.env).stdout
++        self.assertTrue(out.startswith("id,title,done,created"))
++        self.assertIn('"Say ""hi"", then leave",False', out)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

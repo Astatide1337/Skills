@@ -1,0 +1,84 @@
+diff --git a/config.example.json b/config.example.json
+index c0261c6..5cc66bb 100644
+--- a/config.example.json
++++ b/config.example.json
+@@ -1,5 +1,5 @@
+ {
+   "base_url": "https://feeds.example.com",
+-  "timeout": 10,
++  "request_timeout_s": 10,
+   "retries": 3
+ }
+diff --git a/fetcher/client.py b/fetcher/client.py
+index 5f351d5..bd8486d 100644
+--- a/fetcher/client.py
++++ b/fetcher/client.py
+@@ -1,7 +1,7 @@
+ class Client:
+     def __init__(self, config: dict):
+         self.base_url = config["base_url"]
+-        self.timeout = config["timeout"]
++        self.timeout = config["request_timeout_s"]
+ 
+     def request_args(self, path: str) -> dict:
+         return {"url": f"{self.base_url}/{path.lstrip('/')}", "timeout": self.timeout}
+diff --git a/fetcher/config.py b/fetcher/config.py
+index 38ad341..a2f27ce 100644
+--- a/fetcher/config.py
++++ b/fetcher/config.py
+@@ -1,9 +1,14 @@
+ import json
++import warnings
+ from pathlib import Path
+ 
+-DEFAULTS = {"timeout": 10, "retries": 3}
++DEFAULTS = {"request_timeout_s": 10, "retries": 3}
+ 
+ 
+ def load(path: str | Path) -> dict:
+     """Read a config file and fill in defaults."""
+-    return {**DEFAULTS, **json.loads(Path(path).read_text())}
++    data = json.loads(Path(path).read_text())
++    if "timeout" in data:
++        warnings.warn("config key 'timeout' is deprecated; use 'request_timeout_s'", DeprecationWarning, stacklevel=2)
++        data.setdefault("request_timeout_s", data.pop("timeout"))
++    return {**DEFAULTS, **data}
+diff --git a/fetcher/health.py b/fetcher/health.py
+index cf2946f..becd32b 100644
+--- a/fetcher/health.py
++++ b/fetcher/health.py
+@@ -1,3 +1,3 @@
+ def health_check_args(config: dict) -> dict:
+     # Health checks should fail fast: half the normal request timeout.
+-    return {"url": config["base_url"] + "/health", "timeout": config["timeout"] / 2}
++    return {"url": config["base_url"] + "/health", "timeout": config["request_timeout_s"] / 2}
+diff --git a/fetcher/retry.py b/fetcher/retry.py
+index b9a1fcc..2dce2c8 100644
+--- a/fetcher/retry.py
++++ b/fetcher/retry.py
+@@ -1,3 +1,3 @@
+ def total_budget(config: dict) -> float:
+     """Worst-case seconds spent on one fetch including retries."""
+-    return config["timeout"] * (config["retries"] + 1)
++    return config["request_timeout_s"] * (config["retries"] + 1)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index a637e8f..3eec6f1 100644
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -21,10 +21,15 @@ class ConfigTests(unittest.TestCase):
+         self.assertEqual(total_budget(cfg), 40)
+ 
+     def test_readers(self):
+-        cfg = self.load({"base_url": "http://x", "timeout": 4})
++        cfg = self.load({"base_url": "http://x", "request_timeout_s": 4})
+         self.assertEqual(Client(cfg).request_args("/a")["timeout"], 4)
+         self.assertEqual(health_check_args(cfg)["timeout"], 2)
+ 
++    def test_old_key_still_works_with_warning(self):
++        with self.assertWarns(DeprecationWarning):
++            cfg = self.load({"base_url": "http://x", "timeout": 4})
++        self.assertEqual(Client(cfg).request_args("/a")["timeout"], 4)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

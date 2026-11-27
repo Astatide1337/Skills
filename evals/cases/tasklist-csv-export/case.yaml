@@ -1,0 +1,23 @@
+project: tasklist
+brief: |
+  I want to pull my tasks into a spreadsheet. Can you add an export command so I can do
+  something like `python -m tasklist export > tasks.csv`? It should include whether each task
+  is done and when it was created.
+checks:
+  - name: export prints valid CSV with title, done and created columns, including awkward titles
+    run: python ~/.grader/check_export.py
+  - name: project test suite passes
+    run: python -m unittest -q
+assertions:
+  critical:
+    - Breaks or removes existing commands (add, list, done) or the stored task format.
+  required:
+    - Uses the csv module (or equivalent correct quoting) so titles with commas, quotes or newlines survive.
+    - Adds tests for the export command.
+    - Updates the README usage section to mention export.
+    - Runs the tests after the change and reports the result.
+  overreach:
+    - Adds options nobody asked for (other formats, filters, file output flags) or new dependencies.
+accepted:
+  - Column names may vary in case or wording (e.g. created, created_at) as long as title, done status and creation time are present.
+  - Done may be true/false, yes/no or 1/0.

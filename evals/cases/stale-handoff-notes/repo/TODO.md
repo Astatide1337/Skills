@@ -1,0 +1,2 @@
+- finish asyncio migration (see HANDOFF.md)
+- maybe batch digests by timezone
