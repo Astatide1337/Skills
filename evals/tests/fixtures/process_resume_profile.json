@@ -1,0 +1,9 @@
+{
+  "files": {
+    "app/drive.py": "from pathlib import Path\nimport json\nprint(json.dumps({\"result\": Path(\"RESULT.txt\").read_text()}))\n",
+    "app/source.txt": " zoe!\n\n Ada, Lovelace \n   \n",
+    "phase_one.py": "from pathlib import Path\nimport time\nPath(\"phase.started\").write_text(\"waiting\")\ntime.sleep(300)\n",
+    "profile.json": "{\"version\": 1, \"workspace_identity\": {\"mode\": \"artifact\"}, \"source_paths\": [\"source.txt\", \"RESULT.txt\", \"drive.py\"], \"steps\": [{\"id\": \"transformation\", \"phase\": \"drive\", \"argv\": [\"python\", \"drive.py\"], \"timeout\": 5, \"expect\": {\"/result\": \"ADA, LOVELACE\\nZOE!\\n\"}}]}"
+  },
+  "write_content": "ADA, LOVELACE\nZOE!\n"
+}
