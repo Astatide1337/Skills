@@ -160,6 +160,12 @@ exclusion, evidence and retry requirements to agent-controlled cleanup; when
 those controls are unavailable, report provider-managed expiry separately from
 verified owner retirement.
 
+For a Cloud patch job, retain the Cloud task link and exact Git base revision
+in the originating T3 task record. Recover a reviewable patch or an existing PR
+from that Cloud task and verify it against the expected base before integration.
+If acknowledgement is lost, reconcile the same Cloud task and its recorded
+result before retrying or allocating another workspace.
+
 [OpenBot](https://github.com/nightly-labs/openbot) means nightly-labs/openbot.
 Keep its persistent application state and credentials separate from disposable
 T3 task worktrees; task completion never makes them disposable. Route engineering
