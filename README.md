@@ -248,8 +248,7 @@ working artifacts or the PR, not the installed catalog. Existing history is
 available in Git.
 
 Use the runtime versions declared in [`pyproject.toml`](pyproject.toml),
-[the CI workflow](.github/workflows/ci.yml) and the locked dependencies. The checks also
-require Bubblewrap with user namespaces enabled:
+[the CI workflow](.github/workflows/ci.yml) and the locked dependencies:
 
 ```sh
 uv sync --frozen
