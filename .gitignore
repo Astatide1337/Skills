@@ -10,3 +10,4 @@ logs/*.eval
 evals/results/
 .DS_Store
 core.[0-9]*
+!core.*[!0-9]*
