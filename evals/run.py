@@ -158,6 +158,12 @@ def run_one(case: dict, arm: str, catalog: Path | None, n: int, args) -> None:
                 event = json.loads(line) if line.startswith("{") else {}
                 session = event.get("session_id", session)
                 if event.get("type") == "result":
+                    if event.get("api_error") or event.get("api_error_status"):
+                        # Infrastructure (usage limit, outage), not agent behaviour:
+                        # leave no timing.json so a rerun repeats this run.
+                        raise RuntimeError(
+                            f"API error in turn {i}: {event.get('result')}"
+                        )
                     final.append(f"## Turn {i}\n\n{event.get('result', '')}")
                     totals["cost_usd"] += event.get("total_cost_usd") or 0
                     totals["turns"] += event.get("num_turns") or 0

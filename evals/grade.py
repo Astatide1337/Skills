@@ -15,6 +15,7 @@ import os
 import random
 import statistics
 import subprocess
+import time
 from collections import Counter
 from pathlib import Path
 
@@ -126,7 +127,19 @@ def condense(run: Path, budget: int = 120_000) -> tuple[str, set[str]]:
     return "\n".join(lines), skills
 
 
-def judge(prompt: str, schema: dict, model: str) -> dict:
+def judge(prompt: str, schema: dict, model: str, attempts: int = 3) -> dict:
+    """Ask the judge; retry transient failures (rate limits) with a short backoff."""
+    for attempt in range(1, attempts + 1):
+        try:
+            return judge_once(prompt, schema, model)
+        except RuntimeError:
+            if attempt == attempts:
+                raise
+            time.sleep(60 * attempt)
+    raise AssertionError("unreachable")
+
+
+def judge_once(prompt: str, schema: dict, model: str) -> dict:
     cmd = [
         "docker",
         "run",
@@ -147,11 +160,13 @@ def judge(prompt: str, schema: dict, model: str) -> dict:
         "json",
     ]
     proc = subprocess.run(
-        cmd, input=prompt, capture_output=True, text=True, timeout=900, check=True
+        cmd, input=prompt, capture_output=True, text=True, timeout=900, check=False
     )
-    result = json.loads(proc.stdout.strip().splitlines()[-1])
-    if result.get("is_error") or not result.get("structured_output"):
-        raise RuntimeError(f"judge failed: {result.get('result')}")
+    lines = proc.stdout.strip().splitlines()
+    result = json.loads(lines[-1]) if lines and lines[-1].startswith("{") else {}
+    if proc.returncode or result.get("is_error") or not result.get("structured_output"):
+        detail = result.get("result") or (proc.stdout + proc.stderr)[-1500:]
+        raise RuntimeError(f"judge failed (exit {proc.returncode}): {detail}")
     return result["structured_output"]
 
 
