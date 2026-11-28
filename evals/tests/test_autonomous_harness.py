@@ -30,6 +30,10 @@ WORKSPACE_LIMITS = (
     "You hit your spend cap set in your workspace.",
     "You hit your spend cap set by the owner of your workspace.",
 )
+EXPIRED_REFRESH = (
+    "Your access token could not be refreshed because your refresh token has expired. "
+    "Please log out and sign in again."
+)
 REPLY = {
     "type": "item.completed",
     "item": {
@@ -268,20 +272,27 @@ class RunTests(unittest.TestCase):
                     self.args.guard.before_run()
 
     def test_hard_limit_in_stderr_stops_after_completed_turn(self):
-        self.args.agent = "codex"
         self.case["turns"] = ["must not reach this turn"]
-        with self.assertRaisesRegex(run.InfraError, "usage limit reached"):
-            self.execute(CODEX_SUCCESS, stderr=WORKSPACE_LIMITS[0])
-        self.assertEqual(sum("--json" in cmd for cmd in self.commands), 1)
-        self.assertTrue((self.out / "trace-0.jsonl").exists())
-        self.assertFalse((self.out / "timing.json").exists())
-        with self.assertRaisesRegex(run.InfraError, "skipped"):
-            run.run_one(self.case, "none", None, 2, self.args)
+        for agent, output, diagnostic in (
+            ("codex", CODEX_SUCCESS, WORKSPACE_LIMITS[0]),
+            ("claude", CLAUDE_SUCCESS, "usage_limit_reached"),
+        ):
+            with self.subTest(agent=agent):
+                self.args.agent = agent
+                self.args.guard = run.UsageGuard(0.6, 0.8)
+                self.commands.clear()
+                with self.assertRaisesRegex(run.InfraError, "usage limit reached"):
+                    self.execute(output, output, stderr=diagnostic)
+                self.assertEqual(sum("-i" in cmd for cmd in self.commands), 1)
+                self.assertTrue((self.out / "trace-0.jsonl").exists())
+                self.assertFalse((self.out / "timing.json").exists())
+                with self.assertRaisesRegex(run.InfraError, "skipped"):
+                    run.run_one(self.case, "none", None, 2, self.args)
 
     def test_auth_failure_stops_scripted_turns_and_batch(self):
         self.args.agent = "codex"
         self.case["turns"] = ["must not reach this turn"]
-        for message in ("401 Unauthorized", "Login required"):
+        for message in ("401 Unauthorized", "Login required", EXPIRED_REFRESH):
             with self.subTest(message=message):
                 self.args.guard = run.UsageGuard(0.6, 0.8)
                 self.commands.clear()
@@ -607,7 +618,7 @@ class AuthTests(unittest.TestCase):
             )
         )
 
-    def forbid_daily_auth_access(self):
+    def forbid_daily_auth_access(self, allow_lstat=False):
         def guarded(operation):
             def call(path, *args, **kwargs):
                 if not isinstance(path, int) and Path(path) == self.daily_auth:
@@ -623,6 +634,8 @@ class AuthTests(unittest.TestCase):
             (builtins, "open"),
             (io, "open"),
         ):
+            if allow_lstat and name == "lstat":
+                continue
             self.enterContext(
                 patch.object(module, name, guarded(getattr(module, name)))
             )
@@ -633,11 +646,11 @@ class AuthTests(unittest.TestCase):
         home.mkdir(parents=True)
         path = home / "auth.json"
         old_tokens = {
-            "id_token": 'synthetic-id-"quoted"',
-            "access_token": r"synthetic-old\access",
-            "refresh_token": "synthetic-refresh",
+            "id_token": "synthetic-id+/==",
+            "access_token": "synthetic-old/access",
+            "refresh_token": "synthetic-refresh/token",
         }
-        tokens = dict(old_tokens, access_token=r'synthetic-new\access"quoted"')
+        tokens = dict(old_tokens, access_token="synthetic-new/access")
         original = json.dumps({"tokens": old_tokens}).encode()
         refreshed = json.dumps(
             {"tokens": tokens, "last_refresh": "a new timestamp"}
@@ -646,41 +659,50 @@ class AuthTests(unittest.TestCase):
         path.chmod(0o644)
         inode = path.stat().st_ino
 
-        supplied = list(set(old_tokens.values()) | set(tokens.values()))
-        notice = f"Raw values {supplied[0]} " + " ".join(supplied[1:])
+        supplied = set(old_tokens.values()) | set(tokens.values())
+        escaped = {value.replace("/", r"\/") for value in supplied}
+        notice = "Raw values " + " ".join(sorted(supplied))
+        notice += " and slash escapes " + " ".join(sorted(escaped))
         reply = {
             "type": "item.completed",
-            "item": dict(
-                REPLY["item"], text=f"{notice} and encoded {json.dumps(supplied)}"
-            ),
+            "item": dict(REPLY["item"], text=notice),
         }
-        partial = '{"type":"item.started","item":{"text":' + json.dumps(
-            json.dumps(supplied)
-        )
+        partial = '{"type":"item.started","item":{"text":"' + " ".join(sorted(escaped))
         stdout = jsonl(THREAD, reply, {"type": "turn.completed", "usage": {}}) + partial
-        stderr = f"{notice} and encoded {json.dumps(supplied)}"
+        stderr = notice
         calls = []
 
         def docker(*cmd, **kwargs):
             calls.append(cmd)
+            if cmd[-3:] == ("git", "rev-parse", "HEAD"):
+                return subprocess.CompletedProcess(cmd, 0, "base123\n", "")
+            if "git diff --cached" in cmd[-1]:
+                return subprocess.CompletedProcess(cmd, 0, f"+{notice}", "")
+            if "BASE_SHA=base123" in cmd:
+                return subprocess.CompletedProcess(cmd, 0, notice, notice)
             return subprocess.CompletedProcess(cmd, 0, "", "")
 
-        def invoke(cmd, *, input, **kwargs):
-            calls.append(tuple(cmd))
-            transferred = cmd[4] == "bash"
+        def assert_login_locked():
             self.assertTrue(path.read_bytes() == original)
             with (
                 (home / ".eval-auth.lock").open("ab") as other,
                 self.assertRaises(BlockingIOError),
             ):
                 fcntl.flock(other, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            if transferred:
+
+        def invoke(cmd, *, input, **kwargs):
+            calls.append(tuple(cmd))
+            assert_login_locked()
+            if cmd[4] == "bash":
                 self.assertIn(run.CODEX_AUTH, cmd[-1])
-                if input is not None:
-                    self.assertTrue(input == original)
-                    self.assertIn("umask 077", cmd[-1])
-                return subprocess.CompletedProcess(cmd, 0, b"" if input else refreshed)
+                self.assertEqual(input, original)
+                self.assertIn("umask 077", cmd[-1])
+                return subprocess.CompletedProcess(cmd, 0, b"")
             return subprocess.CompletedProcess(cmd, 0, stdout, stderr)
+
+        def refresh(_name):
+            assert_login_locked()
+            return refreshed
 
         out = self.home / "out"
         cli = [
@@ -702,9 +724,11 @@ class AuthTests(unittest.TestCase):
             patch.object(run, "build_image"),
             patch.object(run, "sh", side_effect=docker),
             patch.object(run.subprocess, "run", side_effect=invoke) as exec_,
+            patch.object(run, "copy_codex_auth_out", side_effect=refresh) as copy_out,
         ):
             run.main()
-        self.assertEqual(exec_.call_count, 3)
+        self.assertEqual(exec_.call_count, 2)
+        copy_out.assert_called_once()
         container = next(c for c in calls if c[:2] == ("docker", "run"))
         self.assertEqual(
             container[container.index("--tmpfs") + 1].split(":")[0], run.CODEX_HOME
@@ -714,19 +738,178 @@ class AuthTests(unittest.TestCase):
         self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 
         results = out / "flaky-tie-break/none/run-1"
-        for name in ("trace-0.jsonl", "final.md", "stderr-0.txt"):
+        for name in (
+            "trace-0.jsonl",
+            "final.md",
+            "stderr-0.txt",
+            "diff.patch",
+            "checks.json",
+        ):
             with self.subTest(artifact=name):
                 content = (results / name).read_text()
                 self.assertIn("[redacted]", content)
-                self.assertFalse(any(value in content for value in supplied))
-                self.assertFalse(
-                    any(json.dumps(value)[1:-1] in content for value in supplied)
-                )
+                self.assertFalse(any(value in content for value in supplied | escaped))
+        for check in json.loads((results / "checks.json").read_text()):
+            self.assertIn("[redacted]", check["output"])
+            self.assertFalse(
+                any(value in check["output"] for value in supplied | escaped)
+            )
+        evidence = grade.evidence(results)
+        self.assertIn("+Raw values [redacted]", evidence)
+        self.assertFalse(any(value in evidence for value in supplied | escaped))
         trace = (results / "trace-0.jsonl").read_text().splitlines()
         parsed_reply = json.loads(trace[1])["item"]["text"]
         self.assertEqual(trace[-1].count("[redacted]"), len(supplied))
         self.assertFalse(any(value in parsed_reply for value in supplied))
         self.assertEqual(parsed_reply.count("[redacted]"), 2 * len(supplied))
+
+    def test_symlinked_eval_home_and_lock_are_rejected(self):
+        home = self.home / "eval-home"
+        home.mkdir()
+        (home / "auth.json").write_text("{}")
+        alias = self.home / "alias"
+        alias.symlink_to(home)
+        lock = home / ".eval-auth.lock"
+        outside = self.home / "outside"
+        with patch.object(run.subprocess, "run") as invoke:
+            with (
+                self.assertRaises(run.InfraError),
+                run.codex_auth("container", set(), alias),
+            ):
+                pass
+            lock.symlink_to(outside)
+            with (
+                self.assertRaises(run.InfraError),
+                run.codex_auth("container", set(), home),
+            ):
+                pass
+        invoke.assert_not_called()
+        self.assertFalse(outside.exists())
+
+    def test_refresh_writes_to_the_directory_opened_for_copy_in(self):
+        home = self.home / "eval-home"
+        home.mkdir()
+        (home / "auth.json").write_bytes(b"{}")
+        moved = self.home / "opened-home"
+        updated = b'{"tokens":{"access_token":"synthetic-refresh"}}'
+        with (
+            patch.object(
+                run.subprocess, "run", return_value=subprocess.CompletedProcess([], 0)
+            ),
+            patch.object(run, "copy_codex_auth_out", return_value=updated),
+            run.codex_auth("container", set(), home),
+        ):
+            home.rename(moved)
+            home.mkdir()
+            (home / "auth.json").write_bytes(b"{}")
+        self.assertEqual((home / "auth.json").read_bytes(), b"{}")
+        self.assertEqual((moved / "auth.json").read_bytes(), updated)
+
+    def test_refresh_rejects_a_symlinked_auth_destination(self):
+        home = self.home / "eval-home"
+        home.mkdir()
+        auth = home / "auth.json"
+        auth.write_bytes(b"{}")
+        updated = b'{"tokens":{"access_token":"synthetic-refresh"}}'
+        self.forbid_daily_auth_access()
+        with (
+            patch.object(
+                run.subprocess, "run", return_value=subprocess.CompletedProcess([], 0)
+            ),
+            patch.object(run, "copy_codex_auth_out", return_value=updated),
+            self.assertRaisesRegex(run.InfraError, "re-run the one-time eval login"),
+            run.codex_auth("container", set(), home),
+        ):
+            auth.unlink()
+            auth.symlink_to(self.daily_auth)
+        self.assertTrue(auth.is_symlink())
+
+    def test_invalid_token_refused_before_copy_in(self):
+        home = self.home / "eval-home"
+        home.mkdir()
+        for invalid in ('with"quote', "with\\slash", "with whitespace", "café", "", 42):
+            (home / "auth.json").write_text(
+                json.dumps({"tokens": {"access_token": invalid}})
+            )
+            with (
+                self.subTest(invalid=invalid),
+                patch.object(run.subprocess, "run") as invoke,
+                self.assertRaisesRegex(run.InfraError, "unsupported characters"),
+                run.codex_auth("container", set(), home),
+            ):
+                self.fail("accepted token outside the redaction charset")
+            invoke.assert_not_called()
+
+    def test_missing_login_after_startup_stops_batch(self):
+        home = self.home / "eval-home"
+        home.mkdir()
+        auth = home / "auth.json"
+        auth.write_text("{}")
+        run.prepare_login("codex", None, home)
+        auth.unlink()
+        guard = run.UsageGuard(0.6, 0.8)
+        with (
+            patch.object(run.subprocess, "run") as invoke,
+            self.assertRaisesRegex(run.InfraError, "re-run the one-time eval login"),
+            run.codex_auth("container", set(), home, guard),
+        ):
+            self.fail("invoked the agent without an eval login")
+        invoke.assert_not_called()
+        with self.assertRaisesRegex(run.InfraError, "skipped: Codex eval login"):
+            guard.before_run()
+
+    def test_judge_does_not_retry_when_the_container_login_disappears(self):
+        home = self.home / "eval-home"
+        home.mkdir()
+        (home / "auth.json").write_bytes(b"{}")
+        replies = [
+            subprocess.CompletedProcess([], 0, b""),
+            subprocess.CompletedProcess([], 1, "", ""),
+        ]
+        with (
+            patch.object(run, "sh"),
+            patch.object(grade.time, "sleep") as pause,
+            patch.object(run.subprocess, "run", side_effect=replies) as invoke,
+            patch.object(run, "copy_codex_auth_out", return_value=b"") as copy_out,
+            self.assertRaisesRegex(run.InfraError, "re-run the one-time eval login"),
+        ):
+            grade.judge("Prompt.", grade.PAIR_SCHEMA, "model", "codex", codex_home=home)
+        self.assertEqual(invoke.call_count, 2)
+        copy_out.assert_called_once()
+        pause.assert_not_called()
+        self.assertEqual((home / "auth.json").read_bytes(), b"{}")
+
+    def test_oversized_copy_out_keeps_existing_login(self):
+        home = self.home / "eval-home"
+        home.mkdir()
+        auth = home / "auth.json"
+        auth.write_text("{}")
+        popen = subprocess.Popen
+
+        def oversized_output(cmd, **kwargs):
+            self.assertIn("head -c 65537", cmd[-1])
+            return popen(
+                [
+                    sys.executable,
+                    "-c",
+                    "import sys; sys.stdout.buffer.write(b'{}' + b' ' * 65536)",
+                ],
+                **kwargs,
+            )
+
+        with (
+            patch.object(
+                run.subprocess, "run", return_value=subprocess.CompletedProcess([], 0)
+            ),
+            patch.object(
+                run.subprocess, "Popen", side_effect=oversized_output
+            ) as invoke,
+            self.assertRaisesRegex(run.InfraError, "64 KiB"),
+            run.codex_auth("container", set(), home),
+        ):
+            pass
+        invoke.assert_called_once()
+        self.assertEqual(auth.read_text(), "{}")
 
     def test_missing_eval_login_fails_before_either_batch(self):
         self.forbid_daily_auth_access()
@@ -790,10 +973,69 @@ class AuthTests(unittest.TestCase):
         self.forbid_daily_auth_access()
         for home in (self.daily_auth.parent, home_alias, other_home):
             with self.subTest(home=home), self.assertRaises(run.InfraError):
-                run.codex_auth_path(home)
+                run.prepare_login("codex", None, home)
+
+    def test_both_clis_reject_token_and_home_paths_inside_daily_codex(self):
+        daily = self.daily_auth.parent
+        child = daily / "eval-home"
+        child.mkdir()
+        (child / "auth.json").write_text("{}")
+        alias = self.home / "alias"
+        alias.symlink_to(daily)
+        self.forbid_daily_auth_access(allow_lstat=True)
+        for module, selector, extra in (
+            (run, "--agent", ["--arm", "none"]),
+            (grade, "--judge", []),
+        ):
+            for provider, option, path in (
+                ("claude", "--token-file", self.daily_auth),
+                ("claude", "--token-file", alias / "auth.json"),
+                ("codex", "--codex-home", child),
+                ("codex", "--codex-home", alias / child.name),
+            ):
+                cli = [
+                    "eval",
+                    "--out",
+                    str(self.home / "out"),
+                    *extra,
+                    selector,
+                    provider,
+                    option,
+                    str(path),
+                ]
+                with (
+                    self.subTest(module=module.__name__, path=path),
+                    patch.object(sys, "argv", cli),
+                    patch.object(
+                        run,
+                        "container_batch",
+                        side_effect=AssertionError("batch started"),
+                    ),
+                    self.assertRaisesRegex(
+                        run.InfraError, "outside the daily Codex home"
+                    ),
+                ):
+                    module.main()
 
 
 class JudgeTests(unittest.TestCase):
+    def test_claude_hard_limit_on_stderr_is_never_retried(self):
+        success = json.dumps({"structured_output": {"better": "tie"}})
+        diagnostic = "usage_limit_reached"
+        for outcome in (
+            subprocess.CompletedProcess([], 0, success, diagnostic),
+            subprocess.TimeoutExpired("claude", 900, stderr=diagnostic.encode()),
+        ):
+            with (
+                self.subTest(outcome=outcome),
+                patch.object(grade.time, "sleep") as pause,
+                patch.object(grade.subprocess, "run", side_effect=[outcome]) as invoke,
+                self.assertRaisesRegex(run.InfraError, "usage limit reached"),
+            ):
+                grade.judge("Prompt.", grade.PAIR_SCHEMA, "model", "claude")
+            invoke.assert_called_once()
+            pause.assert_not_called()
+
     def test_workspace_limits_are_never_retried(self):
         for message in WORKSPACE_LIMITS:
             with (
@@ -840,7 +1082,7 @@ class JudgeTests(unittest.TestCase):
 
     def test_judge_auth_failure_is_never_retried(self):
         home = Path("/synthetic/eval-home")
-        failure = subprocess.CompletedProcess([], 1, "", "Login required")
+        failure = subprocess.CompletedProcess([], 1, "", EXPIRED_REFRESH)
         with (
             patch.object(run, "sh"),
             patch.object(run, "codex_auth", return_value=nullcontext()) as auth,

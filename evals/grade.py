@@ -310,15 +310,30 @@ def judge_once(
         "--output-format",
         "json",
     ]
-    proc = subprocess.run(
-        cmd, input=prompt, capture_output=True, text=True, timeout=900, check=False
-    )
+    secrets: set[str] = set()
+    if token := os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"):
+        harness.remember_token(token, secrets)
+    try:
+        proc = subprocess.run(
+            cmd, input=prompt, capture_output=True, text=True, timeout=900, check=False
+        )
+    except subprocess.TimeoutExpired as exc:
+        _, stderr = harness.timeout_output(exc)
+        if harness.hard_usage_limit(stderr):
+            raise harness.InfraError("Claude usage limit reached") from None
+        raise
+    if harness.hard_usage_limit(proc.stderr):
+        raise harness.InfraError("Claude usage limit reached")
     lines = proc.stdout.strip().splitlines()
     result = json.loads(lines[-1]) if lines and lines[-1].startswith("{") else {}
     if proc.returncode or result.get("is_error") or not result.get("structured_output"):
         detail = result.get("result") or (proc.stdout + proc.stderr)[-1500:]
-        raise RuntimeError(f"judge failed (exit {proc.returncode}): {detail}")
-    return result["structured_output"]
+        if harness.hard_usage_limit(str(result.get("api_error") or detail)):
+            raise harness.InfraError("Claude usage limit reached")
+        raise RuntimeError(
+            f"judge failed (exit {proc.returncode}): {harness.redact(detail, secrets)}"
+        )
+    return harness.redact_json(result["structured_output"], secrets)
 
 
 def request_text(case: dict) -> str:
@@ -502,12 +517,9 @@ def main() -> None:
     parser.add_argument("--compare", nargs=2, metavar=("ARM_A", "ARM_B"))
     args = parser.parse_args()
     args.model = args.model or harness.DEFAULT_MODELS[args.judge]
-    if args.judge == "claude":
-        if args.token_file is None:
-            parser.error("--token-file is required for Claude")
-        os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = args.token_file.read_text().strip()
-    else:
-        harness.codex_auth_path(args.codex_home)
+    if args.judge == "claude" and args.token_file is None:
+        parser.error("--token-file is required for Claude")
+    harness.prepare_login(args.judge, args.token_file, args.codex_home)
     with harness.container_batch():
         grade_batch(args)
 

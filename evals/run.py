@@ -17,6 +17,7 @@ import fcntl
 import json
 import os
 import re
+import select
 import shlex
 import shutil
 import signal
@@ -41,6 +42,7 @@ DEFAULT_MODELS = {"claude": "claude-opus-5-5", "codex": "gpt-6-luna"}
 CODEX_HOME = f"{HOME}/.codex"
 DEFAULT_CODEX_HOME = Path("~/.local/share/skills-evals/codex-home")
 CODEX_AUTH = f"{CODEX_HOME}/auth.json"
+MAX_CODEX_AUTH_BYTES = 64 * 1024
 TOKEN_FIELDS = ("id_token", "access_token", "refresh_token")
 OTHER_CREDENTIAL_FIELDS = (
     "OPENAI_API_KEY",
@@ -74,6 +76,10 @@ KILL_AGENT = "kill -KILL -1 2>/dev/null || true"
 
 class InfraError(RuntimeError):
     """The run could not happen; leave it unfinished so a rerun repeats it."""
+
+
+class CodexLoginError(InfraError):
+    """The dedicated login must be renewed before continuing the batch."""
 
 
 class UsageGuard:
@@ -160,45 +166,163 @@ def fraction(raw: str) -> float:
     return value
 
 
-def codex_login_error(home: Path) -> InfraError:
-    return InfraError(
-        "Codex eval login missing or expired. Run "
+def codex_login_error(home: Path) -> CodexLoginError:
+    return CodexLoginError(
+        "Codex eval login missing or expired. To re-run the one-time eval login, use "
         f"CODEX_HOME={shlex.quote(str(home.expanduser()))} "
         "codex -c 'cli_auth_credentials_store=\"file\"' login"
     )
 
 
-def codex_auth_path(home: Path) -> Path:
-    home = home.expanduser().resolve()
-    if home == (Path.home() / ".codex").resolve():
-        raise InfraError(
-            "--codex-home must be a dedicated directory outside the daily Codex home"
-        )
-    path = home / "auth.json"
-    try:
-        info = path.lstat()
-    except FileNotFoundError:
-        raise codex_login_error(home) from None
-    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not info.st_size:
-        raise codex_login_error(home)
+def outside_daily_codex(path: Path, option: str) -> Path:
+    path = path.expanduser().absolute()
+    daily = Path.home() / ".codex"
+    if path.is_relative_to(daily) or Path(os.path.realpath(path)).is_relative_to(
+        os.path.realpath(daily)
+    ):
+        raise InfraError(f"{option} must point outside the daily Codex home")
     return path
+
+
+@contextmanager
+def open_codex_home(home: Path, guard: UsageGuard | None = None):
+    path = outside_daily_codex(home, "--codex-home")
+    try:
+        try:
+            fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        except (FileNotFoundError, NotADirectoryError):
+            raise codex_login_error(home) from None
+        try:
+            yield fd
+        finally:
+            os.close(fd)
+    except CodexLoginError as exc:
+        if guard is not None:
+            guard.stop(str(exc))
+        raise
+
+
+@contextmanager
+def open_codex_login(home: Path, dir_fd: int):
+    try:
+        fd = os.open(
+            "auth.json", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=dir_fd
+        )
+    except OSError as exc:
+        if exc.errno not in (errno.ENOENT, errno.ELOOP):
+            raise
+        raise codex_login_error(home) from None
+    with os.fdopen(fd, "rb") as source:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not info.st_size:
+            raise codex_login_error(home)
+        yield source
+
+
+def remember_token(value: object, secrets: set[str]) -> None:
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9._~+/=-]+", value):
+        raise InfraError(
+            "Credential token must be a nonempty string with no unsupported characters"
+        )
+    secrets.add(value)
 
 
 def remember_codex_tokens(raw: bytes, secrets: set[str]) -> None:
     def remember(value) -> None:
-        if isinstance(value, str) and value:
-            secrets.add(value)
+        if isinstance(value, str):
+            remember_token(value, secrets)
         elif isinstance(value, dict):
             for item in value.values():
                 remember(item)
+        elif isinstance(value, list):
+            for item in value:
+                remember(item)
 
-    data = parse_event(raw)
+    try:
+        data = json.loads(raw)
+    except (ValueError, RecursionError):
+        raise InfraError("Invalid Codex eval login JSON") from None
+    if not isinstance(data, dict):
+        raise InfraError("Invalid Codex eval login JSON")
     tokens = data.get("tokens")
-    if isinstance(tokens, dict):
+    if tokens is not None:
+        if not isinstance(tokens, dict):
+            raise InfraError("Invalid Codex eval login JSON")
         for key in TOKEN_FIELDS:
-            remember(tokens.get(key))
+            if (token := tokens.get(key)) is not None:
+                remember_token(token, secrets)
     for key in OTHER_CREDENTIAL_FIELDS:
         remember(data.get(key))
+
+
+def prepare_login(provider: str, token_file: Path | None, codex_home: Path) -> None:
+    if token_file is not None:
+        token_file = outside_daily_codex(token_file, "--token-file")
+    if provider == "codex":
+        with (
+            open_codex_home(codex_home) as dir_fd,
+            open_codex_login(codex_home, dir_fd) as source,
+        ):
+            remember_codex_tokens(source.read(), set())
+        return
+    outside_daily_codex(codex_home, "--codex-home")
+    if token_file is not None:
+        token = token_file.read_text().strip()
+        remember_token(token, set())
+        os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = token
+
+
+def replace_codex_login(dir_fd: int, updated: bytes) -> None:
+    pending = f".auth-{uuid.uuid4().hex}.tmp"
+    fd = os.open(
+        pending,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+        0o600,
+        dir_fd=dir_fd,
+    )
+    try:
+        with os.fdopen(fd, "wb") as tmp:
+            tmp.write(updated)
+            tmp.flush()
+            os.fsync(tmp.fileno())
+        os.replace(pending, "auth.json", src_dir_fd=dir_fd, dst_dir_fd=dir_fd)
+    finally:
+        try:
+            os.unlink(pending, dir_fd=dir_fd)
+        except FileNotFoundError:
+            pass
+
+
+def copy_codex_auth_out(name: str) -> bytes:
+    command = (
+        f'p="{CODEX_AUTH}"; if [ ! -L "$p" ] && [ -f "$p" ]; then '
+        f'/usr/bin/head -c {MAX_CODEX_AUTH_BYTES + 1} -- "$p" && rm -f -- "$p"; fi'
+    )
+    with subprocess.Popen(
+        ["docker", "exec", name, "bash", "-c", command],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    ) as proc:
+        deadline = time.monotonic() + 30
+        updated = bytearray()
+        try:
+            # Enforce the byte limit on the host even if the container sends more.
+            while len(updated) <= MAX_CODEX_AUTH_BYTES:
+                remaining = max(0, deadline - time.monotonic())
+                if not select.select([proc.stdout], [], [], remaining)[0]:
+                    raise InfraError("Codex auth copy-out timed out")
+                chunk = proc.stdout.read1(MAX_CODEX_AUTH_BYTES + 1 - len(updated))
+                if not chunk:
+                    break
+                updated.extend(chunk)
+            if len(updated) > MAX_CODEX_AUTH_BYTES:
+                raise InfraError("Codex auth copy-out exceeds 64 KiB")
+            if proc.wait(timeout=max(0, deadline - time.monotonic())):
+                raise InfraError("Codex auth transfer failed")
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+    return bytes(updated)
 
 
 @contextmanager
@@ -206,79 +330,64 @@ def codex_auth(
     name: str, secrets: set[str], home: Path, guard: UsageGuard | None = None
 ):
     """Serialize copy-in, invocation, and refresh for the dedicated eval login."""
-    path = codex_auth_path(home)
 
-    def transfer(command: str, data: bytes | None = None) -> bytes:
-        proc = subprocess.run(
-            ["docker", "exec", "-i", name, "bash", "-c", command],
-            input=data,
-            capture_output=True,
-            timeout=30,
-            check=False,
-        )
-        if proc.returncode:
-            raise InfraError("Codex auth transfer failed")
-        return proc.stdout
-
-    with AUTH_LOCK, (path.parent / ".eval-auth.lock").open("ab") as lock:
-        if guard is None:
-            fcntl.flock(lock, fcntl.LOCK_EX)
-        else:
-            # Let the runner's main thread cancel a worker waiting on another batch.
-            with guard.lock:
-                while True:
-                    guard.before_turn()
-                    try:
-                        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    except BlockingIOError:
-                        guard.lock.wait(0.1)
-                    else:
-                        break
+    with AUTH_LOCK, open_codex_home(home, guard) as dir_fd:
         try:
-            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-        except OSError as exc:
-            if exc.errno not in (errno.ENOENT, errno.ELOOP):
-                raise
-            raise codex_login_error(home) from None
-        with os.fdopen(fd, "rb") as source:
-            info = os.fstat(source.fileno())
-            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not info.st_size:
-                raise codex_login_error(home)
-            original = source.read()
-        remember_codex_tokens(original, secrets)
-        transfer(
-            f"umask 077; tmp=$(mktemp {CODEX_HOME}/auth.XXXXXX) "
-            f'&& cat > "$tmp" && mv -fT "$tmp" "{CODEX_AUTH}"',
-            original,
-        )
-        try:
-            yield
-        finally:
-            updated = transfer(
-                f'p="{CODEX_AUTH}"; if [ -f "$p" ] && [ ! -L "$p" ]; then cat "$p" && rm -f "$p"; fi'
+            fd = os.open(
+                ".eval-auth.lock",
+                os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK,
+                0o600,
+                dir_fd=dir_fd,
             )
-            remember_codex_tokens(updated, secrets)
-            if updated and updated != original:
-                with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as tmp:
-                    pending = Path(tmp.name)
-                    try:
-                        tmp.write(updated)
-                        tmp.flush()
-                        os.fsync(tmp.fileno())
-                        tmp.close()
-                        pending.replace(path)
-                    finally:
-                        pending.unlink(missing_ok=True)
+        except OSError as exc:
+            if exc.errno == errno.ELOOP:
+                raise InfraError("Codex eval auth lock must not be a symlink") from None
+            raise
+        with os.fdopen(fd, "wb") as lock:
+            if guard is None:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+            else:
+                # Let the runner's main thread cancel a worker waiting on another batch.
+                with guard.lock:
+                    while True:
+                        guard.before_turn()
+                        try:
+                            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        except BlockingIOError:
+                            guard.lock.wait(0.1)
+                        else:
+                            break
+            with open_codex_login(home, dir_fd) as source:
+                original = source.read()
+            remember_codex_tokens(original, secrets)
+            command = (
+                f"umask 077; tmp=$(mktemp {CODEX_HOME}/auth.XXXXXX) "
+                f'&& cat > "$tmp" && mv -fT "$tmp" "{CODEX_AUTH}"'
+            )
+            proc = subprocess.run(
+                ["docker", "exec", "-i", name, "bash", "-c", command],
+                input=original,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=30,
+                check=False,
+            )
+            if proc.returncode:
+                raise InfraError("Codex auth transfer failed")
+            try:
+                yield
+            finally:
+                updated = copy_codex_auth_out(name)
+                if not updated:
+                    raise codex_login_error(home)
+                remember_codex_tokens(updated, secrets)
+                with open_codex_login(home, dir_fd):
+                    if updated != original:
+                        replace_codex_login(dir_fd, updated)
 
 
 def redact(text: str, secrets: set[str]) -> str:
-    spellings = set(secrets)
-    for secret in secrets:
-        for ascii_only in (True, False):
-            escaped = json.dumps(secret, ensure_ascii=ascii_only)[1:-1]
-            spellings.add(escaped)
-            # A partial JSONL event may contain embedded JSON we cannot decode.
-            spellings.add(json.dumps(escaped, ensure_ascii=ascii_only)[1:-1])
+    spellings = secrets | {secret.replace("/", r"\/") for secret in secrets}
     for spelling in sorted(spellings, key=len, reverse=True):
         text = text.replace(spelling, "[redacted]")
     return text
@@ -476,6 +585,20 @@ def codex_error(message: str) -> str | None:
     return None
 
 
+def hard_usage_limit(detail: str) -> bool:
+    message = detail.lower()
+    return any(
+        limit in message
+        for limit in (
+            "hit your usage limit",
+            "usage_limit_reached",
+            "workspace_limit_reached",
+            "hit your spend cap",
+            "workspace is out of credits",
+        )
+    )
+
+
 def codex_events(stdout: str, stderr: str, home: Path) -> list[dict]:
     events = []
     diagnostics = [stderr]
@@ -488,16 +611,7 @@ def codex_events(stdout: str, stderr: str, home: Path) -> list[dict]:
         events.append(event)
     for detail in diagnostics:
         message = detail.lower()
-        if any(
-            limit in message
-            for limit in (
-                "hit your usage limit",
-                "usage_limit_reached",
-                "workspace_limit_reached",
-                "hit your spend cap",
-                "workspace is out of credits",
-            )
-        ):
+        if hard_usage_limit(detail):
             raise InfraError(f"Codex usage limit reached: {detail[-500:]}")
         if (
             re.search(r"\b(?:status(?: code)?[ :=]+401|401 unauthorized)\b", message)
@@ -509,6 +623,8 @@ def codex_events(stdout: str, stderr: str, home: Path) -> list[dict]:
                     "login_required",
                     "not logged in",
                     "run `codex login`",
+                    "refresh token has expired",
+                    "refresh_token_expired",
                 )
             )
         ):
@@ -560,6 +676,9 @@ def record_turn(
         if returncode and result is not None and not result.get("api_error"):
             raise InfraError(f"Codex exited {returncode} after reporting completion")
     else:
+        if hard_usage_limit(stderr):
+            args.guard.stop()
+            raise InfraError("Claude usage limit reached")
         results = []
         for line in stdout.splitlines():
             event = parse_event(line)
@@ -657,7 +776,7 @@ def run_agent(
         os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") if args.agent == "claude" else None
     )
     if token:
-        secrets.add(token)
+        remember_token(token, secrets)
     args.guard.before_run()
     for pattern in ("trace-*.jsonl", "stderr-*.txt"):
         for path in out.glob(pattern):
@@ -831,7 +950,7 @@ def run_in_container(case: dict, catalog: Path | None, out: Path, args) -> None:
             )
             checks.append(
                 {
-                    "name": check["name"],
+                    "name": redact(check["name"], secrets),
                     "passed": result.returncode == 0,
                     "output": redact(result.stdout + result.stderr, secrets)[-2000:],
                 }
@@ -876,12 +995,9 @@ def main() -> None:
 
     args.model = args.model or DEFAULT_MODELS[args.agent]
     args.guard = UsageGuard(args.max_five_hour, args.max_seven_day)
-    if args.agent == "claude":
-        if args.token_file is None:
-            parser.error("--token-file is required for Claude")
-        os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = args.token_file.read_text().strip()
-    else:
-        codex_auth_path(args.codex_home)
+    if args.agent == "claude" and args.token_file is None:
+        parser.error("--token-file is required for Claude")
+    prepare_login(args.agent, args.token_file, args.codex_home)
     manifest = args.out / "manifest.json"
     if manifest.exists():
         previous = json.loads(manifest.read_text())
