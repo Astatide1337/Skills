@@ -27,7 +27,7 @@ NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 FRONTMATTER = re.compile(r"\A---\r?\n(.*?)^---[ \t]*(?:\r?\n|$)", re.DOTALL | re.MULTILINE)
 FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 QUOTE_PREFIX = re.compile(r"^ {0,3}>[ \t]?")
-LIST_PREFIX = re.compile(r"^ {0,3}(?:[-+*]|[0-9]{1,9}[.)])(?: {1,4}(?=\S)| (?= )|$)")
+LIST_PREFIX = re.compile(r"^ {0,3}(?:[-+*]|[0-9]{1,9}[.)])(?:[ \t]{1,4}(?=\S)|[ \t](?=[ \t])|$)")
 LABEL = r"\[(?:\\.|[^\[\]\\])*\]"
 LINK_TEXT = rf"\[(?:\\.|[^\[\]\\]|{LABEL})*\]"
 PATH_PART = r"\\.|[^\s()<>\\]"
@@ -41,7 +41,8 @@ REFERENCE = re.compile(
 MARKDOWN = re.compile(
     rf"(?<![\\`])(?P<ticks>`+)(?!`)(?P<code>.+?)(?<!`)(?P=ticks)(?!`)"
     rf"|(?<!\\)(?P<image>!)?(?P<link>{LINK_TEXT})"
-    rf"(?:(?P<inline>\(\s*(?P<target>{DESTINATION})?(?:\s+{TITLE})?\s*\))|(?P<ref>{LABEL}))?",
+    rf"(?:(?P<inline>\(\s*(?P<target>{DESTINATION})?(?:\s+{TITLE})?\s*\))|(?P<ref>{LABEL}))?"
+    r"|(?<!\\)<(?P<autolink>[^<>\s`]+)>",
     re.DOTALL,
 )
 MARKDOWN_ESCAPE = re.compile(r"\\([" + re.escape(string.punctuation) + r"])")
@@ -203,11 +204,12 @@ def validate_catalog(catalog: object, exported: set[str]) -> None:
         fail(f"catalog profile membership mismatch: {', '.join(mismatch)}")
 
 
-def without_fences(markdown: str) -> str:
+def without_code_blocks(markdown: str) -> str:
     fence = ""
     containers: list[int] = []  # A zero width denotes a blockquote.
     lines = []
     for line in markdown.splitlines():
+        line = re.sub(r"^[ \t]*\t[ \t]*", lambda indent: indent[0].expandtabs(4), line)
         for index, width in enumerate(containers):
             if width == 0 and (quote := QUOTE_PREFIX.match(line)):
                 line = line[quote.end():]
@@ -215,8 +217,9 @@ def without_fences(markdown: str) -> str:
                 line = line[width:]
             else:
                 del containers[index:]
+                if fence or width == 0:
+                    lines.append("")
                 fence = ""
-                lines.append("")
                 break
         if not fence:
             while True:
@@ -224,7 +227,7 @@ def without_fences(markdown: str) -> str:
                     containers.append(0)
                     line = line[quote.end():]
                 elif marker := LIST_PREFIX.match(line):
-                    containers.append(marker.end())
+                    containers.append(len(marker[0].expandtabs(4)))
                     line = line[marker.end():]
                 else:
                     break
@@ -239,13 +242,20 @@ def without_fences(markdown: str) -> str:
         elif match and (match[1][0] == "~" or "`" not in match[2]):
             fence = match[1]
             lines.append("")
+        elif line.startswith("    ") and (not lines or not lines[-1].strip()):
+            lines.append("")
         else:
             lines.append(line)
     return "\n".join(lines)
 
 
 def destinations(markdown: str) -> Iterator[tuple[str, bool]]:
-    """Yield link destinations and literal inline-code candidates."""
+    """Extract inline and reference links (with list-scoped definitions), linked
+    images, URI and path-shaped autolinks, and literal inline-code paths.
+
+    Handle lazy list continuation and skip fenced and indented code, including
+    inside lists. Other Markdown syntax is out of scope.
+    """
     references = {}
 
     def label_key(label: str) -> str:
@@ -262,6 +272,12 @@ def destinations(markdown: str) -> Iterator[tuple[str, bool]]:
                 if re.fullmatch(r"[^\s<>{}`$]+", token):
                     yield token, True
                 continue
+            if (autolink := match["autolink"]) is not None:
+                path = re.split(r"[?#]", autolink, maxsplit=1)[0]
+                if not images_only and (URI_SCHEME.match(autolink) or "/" in path.lstrip("/")
+                                        or ("." in path and "@" not in path)):
+                    yield match[0], False
+                continue
             target = match["target"]
             if match["inline"] is None:
                 label = match["ref"]
@@ -274,7 +290,7 @@ def destinations(markdown: str) -> Iterator[tuple[str, bool]]:
                 if "[" in label_text or "`" in label_text:
                     yield from inline_destinations(label_text, images_only or target is not None)
 
-    markdown = REFERENCE.sub(remember, without_fences(markdown))
+    markdown = REFERENCE.sub(remember, without_code_blocks(markdown))
     for paragraph in re.split(r"\n[ \t]*\n", markdown):
         yield from inline_destinations(paragraph)
 
@@ -307,6 +323,8 @@ def skill_links(skill_dir: Path, body: str) -> SkillGraph:
         markdown = body if path == entry else path.read_text(encoding="utf-8")
         targets = set()
         for raw, inline_code in destinations(markdown):
+            if inline_code and re.search(r"[*?\[<>{}]", raw):
+                continue
             if not inline_code:
                 raw = unescape(MARKDOWN_ESCAPE.sub(r"\1", raw.removeprefix("<").removesuffix(">")))
             if raw.startswith("skill:"):
@@ -328,8 +346,7 @@ def skill_links(skill_dir: Path, body: str) -> SkillGraph:
                 # A bare bundle path can be relative to the skill entry.
                 if "/" in local and prefix in BUNDLE_DIRS and not in_local_dir:
                     bundled = owner / local_path
-                    if (path == entry or bundled.is_file()
-                            or (prefix in ("scripts", "assets") and (owner / prefix).is_dir())):
+                    if path == entry or bundled.is_file() or prefix in ("scripts", "assets"):
                         candidate = bundled
                         explicit = True
                 if not (explicit or in_local_dir or candidate.is_file()):
@@ -422,7 +439,7 @@ def base_debt(root: Path, allowlist: Path, base_ref: str,
         return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=False)
 
     revision = git("rev-parse", "--verify", "--end-of-options", f"{base_ref}^{{commit}}")
-    if base_ref == BOOTSTRAP_BASE or revision.stdout.strip() == BOOTSTRAP_BASE:
+    if base_ref in (BOOTSTRAP_BASE, "0" * 40) or revision.stdout.strip() == BOOTSTRAP_BASE:
         # Hash normalized rows so reformatting the baseline does not change its identity.
         digest = hashlib.sha256(json.dumps(sorted(allowed)).encode()).hexdigest()
         if digest != BOOTSTRAP_DEBT_SHA256:

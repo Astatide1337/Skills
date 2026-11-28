@@ -10,6 +10,7 @@ from pathlib import Path
 
 from scripts.validate_catalog import (
     MAX_DESCRIPTION_CHARS,
+    base_debt,
     destinations,
     load_yaml,
     skill_links,
@@ -19,6 +20,19 @@ from scripts.validate_catalog import (
     validate_reference_routes,
     validate_skill,
 )
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+class CatalogWorkflowTests(unittest.TestCase):
+    def test_debt_base_uses_pr_base_or_tip_before_push(self):
+        path = ROOT / ".github/workflows/ci.yml"
+        steps = load_yaml(path.read_text(), path)["jobs"]["checks"]["steps"]
+        validate = next(step for step in steps if "scripts/validate_catalog.py" in step.get("run", ""))
+        self.assertEqual(
+            validate["env"]["BASE_REF"],
+            "${{ github.event.pull_request.base.sha || github.event.before || github.sha }}",
+        )
 
 
 class DescriptionBudgetTests(unittest.TestCase):
@@ -181,6 +195,18 @@ class MarkdownDestinationTests(unittest.TestCase):
             with self.subTest(markdown=markdown):
                 self.assertEqual(list(destinations(markdown)), [("present.md", False)])
 
+    def test_link_label_can_continue_without_list_indentation(self):
+        markdown = "- Read [the\nmanual](missing.md)"
+        self.assertEqual(list(destinations(markdown)), [("missing.md", False)])
+
+    def test_tab_after_a_list_marker_opens_a_fence(self):
+        markdown = "-\t```md\n\n\t[example](missing.md)\n\n\t```\n\n[real](present.md)"
+        self.assertEqual(list(destinations(markdown)), [("present.md", False)])
+
+    def test_indented_code_is_ignored_including_inside_lists(self):
+        markdown = "    [example](missing.md)\n\n- Item\n\n      [hidden](missing.md)\n\n[real](present.md)"
+        self.assertEqual(list(destinations(markdown)), [("present.md", False)])
+
     def test_reference_definitions_on_a_list_marker_or_continuation(self):
         markdown = (
             "[first] [second]\n\n"
@@ -298,6 +324,21 @@ class GraphDebtTests(unittest.TestCase):
             with self.subTest(body=body), self.assertRaisesRegex(ValueError, error):
                 self.verify_graph(body)
 
+    def test_reference_reports_literal_paths_even_without_bundle_directories(self):
+        detail = self.skill / "detail.md"
+        for path in ("scripts/missing.py", "assets/missing.png"):
+            detail.write_text(f"Read `{path}`.")
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, "missing target.*" + path):
+                self.verify_graph("[details](detail.md)")
+
+    def test_inline_bundle_globs_and_placeholders_are_examples(self):
+        (self.skill / "assets").mkdir()
+        detail = self.skill / "detail.md"
+        for pattern in ("*.png", "icon?.png", "[ab].png", "<name>.png", "{name}.png"):
+            with self.subTest(pattern=pattern):
+                detail.write_text(f"Example: `assets/{pattern}`.")
+                self.verify_graph("[details](detail.md)")
+
     def test_unlinked_resource_cannot_escape_its_package(self):
         (self.skill / "resource.py").symlink_to(self.outside)
         with self.assertRaisesRegex(ValueError, "outside.*package"):
@@ -322,6 +363,19 @@ class GraphDebtTests(unittest.TestCase):
         self.assertIn("unknown skill route: skills/one/SKILL.md -> skill:missing", report)
         self.assertIn("self skill route: skills/one/SKILL.md -> skill:one", report)
         self.assertIn("cyclic skill route: skills/two/SKILL.md -> skill:one", report)
+
+    def test_autolinks_report_named_routes_and_check_local_targets(self):
+        self.verify_graph("Use <skill:unknown> or <skill:one> and ignore `<skill:example>`.")
+        report = self.stdout.getvalue()
+        self.assertIn("unknown skill route: skills/one/SKILL.md -> skill:unknown", report)
+        self.assertIn("self skill route: skills/one/SKILL.md -> skill:one", report)
+        self.assertNotIn("skill:example", report)
+        with self.assertRaisesRegex(ValueError, r"missing target.*missing\.md"):
+            self.verify_graph("Read <missing.md>.")
+
+    def test_new_branch_uses_pinned_baseline_when_there_is_no_previous_tip(self):
+        with self.assertRaisesRegex(ValueError, "differs from the pinned initial audit baseline"):
+            base_debt(self.root, self.allowlist, "0" * 40, {("chain", "a", "b")})
 
     def test_base_ref_rejects_growing_baseline_but_permits_removing_resolved_debt(self):
         entry = ["escape", "skills/one/SKILL.md", "skills/two/SKILL.md"]
