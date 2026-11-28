@@ -196,13 +196,16 @@ def local_autolink(state: StateInline, silent: bool) -> bool:
         return False
     if not silent:
         token = state.push("local_autolink", "", 0)
-        token.content = state.md.normalizeLink(unescapeAll(target))
+        token.content = unescapeAll(target)
     state.pos = match.end()
     return True
 
 
 MARKDOWN = MarkdownIt("commonmark")
 MARKDOWN.inline.ruler.after("html_inline", "local_autolink", local_autolink)
+# Keep destinations as written (entities decoded, no percent-encoding or trimming);
+# the graph decodes them once, so `&#32;` and `%20` reach the filesystem check alike.
+MARKDOWN.normalizeLink = lambda url: url
 
 
 def destinations(markdown: str) -> Iterator[tuple[str, bool]]:
@@ -213,11 +216,14 @@ def destinations(markdown: str) -> Iterator[tuple[str, bool]]:
     for block in MARKDOWN.parse(markdown):
         if block.type != "inline":
             continue
+        in_link = 0  # angle text inside a link label is label text, not a destination
         for token in block.children or ():
+            if token.type in ("link_open", "link_close"):
+                in_link += 1 if token.type == "link_open" else -1
             if token.type == "code_inline":
                 if re.fullmatch(r"[^\s<>{}`$]+", code := token.content.strip(" ")):
                     yield code, True
-            elif token.type == "local_autolink":
+            elif token.type == "local_autolink" and not in_link:
                 yield token.content, False
             elif token.type == "link_open" and (href := token.attrGet("href")):
                 yield href, False

@@ -240,7 +240,7 @@ class MarkdownDestinationTests(unittest.TestCase):
 """
         self.assertEqual(list(destinations(markdown)), [
             ("docs/item_(old).md", False),
-            ("docs/with%20spaces.md#section", False),
+            ("docs/with spaces.md#section", False),
             ("docs/ref.md?view=1#heading", False),
             ("docs/collapsed.md", False),
             ("docs/shortcut.md", False),
@@ -389,6 +389,18 @@ class GraphDebtTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, r"missing target.*missing\.md"):
             self.verify_graph("[See <skill:unknown> and <missing.md>.]")
         self.assertIn("unknown skill route: skills/one/SKILL.md -> skill:unknown", self.stdout.getvalue())
+
+    def test_angle_text_inside_a_link_label_is_not_a_destination(self):
+        (self.skill / "detail.md").write_text("# Detail\n")
+        self.verify_graph("Read [<missing.md>](detail.md).")  # label text, real target exists
+        with self.assertRaisesRegex(ValueError, "unreachable Markdown.*detail.md"):
+            validate_reference_routes(self.skill, skill_links(self.skill, "[<detail.md>](https://example.org)"))
+
+    def test_entity_and_percent_encoded_trailing_space_both_reach_the_file_check(self):
+        (self.skill / "detail.md").write_text("# Detail\n")
+        for body in ("[go](<detail.md&#32;>)", "[go](<detail.md%20>)"):
+            with self.subTest(body=body), self.assertRaisesRegex(ValueError, "missing target"):
+                self.verify_graph(body)
 
     def test_new_branch_uses_pinned_baseline_when_there_is_no_previous_tip(self):
         with self.assertRaisesRegex(ValueError, "differs from the pinned initial audit baseline"):
