@@ -38,34 +38,6 @@ PLAYBOOK_SECTIONS = (
     "## Example",
     "## Near-miss",
 )
-WORKFLOW_ROUTES = {
-    "investigate/read",
-    "design/plan",
-    "design/prototype",
-    "implement/bug",
-    "implement/feature",
-    "implement/refactor",
-    "performance/measure",
-    "performance/improve",
-    "migrate-operate/upgrade",
-    "migrate-operate/migrate",
-    "migrate-operate/release",
-    "migrate-operate/incident",
-    "review/review",
-    "review/rereview",
-    "issues/draft",
-    "issues/create",
-    "issues/update",
-    "issues/triage",
-    "pull-requests/draft",
-    "pull-requests/create",
-    "pull-requests/monitor",
-    "pull-requests/communicate",
-    "document-teach/document",
-    "document-teach/teach",
-    "workflow-improvement/improve",
-    "verify-work/verify",
-}
 
 
 def fail(message: str) -> None:
