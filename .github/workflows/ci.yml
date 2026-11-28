@@ -51,7 +51,7 @@ jobs:
           SKILLS_LINT_RUNTIME="$RUNNER_TEMP/skills-lint-python" uv run --frozen python -m unittest evals.tests.test_catalog_validation evals.tests.test_cli_installation evals.tests.test_portable_lint.PythonLintTests evals.tests.test_portable_lint.DiscoveryTests evals.tests.test_portable_lint.SetupTests evals.tests.test_autonomous_cases evals.tests.test_agent_gates -v
 
   workspace-tests:
-    # Bubblewrap requires user namespaces denied by the restricted cluster runtime.
+    # Runs the complete suite, including the Node-based lint tools, on a hosted runner.
     # Standard hosted VM minutes are free only while this repository is public.
     if: >-
       github.repository == 'Astatide1337/Skills' && github.event.repository.private == false &&
@@ -70,11 +70,6 @@ jobs:
         with:
           version: 0.12.19
           enable-cache: false
-      - name: Install distro Bubblewrap and verify its namespace
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends bubblewrap
-          bwrap --unshare-all --ro-bind / / -- true
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'

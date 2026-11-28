@@ -135,13 +135,3 @@ class ContractTests(unittest.TestCase):
             path.unlink()
             result = subprocess.run([sys.executable, str(SCRIPT), str(path)], capture_output=True, text=True, check=False)
             self.assertEqual(result.returncode, 2)
-
-    def test_cases_load_and_primary_is_unique(self):
-        catalog = json.loads((ROOT / 'evals/cases/catalog.json').read_text())
-        self.assertEqual(sum(c['metadata'].get('skill') == 'agent-contracts' for c in catalog), 1)
-        cases = json.loads((ROOT / 'evals/cases/workflows.json').read_text())
-        selected = {c['id']: c for c in cases if c['id'].startswith('workflow-contract-')}
-        self.assertEqual(len(selected), 3)
-        self.assertIn('agent-contracts', selected['workflow-contract-full']['metadata']['expected_skills'])
-        self.assertIn('agent-contracts', selected['workflow-contract-tiny']['metadata']['forbidden_skills'])
-        self.assertIn('accepted alternatives', selected['workflow-contract-missing-check']['target'])

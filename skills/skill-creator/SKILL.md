@@ -121,13 +121,12 @@ Package only when requested:
 python skills/skill-creator/scripts/package_skill.py skills/<name> <output-dir>
 ```
 
-## 6. Evaluate behavior with Inspect
+## 6. Evaluate behavior
 
-Use the existing workflow cases and Inspect runner. Preserve the catalog's
-primary-case invariant. Add cases only for changed behavior, and share them
-across skills where possible. Do not build another runner, grader, viewer,
-provider adapter or statistics layer. Teaching examples and their regression
-tests are not held-out evidence.
+Use the autonomous evals in `evals/` (`run.py`, `grade.py`, `cases/`). Add
+cases only for changed behavior, and share them across skills where possible.
+Do not build another runner, grader or statistics layer. Teaching examples and
+their regression tests are not held-out evidence.
 
 An evaluation design must name the representative case, candidate guidance,
 accepted baseline and behavioral evidence used for comparison. Keep task
@@ -136,9 +135,8 @@ A no-skill control is an optional diagnostic, not a substitute for the
 accepted baseline. Without that comparison, a case cannot show improvement.
 
 Read [the evaluation procedure](references/evaluation.md) before execution.
-It covers the existing Inspect tasks, authenticated native CLI, blinding,
-effort settings and outcome and cost measurements. Keep expected answers out
-of candidate prompts. Missing required output fails; preserve the stated
+It covers case format, usage budgets, blinding, calibration and how to judge
+outcomes before cost. Keep expected answers out of candidate prompts. Missing required output fails; preserve the stated
 rules for artifact-only answers and unsupported environments.
 
 For a design-only proposal, provide concrete repository commands for

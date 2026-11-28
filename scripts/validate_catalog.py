@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import json
 import re
 import sys
 from pathlib import Path
@@ -39,34 +38,6 @@ PLAYBOOK_SECTIONS = (
     "## Example",
     "## Near-miss",
 )
-WORKFLOW_ROUTES = {
-    "investigate/read",
-    "design/plan",
-    "design/prototype",
-    "implement/bug",
-    "implement/feature",
-    "implement/refactor",
-    "performance/measure",
-    "performance/improve",
-    "migrate-operate/upgrade",
-    "migrate-operate/migrate",
-    "migrate-operate/release",
-    "migrate-operate/incident",
-    "review/review",
-    "review/rereview",
-    "issues/draft",
-    "issues/create",
-    "issues/update",
-    "issues/triage",
-    "pull-requests/draft",
-    "pull-requests/create",
-    "pull-requests/monitor",
-    "pull-requests/communicate",
-    "document-teach/document",
-    "document-teach/teach",
-    "workflow-improvement/improve",
-    "verify-work/verify",
-}
 
 
 def fail(message: str) -> None:
@@ -175,171 +146,12 @@ def main() -> None:
         if missing_sections:
             fail(f"playbook {path.relative_to(ROOT)} missing sections: {missing_sections}")
 
-    cases = json.loads((ROOT / "evals/cases/catalog.json").read_text())
-    if not isinstance(cases, list) or not cases:
-        fail("Inspect dataset must be a non-empty JSON array")
-    case_ids: set[str] = set()
-    covered_skills: set[str] = set()
-    for case in cases:
-        case_id = case.get("id") if isinstance(case, dict) else None
-        if not isinstance(case_id, str) or not NAME.fullmatch(case_id) or case_id in case_ids:
-            fail(f"invalid or duplicate eval case id: {case_id!r}")
-        if not all(isinstance(case.get(key), str) and case[key].strip() for key in ("input", "target")):
-            fail(f"eval case {case_id} needs input and target")
-        metadata = case.get("metadata")
-        if not isinstance(metadata, dict) or not isinstance(metadata.get("allow_changes"), bool):
-            fail(f"eval case {case_id} needs explicit allow_changes")
-        skill = metadata.get("skill")
-        if not isinstance(skill, str) or skill not in names:
-            fail(f"eval case {case_id} names an unknown skill: {skill!r}")
-        if skill in covered_skills:
-            fail(f"skill has more than one primary eval case: {skill}")
-        covered_skills.add(skill)
-        case_ids.add(case_id)
-
-    missing_coverage = names - covered_skills
-    if missing_coverage:
-        fail(f"skills missing primary eval coverage: {sorted(missing_coverage)}")
-
-    routing_path = ROOT / "evals/cases/routing.json"
-    routing_cases = json.loads(routing_path.read_text())
-    if not isinstance(routing_cases, list) or not routing_cases:
-        fail("routing eval dataset must be a non-empty JSON array")
-    routing_ids: set[str] = set()
-    for case in routing_cases:
-        case_id = case.get("id") if isinstance(case, dict) else None
-        if not isinstance(case_id, str) or not NAME.fullmatch(case_id) or case_id in routing_ids:
-            fail(f"invalid or duplicate routing case id: {case_id!r}")
-        if not isinstance(case.get("input"), str) or not case["input"].strip():
-            fail(f"routing case {case_id} needs input")
-        metadata = case.get("metadata")
-        expected = metadata.get("expected_skills") if isinstance(metadata, dict) else None
-        if not isinstance(expected, list) or not all(
-            isinstance(skill, str) and skill in names for skill in expected
-        ):
-            fail(f"routing case {case_id} needs known expected_skills")
-        if metadata.get("route_kind") not in {"positive", "negative"}:
-            fail(f"routing case {case_id} needs route_kind")
-        routing_ids.add(case_id)
-
-    workflows_path = ROOT / "evals/cases/workflows.json"
-    workflow_cases = json.loads(workflows_path.read_text())
-    if not isinstance(workflow_cases, list) or not workflow_cases:
-        fail("workflow eval dataset must be a non-empty JSON array")
-    workflow_ids: set[str] = set()
-    for case in workflow_cases:
-        case_id = case.get("id") if isinstance(case, dict) else None
-        if not isinstance(case_id, str) or not NAME.fullmatch(case_id) or case_id in workflow_ids:
-            fail(f"invalid or duplicate workflow case id: {case_id!r}")
-        if not all(isinstance(case.get(key), str) and case[key].strip() for key in ("input", "target")):
-            fail(f"workflow case {case_id} needs input and target")
-        metadata = case.get("metadata")
-        if not isinstance(metadata, dict) or not isinstance(metadata.get("allow_changes"), bool):
-            fail(f"workflow case {case_id} needs explicit allow_changes")
-        if "allowed_paths" in metadata:
-            paths = metadata["allowed_paths"]
-            if not isinstance(paths, list) or not paths or not all(
-                isinstance(path, str) and path and not path.startswith("/")
-                and ".." not in Path(path).parts for path in paths
-            ):
-                fail(f"workflow case {case_id} needs bounded allowed_paths")
-        expected_skills = metadata.get("expected_skills")
-        if not isinstance(expected_skills, list) or not all(
-            isinstance(skill, str) and skill in names for skill in expected_skills
-        ):
-            fail(f"workflow case {case_id} needs known expected_skills")
-        optional_skills = metadata.get("optional_skills", [])
-        if not isinstance(optional_skills, list) or not all(
-            isinstance(skill, str) and skill in names for skill in optional_skills
-        ):
-            fail(f"workflow case {case_id} has invalid optional_skills")
-        if set(expected_skills) & set(optional_skills):
-            fail(f"workflow case {case_id} repeats a required skill as optional")
-        expected_production = metadata.get("expected_production", "none")
-        if expected_production not in {"none", "read", "write"}:
-            fail(f"workflow case {case_id} has invalid expected_production")
-        expected_workflows = metadata.get("expected_workflows")
-        if not isinstance(expected_workflows, list) or not expected_workflows or not all(
-            isinstance(route, str) and route in WORKFLOW_ROUTES
-            for route in expected_workflows
-        ):
-            fail(f"workflow case {case_id} needs known expected_workflows")
-        modifiers = metadata.get("expected_modifiers")
-        if not isinstance(modifiers, list) or not all(
-            modifier == "parallel" for modifier in modifiers
-        ):
-            fail(f"workflow case {case_id} has invalid expected_modifiers")
-        for field in ("forbidden_effects", "required_observations"):
-            values = metadata.get(field)
-            if not isinstance(values, list) or not values or not all(
-                isinstance(value, str) and value.strip() for value in values
-            ):
-                fail(f"workflow case {case_id} needs non-empty {field}")
-        files = case.get("files", {})
-        if not isinstance(files, dict) or not all(
-            isinstance(path, str) and path and isinstance(content, str)
-            for path, content in files.items()
-        ):
-            fail(f"workflow case {case_id} has invalid fixture files")
-        execution_mode = metadata.get("execution_mode")
-        if "portable_tools" in metadata and type(metadata["portable_tools"]) is not bool:
-            fail(f"workflow case {case_id} portable_tools must be boolean")
-        if "interrupt_marker" in metadata:
-            marker = metadata["interrupt_marker"]
-            if (execution_mode != "execution-ready" or not isinstance(marker, str)
-                    or not marker or Path(marker).is_absolute() or ".." in Path(marker).parts
-                    or marker in files or not metadata.get("portable_tools")
-                    or not isinstance(metadata.get("resume_prompt"), str)
-                    or not metadata["resume_prompt"].strip()):
-                fail(f"workflow case {case_id} needs a fresh bounded marker, portable tools and resume prompt")
-        if execution_mode not in {"routing-only", "execution-ready"}:
-            fail(
-                f"workflow case {case_id} needs execution_mode routing-only or execution-ready"
-            )
-        if execution_mode == "execution-ready" and not files:
-            fail(f"execution-ready workflow case {case_id} has no fixture inputs")
-        if execution_mode == "routing-only" and files:
-            fail(f"routing-only workflow case {case_id} supplies executable files")
-        contract = metadata.get("fixture_contract")
-        if contract is not None:
-            if execution_mode != "execution-ready" or not isinstance(contract, dict):
-                fail(f"workflow case {case_id} has an invalid fixture contract")
-            kind = contract.get("kind")
-            if "response_required" in contract and not isinstance(contract["response_required"], bool):
-                fail(f"workflow case {case_id} response_required must be boolean")
-            if kind not in {"fake-tracker-publication", "response-contract", "workspace-test", "workspace-artifact"}:
-                fail(f"workflow case {case_id} has an unknown fixture contract kind")
-            if kind == "fake-tracker-publication":
-                if not isinstance(contract.get("required_operations"), list) or not contract["required_operations"]:
-                    fail(f"workflow case {case_id} publication contract needs required_operations")
-            elif kind == "response-contract":
-                values = contract.get("required_content")
-                if not isinstance(values, list) or not values or not all(isinstance(value, str) and value for value in values):
-                    fail(f"workflow case {case_id} response contract needs required_content")
-            else:
-                if not all(isinstance(contract.get(field), str) and contract[field] for field in ("write_path", "write_content")):
-                    fail(f"workflow case {case_id} workspace contract needs bounded output")
-                paths = contract.get("required_paths")
-                if not isinstance(paths, list) or not paths or not all(isinstance(path, str) and path for path in paths):
-                    fail(f"workflow case {case_id} workspace contract needs required_paths")
-                if kind == "workspace-test":
-                    command = contract.get("test_command")
-                    if not isinstance(command, list) or not command or not all(isinstance(item, str) and item for item in command):
-                        fail(f"workflow case {case_id} workspace-test contract needs test_command")
-        setup = case.get("setup")
-        if setup is not None and (not isinstance(setup, str) or not setup.strip()):
-            fail(f"workflow case {case_id} has invalid setup")
-        workflow_ids.add(case_id)
-
-    print(
-        f"validated {len(skill_files)} skills, {len(cases)} behavior cases, "
-        f"{len(routing_cases)} routing cases, and {len(workflow_cases)} workflow cases"
-    )
+    print(f"validated {len(skill_files)} skills")
 
 
 if __name__ == "__main__":
     try:
         main()
-    except (OSError, ValueError, yaml.YAMLError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, yaml.YAMLError) as exc:
         print(exc, file=sys.stderr)
         raise SystemExit(1)

@@ -8,7 +8,6 @@ import sys
 import tempfile
 import time
 import unittest
-from evals.interruption import interrupt
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -222,15 +221,17 @@ class PortableToolsTests(unittest.TestCase):
                     profile.run(spec, root)
 
     def test_process_resume_artifact_profile_and_freshness_cli_in_git_subdirectory(self):
-        from evals import skills
-        sample = next(s for s in skills.workflows_dataset() if s.id == 'workflow-native-process-resume')
+        fixture = json.loads((Path(__file__).parent / 'fixtures' / 'process_resume_profile.json').read_text())
+        files = {**fixture['files'],
+                 'checkpoint.py': (ROOT / 'skills/follow-instructions/scripts/checkpoint.py').read_text(),
+                 'check_profile.py': (ROOT / 'skills/verify-work/scripts/check_profile.py').read_text()}
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw); app = root / 'app'; app.mkdir()
-            for name, text in sample.files.items():
+            for name, text in files.items():
                 (root / name).write_text(text)
             subprocess.run(['git', 'init', '-q', raw], check=True)
             subprocess.run(['git', '-C', raw, 'add', '.'], check=True)
-            (app / 'RESULT.txt').write_text(sample.metadata['fixture_contract']['write_content'])
+            (app / 'RESULT.txt').write_text(fixture['write_content'])
             spec = json.loads((root / 'profile.json').read_text())
             self.assertEqual(spec['workspace_identity']['mode'], 'artifact')
             spec['steps'][0]['argv'][0] = sys.executable
@@ -249,55 +250,22 @@ class PortableToolsTests(unittest.TestCase):
             self.assertEqual(stale.returncode, 3, stale.stderr)
             self.assertFalse(json.loads(stale.stdout)['fresh'])
 
-    def test_actual_process_interruption_retains_checkpoint(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            marker, state, record = (root / p for p in ["marker", "state", "record"])
-            state.write_text(json.dumps({"task": {"objective": "Finish the retained objective"}}))
-            code = f"from pathlib import Path; import time; Path({str(marker)!r}).write_text('ready'); time.sleep(30)"
-            self.assertEqual(interrupt([sys.executable, "-c", code], marker, state, record, b"", timeout=2), 130)
-            result = json.loads(record.read_text())
-            self.assertTrue(result["interrupted"])
-            self.assertNotEqual(result["exit_code"], 0)
-            self.assertEqual(json.loads(state.read_text())["task"]["objective"], "Finish the retained objective")
-
-    def test_normal_exit_cannot_count_as_interruption(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            with self.assertRaisesRegex(RuntimeError, "exited"):
-                interrupt([sys.executable, "-c", "pass"], root / "marker", root / "state", root / "record", b"", timeout=2)
-            self.assertFalse((root / "record").exists())
-
-    def test_pause_without_checkpoint_fails_without_resume_receipt(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            code = f"from pathlib import Path; import time; Path({str(root / 'marker')!r}).write_text('ready'); time.sleep(30)"
-            with self.assertRaises(FileNotFoundError):
-                interrupt([sys.executable, "-c", code], root / "marker", root / "state", root / "record", b"", timeout=2)
-            self.assertFalse((root / "record").exists())
-
     def test_owned_descendant_ignoring_term_cannot_survive_parent_exit(self):
-        for mode in ("profile", "interruption"):
-            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as tmp:
-                root = Path(tmp)
-                child = "import signal,os,time; from pathlib import Path; signal.signal(signal.SIGTERM,signal.SIG_IGN); Path('child.pid').write_text(str(os.getpid())); time.sleep(30)"
-                code = f"import subprocess,sys,time; from pathlib import Path; subprocess.Popen([sys.executable,'-c',{child!r}]);\nwhile not Path('child.pid').exists(): time.sleep(.01)\nPath('marker').write_text('ready'); time.sleep(30)"
-                if mode == "profile":
-                    step = {"id": "wait", "phase": "drive", "argv": [sys.executable, "-c", code], "timeout": .5, "expect": {"/ok": True}}
-                    self.assertEqual(profile.execute(step, root)["status"], "failed")
-                else:
-                    (root / "state").write_text(json.dumps({"task": {"objective": "Finish"}}))
-                    argv = [sys.executable, "-c", "import os; os.chdir(" + repr(str(root)) + "); " + code]
-                    self.assertEqual(interrupt(argv, root / "marker", root / "state", root / "record", b"", timeout=2), 130)
-                pid = int((root / "child.pid").read_text())
-                status = Path(f"/proc/{pid}/stat")
-                for _ in range(100):
-                    if not status.exists() or status.read_text().split()[2] == "Z":
-                        break
-                    time.sleep(.01)
-                else:
-                    os.kill(pid, 9)
-                    self.fail("owned descendant survived invocation cleanup")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            child = "import signal,os,time; from pathlib import Path; signal.signal(signal.SIGTERM,signal.SIG_IGN); Path('child.pid').write_text(str(os.getpid())); time.sleep(30)"
+            code = f"import subprocess,sys,time; from pathlib import Path; subprocess.Popen([sys.executable,'-c',{child!r}]);\nwhile not Path('child.pid').exists(): time.sleep(.01)\nPath('marker').write_text('ready'); time.sleep(30)"
+            step = {"id": "wait", "phase": "drive", "argv": [sys.executable, "-c", code], "timeout": .5, "expect": {"/ok": True}}
+            self.assertEqual(profile.execute(step, root)["status"], "failed")
+            pid = int((root / "child.pid").read_text())
+            status = Path(f"/proc/{pid}/stat")
+            for _ in range(100):
+                if not status.exists() or status.read_text().split()[2] == "Z":
+                    break
+                time.sleep(.01)
+            else:
+                os.kill(pid, 9)
+                self.fail("owned descendant survived invocation cleanup")
 
     def test_failed_drive_stops_later_work_and_cleans_up(self):
         with tempfile.TemporaryDirectory() as tmp:

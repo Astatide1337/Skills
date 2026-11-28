@@ -175,24 +175,11 @@ PR and check records; it is not another acceptance store. Relevant observed
 escapes can supply historical cases through the procedure above. Review catches,
 new requirements and ambiguous reports must not be relabeled escaped defects.
 
-## Existing Inspect integration
+## Turning history into eval cases
 
-Use `evals/skills.py::workflows`, existing `workspace-test` fixture contracts and
-runner-owned `acceptance_test`; do not create another runner, grader or provider
-adapter. Keep shared evaluator changes with the integration owner. Supply mined records and
-execution-ready case data for integration into `evals/cases/workflows.json` or
-the existing comparison cases. Put the bounded base source and public fixture
-dependencies in `files`, restrict `allowed_paths` to implementation files, and
-keep the acceptance regression in runner-owned metadata. Candidate-visible
-checks are supplemental. Include stale knowledge as a challenge, but score source-inspection claims
-from actual trace evidence separately; passing final-artifact checks cannot
-prove the agent read the source. Preserve valid-alternative and clean-negative controls.
-
-Discover tasks with `uv run --frozen inspect list tasks evals/skills.py`. Compare
-explicit frozen baseline/candidate catalog roots using `workflows`' existing
-`arm`, `case_ids` and root arguments under the existing namespace/permission
-preflight. Use equal supported model/settings and budgets; keep hidden answers
-outside candidate files. A deterministic historical replay proves the bug and
-check, not guidance efficacy. Task discovery or case loading is not a completed
-model comparison. Record unavailable execution honestly; never weaken isolation
-or acceptance checks to obtain a result.
+Turn a mined escape into an autonomous eval case in `evals/cases/<id>/`: the
+user's original request as `brief`, the pre-fix source as `repo/`, the fix's
+regression as a hidden check, and the fix as `reference.patch`. A deterministic
+replay proves the bug and the check, not that guidance prevents the bug; only a
+paired catalog comparison shows that. See
+[the evaluation procedure](../../skill-creator/references/evaluation.md).

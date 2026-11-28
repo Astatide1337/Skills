@@ -1,10 +1,9 @@
 [project]
 name = "astatide-skills-evals"
 version = "0.1.0"
-description = "Inspect AI evaluation task for the Astatide Agent Skills catalog"
+description = "Validation and evaluation tooling for the Astatide Agent Skills catalog"
 requires-python = ">=3.11,<3.15"
 dependencies = [
-  "inspect-ai>=0.3.234,<0.4",
   "pyyaml>=6.0.2,<7",
   "ruff==0.16.10",
 ]
