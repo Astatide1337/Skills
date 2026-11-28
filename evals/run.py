@@ -594,6 +594,7 @@ def hard_usage_limit(detail: str) -> bool:
             "usage_limit_reached",
             "workspace_limit_reached",
             "hit your spend cap",
+            "hit your monthly spend limit",
             "workspace is out of credits",
         )
     )
@@ -807,33 +808,42 @@ def run_agent(
             if args.agent == "codex"
             else nullcontext()
         )
-        with auth:
-            started = time.monotonic()
-            try:
-                proc = subprocess.run(
-                    cmd,
-                    input=message,
-                    capture_output=True,
-                    text=True,
-                    timeout=args.turn_timeout,
-                    check=False,
-                )
-                stdout, stderr, returncode = (
-                    proc.stdout,
-                    proc.stderr,
-                    proc.returncode,
-                )
-            except subprocess.TimeoutExpired as exc:
-                # Keep the partial trace, then grade only after the tools have stopped.
-                sh("docker", "exec", name, "bash", "-c", KILL_AGENT)
-                stdout, stderr = timeout_output(exc)
-                returncode = None
-                totals["timed_out"] = True
-                totals["usage_complete"] = False
-            elapsed = time.monotonic() - started
-            totals["wall_seconds"] += round(elapsed, 1)
-            if args.agent == "codex":
-                totals["duration_ms"] += round(elapsed * 1000)
+        copy_out_error = None
+        stdout = None
+        try:
+            with auth:
+                started = time.monotonic()
+                try:
+                    proc = subprocess.run(
+                        cmd,
+                        input=message,
+                        capture_output=True,
+                        text=True,
+                        timeout=args.turn_timeout,
+                        check=False,
+                    )
+                    stdout, stderr, returncode = (
+                        proc.stdout,
+                        proc.stderr,
+                        proc.returncode,
+                    )
+                except subprocess.TimeoutExpired as exc:
+                    # Keep the partial trace, then grade only after the tools have stopped.
+                    sh("docker", "exec", name, "bash", "-c", KILL_AGENT)
+                    stdout, stderr = timeout_output(exc)
+                    returncode = None
+                    totals["timed_out"] = True
+                    totals["usage_complete"] = False
+                elapsed = time.monotonic() - started
+                totals["wall_seconds"] += round(elapsed, 1)
+                if args.agent == "codex":
+                    totals["duration_ms"] += round(elapsed * 1000)
+        except InfraError as exc:
+            if stdout is None:
+                raise
+            # Saving the refreshed login failed after the turn ran: classify the
+            # turn first so a terminal login or usage error still stops the batch.
+            copy_out_error = exc
         stdout, stderr = redact_jsonl(stdout, secrets), redact(stderr, secrets)
         (out / f"trace-{i}.jsonl").write_text(stdout)
         stderr_path = out / f"stderr-{i}.txt"
@@ -844,6 +854,8 @@ def run_agent(
         session = record_turn(
             stdout, stderr, returncode, i, session, totals, final, args
         )
+        if copy_out_error is not None:
+            raise copy_out_error
         if totals["timed_out"]:
             break
     (out / "final.md").write_text(redact("\n\n".join(final), secrets))

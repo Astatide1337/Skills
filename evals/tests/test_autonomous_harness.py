@@ -11,7 +11,7 @@ import sys
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -276,6 +276,7 @@ class RunTests(unittest.TestCase):
         for agent, output, diagnostic in (
             ("codex", CODEX_SUCCESS, WORKSPACE_LIMITS[0]),
             ("claude", CLAUDE_SUCCESS, "usage_limit_reached"),
+            ("claude", CLAUDE_SUCCESS, "You've hit your monthly spend limit."),
         ):
             with self.subTest(agent=agent):
                 self.args.agent = agent
@@ -306,6 +307,23 @@ class RunTests(unittest.TestCase):
                     run.InfraError, "skipped: Codex eval login"
                 ):
                     run.run_one(self.case, "none", None, 2, self.args)
+
+    def test_expired_login_still_stops_batch_when_copy_out_also_fails(self):
+        self.args.agent = "codex"
+
+        @contextmanager
+        def copy_out_overflows(*args, **kwargs):
+            yield
+            raise run.InfraError("Codex auth copy-out exceeds 64 KiB")
+
+        with (
+            patch.object(run, "codex_auth", side_effect=copy_out_overflows),
+            self.assertRaisesRegex(run.InfraError, "Codex eval login.*CODEX_HOME="),
+        ):
+            self.execute(CODEX_SUCCESS, stderr=EXPIRED_REFRESH)
+        self.assertFalse((self.out / "timing.json").exists())
+        with self.assertRaisesRegex(run.InfraError, "skipped: Codex eval login"):
+            run.run_one(self.case, "none", None, 2, self.args)
 
     def test_latest_window_stops_next_run_at_either_threshold(self):
         def event(**windows):
@@ -1021,10 +1039,16 @@ class AuthTests(unittest.TestCase):
 class JudgeTests(unittest.TestCase):
     def test_claude_hard_limit_on_stderr_is_never_retried(self):
         success = json.dumps({"structured_output": {"better": "tie"}})
-        diagnostic = "usage_limit_reached"
         for outcome in (
-            subprocess.CompletedProcess([], 0, success, diagnostic),
-            subprocess.TimeoutExpired("claude", 900, stderr=diagnostic.encode()),
+            outcome
+            for diagnostic in (
+                "usage_limit_reached",
+                "You've hit your monthly spend limit.",
+            )
+            for outcome in (
+                subprocess.CompletedProcess([], 0, success, diagnostic),
+                subprocess.TimeoutExpired("claude", 900, stderr=diagnostic.encode()),
+            )
         ):
             with (
                 self.subTest(outcome=outcome),
