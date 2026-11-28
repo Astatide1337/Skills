@@ -268,12 +268,10 @@ agent behavior.
 
 `evals/cases/<id>/` holds realistic tasks: a `case.yaml` brief, a fixture
 project in `repo/`, hidden `checks/`, and a `reference.patch` that proves the
-checks accept a valid fix. `evals/run.py` gives each brief to headless Claude
-Code in a fresh Docker container and lets it work to completion; it never sees
-the checks or assertions. `evals/grade.py` has a separate judge grade each run
-from its trace, diff and check results, compares two catalogs blind when asked,
-and writes `benchmark.json`. Runs use your Claude subscription, so they count against its
-usage limits; budget them.
+checks accept a valid fix. `evals/run.py` gives each brief to Claude Code or
+Codex in a fresh Docker container. Hidden checks run after the agent stops.
+`evals/grade.py` uses a separate judge to score each run from its trace, diff
+and check results, compare two catalogs blind, and write `benchmark.json`.
 
 Create a long-lived token with `claude setup-token` and save it to a file
 outside the checkout, then:
@@ -285,9 +283,22 @@ uv run --frozen python evals/grade.py --token-file /path/to/token --out ~/evals/
   --compare none current
 ```
 
+Use `run.py --agent codex` and/or `grade.py --judge codex` to use Codex. Both
+flags default to `claude`. Use `--model` to override the selected provider's
+default. Codex uses a ChatGPT login from `~/.codex/auth.json` in place of
+`--token-file`. Each invocation receives a private copy and can write back a
+refreshed login for the same account. Use trusted cases and catalog refs.
+Use a separate `--out` when changing the agent or its model.
+
+Claude batches stop starting new runs when the latest observed window reaches
+`--max-five-hour` (default `0.6`) or `--max-seven-day` (default `0.8`).
+Codex 0.167.1's exec JSONL reports token counts without window utilization or
+dollar cost, so Codex batches stop once the provider reports a usage limit.
+Rerunning the same command resumes unfinished runs.
+
 Compare a candidate branch against `main` with `--arm base=main --arm candidate=BRANCH`.
-`uv run --frozen python -m unittest evals.tests.test_autonomous_cases` checks
-every case's hidden checks without Docker or a model.
+`uv run --frozen python -m unittest discover -s evals/tests` runs the offline
+suite, including the runner event parsers and every case's hidden checks.
 
 Review rules live in [AGENTS.md](AGENTS.md); `CLAUDE.md` and `REVIEW.md` import
 them for their respective review tools.

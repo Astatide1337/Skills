@@ -1,6 +1,6 @@
 """Grade saved runs, compare arms blind, and summarize.
 
-    python evals/grade.py --token-file F --out DIR [--compare ARM_A ARM_B]
+    python evals/grade.py --judge claude --token-file F --out DIR [--compare ARM_A ARM_B]
 
 Writes grading.json per run, pairwise.json when comparing, and benchmark.json.
 The judge runs in a fresh container with no tools, skills or instructions beyond
@@ -16,13 +16,19 @@ import random
 import re
 import statistics
 import subprocess
+import tempfile
 import time
 import uuid
 from collections import Counter
 from pathlib import Path
 
 import yaml
-from run import CASES, IMAGE, build_image, parse_event
+
+if __package__:
+    from . import run as harness
+else:
+    import run as harness
+
 
 AUTONOMY = [
     (
@@ -61,7 +67,7 @@ PAIR_SCHEMA = {
     "required": ["better", "reasons"],
     "additionalProperties": False,
 }
-SKILL_PATH = re.compile(r"/\.claude/skills/([a-z0-9][a-z0-9-]*)")
+SKILL_PATH = re.compile(r"(?:^|[~/])\.(?:claude|agents)/skills/([a-z0-9][a-z0-9-]*)")
 
 
 def framed(instructions: str, data: str) -> str:
@@ -85,13 +91,61 @@ def clip(text: str, limit: int) -> str:
     )
 
 
+def codex_transcript(event: dict, started: set[str]) -> list[tuple[str, str]]:
+    phase, item = event.get("type"), event.get("item")
+    if not item or phase not in ("item.started", "item.completed"):
+        return []
+    kind = item["type"]
+    if kind == "agent_message":
+        return [("AGENT", item["text"])] if phase == "item.completed" else []
+    if kind not in (
+        "command_execution",
+        "file_change",
+        "mcp_tool_call",
+        "web_search",
+        "collab_tool_call",
+    ):
+        return []
+    call = (
+        item.get("command")
+        if kind == "command_execution"
+        else json.dumps(
+            {
+                key: value
+                for key, value in item.items()
+                if key not in ("id", "type", "status", "error", "result")
+            }
+        )
+    )
+    entries = []
+    if item["id"] not in started:
+        entries.append(("CALL", f"{kind} {call}"))
+        started.add(item["id"])
+    if phase == "item.completed":
+        if kind == "command_execution":
+            detail = f"exit {item['exit_code']} ({item['status']})\n{item['aggregated_output']}"
+        else:
+            detail = " ".join(
+                str(item[key]) for key in ("status", "result", "error") if item.get(key)
+            )
+        entries.append(("RESULT", detail or "completed"))
+    return entries
+
+
 def condense(run: Path, budget: int = 120_000) -> tuple[str, set[str]]:
     """Numbered transcript of agent messages, tool calls and results, plus skills it opened."""
     items, skills = [], set()
-    for trace in sorted(run.glob("trace-*.jsonl")):
+    for trace in sorted(
+        run.glob("trace-*.jsonl"), key=lambda p: int(p.stem.split("-")[1])
+    ):
         items.append(f"=== turn {trace.stem.split('-')[1]} ===")
+        started: set[str] = set()
         for line in trace.read_text().splitlines():
-            event = parse_event(line)
+            event = harness.parse_event(line)
+            for kind, text in codex_transcript(event, started):
+                if kind == "CALL":
+                    skills.update(SKILL_PATH.findall(text))
+                items.append((kind, text))
             for block in (event.get("message") or {}).get("content") or []:
                 if not isinstance(block, dict):
                     continue
@@ -134,11 +188,15 @@ def condense(run: Path, budget: int = 120_000) -> tuple[str, set[str]]:
     return "\n".join(lines), skills
 
 
-def judge(prompt: str, schema: dict, model: str, attempts: int = 3) -> dict:
+def judge(
+    prompt: str, schema: dict, model: str, provider: str, attempts: int = 3
+) -> dict:
     """Ask the judge; retry transient failures (rate limits) with a short backoff."""
     for attempt in range(1, attempts + 1):
         try:
-            return judge_once(prompt, schema, model)
+            return judge_once(prompt, schema, model, provider)
+        except harness.InfraError:
+            raise
         except RuntimeError:
             if attempt == attempts:
                 raise
@@ -146,7 +204,86 @@ def judge(prompt: str, schema: dict, model: str, attempts: int = 3) -> dict:
     raise AssertionError("unreachable")
 
 
-def judge_once(prompt: str, schema: dict, model: str) -> dict:
+def judge_codex(prompt: str, schema: dict, model: str) -> dict:
+    name = f"skills-eval-judge-{uuid.uuid4().hex[:10]}"
+    harness.sh(
+        "docker",
+        "run",
+        "-d",
+        "--rm",
+        "--name",
+        name,
+        harness.IMAGE,
+        "sleep",
+        "infinity",
+    )
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "schema.json"
+            path.write_text(json.dumps(schema))
+            harness.sh("docker", "cp", str(path), f"{name}:{harness.HOME}/schema.json")
+        cmd = [
+            "docker",
+            "exec",
+            "-i",
+            name,
+            *harness.codex_exec(model),
+            "--ephemeral",
+            "--output-schema",
+            f"{harness.HOME}/schema.json",
+            "-s",
+            "read-only",
+            "--ignore-user-config",
+            "--ignore-rules",
+            "--disable",
+            "shell_tool",
+            "--disable",
+            "multi_agent",
+            "--disable",
+            "skill_search",
+            "-c",
+            "skills.include_instructions=false",
+            "-c",
+            'web_search="disabled"',
+            "-",
+        ]
+        secrets: set[str] = set()
+        with harness.AUTH_LOCK, harness.codex_auth(name, secrets):
+            try:
+                proc = subprocess.run(
+                    cmd,
+                    input=prompt,
+                    capture_output=True,
+                    text=True,
+                    timeout=900,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired:
+                harness.sh("docker", "exec", name, "bash", "-c", harness.KILL_AGENT)
+                raise RuntimeError("Codex judge timed out") from None
+        events = [
+            harness.parse_event(line)
+            for line in harness.redact(proc.stdout, secrets).splitlines()
+        ]
+        _, result = harness.codex_result(events)
+        detail = (result or {}).get("result") or harness.redact(proc.stderr, secrets)[
+            -500:
+        ]
+        if proc.returncode or not result or result.get("api_error"):
+            if harness.codex_error(detail) == "usage_limit_reached":
+                raise harness.InfraError(f"Codex judge usage limit reached: {detail}")
+            raise RuntimeError(f"Codex judge failed (exit {proc.returncode}): {detail}")
+        structured = harness.parse_event(result["result"])
+        if not structured:
+            raise RuntimeError("Codex judge returned no structured output")
+        return structured
+    finally:
+        harness.sh("docker", "rm", "-f", name, check=False)
+
+
+def judge_once(prompt: str, schema: dict, model: str, provider: str) -> dict:
+    if provider == "codex":
+        return judge_codex(prompt, schema, model)
     cmd = [
         "docker",
         "run",
@@ -154,7 +291,7 @@ def judge_once(prompt: str, schema: dict, model: str) -> dict:
         "-i",
         "-e",
         "CLAUDE_CODE_OAUTH_TOKEN",
-        IMAGE,
+        harness.IMAGE,
         "claude",
         "-p",
         "--model",
@@ -221,9 +358,19 @@ def evidence(run: Path) -> str:
     )
 
 
-def grade_run(case: dict, run: Path, model: str) -> None:
-    if (run / "grading.json").exists() or not (run / "timing.json").exists():
+def judge_key(provider: str, model: str) -> str:
+    return model if provider == "claude" else f"{provider}:{model}"
+
+
+def grade_run(case: dict, run: Path, model: str, provider: str) -> None:
+    if not (run / "timing.json").exists():
         return
+    path = run / "grading.json"
+    key = judge_key(provider, model)
+    if path.exists():
+        previous = json.loads(path.read_text()).get("judge")
+        if previous == key or (previous is None and provider == "claude"):
+            return
     items = statements(case)
     listed = "\n".join(f"{i}: {t}" for i, _, t in items)
     accepted = "\n".join(f"- {t}" for t in case.get("accepted", []))
@@ -236,8 +383,9 @@ def grade_run(case: dict, run: Path, model: str) -> None:
     )
     expected = {i for i, _, _ in items}
     for _ in range(3):
-        verdicts = {v["id"]: v for v in judge(prompt, GRADE_SCHEMA, model)["verdicts"]}
-        if set(verdicts) == expected:
+        returned = judge(prompt, GRADE_SCHEMA, model, provider)["verdicts"]
+        verdicts = {v["id"]: v for v in returned}
+        if set(verdicts) == expected and len(returned) == len(expected):
             break
     else:
         raise RuntimeError(
@@ -272,12 +420,16 @@ def grade_run(case: dict, run: Path, model: str) -> None:
         "pass_rate": 0.0 if critical else round(passed / len(results), 3),
         "critical_failed": critical,
     }
-    (run / "grading.json").write_text(
-        json.dumps({"assertion_results": results, "summary": summary}, indent=2)
+    path.write_text(
+        json.dumps(
+            {"judge": key, "assertion_results": results, "summary": summary}, indent=2
+        )
     )
 
 
-def compare(case: dict, a: Path, b: Path, model: str, rng: random.Random) -> str:
+def compare(
+    case: dict, a: Path, b: Path, model: str, rng: random.Random, provider: str
+) -> str:
     """'a', 'b' or 'tie'; a side wins only if the judge prefers it in both presentation orders."""
     rubric = "\n".join(f"- {t}" for _, _, t in statements(case))
     picks = []
@@ -290,7 +442,7 @@ def compare(case: dict, a: Path, b: Path, model: str, rng: random.Random) -> str
             f"{request_text(case)}\n\n--- SUBMISSION 1 ---\n{evidence(first)}\n\n"
             f"--- SUBMISSION 2 ---\n{evidence(second)}",
         )
-        better = judge(prompt, PAIR_SCHEMA, model)["better"]
+        better = judge(prompt, PAIR_SCHEMA, model, provider)["better"]
         picks.append(
             "tie"
             if better == "tie"
@@ -310,21 +462,28 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--token-file", type=Path, required=True)
+    parser.add_argument("--token-file", type=Path)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--model", default="claude-opus-5-5")
+    parser.add_argument("--judge", choices=harness.DEFAULT_MODELS, default="claude")
+    parser.add_argument(
+        "--model", help="defaults to the selected judge's default model"
+    )
     parser.add_argument("--compare", nargs=2, metavar=("ARM_A", "ARM_B"))
     args = parser.parse_args()
-    os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = args.token_file.read_text().strip()
-    build_image()
+    args.model = args.model or harness.DEFAULT_MODELS[args.judge]
+    if args.judge == "claude":
+        if args.token_file is None:
+            parser.error("--token-file is required for Claude")
+        os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = args.token_file.read_text().strip()
+    harness.build_image()
 
     runs = sorted(args.out.glob("*/*/run-*"))
     cases = {
-        d.name: yaml.safe_load((CASES / d.name / "case.yaml").read_text())
+        d.name: yaml.safe_load((harness.CASES / d.name / "case.yaml").read_text())
         for d in {r.parents[1] for r in runs}
     }
     for run in runs:
-        grade_run(cases[run.parents[1].name], run, args.model)
+        grade_run(cases[run.parents[1].name], run, args.model, args.judge)
 
     benchmark: dict = {"arms": {}}
     for arm in sorted({r.parent.name for r in runs}):
@@ -348,7 +507,11 @@ def main() -> None:
                 [t["total_tokens"] for t in timing if t.get("usage_complete", True)]
             ),
             "cost_usd": mean_sd(
-                [t["cost_usd"] for t in timing if t.get("usage_complete", True)]
+                [
+                    t["cost_usd"]
+                    for t in timing
+                    if t.get("usage_complete", True) and t["cost_usd"] is not None
+                ]
             ),
             "skills_opened": dict(
                 Counter(s for r in graded for s in condense(r)[1]).most_common()
@@ -359,7 +522,7 @@ def main() -> None:
         rng, saved = random.Random(0), args.out / "pairwise.json"
         # Saved after every comparison so an interrupted pass resumes instead of re-paying.
         pairs = json.loads(saved.read_text()) if saved.exists() else []
-        key = (arm_a, arm_b, args.model)
+        key = (arm_a, arm_b, judge_key(args.judge, args.model))
 
         def same(
             p: dict,
@@ -375,14 +538,16 @@ def main() -> None:
                     and (run_b / "timing.json").exists()
                 ):
                     continue
-                winner = compare(cases[case_dir.name], run_a, run_b, args.model, rng)
+                winner = compare(
+                    cases[case_dir.name], run_a, run_b, args.model, rng, args.judge
+                )
                 pairs.append(
                     {
                         "case": case_dir.name,
                         "run": run_a.name,
                         "a": arm_a,
                         "b": arm_b,
-                        "judge": args.model,
+                        "judge": key[2],
                         "winner": winner,
                     }
                 )
