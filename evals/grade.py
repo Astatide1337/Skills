@@ -146,7 +146,10 @@ def condense(run: Path, budget: int = 120_000) -> tuple[str, set[str]]:
                 if kind == "CALL":
                     skills.update(SKILL_PATH.findall(text))
                 items.append((kind, text))
-            for block in (event.get("message") or {}).get("content") or []:
+            message = event.get("message")
+            if not isinstance(message, dict):
+                continue
+            for block in message.get("content") or []:
                 if not isinstance(block, dict):
                     continue
                 if block.get("type") == "text" and event.get("type") == "assistant":
@@ -206,18 +209,8 @@ def judge(
 
 def judge_codex(prompt: str, schema: dict, model: str) -> dict:
     name = f"skills-eval-judge-{uuid.uuid4().hex[:10]}"
-    harness.sh(
-        "docker",
-        "run",
-        "-d",
-        "--rm",
-        "--name",
-        name,
-        harness.IMAGE,
-        "sleep",
-        "infinity",
-    )
     try:
+        harness.start_container(name, "codex")
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "schema.json"
             path.write_text(json.dumps(schema))
@@ -266,11 +259,13 @@ def judge_codex(prompt: str, schema: dict, model: str) -> dict:
             for line in harness.redact(proc.stdout, secrets).splitlines()
         ]
         _, result = harness.codex_result(events)
-        detail = (result or {}).get("result") or harness.redact(proc.stderr, secrets)[
-            -500:
-        ]
+        stderr = harness.redact(proc.stderr, secrets)
+        detail = (result or {}).get("result") or stderr[-500:]
         if proc.returncode or not result or result.get("api_error"):
-            if harness.codex_error(detail) == "usage_limit_reached":
+            if "usage_limit_reached" in (
+                (result or {}).get("api_error"),
+                harness.codex_error(stderr),
+            ):
                 raise harness.InfraError(f"Codex judge usage limit reached: {detail}")
             raise RuntimeError(f"Codex judge failed (exit {proc.returncode}): {detail}")
         structured = harness.parse_event(result["result"])
@@ -289,6 +284,7 @@ def judge_once(prompt: str, schema: dict, model: str, provider: str) -> dict:
         "run",
         "--rm",
         "-i",
+        *harness.CONTAINER_LABELS,
         "-e",
         "CLAUDE_CODE_OAUTH_TOKEN",
         harness.IMAGE,
@@ -475,6 +471,11 @@ def main() -> None:
         if args.token_file is None:
             parser.error("--token-file is required for Claude")
         os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = args.token_file.read_text().strip()
+    with harness.container_batch():
+        grade_batch(args)
+
+
+def grade_batch(args) -> None:
     harness.build_image()
 
     runs = sorted(args.out.glob("*/*/run-*"))

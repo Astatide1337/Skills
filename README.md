@@ -285,15 +285,17 @@ uv run --frozen python evals/grade.py --token-file /path/to/token --out ~/evals/
 
 Use `run.py --agent codex` and/or `grade.py --judge codex` to use Codex. Both
 flags default to `claude`. Use `--model` to override the selected provider's
-default. Codex uses a ChatGPT login from `~/.codex/auth.json` in place of
-`--token-file`. Each invocation receives a private copy and can write back a
-refreshed login for the same account. Use trusted cases and catalog refs.
+default. Codex uses the file-backed ChatGPT login from `$CODEX_HOME/auth.json`
+(`~/.codex/auth.json` by default). Each invocation receives only the selected
+login on a container tmpfs. A valid refresh for the same login can be written
+back if the host credentials are still current. Use trusted cases and catalog refs.
 Use a separate `--out` when changing the agent or its model.
 
-Claude batches stop starting new runs when the latest observed window reaches
+Claude batches run one case at a time until a usage reading arrives. They stop
+starting new runs when the highest observed utilization for either window reaches
 `--max-five-hour` (default `0.6`) or `--max-seven-day` (default `0.8`).
 Codex 0.167.1's exec JSONL reports token counts without window utilization or
-dollar cost, so Codex batches stop once the provider reports a usage limit.
+dollar cost, so Codex runs stay serial and stop once the provider reports a usage limit.
 Rerunning the same command resumes unfinished runs.
 
 Compare a candidate branch against `main` with `--arm base=main --arm candidate=BRANCH`.
