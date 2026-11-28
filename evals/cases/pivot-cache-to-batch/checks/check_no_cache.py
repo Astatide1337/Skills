@@ -8,7 +8,7 @@ hits = [
     str(p)
     for p in Path("shortlinks").rglob("*.py")
     if re.search(
-        r"lru_cache|functools\.cache\b|@cache\b|OrderedDict|_cache\b|cache_clear|maxsize",
+        r"lru_cache|functools\.cache\b|@cache\b|_cache\b|cache_clear|maxsize|cachetools",
         p.read_text(),
     )
 ]

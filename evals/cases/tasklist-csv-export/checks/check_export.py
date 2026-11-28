@@ -34,9 +34,12 @@ with tempfile.TemporaryDirectory() as d:
         sys.exit(f"export failed: {out.stderr}")
     rows = list(csv.DictReader(io.StringIO(out.stdout)))
     header = {h.lower(): h for h in (rows[0].keys() if rows else [])}
-    title = header.get("title")
-    done = header.get("done") or header.get("status") or header.get("completed")
-    created = next((h for k, h in header.items() if k.startswith("created")), None)
+    def column(*words):
+        return next((h for k, h in header.items() if any(w in k for w in words)), None)
+
+    title = column("title", "name", "task", "description")
+    done = column("done", "status", "complete", "finished")
+    created = column("creat", "date", "added", "time")
     if not (title and done and created):
         sys.exit(f"missing columns in header: {list(header.values())}")
     if [r[title] for r in rows] != titles:

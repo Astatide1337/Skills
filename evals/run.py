@@ -17,6 +17,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -27,6 +28,31 @@ ROOT = Path(__file__).resolve().parents[1]
 CASES = ROOT / "evals" / "cases"
 IMAGE = "skills-autonomous-eval"
 HOME = "/home/node"
+# API errors that say nothing about the agent; anything else (max_output_tokens,
+# autocompact_thrashing, ...) is the agent's outcome and gets graded.
+INFRA_ERRORS = {
+    "usage_limit_reached",
+    "rate_limit",
+    "overloaded",
+    "connection_failed",
+    "no_response",
+    "stream_idle_timeout",
+}
+USAGE_LIMIT = threading.Event()
+# Stops this run's own agent process; skips the shell running the loop.
+KILL_AGENT = (
+    'for p in /proc/[0-9]*; do [ "${p#/proc/}" = "$$" ] && continue; '
+    'grep -qa claude "$p/cmdline" 2>/dev/null && kill "${p#/proc/}" 2>/dev/null; done; true'
+)
+
+
+class InfraError(RuntimeError):
+    """The run could not happen; leave it unfinished so a rerun repeats it."""
+
+
+def is_infra(event: dict) -> bool:
+    status = event.get("api_error_status") or 0
+    return event.get("api_error") in INFRA_ERRORS or status == 429 or status >= 500
 
 
 def sh(
@@ -74,6 +100,8 @@ def run_one(case: dict, arm: str, catalog: Path | None, n: int, args) -> None:
     out = args.out / case["id"] / arm / f"run-{n}"
     if (out / "timing.json").exists():
         return  # finished earlier; rerunning would overwrite evidence
+    if USAGE_LIMIT.is_set():
+        raise InfraError("skipped: usage limit reached earlier in this batch")
     out.mkdir(parents=True, exist_ok=True)
     name = f"skills-eval-{uuid.uuid4().hex[:10]}"
     project = f"{HOME}/{case['project']}"
@@ -111,6 +139,8 @@ def run_one(case: dict, arm: str, catalog: Path | None, n: int, args) -> None:
             f"{setup}\ngit init -q && git add -A && git commit -qm 'initial import'",
             timeout=300,
         )
+        # Pin the starting commit: an agent may amend or rebase the root commit.
+        base = sh(*exec_, "git", "rev-parse", "HEAD").stdout.strip()
 
         session, totals = (
             None,
@@ -120,6 +150,8 @@ def run_one(case: dict, arm: str, catalog: Path | None, n: int, args) -> None:
                 "duration_ms": 0,
                 "input_tokens": 0,
                 "output_tokens": 0,
+                "agent_errors": [],
+                "timed_out": False,
             },
         )
         messages = [case["brief"], *case.get("turns", [])]
@@ -143,27 +175,41 @@ def run_one(case: dict, arm: str, catalog: Path | None, n: int, args) -> None:
             ]
             if session:
                 cmd += ["--resume", session]
-            proc = subprocess.run(
-                cmd,
-                input=message,
-                capture_output=True,
-                text=True,
-                timeout=args.turn_timeout,
-                check=False,
-            )
-            (out / f"trace-{i}.jsonl").write_text(proc.stdout)
-            if proc.stderr.strip():
-                (out / f"stderr-{i}.txt").write_text(proc.stderr)
-            for line in proc.stdout.splitlines():
+            try:
+                proc = subprocess.run(
+                    cmd,
+                    input=message,
+                    capture_output=True,
+                    text=True,
+                    timeout=args.turn_timeout,
+                    check=False,
+                )
+                stdout, stderr, returncode = proc.stdout, proc.stderr, proc.returncode
+            except subprocess.TimeoutExpired as exc:
+                # The agent ran out of time: keep what it did and grade that.
+                sh("docker", "exec", name, "bash", "-c", KILL_AGENT, check=False)
+                stdout, stderr = (
+                    x.decode(errors="replace") if isinstance(x, bytes) else (x or "")
+                    for x in (exc.stdout, exc.stderr)
+                )
+                returncode, totals["timed_out"] = None, True
+            (out / f"trace-{i}.jsonl").write_text(stdout)
+            if stderr.strip():
+                (out / f"stderr-{i}.txt").write_text(stderr)
+            got_result = False
+            for line in stdout.splitlines():
                 event = json.loads(line) if line.startswith("{") else {}
                 session = event.get("session_id", session)
                 if event.get("type") == "result":
-                    if event.get("api_error") or event.get("api_error_status"):
-                        # Infrastructure (usage limit, outage), not agent behaviour:
-                        # leave no timing.json so a rerun repeats this run.
-                        raise RuntimeError(
+                    got_result = True
+                    if is_infra(event):
+                        if event.get("api_error") == "usage_limit_reached":
+                            USAGE_LIMIT.set()
+                        raise InfraError(
                             f"API error in turn {i}: {event.get('result')}"
                         )
+                    if event.get("api_error"):
+                        totals["agent_errors"].append(event["api_error"])
                     final.append(f"## Turn {i}\n\n{event.get('result', '')}")
                     totals["cost_usd"] += event.get("total_cost_usd") or 0
                     totals["turns"] += event.get("num_turns") or 0
@@ -174,14 +220,23 @@ def run_one(case: dict, arm: str, catalog: Path | None, n: int, args) -> None:
                     totals["input_tokens"] += (
                         usage.get("cache_read_input_tokens") or 0
                     ) + (usage.get("cache_creation_input_tokens") or 0)
+            if totals["timed_out"]:
+                final.append(
+                    f"## Turn {i}\n\n[stopped after {args.turn_timeout}s without finishing]"
+                )
+                break
+            if not got_result:
+                raise InfraError(
+                    f"turn {i} ended without a result (exit {returncode}): {stderr[-500:]}"
+                )
         (out / "final.md").write_text("\n\n".join(final))
 
         diff = sh(
             *exec_,
             "bash",
             "-c",
-            "git add -A && git diff --cached $(git rev-list --max-parents=0 HEAD) "
-            "&& git log --oneline $(git rev-list --max-parents=0 HEAD)..HEAD && git status --short",
+            f"git add -A && git diff --cached {base} && git log --oneline {base}..HEAD "
+            "&& git status --short",
         )
         (out / "diff.patch").write_text(diff.stdout)
         checks = []
@@ -199,7 +254,20 @@ def run_one(case: dict, arm: str, catalog: Path | None, n: int, args) -> None:
                 f"{HOME}/.grader",
             )
         for check in case.get("checks", []):
-            result = sh(*exec_, "bash", "-c", check["run"], check=False, timeout=300)
+            result = sh(
+                "docker",
+                "exec",
+                "-e",
+                f"BASE_SHA={base}",
+                "-w",
+                project,
+                name,
+                "bash",
+                "-c",
+                check["run"],
+                check=False,
+                timeout=300,
+            )
             checks.append(
                 {
                     "name": check["name"],
@@ -284,6 +352,7 @@ def main() -> None:
                     OSError,
                     subprocess.SubprocessError,
                     ValueError,
+                    RuntimeError,
                 ) as exc:  # a rerun resumes missing runs
                     print(f"FAILED {case['id']}/{arm}/run-{n}: {exc!r}", flush=True)
     finally:

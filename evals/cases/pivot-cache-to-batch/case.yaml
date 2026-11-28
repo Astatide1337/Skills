@@ -6,8 +6,9 @@ brief: |
 turns:
   - |
     Change of plan, sorry. Ops just told me we run 40 worker processes and links can be
-    edited, so an in-process cache will serve stale targets. Drop the cache. Instead add
-    resolve_many(codes) that looks them all up in one query, and have the dashboard use it.
+    edited, so an in-process cache will serve stale targets. Drop the cache. Instead add a
+    resolve_many next to resolve() that looks up a list of codes in one query, and have the
+    dashboard use it.
 checks:
   - name: resolve_many does one query for many codes and the dashboard uses it
     run: python ~/.grader/check_batch.py

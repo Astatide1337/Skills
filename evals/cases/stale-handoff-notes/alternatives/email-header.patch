@@ -1,0 +1,17 @@
+diff --git a/notify/sender.py b/notify/sender.py
+index b05df25..a91a4ca 100644
+--- a/notify/sender.py
++++ b/notify/sender.py
+@@ -1,9 +1,11 @@
+ import smtplib
++from email.header import Header
+ 
+ 
+ def build_message(sender: str, to: str, subject: str, body: str) -> bytes:
+     """Raw RFC 822 bytes for one notification."""
+-    headers = f"From: {sender}\r\nTo: {to}\r\nSubject: {subject}\r\nContent-Type: text/plain; charset=utf-8\r\n"
++    encoded = subject if subject.isascii() else Header(subject, "utf-8").encode()
++    headers = f"From: {sender}\r\nTo: {to}\r\nSubject: {encoded}\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n"
+     raw = headers + "\r\n" + body
+     return raw.encode("utf-8")
+ 

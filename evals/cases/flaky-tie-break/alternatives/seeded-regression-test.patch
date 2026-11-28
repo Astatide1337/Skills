@@ -1,0 +1,32 @@
+diff --git a/scheduler/queue.py b/scheduler/queue.py
+index 6ca4053..f2cf1d9 100644
+--- a/scheduler/queue.py
++++ b/scheduler/queue.py
+@@ -7,6 +7,5 @@ class JobQueue:
+ 
+     def next_jobs(self, n: int) -> list[str]:
+         """The n most urgent job names (higher priority first, ties in submission order)."""
+-        priority = dict(self._jobs)
+-        pending = {name for name, _ in self._jobs}
+-        return sorted(pending, key=lambda name: -priority[name])[:n]
++        priority = dict(self._jobs)  # insertion-ordered, so sorted() keeps ties in submission order
++        return sorted(priority, key=lambda name: -priority[name])[:n]
+diff --git a/tests/test_queue.py b/tests/test_queue.py
+index d992195..c05190e 100644
+--- a/tests/test_queue.py
++++ b/tests/test_queue.py
+@@ -18,5 +18,14 @@ class QueueTests(unittest.TestCase):
+         self.assertEqual(q.next_jobs(3), ["urgent", "backup", "reindex"])
+ 
+ 
++    def test_tie_order_is_stable_across_hash_seeds(self):
++        import os, subprocess, sys
++        for seed in range(10):
++            env = {**os.environ, "PYTHONHASHSEED": str(seed)}
++            code = "from scheduler.queue import JobQueue\nq = JobQueue()\nfor n in ['a', 'b', 'c']: q.submit(n, 1)\nprint(q.next_jobs(3))"
++            out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True).stdout
++            self.assertEqual(out.strip(), "['a', 'b', 'c']")
++
++
+ if __name__ == "__main__":
+     unittest.main()

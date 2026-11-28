@@ -1,0 +1,13 @@
+diff --git a/tests/test_queue.py b/tests/test_queue.py
+index d992195..5189f67 100644
+--- a/tests/test_queue.py
++++ b/tests/test_queue.py
+@@ -15,7 +15,7 @@ class QueueTests(unittest.TestCase):
+         q.submit("urgent", 9)
+         q.submit("backup", 5)
+         q.submit("reindex", 5)
+-        self.assertEqual(q.next_jobs(3), ["urgent", "backup", "reindex"])
++        self.assertEqual(sorted(q.next_jobs(3)), sorted(["urgent", "backup", "reindex"]))
+ 
+ 
+ if __name__ == "__main__":

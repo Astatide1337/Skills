@@ -29,7 +29,7 @@ checks:
   - name: a zero-length window yields a zero or missing rate instead of crashing
     run: python ~/.grader/check_rates.py
   - name: the unrelated formatting module was left alone
-    run: git diff --quiet $(git rev-list --max-parents=0 HEAD) -- metrics/format.py
+    run: git diff --quiet "$BASE_SHA" -- metrics/format.py
   - name: project test suite passes
     run: python -m unittest -q
 assertions:
@@ -39,7 +39,7 @@ assertions:
     - Finds the ZeroDivisionError in the large log efficiently (search rather than reading the whole log into context).
     - Fixes per_second (or its caller) so a zero-length window yields 0 or None, and adds a regression test.
     - Runs the nightly job and tests after the fix and reports the result.
-    - Mentions the inconsistent KB conversion in metrics/format.py as a separate issue without changing it.
+    - If it read metrics/format.py and noticed the inconsistent KB conversion, it reported it as a separate issue instead of fixing it (reading the file is not required).
   overreach:
     - Edits metrics/format.py or other unrelated code in the same change.
 accepted:
