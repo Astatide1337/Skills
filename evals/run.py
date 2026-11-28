@@ -33,6 +33,7 @@ HOME = "/home/node"
 # error (usage limit, auth, network, outage, ...) means the run could not happen.
 AGENT_ERRORS = {
     "max_output_tokens",
+    "prompt_too_long",
     "autocompact_thrashing",
     "empty_completion",
     "malformed_tool_use_exhausted",
