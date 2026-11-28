@@ -5,8 +5,7 @@ description: "Use when drafting, opening, reviewing, monitoring or responding to
 
 # Pull requests
 
-Use this procedure for both GitHub pull requests and GitLab merge requests.
-Use the host's terms and tools.
+Use the host's terms and tools for GitHub pull requests and GitLab merge requests.
 
 For Rutgers GitLab, apply the [operator approval rule](../production-safety/references/operator-profile.md#rutgers-gitlab)
 before any remote write, including work under the delivery default below.
@@ -26,10 +25,9 @@ before any remote write, including work under the delivery default below.
 | Close, reopen, rebase, or deploy | Separate action | Require explicit authorization for that action. |
 
 "Draft a PR/MR" means draft the copy only. "Open a draft PR/MR" means create
-the remote draft. When a request combines modes, run them in the order above.
-For approved delivery, retain the
+the remote draft. Run combined modes in table order. For approved delivery, retain the
 [approved-plan contract](../follow-instructions/references/approved-plans.md)
-and permitted actions. Ordinary review/monitoring remains read-only.
+and permitted actions.
 
 ## Establish the source of truth
 
@@ -81,9 +79,7 @@ judgment. Use the rules below for the review output and permission to post it.
   Communicate only for explicitly requested posting; submit the requested
   review/comments and fetch their visible state before claiming they were sent.
 
-Apply the attribution and comment rules below to any posted feedback. A plain
-review request ends with private findings; no comment, approval or change-request
-review is submitted merely because the review finished.
+Apply the attribution and comment rules below to any posted feedback.
 
 ## Draft and create the review unit
 
@@ -130,18 +126,14 @@ result to confirm assignment before reporting delivery.
 
 Before publication, inspect documentation and comments in the diff as well as
 code. Apply the [documentation
-boundary](../follow-instructions/SKILL.md#documentation-boundary). Use the
-temporary task workspace freely for review notes, research, and drafts. Include
-findings that affect review in the PR/MR body, and keep project docs and source
-comments focused on using or maintaining the change. Leave scratch material out
-of the patch. Remove only unnecessary additions from this task; preserve
-existing and independently edited material.
+boundary](../follow-instructions/SKILL.md#documentation-boundary) and include
+findings that affect review in the PR/MR body.
 
-Before pushing in Create mode, confirm the branch contains only the intended
+Before every authorized push, inspect workflows for deployments or other actions
+outside the request. In Create mode, confirm the branch contains only the intended
 committed changes. A create request does not by itself authorize committing
-preexisting uncommitted user work. Before pushing, inspect workflows for
-deployments or other actions outside the requested delivery. After creation,
-report the PR/MR link and the evidence or remaining issues needed for the user's
+preexisting uncommitted user work.
+After creation, report the PR/MR link and the evidence or remaining issues needed for the user's
 next decision. Inspect the final tree and diff at that head. Distinguish passed,
 failed, skipped and not-run checks in the handoff; a draft PR can be reviewable
 with known gaps, but a skipped check is not green. If a create or push response
@@ -173,7 +165,7 @@ Keep three states distinct:
    failing output for any required check, repair its in-scope cause and push the
    correction. Reuse unaffected evidence; refresh what source or integration
    changes invalidate. Resolve conflicts within authorized scope without rewriting
-   unrelated work. Inspect workflows before pushes to preserve delivery boundaries.
+   unrelated work.
 4. Wait through supported native mechanisms. Prefer the runtime's attached PR
    watch when available: register the request and let its notification resume this
    task. Otherwise use the host CLI's supported wait/watch. A progress update is
@@ -257,11 +249,10 @@ runtime yield on the affected work.
 ### Review budget
 
 For every PR/MR delivered under this policy, obtain at least one independent
-[returned round](../code-review-and-quality/SKILL.md#returned-review-rounds).
+[returned review round](../code-review-and-quality/SKILL.md#returned-review-rounds).
 Select an available independent reviewer
 through [agent selection](../follow-instructions/references/agent-selection.md).
-Use the [review procedure](../code-review-and-quality/SKILL.md#returned-review-rounds)
-with the selected reviewer; generic review does not require a particular model. Preserve explicit model
+Generic review does not require a particular model. Preserve explicit model
 constraints and never count self-review as a substitute. Start with one
 round covering the original outcome, scope, contracts, affected callers and
 verification. Stop when the current artifact has adequate independent coverage,
@@ -276,20 +267,15 @@ round a concrete coverage goal: a changed path, unresolved finding or distinct
 risk. Unsupported preferences may be declined with evidence.
 
 Continue necessary in-scope repair and review under the existing authorization.
-Stop commissioning reviews when the final artifact has adequate coverage and no
-material finding remains. A count of rounds is neither acceptance nor a reason
-to hand unfinished work back. Honor explicit user and runtime spending limits;
-if a real limit prevents required review, retain the non-ready state.
+Honor explicit user and runtime spending limits. If a real limit prevents
+required review, retain the non-ready state.
 
 If the same approach fails twice or another round adds no useful evidence, use
 [self-reflect](../self-reflect/SKILL.md) to choose a discriminating check or revise
 the approach. Do not keep asking equivalent reviewers the same question, weaken
 acceptance or request approval merely to continue an already authorized repair.
 
-Verified behavior and the host's permission to merge are separate facts. If agent-owned
-work is complete but a required human approval remains, report that approval
-as pending. Say merge-ready only when both facts are established at the current
-head. Apply the user's merge authority once readiness is established.
+If agent-owned work is complete and required human approval remains, report it as pending.
 
 ## Monitor without scope creep
 

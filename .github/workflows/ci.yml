@@ -28,6 +28,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
@@ -43,9 +44,15 @@ jobs:
           dpkg-deb -x ./make_*.deb "$tools_dir/root"
           echo "$tools_dir/root/usr/bin" >> "$GITHUB_PATH"
       - name: Validate catalog and run offline evaluation tests
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
         run: |
+          if [[ "$BASE_REF" != 0000000000000000000000000000000000000000 ]] &&
+             ! git cat-file -e "${BASE_REF}^{commit}" 2>/dev/null; then
+            git fetch --no-tags --depth=1 origin "$BASE_REF" || echo "Base fetch failed. Checking the pinned fallback."
+          fi
           uv sync --frozen --python 3.13
-          uv run --frozen python scripts/validate_catalog.py
+          uv run --frozen python scripts/validate_catalog.py --base-ref "$BASE_REF"
           uv run --frozen python skills/verify-work/scripts/boundary_checks.py ci --dialect github --file .github/workflows/ci.yml
           uv run --frozen python skills/code-review-and-quality/scripts/setup_portable_lint.py --language python --runtime "$RUNNER_TEMP/skills-lint-python"
           SKILLS_LINT_RUNTIME="$RUNNER_TEMP/skills-lint-python" uv run --frozen python -m unittest evals.tests.test_catalog_validation evals.tests.test_cli_installation evals.tests.test_portable_lint.PythonLintTests evals.tests.test_portable_lint.DiscoveryTests evals.tests.test_portable_lint.SetupTests evals.tests.test_autonomous_cases evals.tests.test_agent_gates -v
