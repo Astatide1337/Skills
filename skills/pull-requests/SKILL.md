@@ -129,10 +129,10 @@ code. Apply the [documentation
 boundary](../follow-instructions/SKILL.md#documentation-boundary) and include
 findings that affect review in the PR/MR body.
 
-Before pushing in Create mode, confirm the branch contains only the intended
+Before every authorized push, inspect workflows for deployments or other actions
+outside the request. In Create mode, confirm the branch contains only the intended
 committed changes. A create request does not by itself authorize committing
-preexisting uncommitted user work. In Create and Approved delivery modes, inspect
-workflows before pushing for deployments or other actions outside the request.
+preexisting uncommitted user work.
 After creation, report the PR/MR link and the evidence or remaining issues needed for the user's
 next decision. Inspect the final tree and diff at that head. Distinguish passed,
 failed, skipped and not-run checks in the handoff; a draft PR can be reviewable

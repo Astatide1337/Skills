@@ -2,6 +2,7 @@
 
 import io
 import json
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -71,6 +72,28 @@ class SkillMetadataTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "catalog.yaml:.*duplicate YAML key"):
             load_yaml("profiles: {work: [one], work: [two]}", Path("catalog.yaml"))
 
+    def test_duplicate_literal_yaml_merge_keys_fail_even_with_distinct_members(self):
+        with self.assertRaisesRegex(ValueError, "duplicate YAML key"):
+            load_yaml("metadata: {<<: {first: a}, <<: {second: b}}", Path("skill.yaml"))
+
+    def test_yaml_merge_can_override_an_inherited_value(self):
+        data = load_yaml(
+            "defaults: &values {owner: first, other: value}\n"
+            "metadata: {<<: *values, owner: second}\n"
+            "fallback: {<<: [*values, {owner: third}]}",
+            Path("skill.yaml"),
+        )
+        self.assertEqual(data["metadata"], {"owner": "second", "other": "value"})
+        self.assertEqual(data["fallback"]["owner"], "first")
+
+    def test_exported_skill_cannot_read_frontmatter_through_an_escaping_symlink(self):
+        path = self.write_skill("name: example\ndescription: Trigger")
+        outside = self.root / "outside.md"
+        path.rename(outside)
+        path.symlink_to(outside)
+        with self.assertRaisesRegex(ValueError, "outside.*package"):
+            validate_skill(path, set())
+
     def test_name_includes_length_endpoints_and_rejects_invalid_names(self):
         for name in ("a", "a" * 64, "0-agent-9"):
             path = self.write_skill(f"name: {name}\ndescription: Trigger", name=name)
@@ -114,6 +137,15 @@ class SkillMetadataTests(unittest.TestCase):
             with self.subTest(length=len(body)), self.assertRaisesRegex(ValueError, "body in"):
                 validate_skill(self.write_skill(header, body), set())
 
+    def test_pull_requests_checks_workflows_before_every_push_within_body_cap(self):
+        path = Path(__file__).resolve().parents[2] / "skills/pull-requests/SKILL.md"
+        body = validate_skill(path, set())
+        self.assertIn(
+            "Before every authorized push, inspect workflows for deployments or other "
+            "actions outside the request.",
+            " ".join(body.split()),
+        )
+
 
 class CatalogBijectionTests(unittest.TestCase):
     def test_entries_and_memberships_match_each_export(self):
@@ -140,6 +172,29 @@ class CatalogBijectionTests(unittest.TestCase):
 
 
 class MarkdownDestinationTests(unittest.TestCase):
+    def test_list_fences_ignore_examples_and_end_with_the_list_item(self):
+        for markdown in (
+            "- ```md\n  [example](missing.md)\n  ```\n\n[real](present.md)",
+            "10. ~~~md\n    [example](missing.md)\n    ~~~\n\n[real](present.md)",
+            "- ```md\n  [example](missing.md)\n- [real](present.md)",
+        ):
+            with self.subTest(markdown=markdown):
+                self.assertEqual(list(destinations(markdown)), [("present.md", False)])
+
+    def test_reference_definitions_on_a_list_marker_or_continuation(self):
+        markdown = (
+            "[first] [second]\n\n"
+            "- [first]: first.md\n\n"
+            "10. A list item.\n\n    [second]: second.md"
+        )
+        self.assertEqual(list(destinations(markdown)), [("first.md", False), ("second.md", False)])
+
+    def test_image_destination_inside_link_is_extracted(self):
+        self.assertCountEqual(
+            destinations("[![p](missing.png)](https://x)"),
+            [("missing.png", False), ("https://x", False)],
+        )
+
     def test_inline_and_reference_links_with_titles(self):
         markdown = """[inline](docs/item_(old).md "inline title")
 [angle](<docs/with spaces.md#section> 'angle title')
@@ -198,11 +253,11 @@ class GraphDebtTests(unittest.TestCase):
         self.allowlist = self.root / "debt.json"
         self.stdout = self.enterContext(redirect_stdout(io.StringIO()))
 
-    def verify_graph(self, body, allowed=()):
+    def verify_graph(self, body, allowed=(), **options):
         (self.skill / "SKILL.md").write_text(body)
         self.allowlist.write_text(json.dumps(allowed))
         validate_graph_debt(
-            self.root, {self.skill: skill_links(self.skill, body)}, self.allowlist
+            self.root, {self.skill: skill_links(self.skill, body)}, self.allowlist, **options
         )
 
     def test_baseline_allows_normalized_escape_and_chain(self):
@@ -223,12 +278,73 @@ class GraphDebtTests(unittest.TestCase):
         (self.skill / "a&amp;b.md").touch()
         self.verify_graph(
             "`./a&amp;b.md` `[fake](missing.md)` `read ./missing.md` "
-            "`references/<placeholder>.md`\n\n~~~\n[example](missing.md)\n~~~"
+            "`references/<placeholder>.md` `scripts/${name}.py` `/v1/models` "
+            "`./scripts/missing.py --help`\n\n~~~\n[example](missing.md)\n~~~"
         )
 
+    def test_non_markdown_inline_paths_are_checked_from_the_source_and_package(self):
+        scripts = self.skill / "scripts"
+        scripts.mkdir()
+        (scripts / "checkpoint.py").touch()
+        (self.outside.parent / "present.py").touch()
+        refs = self.skill / "references"
+        refs.mkdir()
+        (refs / "detail.md").write_text("Use `scripts/checkpoint.py`.")
+        for body, error in (
+            ("`./scripts/missing.py`", r"missing target.*scripts/missing.py"),
+            ("`../two/present.py`", r"new graph debt \(escape\)"),
+            ("[details](references/detail.md)", r"new graph debt \(chain\).*scripts/checkpoint.py"),
+        ):
+            with self.subTest(body=body), self.assertRaisesRegex(ValueError, error):
+                self.verify_graph(body)
+
+    def test_unlinked_resource_cannot_escape_its_package(self):
+        (self.skill / "resource.py").symlink_to(self.outside)
+        with self.assertRaisesRegex(ValueError, "outside.*package"):
+            self.verify_graph("# Entry")
+
+    def test_missing_nested_image_fails_even_when_outer_link_is_external(self):
+        with self.assertRaisesRegex(ValueError, r"missing target.*missing.png"):
+            self.verify_graph("[![p](missing.png)](https://x)")
+
+    def test_reports_inline_only_references_and_unknown_self_and_cyclic_routes(self):
+        (self.skill / "detail.md").touch()
+        self.outside.write_text("Use `skill:one`.")
+        body = "Use `detail.md` and `skill:missing`, `skill:one`, or `skill:two`."
+        (self.skill / "SKILL.md").write_text(body)
+        self.allowlist.write_text("[]")
+        validate_graph_debt(self.root, {
+            self.skill: skill_links(self.skill, body),
+            self.outside.parent: skill_links(self.outside.parent, self.outside.read_text()),
+        }, self.allowlist)
+        report = self.stdout.getvalue()
+        self.assertIn("no direct Markdown link: skills/one/SKILL.md -> skills/one/detail.md", report)
+        self.assertIn("unknown skill route: skills/one/SKILL.md -> skill:missing", report)
+        self.assertIn("self skill route: skills/one/SKILL.md -> skill:one", report)
+        self.assertIn("cyclic skill route: skills/two/SKILL.md -> skill:one", report)
+
+    def test_base_ref_rejects_growing_baseline_but_permits_removing_resolved_debt(self):
+        entry = ["escape", "skills/one/SKILL.md", "skills/two/SKILL.md"]
+        self.allowlist.write_text(json.dumps([entry]))
+        for args in (
+            ("init",), ("add", self.allowlist.name),
+            ("-c", "user.name=Fixture", "-c", "user.email=fixture@example.test",
+             "commit", "-m", "Initial debt"),
+        ):
+            subprocess.run(["git", *args], cwd=self.root, check=True, capture_output=True)
+        self.verify_graph("[old](../two/SKILL.md)", [entry], base_ref="HEAD")
+        self.verify_graph("# Resolved", base_ref="HEAD")
+
+        extra = self.outside.with_name("extra.md")
+        extra.touch()
+        added = ["escape", "skills/one/SKILL.md", "skills/two/extra.md"]
+        with self.assertRaisesRegex(ValueError, r"added graph debt fingerprint.*extra.md"):
+            self.verify_graph(
+                "[old](../two/SKILL.md) [new](../two/extra.md)", [entry, added], base_ref="HEAD"
+            )
+
     def test_new_escapes_include_absolute_paths_and_symlinks(self):
-        (self.skill / "alias.md").symlink_to(self.outside)
-        for body in (f"[absolute](<{self.outside}>)", "[alias](alias.md)", "`../two/SKILL.md`"):
+        for body in (f"[absolute](<{self.outside}>)", "`../two/SKILL.md`"):
             with self.subTest(body=body), self.assertRaisesRegex(
                 ValueError, r"new graph debt \(escape\): skills/one/SKILL.md -> skills/two/SKILL.md"
             ):
@@ -236,6 +352,9 @@ class GraphDebtTests(unittest.TestCase):
         (self.skill / "detail.md").touch()
         with self.assertRaisesRegex(ValueError, r"new graph debt \(escape\)"):
             self.verify_graph(f"[absolute inside package](<{self.skill / 'detail.md'}>)")
+        (self.skill / "alias.md").symlink_to(self.outside)
+        with self.assertRaisesRegex(ValueError, "outside.*package"):
+            self.verify_graph("[alias](alias.md)")
 
     def test_new_chain_includes_inline_code_from_a_reference(self):
         (self.skill / "detail.md").write_text("Read `nested.md` before continuing.")
