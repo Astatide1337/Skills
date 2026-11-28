@@ -22,7 +22,7 @@ from collections import Counter
 from pathlib import Path
 
 import yaml
-from run import CASES, IMAGE, build_image
+from run import CASES, IMAGE, build_image, parse_event
 
 AUTONOMY = [
     (
@@ -91,7 +91,7 @@ def condense(run: Path, budget: int = 120_000) -> tuple[str, set[str]]:
     for trace in sorted(run.glob("trace-*.jsonl")):
         items.append(f"=== turn {trace.stem.split('-')[1]} ===")
         for line in trace.read_text().splitlines():
-            event = json.loads(line) if line.startswith("{") else {}
+            event = parse_event(line)
             for block in (event.get("message") or {}).get("content") or []:
                 if not isinstance(block, dict):
                     continue
@@ -339,9 +339,17 @@ def main() -> None:
             "runs": len(graded),
             "pass_rate": mean_sd([g["pass_rate"] for g in grades]),
             "critical_failures": sum(g["critical_failed"] for g in grades),
-            "time_seconds": mean_sd([t["duration_ms"] / 1000 for t in timing]),
-            "tokens": mean_sd([t["total_tokens"] for t in timing]),
-            "cost_usd": mean_sd([t["cost_usd"] for t in timing]),
+            "timed_out": sum(bool(t.get("timed_out")) for t in timing),
+            "wall_seconds": mean_sd(
+                [t.get("wall_seconds", t["duration_ms"] / 1000) for t in timing]
+            ),
+            # Killed runs never reported usage; averaging their zeros would flatter the arm.
+            "tokens": mean_sd(
+                [t["total_tokens"] for t in timing if t.get("usage_complete", True)]
+            ),
+            "cost_usd": mean_sd(
+                [t["cost_usd"] for t in timing if t.get("usage_complete", True)]
+            ),
             "skills_opened": dict(
                 Counter(s for r in graded for s in condense(r)[1]).most_common()
             ),
@@ -351,9 +359,14 @@ def main() -> None:
         rng, saved = random.Random(0), args.out / "pairwise.json"
         # Saved after every comparison so an interrupted pass resumes instead of re-paying.
         pairs = json.loads(saved.read_text()) if saved.exists() else []
-        done = {
-            (p["case"], p["run"]) for p in pairs if p["a"] == arm_a and p["b"] == arm_b
-        }
+        key = (arm_a, arm_b, args.model)
+
+        def same(
+            p: dict,
+        ) -> bool:  # older or differently configured entries never mix in
+            return (p.get("a"), p.get("b"), p.get("judge")) == key
+
+        done = {(p["case"], p["run"]) for p in pairs if same(p)}
         for case_dir in sorted({r.parents[1] for r in runs}):
             for run_a in sorted((case_dir / arm_a).glob("run-*")):
                 run_b = case_dir / arm_b / run_a.name
@@ -369,11 +382,12 @@ def main() -> None:
                         "run": run_a.name,
                         "a": arm_a,
                         "b": arm_b,
+                        "judge": args.model,
                         "winner": winner,
                     }
                 )
                 saved.write_text(json.dumps(pairs, indent=2))
-        pairs = [p for p in pairs if p["a"] == arm_a and p["b"] == arm_b]
+        pairs = [p for p in pairs if same(p)]
         wins = Counter(p["winner"] for p in pairs)
         decided = wins["a"] + wins["b"]
         benchmark["pairwise"] = {

@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import tempfile
 import threading
+import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -28,15 +29,14 @@ ROOT = Path(__file__).resolve().parents[1]
 CASES = ROOT / "evals" / "cases"
 IMAGE = "skills-autonomous-eval"
 HOME = "/home/node"
-# API errors that say nothing about the agent; anything else (max_output_tokens,
-# autocompact_thrashing, ...) is the agent's outcome and gets graded.
-INFRA_ERRORS = {
-    "usage_limit_reached",
-    "rate_limit",
-    "overloaded",
-    "connection_failed",
-    "no_response",
-    "stream_idle_timeout",
+# API errors the agent itself caused; they are graded outcomes. Every other API
+# error (usage limit, auth, network, outage, ...) means the run could not happen.
+AGENT_ERRORS = {
+    "max_output_tokens",
+    "autocompact_thrashing",
+    "empty_completion",
+    "malformed_tool_use_exhausted",
+    "safety_monitor_blocked",
 }
 USAGE_LIMIT = threading.Event()
 # Stops this run's own agent process; skips the shell running the loop.
@@ -51,8 +51,18 @@ class InfraError(RuntimeError):
 
 
 def is_infra(event: dict) -> bool:
-    status = event.get("api_error_status") or 0
-    return event.get("api_error") in INFRA_ERRORS or status == 429 or status >= 500
+    if event.get("api_error") in AGENT_ERRORS:
+        return False
+    return bool(event.get("api_error") or event.get("api_error_status"))
+
+
+def parse_event(line: str) -> dict:
+    """One stream-json event; a line cut off by a timeout kill is skipped."""
+    try:
+        event = json.loads(line)
+    except ValueError:
+        return {}
+    return event if isinstance(event, dict) else {}
 
 
 def sh(
@@ -152,6 +162,9 @@ def run_one(case: dict, arm: str, catalog: Path | None, n: int, args) -> None:
                 "output_tokens": 0,
                 "agent_errors": [],
                 "timed_out": False,
+                "wall_seconds": 0.0,
+                # False when a turn was killed: its tokens and cost were never reported.
+                "usage_complete": True,
             },
         )
         messages = [case["brief"], *case.get("turns", [])]
@@ -175,6 +188,7 @@ def run_one(case: dict, arm: str, catalog: Path | None, n: int, args) -> None:
             ]
             if session:
                 cmd += ["--resume", session]
+            started = time.monotonic()
             try:
                 proc = subprocess.run(
                     cmd,
@@ -192,13 +206,18 @@ def run_one(case: dict, arm: str, catalog: Path | None, n: int, args) -> None:
                     x.decode(errors="replace") if isinstance(x, bytes) else (x or "")
                     for x in (exc.stdout, exc.stderr)
                 )
-                returncode, totals["timed_out"] = None, True
+                returncode, totals["timed_out"], totals["usage_complete"] = (
+                    None,
+                    True,
+                    False,
+                )
+            totals["wall_seconds"] += round(time.monotonic() - started, 1)
             (out / f"trace-{i}.jsonl").write_text(stdout)
             if stderr.strip():
                 (out / f"stderr-{i}.txt").write_text(stderr)
             got_result = False
             for line in stdout.splitlines():
-                event = json.loads(line) if line.startswith("{") else {}
+                event = parse_event(line)
                 session = event.get("session_id", session)
                 if event.get("type") == "result":
                     got_result = True
