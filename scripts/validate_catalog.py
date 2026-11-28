@@ -8,44 +8,25 @@ import hashlib
 import json
 import os
 import re
-import string
 import subprocess
 import sys
 from collections import Counter
 from collections.abc import Hashable, Iterator
 from dataclasses import dataclass
-from html import unescape
 from pathlib import Path
 from typing import NoReturn
 from urllib.parse import unquote
 
 import yaml
+from markdown_it import MarkdownIt
+from markdown_it.common.utils import unescapeAll
+from markdown_it.rules_inline import StateInline
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 FRONTMATTER = re.compile(r"\A---\r?\n(.*?)^---[ \t]*(?:\r?\n|$)", re.DOTALL | re.MULTILINE)
-FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
-QUOTE_PREFIX = re.compile(r"^ {0,3}>[ \t]?")
-LIST_PREFIX = re.compile(r"^ {0,3}(?:[-+*]|[0-9]{1,9}[.)])(?:[ \t]{1,4}(?=\S)|[ \t](?=[ \t])|$)")
-LABEL = r"\[(?:\\.|[^\[\]\\])*\]"
-LINK_TEXT = rf"\[(?:\\.|[^\[\]\\]|{LABEL})*\]"
-PATH_PART = r"\\.|[^\s()<>\\]"
-PARENS = rf"\((?:{PATH_PART})*\)"
-DESTINATION = rf"<(?:\\.|[^<>\n\\])*>|(?:{PATH_PART}|\((?:{PATH_PART}|{PARENS})*\))+"
-TITLE = r"""(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\((?:\\.|[^()\\])*\))"""
-REFERENCE = re.compile(
-    rf"^ {{0,3}}(?P<label>{LABEL}):[ \t]*(?:\n[ \t]*)?"
-    rf"(?P<target>{DESTINATION})(?:\s+{TITLE})?[ \t]*$", re.MULTILINE
-)
-MARKDOWN = re.compile(
-    rf"(?<![\\`])(?P<ticks>`+)(?!`)(?P<code>.+?)(?<!`)(?P=ticks)(?!`)"
-    rf"|(?<!\\)(?P<image>!)?(?P<link>{LINK_TEXT})"
-    rf"(?:(?P<inline>\(\s*(?P<target>{DESTINATION})?(?:\s+{TITLE})?\s*\))|(?P<ref>{LABEL}))?"
-    r"|(?<!\\)<(?P<autolink>[^<>\s`]+)>",
-    re.DOTALL,
-)
-MARKDOWN_ESCAPE = re.compile(r"\\([" + re.escape(string.punctuation) + r"])")
+LOCAL_AUTOLINK = re.compile(r"<([^<>\s`]+)>")
 URI_SCHEME = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 DEBT_KINDS = ("escape", "chain", "missing")
 BUNDLE_DIRS = ("references", "playbooks", "scripts", "assets")
@@ -204,95 +185,44 @@ def validate_catalog(catalog: object, exported: set[str]) -> None:
         fail(f"catalog profile membership mismatch: {', '.join(mismatch)}")
 
 
-def without_code_blocks(markdown: str) -> str:
-    fence = ""
-    containers: list[int] = []  # A zero width denotes a blockquote.
-    lines = []
-    for line in markdown.splitlines():
-        line = re.sub(r"^[ \t]*\t[ \t]*", lambda indent: indent[0].expandtabs(4), line)
-        for index, width in enumerate(containers):
-            if width == 0 and (quote := QUOTE_PREFIX.match(line)):
-                line = line[quote.end():]
-            elif width and (not line.strip() or line.startswith(" " * width)):
-                line = line[width:]
-            else:
-                del containers[index:]
-                if fence or width == 0:
-                    lines.append("")
-                fence = ""
-                break
-        if not fence:
-            while True:
-                if quote := QUOTE_PREFIX.match(line):
-                    containers.append(0)
-                    line = line[quote.end():]
-                elif marker := LIST_PREFIX.match(line):
-                    containers.append(len(marker[0].expandtabs(4)))
-                    line = line[marker.end():]
-                else:
-                    break
-                lines.append("")
-        match = FENCE.match(line)
-        if fence:
-            if (match and match[1][0] == fence[0]
-                    and len(match[1]) >= len(fence)
-                    and not match[2].strip()):
-                fence = ""
-            lines.append("")
-        elif match and (match[1][0] == "~" or "`" not in match[2]):
-            fence = match[1]
-            lines.append("")
-        elif line.startswith("    ") and (not lines or not lines[-1].strip()):
-            lines.append("")
-        else:
-            lines.append(line)
-    return "\n".join(lines)
+def local_autolink(state: StateInline, silent: bool) -> bool:
+    """Recognize the catalog's path-shaped angle links within inline Markdown."""
+    match = LOCAL_AUTOLINK.match(state.src, state.pos, state.posMax)
+    if match is None or URI_SCHEME.match(match[1]):
+        return False
+    target = match[1]
+    path = re.split(r"[?#]", target, maxsplit=1)[0]
+    if "/" not in path.lstrip("/") and ("." not in path or "@" in path):
+        return False
+    if not silent:
+        token = state.push("local_autolink", "", 0)
+        token.content = state.md.normalizeLink(unescapeAll(target))
+    state.pos = match.end()
+    return True
+
+
+MARKDOWN = MarkdownIt("commonmark")
+MARKDOWN.inline.ruler.after("html_inline", "local_autolink", local_autolink)
 
 
 def destinations(markdown: str) -> Iterator[tuple[str, bool]]:
-    """Extract inline and reference links (with list-scoped definitions), linked
-    images, URI and path-shaped autolinks, and literal inline-code paths.
+    """Extract links, images and literal code paths from markdown-it-py CommonMark.
 
-    Handle lazy list continuation and skip fenced and indented code, including
-    inside lists. Other Markdown syntax is out of scope.
+    The catalog also accepts path-shaped angle links such as <references/guide.md>.
     """
-    references = {}
-
-    def label_key(label: str) -> str:
-        return " ".join(label[1:-1].split()).casefold()
-
-    def remember(match: re.Match) -> str:
-        references.setdefault(label_key(match["label"]), match["target"])
-        return ""
-
-    def inline_destinations(paragraph: str, images_only: bool = False) -> Iterator[tuple[str, bool]]:
-        for match in MARKDOWN.finditer(paragraph):
-            if match["code"] is not None:
-                token = match["code"].strip(" ")
-                if re.fullmatch(r"[^\s<>{}`$]+", token):
-                    yield token, True
-                continue
-            if (autolink := match["autolink"]) is not None:
-                path = re.split(r"[?#]", autolink, maxsplit=1)[0]
-                if not images_only and (URI_SCHEME.match(autolink) or "/" in path.lstrip("/")
-                                        or ("." in path and "@" not in path)):
-                    yield match[0], False
-                continue
-            target = match["target"]
-            if match["inline"] is None:
-                label = match["ref"]
-                target = references.get(label_key(match["link"] if label in (None, "[]") else label))
-            image = match["image"] is not None
-            if target is not None and (image or not images_only):
-                yield target, False
-            if not image or target is None:
-                label_text = match["link"][1:-1]
-                if "[" in label_text or "`" in label_text:
-                    yield from inline_destinations(label_text, images_only or target is not None)
-
-    markdown = REFERENCE.sub(remember, without_code_blocks(markdown))
-    for paragraph in re.split(r"\n[ \t]*\n", markdown):
-        yield from inline_destinations(paragraph)
+    for block in MARKDOWN.parse(markdown):
+        if block.type != "inline":
+            continue
+        for token in block.children or ():
+            if token.type == "code_inline":
+                if re.fullmatch(r"[^\s<>{}`$]+", code := token.content.strip(" ")):
+                    yield code, True
+            elif token.type == "local_autolink":
+                yield token.content, False
+            elif token.type == "link_open" and (href := token.attrGet("href")):
+                yield href, False
+            elif token.type == "image" and (src := token.attrGet("src")):
+                yield src, False
 
 
 @dataclass(frozen=True)
@@ -325,8 +255,6 @@ def skill_links(skill_dir: Path, body: str) -> SkillGraph:
         for raw, inline_code in destinations(markdown):
             if inline_code and re.search(r"[*?\[<>{}]", raw):
                 continue
-            if not inline_code:
-                raw = unescape(MARKDOWN_ESCAPE.sub(r"\1", raw.removeprefix("<").removesuffix(">")))
             if raw.startswith("skill:"):
                 graph.routes.setdefault(path, set()).add(raw.removeprefix("skill:"))
                 continue

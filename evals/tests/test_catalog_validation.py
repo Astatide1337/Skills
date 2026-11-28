@@ -203,6 +203,10 @@ class MarkdownDestinationTests(unittest.TestCase):
         markdown = "-\t```md\n\n\t[example](missing.md)\n\n\t```\n\n[real](present.md)"
         self.assertEqual(list(destinations(markdown)), [("present.md", False)])
 
+    def test_tab_after_a_nested_list_marker_opens_a_fence(self):
+        markdown = "- parent\n  -\t~~~md\n    [sample](missing.md)\n    ~~~\n\n[real](present.md)"
+        self.assertEqual(list(destinations(markdown)), [("present.md", False)])
+
     def test_indented_code_is_ignored_including_inside_lists(self):
         markdown = "    [example](missing.md)\n\n- Item\n\n      [hidden](missing.md)\n\n[real](present.md)"
         self.assertEqual(list(destinations(markdown)), [("present.md", False)])
@@ -236,9 +240,9 @@ class MarkdownDestinationTests(unittest.TestCase):
 """
         self.assertEqual(list(destinations(markdown)), [
             ("docs/item_(old).md", False),
-            ("<docs/with spaces.md#section>", False),
+            ("docs/with%20spaces.md#section", False),
             ("docs/ref.md?view=1#heading", False),
-            ("<docs/collapsed.md>", False),
+            ("docs/collapsed.md", False),
             ("docs/shortcut.md", False),
         ])
 
@@ -266,6 +270,14 @@ class MarkdownDestinationTests(unittest.TestCase):
     def test_code_spans_do_not_cross_paragraphs(self):
         markdown = "A stray `\n\n[real](present.md)\n\nAnother stray `"
         self.assertEqual(list(destinations(markdown)), [("present.md", False)])
+
+    def test_escaped_angle_links_and_html_are_ignored(self):
+        markdown = r"Read \<missing.md>, &lt;missing.md&gt;, or <br/>. See <present.md>."
+        self.assertEqual(list(destinations(markdown)), [("present.md", False)])
+
+    def test_skill_scheme_is_kept_in_inline_and_reference_links(self):
+        markdown = "[one](skill:one) [two]\n\n[two]: skill:two"
+        self.assertEqual(list(destinations(markdown)), [("skill:one", False), ("skill:two", False)])
 
 
 class GraphDebtTests(unittest.TestCase):
@@ -372,6 +384,11 @@ class GraphDebtTests(unittest.TestCase):
         self.assertNotIn("skill:example", report)
         with self.assertRaisesRegex(ValueError, r"missing target.*missing\.md"):
             self.verify_graph("Read <missing.md>.")
+
+    def test_autolinks_inside_bracketed_text_still_count(self):
+        with self.assertRaisesRegex(ValueError, r"missing target.*missing\.md"):
+            self.verify_graph("[See <skill:unknown> and <missing.md>.]")
+        self.assertIn("unknown skill route: skills/one/SKILL.md -> skill:unknown", self.stdout.getvalue())
 
     def test_new_branch_uses_pinned_baseline_when_there_is_no_previous_tip(self):
         with self.assertRaisesRegex(ValueError, "differs from the pinned initial audit baseline"):
