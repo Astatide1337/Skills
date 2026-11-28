@@ -12,14 +12,16 @@ as the user's message and hidden `checks/` are copied in after the agent stops.
 from __future__ import annotations
 
 import argparse
-import base64
+import errno
 import fcntl
 import json
 import os
 import re
+import shlex
 import shutil
 import signal
 import socket
+import stat
 import subprocess
 import tempfile
 import threading
@@ -27,7 +29,6 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager, nullcontext
-from datetime import datetime
 from pathlib import Path
 
 import yaml
@@ -38,9 +39,10 @@ IMAGE = "skills-autonomous-eval"
 HOME = "/home/node"
 DEFAULT_MODELS = {"claude": "claude-opus-5-5", "codex": "gpt-6-luna"}
 CODEX_HOME = f"{HOME}/.codex"
+DEFAULT_CODEX_HOME = Path("~/.local/share/skills-evals/codex-home")
 CODEX_AUTH = f"{CODEX_HOME}/auth.json"
 TOKEN_FIELDS = ("id_token", "access_token", "refresh_token")
-OTHER_AUTH_FIELDS = (
+OTHER_CREDENTIAL_FIELDS = (
     "OPENAI_API_KEY",
     "personal_access_token",
     "agent_identity",
@@ -78,14 +80,15 @@ class UsageGuard:
     def __init__(self, five_hour: float, seven_day: float):
         self.thresholds = {"five_hour": five_hour, "seven_day": seven_day}
         self.windows: dict[str, float] = {}
-        self.limited = False
+        self.stop_reason: str | None = None
         self.probing = False
         self.lock = threading.Condition()
 
     def observe(self, event: dict) -> None:
         info = event.get("rate_limit_info") or {}
         with self.lock:
-            self.limited |= info.get("status") == "rejected"
+            if info.get("status") == "rejected":
+                self.stop()
             readings = [
                 (window, data.get("utilization"))
                 for window, data in (info.get("unifiedWindows") or {}).items()
@@ -103,15 +106,17 @@ class UsageGuard:
                     self.windows[window] = max(value, self.windows.get(window, 0))
             self.lock.notify_all()
 
-    def stop(self) -> None:
+    def stop(self, reason: str = "usage limit reached earlier in this batch") -> None:
         with self.lock:
-            self.limited = True
+            self.stop_reason = self.stop_reason or reason
             self.lock.notify_all()
 
     @contextmanager
     def admit(self):
         with self.lock:
-            self.lock.wait_for(lambda: self.limited or self.windows or not self.probing)
+            self.lock.wait_for(
+                lambda: self.stop_reason or self.windows or not self.probing
+            )
             self.before_run()
             probe = not self.windows
             if probe:
@@ -133,10 +138,14 @@ class UsageGuard:
                 for window in self.thresholds
             )
 
+    def before_turn(self) -> None:
+        with self.lock:
+            if self.stop_reason:
+                raise InfraError(f"skipped: {self.stop_reason}")
+
     def before_run(self) -> None:
         with self.lock:
-            if self.limited:
-                raise InfraError("skipped: usage limit reached earlier in this batch")
+            self.before_turn()
             for window, value in self.windows.items():
                 if value >= self.thresholds[window]:
                     raise InfraError(
@@ -151,127 +160,53 @@ def fraction(raw: str) -> float:
     return value
 
 
-def jwt_identity(token: str) -> tuple[str, str]:
-    if not re.fullmatch(r"[\w-]+\.[\w-]+\.[\w-]+", token, re.ASCII):
-        raise ValueError("invalid JWT shape")
-    _, payload, _ = token.split(".")
-    claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
-    auth = claims["https://api.openai.com/auth"]
-    account = auth["chatgpt_account_id"]
-    user = auth.get("chatgpt_user_id") or auth.get("user_id") or claims.get("sub")
-    profile = claims.get("https://api.openai.com/profile")
-    if (
-        not all(nonempty_string(value) for value in (account, user))
-        or any(
-            auth.get(key) is not None and not isinstance(auth[key], str)
-            for key in ("chatgpt_user_id", "user_id", "chatgpt_plan_type")
+def codex_login_error(home: Path) -> InfraError:
+    return InfraError(
+        "Codex eval login missing or expired. Run "
+        f"CODEX_HOME={shlex.quote(str(home.expanduser()))} "
+        "codex -c 'cli_auth_credentials_store=\"file\"' login"
+    )
+
+
+def codex_auth_path(home: Path) -> Path:
+    home = home.expanduser().resolve()
+    if home == (Path.home() / ".codex").resolve():
+        raise InfraError(
+            "--codex-home must be a dedicated directory outside the daily Codex home"
         )
-        or not isinstance(auth.get("chatgpt_account_is_fedramp", False), bool)
-        or (claims.get("email") is not None and not isinstance(claims["email"], str))
-        or (
-            profile is not None
-            and profile.get("email") is not None
-            and not isinstance(profile["email"], str)
-        )
-    ):
-        raise ValueError("invalid ChatGPT JWT claims")
-    return account, user
-
-
-def nonempty_string(value) -> bool:
-    return isinstance(value, str) and bool(value.strip())
-
-
-def chatgpt_record(data: dict) -> tuple[dict, tuple[str, str]]:
-    # AuthDotJson and TokenData in the pinned Codex login crate.
-    mode = data.get("auth_mode")
-    if mode != "chatgpt" and (
-        mode is not None or any(data.get(key) is not None for key in OTHER_AUTH_FIELDS)
-    ):
-        raise ValueError("expected a ChatGPT login")
-    tokens = data["tokens"]
-    selected = {key: tokens[key] for key in (*TOKEN_FIELDS, "account_id")}
-    if not all(
-        nonempty_string(value) for value in selected.values()
-    ) or not re.fullmatch(r"[!-~]+", selected["refresh_token"]):
-        raise ValueError("incomplete ChatGPT login")
-    identity = jwt_identity(tokens["id_token"])
-    if (
-        identity[0] != tokens["account_id"]
-        or jwt_identity(tokens["access_token"]) != identity
-    ):
-        raise ValueError("ChatGPT token identities disagree")
-    owner = tokens.get("login_owner_id")
-    if owner is not None:
-        if not nonempty_string(owner):
-            raise ValueError("invalid login owner id")
-        selected["login_owner_id"] = owner
-    provenance = tokens.get("oauth_provenance")
-    if provenance is not None:
-        issuer, client_id = provenance["issuer"], provenance["client_id"]
-        if not all(nonempty_string(value) for value in (issuer, client_id)):
-            raise ValueError("invalid OAuth provenance")
-        selected["oauth_provenance"] = {"issuer": issuer, "client_id": client_id}
-    record = {"auth_mode": "chatgpt", "tokens": selected}
-    refresh = data.get("last_refresh")
-    if refresh is not None:
-        if not re.fullmatch(
-            r"[0-9]{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:[0-5]\d)",
-            refresh,
-            re.ASCII,
-        ):
-            raise ValueError("invalid last_refresh")
-        datetime.fromisoformat(refresh)
-        record["last_refresh"] = refresh
-    return record, identity
-
-
-def save_refreshed_auth(path: Path, original: bytes, updated: bytes) -> None:
-    source, candidate = parse_event(original), parse_event(updated)
+    path = home / "auth.json"
     try:
-        before, old_identity = chatgpt_record(source)
-        after, new_identity = chatgpt_record(candidate)
-    except (AttributeError, KeyError, TypeError, ValueError):
-        return
-    if (
-        old_identity != new_identity
-        or before["tokens"].get("login_owner_id")
-        != after["tokens"].get("login_owner_id")
-        or "last_refresh" not in after
-        or any(candidate.get(key) is not None for key in OTHER_AUTH_FIELDS)
-    ):
-        return
-    # Keep the trusted host's non-login fields and OAuth authority.
-    tokens = {**source["tokens"], **{key: after["tokens"][key] for key in TOKEN_FIELDS}}
-    replacement = {**source, "tokens": tokens, "last_refresh": after["last_refresh"]}
-    if replacement == source:
-        return
-    target = path.resolve()
-    # Match Codex 0.167.1 storage_commit.rs's stable sidecar and Unix flock.
-    fd = os.open(target.with_suffix(".json.lock"), os.O_CREAT | os.O_RDWR, 0o600)
-    with os.fdopen(fd) as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        if path.resolve() != target or not target.exists():
-            return
-        with target.open("r+b") as current:
-            if os.fstat(current.fileno()).st_nlink != 1 or current.read() != original:
-                return
-        with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as tmp:
-            pending = Path(tmp.name)
-            try:
-                tmp.write(json.dumps(replacement).encode())
-                tmp.flush()
-                os.fsync(tmp.fileno())
-                tmp.close()
-                pending.replace(target)
-            finally:
-                pending.unlink(missing_ok=True)
+        info = path.lstat()
+    except FileNotFoundError:
+        raise codex_login_error(home) from None
+    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not info.st_size:
+        raise codex_login_error(home)
+    return path
+
+
+def remember_codex_tokens(raw: bytes, secrets: set[str]) -> None:
+    def remember(value) -> None:
+        if isinstance(value, str) and value:
+            secrets.add(value)
+        elif isinstance(value, dict):
+            for item in value.values():
+                remember(item)
+
+    data = parse_event(raw)
+    tokens = data.get("tokens")
+    if isinstance(tokens, dict):
+        for key in TOKEN_FIELDS:
+            remember(tokens.get(key))
+    for key in OTHER_CREDENTIAL_FIELDS:
+        remember(data.get(key))
 
 
 @contextmanager
-def codex_auth(name: str, secrets: set[str]):
-    """Install auth for one invocation. The caller holds AUTH_LOCK."""
-    path = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "auth.json"
+def codex_auth(
+    name: str, secrets: set[str], home: Path, guard: UsageGuard | None = None
+):
+    """Serialize copy-in, invocation, and refresh for the dedicated eval login."""
+    path = codex_auth_path(home)
 
     def transfer(command: str, data: bytes | None = None) -> bytes:
         proc = subprocess.run(
@@ -285,41 +220,107 @@ def codex_auth(name: str, secrets: set[str]):
             raise InfraError("Codex auth transfer failed")
         return proc.stdout
 
-    def remember(raw: bytes) -> None:
-        tokens = parse_event(raw).get("tokens")
-        if isinstance(tokens, dict):
-            secrets.update(
-                tokens[key] for key in TOKEN_FIELDS if nonempty_string(tokens.get(key))
-            )
-
-    original = path.read_bytes()
-    try:
-        selected, _ = chatgpt_record(parse_event(original))
-    except (AttributeError, KeyError, TypeError, ValueError):
-        raise InfraError(
-            "Codex auth.json needs a valid file-backed ChatGPT login"
-        ) from None
-    supplied = json.dumps(selected).encode()
-    remember(supplied)
-    transfer(
-        f"umask 077; tmp=$(mktemp {CODEX_HOME}/auth.XXXXXX) "
-        f'&& cat > "$tmp" && mv -fT "$tmp" "{CODEX_AUTH}"',
-        supplied,
-    )
-    try:
-        yield
-    finally:
-        updated = transfer(
-            f'p="{CODEX_AUTH}"; if [ -f "$p" ] && [ ! -L "$p" ]; then head -c 65536 "$p"; fi; rm -f "$p"'
+    with AUTH_LOCK, (path.parent / ".eval-auth.lock").open("ab") as lock:
+        if guard is None:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+        else:
+            # Let the runner's main thread cancel a worker waiting on another batch.
+            with guard.lock:
+                while True:
+                    guard.before_turn()
+                    try:
+                        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    except BlockingIOError:
+                        guard.lock.wait(0.1)
+                    else:
+                        break
+        try:
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        except OSError as exc:
+            if exc.errno not in (errno.ENOENT, errno.ELOOP):
+                raise
+            raise codex_login_error(home) from None
+        with os.fdopen(fd, "rb") as source:
+            info = os.fstat(source.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not info.st_size:
+                raise codex_login_error(home)
+            original = source.read()
+        remember_codex_tokens(original, secrets)
+        transfer(
+            f"umask 077; tmp=$(mktemp {CODEX_HOME}/auth.XXXXXX) "
+            f'&& cat > "$tmp" && mv -fT "$tmp" "{CODEX_AUTH}"',
+            original,
         )
-        remember(updated)
-        save_refreshed_auth(path, original, updated)
+        try:
+            yield
+        finally:
+            updated = transfer(
+                f'p="{CODEX_AUTH}"; if [ -f "$p" ] && [ ! -L "$p" ]; then cat "$p" && rm -f "$p"; fi'
+            )
+            remember_codex_tokens(updated, secrets)
+            if updated and updated != original:
+                with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as tmp:
+                    pending = Path(tmp.name)
+                    try:
+                        tmp.write(updated)
+                        tmp.flush()
+                        os.fsync(tmp.fileno())
+                        tmp.close()
+                        pending.replace(path)
+                    finally:
+                        pending.unlink(missing_ok=True)
 
 
 def redact(text: str, secrets: set[str]) -> str:
-    for secret in sorted(secrets, key=len, reverse=True):
-        text = text.replace(secret, "[redacted]")
+    spellings = set(secrets)
+    for secret in secrets:
+        for ascii_only in (True, False):
+            escaped = json.dumps(secret, ensure_ascii=ascii_only)[1:-1]
+            spellings.add(escaped)
+            # A partial JSONL event may contain embedded JSON we cannot decode.
+            spellings.add(json.dumps(escaped, ensure_ascii=ascii_only)[1:-1])
+    for spelling in sorted(spellings, key=len, reverse=True):
+        text = text.replace(spelling, "[redacted]")
     return text
+
+
+def redact_json(value, secrets: set[str]):
+    if isinstance(value, str):
+        return redact(value, secrets)
+    if isinstance(value, list):
+        return [redact_json(item, secrets) for item in value]
+    if isinstance(value, dict):
+        return {
+            redact(key, secrets): redact_json(item, secrets)
+            for key, item in value.items()
+        }
+    return value
+
+
+def redact_jsonl(text: str, secrets: set[str]) -> str:
+    if not secrets:
+        return text
+    lines = []
+    for line in text.splitlines(keepends=True):
+        event = parse_event(line)
+        if event:
+            # Decode alternate JSON escapes before checking string content.
+            clean = redact_json(event, secrets)
+            if clean != event:
+                line = json.dumps(clean) + ("\n" if line.endswith("\n") else "")
+        else:
+            line = redact(line, secrets)
+        lines.append(line)
+    return "".join(lines)
+
+
+def timeout_output(exc: subprocess.TimeoutExpired) -> tuple[str, str]:
+    def decode(value: bytes | str | None) -> str:
+        return (
+            value.decode(errors="replace") if isinstance(value, bytes) else value or ""
+        )
+
+    return decode(exc.stdout), decode(exc.stderr)
 
 
 def is_infra(event: dict) -> bool:
@@ -472,17 +473,47 @@ def codex_error(message: str) -> str | None:
         return "max_output_tokens"
     if "reason: content_filter" in message:
         return "safety_monitor_blocked"
-    if any(
-        limit in message
-        for limit in (
-            "hit your usage limit",
-            "usage_limit_reached",
-            "hit your spend cap",
-            "workspace is out of credits",
-        )
-    ):
-        return "usage_limit_reached"
     return None
+
+
+def codex_events(stdout: str, stderr: str, home: Path) -> list[dict]:
+    events = []
+    diagnostics = [stderr]
+    for line in stdout.splitlines():
+        event = parse_event(line)
+        if not event:
+            diagnostics.append(line)  # A timeout may leave an incomplete error event.
+        elif event.get("type") in ("error", "turn.failed"):
+            diagnostics.append((event.get("error") or event).get("message", ""))
+        events.append(event)
+    for detail in diagnostics:
+        message = detail.lower()
+        if any(
+            limit in message
+            for limit in (
+                "hit your usage limit",
+                "usage_limit_reached",
+                "workspace_limit_reached",
+                "hit your spend cap",
+                "workspace is out of credits",
+            )
+        ):
+            raise InfraError(f"Codex usage limit reached: {detail[-500:]}")
+        if (
+            re.search(r"\b(?:status(?: code)?[ :=]+401|401 unauthorized)\b", message)
+            or message.strip() == "401"
+            or any(
+                hint in message
+                for hint in (
+                    "login required",
+                    "login_required",
+                    "not logged in",
+                    "run `codex login`",
+                )
+            )
+        ):
+            raise codex_login_error(home)
+    return events
 
 
 def codex_result(events: list[dict]) -> tuple[str | None, dict | None]:
@@ -497,16 +528,13 @@ def codex_result(events: list[dict]) -> tuple[str | None, dict | None]:
             result = {"result": reply, "num_turns": 1, "usage": event["usage"]}
         elif kind in ("turn.failed", "error"):
             message = (event.get("error") or event).get("message", "")
-            if not failure or failure["api_error"] != "usage_limit_reached":
-                failure = {
-                    "result": message,
-                    "num_turns": 1,
-                    "api_error": codex_error(message) or "codex_error",
-                }
+            failure = {
+                "result": message,
+                "num_turns": 1,
+                "api_error": codex_error(message) or "codex_error",
+            }
             if kind == "turn.failed":
                 return session, failure
-    if failure and failure["api_error"] == "usage_limit_reached":
-        return session, failure
     return session, result or failure
 
 
@@ -520,18 +548,21 @@ def record_turn(
     final: list[str],
     args,
 ) -> str | None:
-    events = [parse_event(line) for line in stdout.splitlines()]
     if args.agent == "codex":
+        try:
+            events = codex_events(stdout, stderr, args.codex_home)
+        except InfraError as exc:
+            args.guard.stop(str(exc))
+            raise
         thread, result = codex_result(events)
         session = thread or session
         results = [result] if result is not None else []
-        if codex_error(stderr) == "usage_limit_reached":
-            args.guard.stop()
         if returncode and result is not None and not result.get("api_error"):
             raise InfraError(f"Codex exited {returncode} after reporting completion")
     else:
         results = []
-        for event in events:
+        for line in stdout.splitlines():
+            event = parse_event(line)
             session = event.get("session_id", session)
             if event.get("type") == "rate_limit_event":
                 args.guard.observe(event)
@@ -627,78 +658,76 @@ def run_agent(
     )
     if token:
         secrets.add(token)
-    # Keep auth and the quota decision ordered across Codex workers.
-    with AUTH_LOCK if args.agent == "codex" else nullcontext():
-        args.guard.before_run()
-        for pattern in ("trace-*.jsonl", "stderr-*.txt"):
-            for path in out.glob(pattern):
-                path.unlink()
-        for i, message in enumerate(messages):
-            cmd = ["docker", "exec", "-i", "-w", project, name]
-            if args.agent == "claude":
-                cmd += [
-                    "claude",
-                    "-p",
-                    "--model",
-                    args.model,
-                    "--output-format",
-                    "stream-json",
-                    "--verbose",
-                    "--dangerously-skip-permissions",
-                ]
-                if session:
-                    cmd += ["--resume", session]
-            else:
-                cmd += codex_exec(args.model, session) + [
-                    "--dangerously-bypass-approvals-and-sandbox",
-                    "-",
-                ]
-            auth = codex_auth(name, secrets) if args.agent == "codex" else nullcontext()
-            with auth:
-                started = time.monotonic()
-                try:
-                    proc = subprocess.run(
-                        cmd,
-                        input=message,
-                        capture_output=True,
-                        text=True,
-                        timeout=args.turn_timeout,
-                        check=False,
-                    )
-                    stdout, stderr, returncode = (
-                        proc.stdout,
-                        proc.stderr,
-                        proc.returncode,
-                    )
-                except subprocess.TimeoutExpired as exc:
-                    # Keep the partial trace, then grade only after the tools have stopped.
-                    sh("docker", "exec", name, "bash", "-c", KILL_AGENT)
-                    stdout, stderr = (
-                        x.decode(errors="replace")
-                        if isinstance(x, bytes)
-                        else (x or "")
-                        for x in (exc.stdout, exc.stderr)
-                    )
-                    returncode = None
-                    totals["timed_out"] = True
-                    totals["usage_complete"] = False
-                elapsed = time.monotonic() - started
-                totals["wall_seconds"] += round(elapsed, 1)
-                if args.agent == "codex":
-                    totals["duration_ms"] += round(elapsed * 1000)
-            stdout, stderr = redact(stdout, secrets), redact(stderr, secrets)
-            (out / f"trace-{i}.jsonl").write_text(stdout)
-            stderr_path = out / f"stderr-{i}.txt"
-            if stderr.strip():
-                stderr_path.write_text(stderr)
-            else:
-                stderr_path.unlink(missing_ok=True)
-            session = record_turn(
-                stdout, stderr, returncode, i, session, totals, final, args
-            )
-            if totals["timed_out"]:
-                break
-    (out / "final.md").write_text("\n\n".join(final))
+    args.guard.before_run()
+    for pattern in ("trace-*.jsonl", "stderr-*.txt"):
+        for path in out.glob(pattern):
+            path.unlink()
+    for i, message in enumerate(messages):
+        args.guard.before_turn()
+        cmd = ["docker", "exec", "-i", "-w", project, name]
+        if args.agent == "claude":
+            cmd += [
+                "claude",
+                "-p",
+                "--model",
+                args.model,
+                "--output-format",
+                "stream-json",
+                "--verbose",
+                "--dangerously-skip-permissions",
+            ]
+            if session:
+                cmd += ["--resume", session]
+        else:
+            cmd += codex_exec(args.model, session) + [
+                "--dangerously-bypass-approvals-and-sandbox",
+                "-",
+            ]
+        auth = (
+            codex_auth(name, secrets, args.codex_home, args.guard)
+            if args.agent == "codex"
+            else nullcontext()
+        )
+        with auth:
+            started = time.monotonic()
+            try:
+                proc = subprocess.run(
+                    cmd,
+                    input=message,
+                    capture_output=True,
+                    text=True,
+                    timeout=args.turn_timeout,
+                    check=False,
+                )
+                stdout, stderr, returncode = (
+                    proc.stdout,
+                    proc.stderr,
+                    proc.returncode,
+                )
+            except subprocess.TimeoutExpired as exc:
+                # Keep the partial trace, then grade only after the tools have stopped.
+                sh("docker", "exec", name, "bash", "-c", KILL_AGENT)
+                stdout, stderr = timeout_output(exc)
+                returncode = None
+                totals["timed_out"] = True
+                totals["usage_complete"] = False
+            elapsed = time.monotonic() - started
+            totals["wall_seconds"] += round(elapsed, 1)
+            if args.agent == "codex":
+                totals["duration_ms"] += round(elapsed * 1000)
+        stdout, stderr = redact_jsonl(stdout, secrets), redact(stderr, secrets)
+        (out / f"trace-{i}.jsonl").write_text(stdout)
+        stderr_path = out / f"stderr-{i}.txt"
+        if stderr.strip():
+            stderr_path.write_text(stderr)
+        else:
+            stderr_path.unlink(missing_ok=True)
+        session = record_turn(
+            stdout, stderr, returncode, i, session, totals, final, args
+        )
+        if totals["timed_out"]:
+            break
+    (out / "final.md").write_text(redact("\n\n".join(final), secrets))
     return totals, secrets
 
 
@@ -834,6 +863,12 @@ def main() -> None:
     parser.add_argument(
         "--model", help="defaults to the selected agent's default model"
     )
+    parser.add_argument(
+        "--codex-home",
+        type=Path,
+        default=DEFAULT_CODEX_HOME,
+        help=f"dedicated Codex login directory (default: {DEFAULT_CODEX_HOME})",
+    )
     parser.add_argument("--max-five-hour", type=fraction, default=0.6)
     parser.add_argument("--max-seven-day", type=fraction, default=0.8)
     parser.add_argument("--turn-timeout", type=int, default=1800)
@@ -845,6 +880,8 @@ def main() -> None:
         if args.token_file is None:
             parser.error("--token-file is required for Claude")
         os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = args.token_file.read_text().strip()
+    else:
+        codex_auth_path(args.codex_home)
     manifest = args.out / "manifest.json"
     if manifest.exists():
         previous = json.loads(manifest.read_text())

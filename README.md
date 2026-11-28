@@ -285,10 +285,18 @@ uv run --frozen python evals/grade.py --token-file /path/to/token --out ~/evals/
 
 Use `run.py --agent codex` and/or `grade.py --judge codex` to use Codex. Both
 flags default to `claude`. Use `--model` to override the selected provider's
-default. Codex uses the file-backed ChatGPT login from `$CODEX_HOME/auth.json`
-(`~/.codex/auth.json` by default). Each invocation receives only the selected
-login on a container tmpfs. A valid refresh for the same login can be written
-back if the host credentials are still current. Use trusted cases and catalog refs.
+default. Set up a dedicated file-backed Codex login once:
+
+```sh
+CODEX_HOME="$HOME/.local/share/skills-evals/codex-home" \
+  codex -c 'cli_auth_credentials_store="file"' login
+```
+
+Use `--codex-home PATH` on either command to select a different dedicated
+directory, and use that same path for the login command. Each invocation copies
+the eval login into the container's tmpfs and saves refreshes atomically to the
+eval directory. If Codex reports an authentication failure, the batch stops.
+Repeat the login command before resuming. Use trusted cases and catalog refs.
 Use a separate `--out` when changing the agent or its model.
 
 Claude batches run one case at a time until a usage reading arrives. They stop

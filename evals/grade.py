@@ -192,12 +192,18 @@ def condense(run: Path, budget: int = 120_000) -> tuple[str, set[str]]:
 
 
 def judge(
-    prompt: str, schema: dict, model: str, provider: str, attempts: int = 3
+    prompt: str,
+    schema: dict,
+    model: str,
+    provider: str,
+    attempts: int = 3,
+    *,
+    codex_home: Path = harness.DEFAULT_CODEX_HOME,
 ) -> dict:
     """Ask the judge; retry transient failures (rate limits) with a short backoff."""
     for attempt in range(1, attempts + 1):
         try:
-            return judge_once(prompt, schema, model, provider)
+            return judge_once(prompt, schema, model, provider, codex_home=codex_home)
         except harness.InfraError:
             raise
         except RuntimeError:
@@ -207,7 +213,7 @@ def judge(
     raise AssertionError("unreachable")
 
 
-def judge_codex(prompt: str, schema: dict, model: str) -> dict:
+def judge_codex(prompt: str, schema: dict, model: str, codex_home: Path) -> dict:
     name = f"skills-eval-judge-{uuid.uuid4().hex[:10]}"
     try:
         harness.start_container(name, "codex")
@@ -241,7 +247,7 @@ def judge_codex(prompt: str, schema: dict, model: str) -> dict:
             "-",
         ]
         secrets: set[str] = set()
-        with harness.AUTH_LOCK, harness.codex_auth(name, secrets):
+        with harness.codex_auth(name, secrets, codex_home):
             try:
                 proc = subprocess.run(
                     cmd,
@@ -251,34 +257,39 @@ def judge_codex(prompt: str, schema: dict, model: str) -> dict:
                     timeout=900,
                     check=False,
                 )
-            except subprocess.TimeoutExpired:
+            except subprocess.TimeoutExpired as exc:
                 harness.sh("docker", "exec", name, "bash", "-c", harness.KILL_AGENT)
-                raise RuntimeError("Codex judge timed out") from None
-        events = [
-            harness.parse_event(line)
-            for line in harness.redact(proc.stdout, secrets).splitlines()
-        ]
+                stdout, stderr = harness.timeout_output(exc)
+                returncode = None
+            else:
+                stdout, stderr, returncode = proc.stdout, proc.stderr, proc.returncode
+        stdout = harness.redact_jsonl(stdout, secrets)
+        stderr = harness.redact(stderr, secrets)
+        events = harness.codex_events(stdout, stderr, codex_home)
+        if returncode is None:
+            raise RuntimeError("Codex judge timed out")
         _, result = harness.codex_result(events)
-        stderr = harness.redact(proc.stderr, secrets)
-        detail = (result or {}).get("result") or stderr[-500:]
-        if proc.returncode or not result or result.get("api_error"):
-            if "usage_limit_reached" in (
-                (result or {}).get("api_error"),
-                harness.codex_error(stderr),
-            ):
-                raise harness.InfraError(f"Codex judge usage limit reached: {detail}")
-            raise RuntimeError(f"Codex judge failed (exit {proc.returncode}): {detail}")
+        if returncode or not result or result.get("api_error"):
+            detail = (result or {}).get("result") or stderr[-500:]
+            raise RuntimeError(f"Codex judge failed (exit {returncode}): {detail}")
         structured = harness.parse_event(result["result"])
         if not structured:
             raise RuntimeError("Codex judge returned no structured output")
-        return structured
+        return harness.redact_json(structured, secrets)
     finally:
         harness.sh("docker", "rm", "-f", name, check=False)
 
 
-def judge_once(prompt: str, schema: dict, model: str, provider: str) -> dict:
+def judge_once(
+    prompt: str,
+    schema: dict,
+    model: str,
+    provider: str,
+    *,
+    codex_home: Path = harness.DEFAULT_CODEX_HOME,
+) -> dict:
     if provider == "codex":
-        return judge_codex(prompt, schema, model)
+        return judge_codex(prompt, schema, model, codex_home)
     cmd = [
         "docker",
         "run",
@@ -358,7 +369,14 @@ def judge_key(provider: str, model: str) -> str:
     return model if provider == "claude" else f"{provider}:{model}"
 
 
-def grade_run(case: dict, run: Path, model: str, provider: str) -> None:
+def grade_run(
+    case: dict,
+    run: Path,
+    model: str,
+    provider: str,
+    *,
+    codex_home: Path = harness.DEFAULT_CODEX_HOME,
+) -> None:
     if not (run / "timing.json").exists():
         return
     path = run / "grading.json"
@@ -379,7 +397,9 @@ def grade_run(case: dict, run: Path, model: str, provider: str) -> None:
     )
     expected = {i for i, _, _ in items}
     for _ in range(3):
-        returned = judge(prompt, GRADE_SCHEMA, model, provider)["verdicts"]
+        returned = judge(prompt, GRADE_SCHEMA, model, provider, codex_home=codex_home)[
+            "verdicts"
+        ]
         verdicts = {v["id"]: v for v in returned}
         if set(verdicts) == expected and len(returned) == len(expected):
             break
@@ -424,7 +444,14 @@ def grade_run(case: dict, run: Path, model: str, provider: str) -> None:
 
 
 def compare(
-    case: dict, a: Path, b: Path, model: str, rng: random.Random, provider: str
+    case: dict,
+    a: Path,
+    b: Path,
+    model: str,
+    rng: random.Random,
+    provider: str,
+    *,
+    codex_home: Path = harness.DEFAULT_CODEX_HOME,
 ) -> str:
     """'a', 'b' or 'tie'; a side wins only if the judge prefers it in both presentation orders."""
     rubric = "\n".join(f"- {t}" for _, _, t in statements(case))
@@ -438,7 +465,9 @@ def compare(
             f"{request_text(case)}\n\n--- SUBMISSION 1 ---\n{evidence(first)}\n\n"
             f"--- SUBMISSION 2 ---\n{evidence(second)}",
         )
-        better = judge(prompt, PAIR_SCHEMA, model, provider)["better"]
+        better = judge(prompt, PAIR_SCHEMA, model, provider, codex_home=codex_home)[
+            "better"
+        ]
         picks.append(
             "tie"
             if better == "tie"
@@ -464,6 +493,12 @@ def main() -> None:
     parser.add_argument(
         "--model", help="defaults to the selected judge's default model"
     )
+    parser.add_argument(
+        "--codex-home",
+        type=Path,
+        default=harness.DEFAULT_CODEX_HOME,
+        help=f"dedicated Codex login directory (default: {harness.DEFAULT_CODEX_HOME})",
+    )
     parser.add_argument("--compare", nargs=2, metavar=("ARM_A", "ARM_B"))
     args = parser.parse_args()
     args.model = args.model or harness.DEFAULT_MODELS[args.judge]
@@ -471,6 +506,8 @@ def main() -> None:
         if args.token_file is None:
             parser.error("--token-file is required for Claude")
         os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = args.token_file.read_text().strip()
+    else:
+        harness.codex_auth_path(args.codex_home)
     with harness.container_batch():
         grade_batch(args)
 
@@ -484,7 +521,13 @@ def grade_batch(args) -> None:
         for d in {r.parents[1] for r in runs}
     }
     for run in runs:
-        grade_run(cases[run.parents[1].name], run, args.model, args.judge)
+        grade_run(
+            cases[run.parents[1].name],
+            run,
+            args.model,
+            args.judge,
+            codex_home=args.codex_home,
+        )
 
     benchmark: dict = {"arms": {}}
     for arm in sorted({r.parent.name for r in runs}):
@@ -540,7 +583,13 @@ def grade_batch(args) -> None:
                 ):
                     continue
                 winner = compare(
-                    cases[case_dir.name], run_a, run_b, args.model, rng, args.judge
+                    cases[case_dir.name],
+                    run_a,
+                    run_b,
+                    args.model,
+                    rng,
+                    args.judge,
+                    codex_home=args.codex_home,
                 )
                 pairs.append(
                     {
