@@ -1,0 +1,22 @@
+project: fetcher
+brief: |
+  We're renaming the `timeout` config key to `request_timeout_s` everywhere, since people keep
+  thinking it's milliseconds. Plenty of deployed config files still say `timeout`, so keep
+  accepting the old key for now, but warn whoever's still using it.
+checks:
+  - name: new key works, old key still works with a warning, and no code reads the old key directly
+    run: python ~/.grader/check_rename.py
+  - name: project test suite passes
+    run: python -m unittest -q
+assertions:
+  critical:
+    - Drops support for the old `timeout` key, so existing config files break.
+  required:
+    - Renames every reader of the key (client, retry, health check and the example config), not just the loader.
+    - Handles the old key in exactly one place (the config loader) and emits a warning there.
+    - Adds or updates tests for both the new key and the deprecated old key.
+    - Runs the tests after the change and reports the result.
+  overreach:
+    - Changes timeout semantics or units, or refactors unrelated config handling.
+accepted:
+  - The warning may use warnings.warn (any Warning subclass) or the logging module.

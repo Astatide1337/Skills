@@ -1,0 +1,5 @@
+{
+  "base_url": "https://feeds.example.com",
+  "timeout": 10,
+  "retries": 3
+}

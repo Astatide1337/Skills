@@ -1,0 +1,52 @@
+diff --git a/ledger/invoice.py b/ledger/invoice.py
+index 56b7fac..81eab12 100644
+--- a/ledger/invoice.py
++++ b/ledger/invoice.py
+@@ -1,6 +1,6 @@
+ from dataclasses import dataclass, field
+ 
+-from ledger.money import fmt
++from ledger.money import cents, fmt
+ 
+ 
+ @dataclass
+@@ -20,4 +20,4 @@ class Invoice:
+ 
+     def total(self) -> str:
+         """Printed invoice total, tax included."""
+-        return fmt(sum(line.price * line.qty for line in self.lines) * (1 + self.tax_rate))
++        return fmt(sum(cents(line.price * line.qty * (1 + self.tax_rate)) for line in self.lines))
+diff --git a/ledger/money.py b/ledger/money.py
+index df98de4..3756ff2 100644
+--- a/ledger/money.py
++++ b/ledger/money.py
+@@ -1,3 +1,11 @@
+-def fmt(amount: float) -> str:
++from decimal import ROUND_HALF_UP, Decimal
++
++
++def cents(amount) -> Decimal:
++    """Round an amount to cents the way invoices print it."""
++    return Decimal(str(amount)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
++
++
++def fmt(amount) -> str:
+     """Format an amount for printing on an invoice."""
+-    return f"{round(amount, 2):.2f}"
++    return f"{cents(amount):.2f}"
+diff --git a/tests/test_invoice.py b/tests/test_invoice.py
+index e7dd7f1..d07e2cb 100644
+--- a/tests/test_invoice.py
++++ b/tests/test_invoice.py
+@@ -13,6 +13,11 @@ class InvoiceTests(unittest.TestCase):
+         invoice = Invoice([Line(1.5, 2), Line(2.25, 1)])
+         self.assertEqual(invoice.total(), "5.25")
+ 
++    def test_total_matches_printed_lines(self):
++        invoice = Invoice([Line(0.10, 3), Line(0.15, 1), Line(0.35, 1)], tax_rate=0.0825)
++        self.assertEqual(invoice.line_totals(), ["0.32", "0.16", "0.38"])
++        self.assertEqual(invoice.total(), "0.86")
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

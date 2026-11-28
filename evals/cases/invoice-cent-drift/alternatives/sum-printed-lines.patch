@@ -1,0 +1,10 @@
+diff --git a/ledger/invoice.py b/ledger/invoice.py
+index 56b7fac..529e949 100644
+--- a/ledger/invoice.py
++++ b/ledger/invoice.py
+@@ -20,4 +20,4 @@ class Invoice:
+ 
+     def total(self) -> str:
+         """Printed invoice total, tax included."""
+-        return fmt(sum(line.price * line.qty for line in self.lines) * (1 + self.tax_rate))
++        return fmt(sum(float(x) for x in self.line_totals()))

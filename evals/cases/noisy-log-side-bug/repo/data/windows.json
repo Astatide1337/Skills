@@ -1,0 +1,5 @@
+[
+  {"name": "shard-1", "events": 1200, "window_s": 60},
+  {"name": "shard-2", "events": 30000, "window_s": 300},
+  {"name": "shard-3", "events": 0, "window_s": 0}
+]

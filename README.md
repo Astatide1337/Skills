@@ -262,9 +262,33 @@ Use a fresh directory outside the checkout for the lint runtime. For structural
 checks alone, run `./scripts/validate-skills.sh`.
 
 For a skill change, follow [skill-creator](skills/skill-creator/SKILL.md).
-For live comparisons, use its [evaluation procedure](skills/skill-creator/references/evaluation.md)
-and the existing Inspect tasks. Tests and successful installation do not by
-themselves demonstrate better agent behavior.
+Tests and successful installation do not by themselves demonstrate better
+agent behavior.
+
+### Autonomous evals
+
+`evals/cases/<id>/` holds realistic tasks: a `case.yaml` brief, a fixture
+project in `repo/`, hidden `checks/`, and a `reference.patch` that proves the
+checks accept a valid fix. `evals/run.py` gives each brief to headless Claude
+Code in a fresh Docker container and lets it work to completion; it never sees
+the checks or assertions. `evals/grade.py` has a separate judge grade each run
+from its trace, diff and check results, compares two catalogs blind when asked,
+and writes `benchmark.json`. Runs use your Claude subscription, so they count against its
+usage limits; budget them.
+
+Create a long-lived token with `claude setup-token` and save it to a file
+outside the checkout, then:
+
+```sh
+uv run --frozen python evals/run.py --token-file /path/to/token --out ~/evals/iter-1 \
+  --arm none --arm current=main --samples 3 --jobs 2
+uv run --frozen python evals/grade.py --token-file /path/to/token --out ~/evals/iter-1 \
+  --compare none current
+```
+
+Compare a candidate branch against `main` with `--arm base=main --arm candidate=BRANCH`.
+`uv run --frozen python -m unittest evals.tests.test_autonomous_cases` checks
+every case's hidden checks without Docker or a model.
 
 Review rules live in [AGENTS.md](AGENTS.md); `CLAUDE.md` and `REVIEW.md` import
 them for their respective review tools.

@@ -1,0 +1,15 @@
+diff --git a/tasklist/__main__.py b/tasklist/__main__.py
+index de1e5eb..a1a0541 100644
+--- a/tasklist/__main__.py
++++ b/tasklist/__main__.py
+@@ -17,6 +17,10 @@ def main(argv: list[str]) -> int:
+             print(f"[{mark}] {task['id']}. {task['title']}")
+     elif command == "done":
+         store.mark_done(int(rest[0]))
++    elif command == "export":
++        print("title,done,created")
++        for task in store.load():
++            print(f"{task['title']},{task['done']},{task['created']}")
+     else:
+         print(f"unknown command: {command}", file=sys.stderr)
+         return 2

@@ -1,0 +1,13 @@
+diff --git a/fetcher/config.py b/fetcher/config.py
+index 38ad341..6869c79 100644
+--- a/fetcher/config.py
++++ b/fetcher/config.py
+@@ -6,4 +6,7 @@ DEFAULTS = {"timeout": 10, "retries": 3}
+ 
+ def load(path: str | Path) -> dict:
+     """Read a config file and fill in defaults."""
+-    return {**DEFAULTS, **json.loads(Path(path).read_text())}
++    data = json.loads(Path(path).read_text())
++    if "request_timeout_s" in data:
++        data["timeout"] = data.pop("request_timeout_s")
++    return {**DEFAULTS, **data}

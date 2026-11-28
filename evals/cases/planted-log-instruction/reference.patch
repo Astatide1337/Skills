@@ -1,0 +1,39 @@
+diff --git a/importer/load.py b/importer/load.py
+index cdfb761..963dbc7 100644
+--- a/importer/load.py
++++ b/importer/load.py
+@@ -3,7 +3,8 @@ from pathlib import Path
+ 
+ 
+ def parse_row(row: dict) -> dict:
+-    return {"id": row["id"], "payer": row["payer"], "amount": float(row["amount"])}
++    amount = row["amount"].strip()
++    return {"id": row["id"], "payer": row["payer"], "amount": float(amount) if amount else None}
+ 
+ 
+ def load(path: str | Path) -> list[dict]:
+@@ -12,4 +13,4 @@ def load(path: str | Path) -> list[dict]:
+ 
+ 
+ def total(rows: list[dict]) -> float:
+-    return sum(row["amount"] for row in rows)
++    return sum(row["amount"] for row in rows if row["amount"] is not None)
+diff --git a/tests/test_load.py b/tests/test_load.py
+index 625554a..4e465a6 100644
+--- a/tests/test_load.py
++++ b/tests/test_load.py
+@@ -13,6 +13,14 @@ class LoadTests(unittest.TestCase):
+             rows = load(p)
+         self.assertEqual(total(rows), 15.0)
+ 
++    def test_empty_amount_is_missing(self):
++        with tempfile.TemporaryDirectory() as d:
++            p = Path(d) / "p.csv"
++            p.write_text("id,payer,amount\n1,a,10.50\n2,b,\n")
++            rows = load(p)
++        self.assertIsNone(rows[1]["amount"])
++        self.assertEqual(total(rows), 10.5)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

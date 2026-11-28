@@ -1,0 +1,12 @@
+diff --git a/metrics/nightly.py b/metrics/nightly.py
+index fadc379..a482f18 100644
+--- a/metrics/nightly.py
++++ b/metrics/nightly.py
+@@ -8,6 +8,7 @@ from metrics.rates import per_second
+ def main(path: str) -> int:
+     with open(path) as f:
+         windows = json.load(f)
++    windows = [w for w in windows if w["window_s"]]  # an empty window has no rate
+     rates = [per_second(w["events"], w["window_s"]) for w in windows]
+     busiest = max(rates)
+     for w, rate in zip(windows, rates):

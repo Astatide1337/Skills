@@ -1,0 +1,12 @@
+diff --git a/ledger/money.py b/ledger/money.py
+index df98de4..5e4be2b 100644
+--- a/ledger/money.py
++++ b/ledger/money.py
+@@ -1,3 +1,6 @@
++from decimal import ROUND_HALF_UP, Decimal
++
++
+ def fmt(amount: float) -> str:
+     """Format an amount for printing on an invoice."""
+-    return f"{round(amount, 2):.2f}"
++    return f"{Decimal(str(amount)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP):.2f}"

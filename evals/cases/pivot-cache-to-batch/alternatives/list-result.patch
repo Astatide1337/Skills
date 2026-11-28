@@ -1,0 +1,31 @@
+diff --git a/shortlinks/dashboard.py b/shortlinks/dashboard.py
+index db1d5fe..993a4c8 100644
+--- a/shortlinks/dashboard.py
++++ b/shortlinks/dashboard.py
+@@ -1,6 +1,7 @@
+ from shortlinks.db import Database
+-from shortlinks.resolver import resolve
++from shortlinks.resolver import resolve_many
+ 
+ 
+ def render(db: Database, codes: list[str]) -> str:
+-    return "\n".join(f"{code} -> {resolve(db, code) or '(missing)'}" for code in codes)
++    targets = resolve_many(db, codes)
++    return "\n".join(f"{code} -> {target or '(missing)'}" for code, target in zip(codes, targets))
+diff --git a/shortlinks/resolver.py b/shortlinks/resolver.py
+index b8af6e2..280b246 100644
+--- a/shortlinks/resolver.py
++++ b/shortlinks/resolver.py
+@@ -4,3 +4,12 @@ from shortlinks.db import Database
+ def resolve(db: Database, code: str) -> str | None:
+     rows = db.query("select target from links where code = ?", (code,))
+     return rows[0][0] if rows else None
++
++
++def resolve_many(db: Database, codes: list[str]) -> list[str | None]:
++    """Targets aligned with codes, in one query."""
++    if not codes:
++        return []
++    marks = ",".join("?" * len(codes))
++    found = dict(db.query(f"select code, target from links where code in ({marks})", tuple(codes)))
++    return [found.get(code) for code in codes]
